@@ -86,7 +86,7 @@ const baseFlow: FlowStepDescriptor[] = [
   },
   {
     id: "borrower_full_name",
-    prompt: "Great. What is your full name?",
+    prompt: "Great — last step. Let's grab your contact info: full name, phone, and email.",
     fieldPath: "name",
     kind: "text",
     placeholder: "First & last name",

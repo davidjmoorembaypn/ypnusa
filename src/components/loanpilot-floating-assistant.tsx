@@ -189,8 +189,10 @@ export function MortgageIntakeChat(props: {
     }
   }
 
-  async function applySnapshot(snapshot: IntakeTickResponse) {
-    setLastError(snapshot.ok ? null : snapshot.error ?? "The intake tick could not complete.");
+  async function applySnapshot(snapshot: IntakeTickResponse, opts?: { silent?: boolean }) {
+    if (!opts?.silent) {
+      setLastError(snapshot.ok ? null : snapshot.error ?? "The intake tick could not complete.");
+    }
     rememberSession(snapshot.sessionId);
 
     const denominator = Math.max(1, snapshot.progress.totalApplicable);
@@ -219,21 +221,23 @@ export function MortgageIntakeChat(props: {
       setStep(snapshot.activeStep ?? null);
     }
 
-    if (snapshot.ok && snapshot.assistantMessage.trim()) {
-      pushAssistant(snapshot.assistantMessage);
-    }
-    if (!snapshot.ok && snapshot.error) {
-      pushSys(snapshot.error);
+    if (!opts?.silent) {
+      if (snapshot.ok && snapshot.assistantMessage.trim()) {
+        pushAssistant(snapshot.assistantMessage);
+      }
+      if (!snapshot.ok && snapshot.error) {
+        pushSys(snapshot.error);
+      }
     }
   }
 
-  async function postTick(payload?: IncomingPayload) {
+  async function postTick(payload?: IncomingPayload, opts?: { silent?: boolean }) {
     if (payload && !startedTrackedRef.current) {
       startedTrackedRef.current = true;
       void trackStage("started_signup");
     }
     setBusy(true);
-    setLastError(null);
+    if (!opts?.silent) setLastError(null);
     try {
       const res = await fetch("/api/intake/tick", {
         method: "POST",
@@ -251,15 +255,17 @@ export function MortgageIntakeChat(props: {
       }
 
       const snapshot = (await res.json()) as IntakeTickResponse;
-      await applySnapshot(snapshot);
+      await applySnapshot(snapshot, opts);
       return snapshot;
     } catch (error) {
       const message =
         brand === "ypn"
           ? "Connection glitch — retry when you’re back online."
           : "Network turbulence—LoanPilot LOS bridge unavailable.";
-      setLastError(error instanceof Error && error.message ? `${message} ${error.message}` : message);
-      pushSys(message);
+      if (!opts?.silent) {
+        setLastError(error instanceof Error && error.message ? `${message} ${error.message}` : message);
+        pushSys(message);
+      }
       return null;
     } finally {
       setBusy(false);
@@ -321,6 +327,55 @@ export function MortgageIntakeChat(props: {
     pushUser(label ?? raw);
     await postTick({ field: field.field, rawValue: raw });
     setDraft("");
+  }
+
+  // Contact info (name, phone, email) collapses into a single visual step:
+  // the backend still ticks one field at a time, but we chain all three
+  // silently and only surface one combined user bubble + the final reply.
+  const CONTACT_GROUP_FIELDS = ["name", "phone", "email"] as const;
+  const isContactGroupField = Boolean(step && (CONTACT_GROUP_FIELDS as readonly string[]).includes(step.field));
+  const [contactDraft, setContactDraft] = useState({ name: "", phone: "", email: "" });
+  const [contactGroupError, setContactGroupError] = useState<string | null>(null);
+  const [contactGroupBusy, setContactGroupBusy] = useState(false);
+
+  async function submitContactGroup() {
+    const name = contactDraft.name.trim();
+    const phone = contactDraft.phone.trim();
+    const email = contactDraft.email.trim();
+
+    if (!name || !phone || !email) {
+      setContactGroupError("Fill in name, phone, and email to continue.");
+      return;
+    }
+
+    setContactGroupError(null);
+    setContactGroupBusy(true);
+    pushUser(`${name} · ${phone} · ${email}`);
+
+    const nameRes = await postTick({ field: "name", rawValue: name }, { silent: true });
+    if (!nameRes?.ok) {
+      setContactGroupError(nameRes?.error ?? "Couldn't save your name — try again.");
+      setContactGroupBusy(false);
+      return;
+    }
+
+    const phoneRes = await postTick({ field: "phone", rawValue: phone }, { silent: true });
+    if (!phoneRes?.ok) {
+      setContactGroupError(phoneRes?.error ?? "Couldn't save your phone — check the format.");
+      setContactGroupBusy(false);
+      return;
+    }
+
+    const emailRes = await postTick({ field: "email", rawValue: email }, { silent: true });
+    if (!emailRes?.ok) {
+      setContactGroupError(emailRes?.error ?? "Couldn't save your email — check the format.");
+      setContactGroupBusy(false);
+      return;
+    }
+
+    if (emailRes.assistantMessage.trim()) pushAssistant(emailRes.assistantMessage);
+    setContactDraft({ name: "", phone: "", email: "" });
+    setContactGroupBusy(false);
   }
 
   async function handleBook(startIso: string, loId: string) {
@@ -494,6 +549,12 @@ export function MortgageIntakeChat(props: {
                 ringFocus={ringFocus}
                 sendGradient={sendGradient}
                 closedFooter={closedFooter}
+                isContactGroupField={isContactGroupField}
+                contactDraft={contactDraft}
+                setContactDraft={setContactDraft}
+                contactGroupError={contactGroupError}
+                contactGroupBusy={contactGroupBusy}
+                submitContactGroup={() => void submitContactGroup()}
               />
             </section>
           </div>
@@ -537,6 +598,12 @@ export function MortgageIntakeChat(props: {
               ringFocus={ringFocus}
               sendGradient={sendGradient}
               closedFooter={closedFooter}
+              isContactGroupField={isContactGroupField}
+              contactDraft={contactDraft}
+              setContactDraft={setContactDraft}
+              contactGroupError={contactGroupError}
+              contactGroupBusy={contactGroupBusy}
+              submitContactGroup={() => void submitContactGroup()}
             />
           </section>
         )
@@ -583,6 +650,12 @@ function InnerChrome(props: {
   ringFocus: string;
   sendGradient: string;
   closedFooter: string;
+  isContactGroupField: boolean;
+  contactDraft: { name: string; phone: string; email: string };
+  setContactDraft: (updater: (d: { name: string; phone: string; email: string }) => { name: string; phone: string; email: string }) => void;
+  contactGroupError: string | null;
+  contactGroupBusy: boolean;
+  submitContactGroup: () => void;
 }) {
   const {
     brandMark,
@@ -622,6 +695,12 @@ function InnerChrome(props: {
     ringFocus,
     sendGradient,
     closedFooter,
+    isContactGroupField,
+    contactDraft,
+    setContactDraft,
+    contactGroupError,
+    contactGroupBusy,
+    submitContactGroup,
   } = props;
 
   return (
@@ -762,7 +841,7 @@ function InnerChrome(props: {
           </div>
         ) : null}
 
-        {step?.chips && step.kind !== "number" ? (
+        {step?.chips && step.kind !== "number" && !isContactGroupField ? (
           <div className="flex flex-wrap gap-2">
             {step.chips.map((chip) => (
               <button
@@ -778,7 +857,55 @@ function InnerChrome(props: {
           </div>
         ) : null}
 
-        {phase === "collecting" ? (
+        {phase === "collecting" && isContactGroupField ? (
+          <div className="space-y-2">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <input
+                disabled={busyFlag || contactGroupBusy}
+                value={contactDraft.name}
+                onChange={(evt) => setContactDraft((d) => ({ ...d, name: evt.target.value }))}
+                type="text"
+                className={`rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+                placeholder="Full name"
+              />
+              <input
+                disabled={busyFlag || contactGroupBusy}
+                value={contactDraft.phone}
+                onChange={(evt) => setContactDraft((d) => ({ ...d, phone: evt.target.value }))}
+                type="tel"
+                className={`rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+                placeholder="(555) 123-9876"
+              />
+              <input
+                disabled={busyFlag || contactGroupBusy}
+                value={contactDraft.email}
+                onChange={(evt) => setContactDraft((d) => ({ ...d, email: evt.target.value }))}
+                onKeyDown={(evt) => {
+                  if (evt.key === "Enter" && !evt.shiftKey) {
+                    evt.preventDefault();
+                    void submitContactGroup();
+                  }
+                }}
+                type="email"
+                className={`rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+                placeholder="name@example.com"
+              />
+            </div>
+            {contactGroupError ? (
+              <p className="text-xs font-medium text-amber-700">{contactGroupError}</p>
+            ) : null}
+            <button
+              type="button"
+              disabled={busyFlag || contactGroupBusy}
+              onClick={() => void submitContactGroup()}
+              className={`w-full rounded-2xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-35 ${sendGradient}`}
+            >
+              {contactGroupBusy ? "Sending…" : "Continue"}
+            </button>
+          </div>
+        ) : null}
+
+        {phase === "collecting" && !isContactGroupField ? (
           <div className="flex gap-2">
             <input
               disabled={busyFlag || !step}
@@ -805,9 +932,11 @@ function InnerChrome(props: {
               {busyFlag ? "Sending…" : "Send"}
             </button>
           </div>
-        ) : (
+        ) : null}
+
+        {phase !== "collecting" ? (
           <p className="text-xs text-slate-500">{closedFooter}</p>
-        )}
+        ) : null}
       </footer>
     </>
   );

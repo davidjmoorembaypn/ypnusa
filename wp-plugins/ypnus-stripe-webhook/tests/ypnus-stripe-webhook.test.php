@@ -50,10 +50,12 @@ class WP_REST_Response {
 class WP_REST_Request {
 	private $body;
 	private $headers;
+	private $params;
 
-	public function __construct( $body, $headers = array() ) {
+	public function __construct( $body = '', $headers = array(), $params = array() ) {
 		$this->body    = $body;
 		$this->headers = $headers;
+		$this->params  = $params;
 	}
 
 	public function get_body() {
@@ -62,6 +64,10 @@ class WP_REST_Request {
 
 	public function get_header( $name ) {
 		return isset( $this->headers[ $name ] ) ? $this->headers[ $name ] : '';
+	}
+
+	public function get_param( $name ) {
+		return isset( $this->params[ $name ] ) ? $this->params[ $name ] : null;
 	}
 }
 
@@ -517,5 +523,157 @@ $GLOBALS['wpdb']->row_results   = array(
 $duplicate_response = ypnus_stripe_webhook_handler( $duplicate_request );
 assert_same( 200, $duplicate_response->status, 'handler acknowledges a completed duplicate' );
 assert_same( true, $duplicate_response->data['duplicate'], 'duplicate response identifies the replay' );
+
+// --- ZIP territory locking ---
+
+assert_same(
+	'93720',
+	ypnus_stripe_resolve_checkout_zip(
+		array( 'metadata' => array( 'ypnus_zip' => '93720' ), 'client_reference_id' => '10001' )
+	),
+	'metadata zip takes priority over client_reference_id'
+);
+assert_same(
+	'10001',
+	ypnus_stripe_resolve_checkout_zip( array( 'client_reference_id' => '10001' ) ),
+	'falls back to client_reference_id for the zip'
+);
+assert_same(
+	'',
+	ypnus_stripe_resolve_checkout_zip( array( 'client_reference_id' => '123' ) ),
+	'rejects a non-5-digit zip'
+);
+
+$lock_skip = ypnus_stripe_lock_zip_territory( 1, 'sub_x', 'starter', '' );
+assert_same( 'skipped_no_zip', $lock_skip['action'], 'skips locking when no zip is present on the session' );
+
+$GLOBALS['wpdb']                = new FakeWpdb();
+$GLOBALS['wpdb']->query_results = array( 1 );
+$lock_new = ypnus_stripe_lock_zip_territory( 501, 'sub_new_zip', 'starter', '90001' );
+assert_same( 'locked', $lock_new['action'], 'locks an unclaimed zip' );
+assert_same( '90001', get_user_meta( 501, 'ypnus_locked_zip', true ), 'stores the locked zip on the user' );
+
+$GLOBALS['wpdb']              = new FakeWpdb();
+$GLOBALS['wpdb']->row_results = array( (object) array( 'user_id' => 501 ) );
+$lock_repeat = ypnus_stripe_lock_zip_territory( 501, 'sub_new_zip', 'starter', '90001' );
+assert_same( 'already_locked', $lock_repeat['action'], 'repeat lock by the same user is a no-op' );
+
+$GLOBALS['wpdb']              = new FakeWpdb();
+$GLOBALS['wpdb']->row_results = array( (object) array( 'user_id' => 501 ) );
+$lock_conflict = ypnus_stripe_lock_zip_territory( 777, 'sub_other', 'pro', '90001' );
+assert_same( 'territory_conflict', $lock_conflict['action'], 'flags a conflict when a different user already holds the zip' );
+assert_same(
+	'90001',
+	get_user_meta( 777, 'ypnus_territory_conflict', true ),
+	'stores the conflicted zip on the losing user'
+);
+
+$GLOBALS['wpdb']                = new FakeWpdb();
+$GLOBALS['wpdb']->query_results = array( 0 );
+$GLOBALS['wpdb']->row_results   = array( null, (object) array( 'user_id' => 900 ) );
+$lock_race = ypnus_stripe_lock_zip_territory( 901, 'sub_race', 'elite', '90002' );
+assert_same( 'territory_conflict', $lock_race['action'], 'flags a conflict when a concurrent insert wins the race' );
+
+$GLOBALS['wpdb']              = new FakeWpdb();
+$GLOBALS['wpdb']->row_results = array( null );
+$available_response = ypnus_stripe_territory_status_handler(
+	new WP_REST_Request( '', array(), array( 'zip' => '90003' ) )
+);
+assert_same( 200, $available_response->status, 'territory status returns 200 for a valid zip' );
+assert_same( true, $available_response->data['available'], 'reports an unclaimed zip as available' );
+
+$GLOBALS['wpdb']              = new FakeWpdb();
+$GLOBALS['wpdb']->row_results = array( (object) array( 'user_id' => 501 ) );
+$locked_response = ypnus_stripe_territory_status_handler(
+	new WP_REST_Request( '', array(), array( 'zip' => '90001' ) )
+);
+assert_same( false, $locked_response->data['available'], 'reports a claimed zip as unavailable' );
+
+$invalid_response = ypnus_stripe_territory_status_handler(
+	new WP_REST_Request( '', array(), array( 'zip' => '123' ) )
+);
+assert_same( 400, $invalid_response->status, 'rejects a malformed zip parameter' );
+
+$GLOBALS['wpdb']                = new FakeWpdb();
+$GLOBALS['wpdb']->query_results = array( 1, 1 );
+$GLOBALS['wpdb']->row_results   = array(
+	(object) array(
+		'subscription_id'     => 'sub_zip_lock',
+		'customer_id'         => 'cus_zip_lock',
+		'tier'                => 'starter',
+		'subscription_status' => 'active',
+		'last_event_id'       => 'evt_zip_lock',
+	),
+	null,
+);
+$zip_checkout = ypnus_stripe_process_checkout(
+	array(
+		'id'      => 'evt_zip_lock',
+		'type'    => 'checkout.session.completed',
+		'created' => $timestamp,
+		'data'    => array(
+			'object' => array(
+				'mode'                => 'subscription',
+				'payment_status'      => 'paid',
+				'customer'            => 'cus_zip_lock',
+				'subscription'        => 'sub_zip_lock',
+				'payment_link'        => 'plink_starter',
+				'customer_email'      => 'ziplock@example.com',
+				'client_reference_id' => '90005',
+				'metadata'            => array(),
+			),
+		),
+	)
+);
+assert_same( true, $zip_checkout['ok'], 'provisions a paid checkout session with a zip' );
+assert_same( 'locked', $zip_checkout['territory'], 'locks the zip on first paid checkout' );
+assert_same(
+	'90005',
+	get_user_meta( $zip_checkout['user_id'], 'ypnus_locked_zip', true ),
+	'stores the locked zip on the new user'
+);
+
+$GLOBALS['wpdb']                = new FakeWpdb();
+$GLOBALS['wpdb']->query_results = array( 1 );
+$GLOBALS['wpdb']->row_results   = array(
+	(object) array(
+		'subscription_id'     => 'sub_zip_conflict',
+		'customer_id'         => 'cus_zip_conflict',
+		'tier'                => 'starter',
+		'subscription_status' => 'active',
+		'last_event_id'       => 'evt_zip_conflict',
+	),
+	(object) array( 'user_id' => $zip_checkout['user_id'] ),
+);
+$zip_conflict_checkout = ypnus_stripe_process_checkout(
+	array(
+		'id'      => 'evt_zip_conflict',
+		'type'    => 'checkout.session.completed',
+		'created' => $timestamp,
+		'data'    => array(
+			'object' => array(
+				'mode'                => 'subscription',
+				'payment_status'      => 'paid',
+				'customer'            => 'cus_zip_conflict',
+				'subscription'        => 'sub_zip_conflict',
+				'payment_link'        => 'plink_starter',
+				'customer_email'      => 'zipconflict@example.com',
+				'client_reference_id' => '90005',
+				'metadata'            => array(),
+			),
+		),
+	)
+);
+assert_same( true, $zip_conflict_checkout['ok'], 'still provisions paid access even when the zip is already claimed' );
+assert_same(
+	'territory_conflict',
+	$zip_conflict_checkout['territory'],
+	'flags a territory conflict for a second user on the same zip'
+);
+assert_same(
+	'90005',
+	get_user_meta( $zip_conflict_checkout['user_id'], 'ypnus_territory_conflict', true ),
+	'stores the conflicted zip on the losing user'
+);
 
 fwrite( STDOUT, "PASS: {$assertions} assertions\n" );

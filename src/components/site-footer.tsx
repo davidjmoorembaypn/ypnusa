@@ -57,7 +57,15 @@ export function SiteFooter() {
           <p>© {new Date().getFullYear()} YPN Inc. / YPN USA. All rights reserved.</p>
           <p>
             David J. Moore, MBA · NMLS #787257 · DRE #01852847 · Equal Housing Opportunity · Marketing
-            technology only — not a commitment to lend.
+            technology only — not a commitment to lend. ·{" "}
+            <a
+              href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/COMPANY/787257"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline transition hover:text-white"
+            >
+              NMLS Consumer Access
+            </a>
           </p>
         </div>
       </div>

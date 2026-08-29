@@ -15,6 +15,13 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=()",
   },
+  {
+    // Belt-and-suspenders: hPanel/LiteSpeed should also force HTTPS + HSTS at
+    // the edge, but the app enforces it at the origin too so this host never
+    // silently serves plain HTTP if that toggle is ever missed or reset.
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
 ];
 
 const nextConfig: NextConfig = {

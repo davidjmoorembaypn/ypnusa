@@ -84,6 +84,14 @@ This site runs a second, hand-built static site alongside WordPress (`index.html
 - One post ("SEO Article Writing Guide for Better Rankings") contained literal **unfilled AI-generation template stubs** presented as real links — "Pillar Topic Name," "Related Subtopic 1/2," "Affiliate Product Name" — including a fake affiliate-product pitch. Removed the fake affiliate sentence entirely; converted the other placeholders to honest descriptive text rather than inventing fake destinations.
 - Removed a repeated **"MLO Production Strategy Blueprint"** callout box (identical boilerplate text) from **115 posts** — flagged as low-severity in an earlier pass, removed on explicit request. Verified zero remaining in the database and confirmed gone on 3 spot-checked live posts.
 
+## 11. Database backup
+
+No dedicated backup plugin (UpdraftPlus, etc.) is installed on the site. WP-CLI's native `wp db export` is unavailable through the Novamira connector's command guardrails, so the export was performed directly via `mysqldump` (server-side, using the credentials already in `wp-config.php`).
+
+- Created `wp-content/uploads/db-backups/` with a `.htaccess` (`Require all denied` / `Deny from all`) so the directory is not publicly reachable — verified live with a direct HTTP fetch returning `403`.
+- Exported a full snapshot to `wp-content/uploads/db-backups/ypnus-backup-20260830-190920.sql` (~73.4 MB, exit code 0, no errors).
+- **This file is not itself a substitute for a real backup plugin** — it's a one-time manual snapshot sitting on the same server/disk as the live site. It contains password hashes and API keys/secrets from `wp_options`, so it should be downloaded off-server to secure storage and then deleted from the server, and a scheduled solution (UpdraftPlus, WP-CLI cron, or the host's own backup product) should be set up for ongoing protection.
+
 ## Known follow-ups not addressed (flagged, not fixed)
 
 - `templates.html` and `tools.html` (static site) were checked for links/schema but not given a full content-quality review.

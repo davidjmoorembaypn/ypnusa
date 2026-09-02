@@ -183,7 +183,7 @@ is a summary of.
   an accepted plan into a real persisted/published change) — still not
   started, still requires explicit approval before being built.
 
-## Latest completed task: Predictive homepage engine (branch `feature/ga4-predictive-homepage-engine`, PR #49)
+## Latest completed task: Predictive homepage engine (branch `feature/ga4-predictive-homepage-engine`, PR #49 — merged into `main` as squash commit `e9e3f5e`)
 
 - **Product direction:** a client-side-only equivalent of GA4's predictive
   metrics (purchase/churn probability) for the app homepage — micro-

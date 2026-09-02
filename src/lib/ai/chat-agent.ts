@@ -40,6 +40,9 @@ export interface AssistantTurnResult {
   leadScore?: number;
   recommendedAction?: string;
   status: ChatSessionRecord["status"];
+  /** Set once linkQualifiedLead has linked this session into the borrower-lead / CRM store. */
+  borrowerLeadId?: string;
+  crmLeadId?: string;
   /** False whenever no AI provider is configured — the route surfaces this so the UI can show a setup notice instead of treating it as a normal outage. */
   providerConfigured: boolean;
 }
@@ -213,6 +216,8 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
       leadScore: session.leadScore,
       recommendedAction: session.recommendedAction,
       status: session.status,
+      borrowerLeadId: session.borrowerLeadId,
+      crmLeadId: session.crmLeadId,
       providerConfigured: false,
     };
   }
@@ -261,6 +266,8 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
     leadScore: session.leadScore,
     recommendedAction: session.recommendedAction,
     status: session.status,
+    borrowerLeadId: session.borrowerLeadId,
+    crmLeadId: session.crmLeadId,
     providerConfigured: true,
   };
 }

@@ -21,6 +21,8 @@ interface ChatApiSuccess {
   leadScore?: number;
   recommendedAction?: string;
   status: "active" | "qualified" | "closed";
+  borrowerLeadId?: string;
+  crmLeadId?: string;
   providerConfigured: boolean;
 }
 
@@ -82,6 +84,8 @@ export function AssistantChat(props: {
   const [leadScore, setLeadScore] = useState<number | undefined>(undefined);
   const [recommendedAction, setRecommendedAction] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<ChatApiSuccess["status"] | undefined>(undefined);
+  const [borrowerLeadId, setBorrowerLeadId] = useState<string | undefined>(undefined);
+  const [crmLeadId, setCrmLeadId] = useState<string | undefined>(undefined);
 
   const sessionIdRef = useRef<string | null>(null);
   const hasHydratedRef = useRef(false);
@@ -171,6 +175,8 @@ export function AssistantChat(props: {
         setLeadScore(body.leadScore);
         setRecommendedAction(body.recommendedAction);
         setStatus(body.status);
+        setBorrowerLeadId(body.borrowerLeadId);
+        setCrmLeadId(body.crmLeadId);
       }
     } catch {
       pushBubble("system", "Network error — please check your connection and try again.");
@@ -302,6 +308,26 @@ export function AssistantChat(props: {
                   <p>
                     <span className="text-white/45">Recommended action: </span>
                     <span className="text-white/85">{recommendedAction}</span>
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {borrowerLeadId || crmLeadId ? (
+              <div className="mt-1 space-y-1 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm">
+                <p className="font-semibold text-emerald-200">Lead linked</p>
+                {borrowerLeadId ? (
+                  <p className="text-emerald-100/80">
+                    Lead type: Borrower Lead
+                    <br />
+                    ID: <span className="font-mono text-xs">{borrowerLeadId}</span>
+                  </p>
+                ) : null}
+                {crmLeadId ? (
+                  <p className="text-emerald-100/80">
+                    Lead type: CRM/MLO Lead
+                    <br />
+                    ID: <span className="font-mono text-xs">{crmLeadId}</span>
                   </p>
                 ) : null}
               </div>

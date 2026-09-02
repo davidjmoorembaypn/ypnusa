@@ -52,6 +52,10 @@ describe("runAssistantTurn — no provider configured", () => {
     assert.equal(result.providerConfigured, false);
     assert.ok(result.reply.length > 0);
     assert.match(result.reply, /AI provider/i);
+    // No lead exists yet for a brand-new, unqualified session — the API/UI
+    // must not show a "lead linked" state when nothing has been linked.
+    assert.equal(result.borrowerLeadId, undefined);
+    assert.equal(result.crmLeadId, undefined);
 
     const stored = readChatSession(result.sessionId);
     assert.ok(stored);

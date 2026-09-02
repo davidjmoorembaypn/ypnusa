@@ -37,6 +37,21 @@ is a summary of.
   data. `ChatSessionRecord.borrowerLeadId`/`crmLeadId` are set once and guard
   against ever creating a second lead for the same session.
 - Tests: 180/180 passing (`npm test`), clean `tsc`/`lint`.
-- **Next safe app-only task:** surface `borrowerLeadId`/`crmLeadId` (and a
-  link into the existing MLO pipeline view) in the `/assistant` preview UI
-  so a linked lead is visible without reading `data/store.json` directly.
+
+## Latest completed task: surface linked lead in the /assistant preview UI
+
+- **Files changed:** `src/lib/ai/chat-agent.ts` (`AssistantTurnResult` now
+  includes `borrowerLeadId`/`crmLeadId`, passed through automatically by
+  `/api/assistant/chat`'s existing `...result` spread), `src/lib/ai/chat-agent.test.ts`
+  (asserts both are `undefined` for a fresh, unqualified session),
+  `src/components/assistant/assistant-chat.tsx` (renders a "Lead linked"
+  confirmation with lead type + id in the lead_qualification captured-fields
+  panel, only when the API actually returns an id — no error shown
+  otherwise).
+- Tests: 180/180 passing (`npm test`), clean `tsc`/`lint`. No UI/component
+  test runner exists in this repo (no React Testing Library/jsdom in
+  `package.json`), so UI coverage is at the API-response-shape level only.
+- **Next safe app-only task:** none currently pending — awaiting the next
+  instruction. A reasonable candidate: add a link from the CRM/borrower lead
+  IDs shown in the UI to wherever the MLO pipeline is viewed today, once
+  that route is confirmed.

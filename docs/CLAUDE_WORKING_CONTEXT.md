@@ -1,8 +1,10 @@
 # Claude working context (read before starting new work)
 
-- **PR #41** (`claude/stdio-mcp-invizo-setup-ysa3fe`) contains the app.ypnus.com
-  AI Assistant foundation (`src/lib/ai/`, `/api/assistant/chat`, `/assistant`
-  preview page) plus the invizo WordPress MCP setup and Vercel cleanup. See
+- **PR #41 is merged into `main`** (squash commit `4112287`). The
+  app.ypnus.com AI Assistant foundation (`src/lib/ai/`, `/api/assistant/chat`,
+  `/assistant` preview page), invizo WordPress MCP setup, and Vercel cleanup
+  are all now on `main`. **No deployment was performed** — main was only
+  fast-forwarded locally; nothing was pushed to Hostinger/production. See
   `docs/ai-assistant.md` for architecture detail.
 - **Public ypnus.com chatbot stays Meow Apps / AI Engine + OpenAI on
   WordPress.** Do not add a second public chatbot widget there.
@@ -55,3 +57,13 @@ is a summary of.
   instruction. A reasonable candidate: add a link from the CRM/borrower lead
   IDs shown in the UI to wherever the MLO pipeline is viewed today, once
   that route is confirmed.
+
+## Post-merge status
+
+- `main` is at `4112287` (merged PR #41). No deploy/Hostinger/WordPress
+  action was taken as part of the merge — production is untouched until
+  someone explicitly deploys.
+- Next safe app-only tasks (pick one, none started): (1) link shown
+  borrower/CRM lead IDs to the MLO pipeline view, (2) add streaming support
+  to `AnthropicProvider.generate`, (3) inject live CRM/pipeline context into
+  `mlo_dashboard` prompts — see `docs/ai-assistant.md` TODOs.

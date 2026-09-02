@@ -182,3 +182,38 @@ is a summary of.
 - **Next safe app-only task:** approval-gated deployment/publishing (turning
   an accepted plan into a real persisted/published change) — still not
   started, still requires explicit approval before being built.
+
+## Latest completed task: Predictive homepage engine (branch `feature/ga4-predictive-homepage-engine`, PR #49)
+
+- **Product direction:** a client-side-only equivalent of GA4's predictive
+  metrics (purchase/churn probability) for the app homepage — micro-
+  interaction scoring drives a self-selection funnel, an interactive
+  pre-qualification slider, and a once-per-session exit-intent trap. No data
+  leaves the browser; no server-side tracking was added.
+- **Files changed:** `src/lib/analytics-behavior.ts` (new, pure/DOM-free
+  scoring + classification engine), `src/lib/analytics-behavior.test.ts`
+  (new, 17 tests), `src/lib/hooks/useBehaviorTracking.ts` (new, the only
+  DOM-touching piece — wires real listeners + `localStorage`, same SSR-safe
+  hydration pattern as `useContentPatterns.ts`), `src/components/homepage/`
+  (new: `SelfSelectCards`, `DynamicHero`, `InteractiveCalculator`,
+  `ChurnExitModal`, `PredictiveHomepageEngine`), `src/app/page.tsx` (adds
+  `<PredictiveHomepageEngine />` additively into the hero), `.env.example`
+  (documents `NEXT_PUBLIC_PREDICTIVE_HOMEPAGE_ENABLED`).
+- **Off by default / dry-run safe:** gated on
+  `NEXT_PUBLIC_PREDICTIVE_HOMEPAGE_ENABLED === "true"` (same off-by-default
+  precedent as `WORDPRESS_AUTOPILOT_ENABLED`); with it unset the component
+  renders `null` and the homepage HTML is byte-for-byte unchanged (verified
+  via a local `next dev` smoke test). No WordPress, Hostinger, or Meow/OpenAI
+  chatbot changes — everything is client-side React state + `localStorage`
+  in this Next.js app. No network calls in the behavior engine itself.
+- **Checks:** `npx tsc --noEmit` clean, `npm run lint` clean (same 2
+  pre-existing unrelated warnings in `flows.ts` as prior PRs), `npm test`
+  231/231 passing, `npm run build` succeeds. PR #49 carries the same
+  pre-existing account-level `Vercel` check failure documented on #41/#48
+  (unrelated to this diff — confirmed via local `npm run build` success);
+  left in draft pending that.
+- **No deployment was performed.** No Hostinger, live WordPress, or
+  Meow/OpenAI chatbot change of any kind.
+- **Next safe app-only task:** wire real `/api/funnel`/`/api/personalize`
+  telemetry into the behavior engine's self-selected intent (still additive,
+  still flag-gated) — not started, not part of this task.

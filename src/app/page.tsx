@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MortgageIntakeChat } from "@/components/lazy-loanpilot-assistant";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { MortgageCalculator } from "@/components/mortgage-calculator";
+import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepageEngine";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { marketingUrl } from "@/lib/site";
@@ -237,6 +238,8 @@ export default function Home() {
                 </div>
               ))}
             </dl>
+
+            <PredictiveHomepageEngine />
           </div>
 
           <div className="w-full lg:max-w-md">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card, ErrorNote, GenerateButton } from "@/components/intelligence/dashboard-shell";
+import { RunHistoryPanel } from "@/components/autopilot/run-history-panel";
 import type { AutopilotChangeStatus, AutopilotPageType, AutopilotRiskLevel } from "@/lib/types";
 import type { LeadGoal, WebsiteAutopilotPlan } from "@/lib/ai/website-autopilot";
 
@@ -61,6 +62,7 @@ export function AutopilotPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PlanResponse | null>(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   async function generate() {
     setLoading(true);
@@ -88,6 +90,7 @@ export function AutopilotPanel() {
         return;
       }
       setResult(data as PlanResponse);
+      setHistoryRefreshKey((n) => n + 1);
     } catch {
       setError("Failed to reach the server. Please try again.");
     } finally {
@@ -177,6 +180,8 @@ export function AutopilotPanel() {
       </Card>
 
       {result ? <ResultPanel result={result} pageLabelFallback={pageLabel} /> : null}
+
+      <RunHistoryPanel refreshKey={historyRefreshKey} />
     </div>
   );
 }

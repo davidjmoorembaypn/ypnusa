@@ -4,6 +4,7 @@ import type {
   DbShape,
   AppointmentRecord,
   AnalyticsEventRecord,
+  AutopilotRunRecord,
   BorrowerLeadRecord,
   ChatSessionRecord,
   CrmLeadRecord,
@@ -156,6 +157,7 @@ const emptyDb = (): DbShape => ({
   revenueSubscriptions: defaultRevenueSubscriptions,
   chatSessions: [],
   websiteAutopilotChanges: [],
+  autopilotRuns: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -205,6 +207,7 @@ function normalize(snapshot: unknown): DbShape {
       messages: arrayOrEmpty(session.messages),
     })),
     websiteAutopilotChanges: arrayOrEmpty<WebsiteAutopilotChange>(parsed.websiteAutopilotChanges),
+    autopilotRuns: arrayOrEmpty<AutopilotRunRecord>(parsed.autopilotRuns),
   };
 }
 
@@ -384,6 +387,35 @@ export function saveWebsiteAutopilotChange(change: WebsiteAutopilotChange): void
     const idx = db.websiteAutopilotChanges.findIndex((c) => c.id === change.id);
     if (idx >= 0) db.websiteAutopilotChanges[idx] = change;
     else db.websiteAutopilotChanges.push(change);
+  });
+}
+
+/** Newest first — this is a history log, so recency order is what the UI wants. */
+export function listAutopilotRuns(userId?: string): AutopilotRunRecord[] {
+  const all = readDb().autopilotRuns;
+  const scoped = userId ? all.filter((run) => run.userId === userId) : all;
+  return [...scoped].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** Keep each user's run history bounded so repeated dry-run previews can't grow the store forever. */
+const MAX_AUTOPILOT_RUNS_PER_USER = 100;
+
+/** Upserts by id — mirrors saveWebsiteAutopilotChange's replace-or-append pattern. */
+export function saveAutopilotRun(run: AutopilotRunRecord): void {
+  writeDb((db) => {
+    const idx = db.autopilotRuns.findIndex((r) => r.id === run.id);
+    if (idx >= 0) {
+      db.autopilotRuns[idx] = run;
+      return;
+    }
+    db.autopilotRuns.push(run);
+    if (!run.userId) return;
+    const forUser = db.autopilotRuns.filter((r) => r.userId === run.userId);
+    if (forUser.length <= MAX_AUTOPILOT_RUNS_PER_USER) return;
+    const oldestId = [...forUser].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0]?.id;
+    if (oldestId) {
+      db.autopilotRuns = db.autopilotRuns.filter((r) => r.id !== oldestId);
+    }
   });
 }
 

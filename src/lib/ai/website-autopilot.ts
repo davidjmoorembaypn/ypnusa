@@ -5,6 +5,7 @@ import type {
   AutopilotChangeType,
   AutopilotPageType,
   AutopilotRiskLevel,
+  AutopilotRunRecord,
   WebsiteAutopilotChange,
 } from "@/lib/types";
 
@@ -327,4 +328,55 @@ export function runWebsiteAutopilot(input: WebsiteAutopilotPlanInput): WebsiteAu
     saveWebsiteAutopilotChange(change);
   }
   return plan;
+}
+
+/** How many changes an AutopilotRunRecord keeps as its "top changes" preview. */
+const MAX_TOP_CHANGES_IN_RUN_LOG = 5;
+
+/**
+ * Builds a persistable run-history record from an already-generated plan —
+ * "YPNUS improved these items for you" as one Run History entry, distinct
+ * from the individual WebsiteAutopilotChange records. Pure: the caller
+ * decides whether/how to persist it (see db.ts's saveAutopilotRun).
+ */
+export function buildAutopilotRunRecord(
+  plan: WebsiteAutopilotPlan,
+  pageType: AutopilotPageType,
+  options: {
+    userId?: string;
+    mloProfileId?: string;
+    pageLabel?: string;
+    wordpressLive: boolean;
+  },
+): AutopilotRunRecord {
+  // Auto-applied changes first (the "did it for you" part), then everything
+  // else, so the log's headline items are what actually happened.
+  const ordered = [...plan.changes].sort((a, b) => {
+    if (a.status === b.status) return 0;
+    return a.status === "auto_applied" ? -1 : b.status === "auto_applied" ? 1 : 0;
+  });
+
+  return {
+    id: generateId("autopilot_run"),
+    userId: options.userId,
+    mloProfileId: options.mloProfileId,
+    pageType,
+    pageLabel: options.pageLabel,
+    createdAt: new Date().toISOString(),
+    score: plan.score,
+    summaryForMlo: plan.summaryForMlo,
+    autoAppliedCount: plan.autoAppliedCount,
+    needsApprovalCount: plan.needsApprovalCount,
+    changeCount: plan.changes.length,
+    topChanges: ordered.slice(0, MAX_TOP_CHANGES_IN_RUN_LOG).map((change) => ({
+      id: change.id,
+      title: change.title,
+      changeType: change.changeType,
+      riskLevel: change.riskLevel,
+      status: change.status,
+      expectedBenefit: change.expectedBenefit,
+    })),
+    dryRun: true,
+    wordpressLive: options.wordpressLive,
+  };
 }

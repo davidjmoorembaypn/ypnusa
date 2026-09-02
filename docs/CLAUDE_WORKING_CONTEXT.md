@@ -156,3 +156,29 @@ is a summary of.
 - **Next safe app-only task:** approval-gated deployment/publishing (turning
   an accepted plan into a real persisted/published change) — still not
   started, still requires explicit approval before being built.
+
+## Latest completed task: Website Autopilot Run History / Change Log (branch `feature/website-autopilot-run-history`)
+
+- **Product direction:** MLOs shouldn't manage website work — they should see
+  a simple history: "YPNUS improved these items for you." This adds that
+  history log on top of the Command Center, still fully dry-run/app-only.
+- **Files changed:** `src/lib/types.ts` (`AutopilotRunRecord` +
+  `AutopilotRunChangeSummary`, `autopilotRuns` on `DbShape`), `src/lib/db.ts`
+  (`listAutopilotRuns`/`saveAutopilotRun`, same file-backed store, bounded to
+  100 runs/user via `MAX_AUTOPILOT_RUNS_PER_USER`), `src/lib/ai/website-autopilot.ts`
+  (`buildAutopilotRunRecord` — pure, turns a generated plan into a run
+  record), `src/app/api/autopilot/plan/route.ts` (now also logs a run via
+  `saveAutopilotRun`), `src/app/api/autopilot/runs/route.ts` (new, read-only
+  `GET` for history), `src/components/autopilot/run-history-panel.tsx` (new),
+  `src/components/autopilot/autopilot-panel.tsx` (renders it, refreshes
+  after each new plan), tests in `src/lib/ai/website-autopilot.test.ts` and
+  `src/app/api/autopilot/plan/route.test.ts`, `docs/ai-assistant.md`.
+- **No deployment, Hostinger, live WordPress, or Meow/OpenAI change.** No
+  migration — `autopilotRuns` is a new array field defaulting to `[]`, same
+  additive pattern every other `DbShape` field already uses. The route still
+  never calls `runWebsiteAutopilot`, `fetchWordPressContent`, or
+  `applyWordPressAutopilotPlan`; every run is logged `dryRun: true` with
+  `wordpressLive` reflecting `WORDPRESS_AUTOPILOT_ENABLED` (off).
+- **Next safe app-only task:** approval-gated deployment/publishing (turning
+  an accepted plan into a real persisted/published change) — still not
+  started, still requires explicit approval before being built.

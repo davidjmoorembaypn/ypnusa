@@ -10,10 +10,13 @@ const dashboardSource = fs.readFileSync(
 );
 
 describe("Website Autopilot Command Center — /api/autopilot/plan route", () => {
-  it("only calls the pure, non-persisting plan generator — no WordPress writes", () => {
+  it("calls the pure plan generator and logs a run — never a WordPress write", () => {
     assert.match(routeSource, /generateWebsiteAutopilotPlan/);
-    // These would perform (or gate) a live WordPress network call — none of them
-    // may appear in this route tonight: the UI must stay dry-run only.
+    assert.match(routeSource, /buildAutopilotRunRecord/);
+    assert.match(routeSource, /saveAutopilotRun/);
+    // These would perform (or gate) a live WordPress network call, or persist
+    // full change records — none of them may appear in this route: the UI
+    // must stay dry-run only, logging just a run-history summary.
     for (const forbidden of [
       "fetchWordPressContent",
       "applyWordPressAutopilotPlan",
@@ -31,6 +34,28 @@ describe("Website Autopilot Command Center — /api/autopilot/plan route", () =>
   it("requires a signed-in session before generating a plan", () => {
     assert.match(routeSource, /getSession/);
     assert.match(routeSource, /UNAUTHENTICATED/);
+  });
+});
+
+describe("Website Autopilot Command Center — /api/autopilot/runs route", () => {
+  const runsRouteSource = fs.readFileSync(path.join(__dirname, "../runs/route.ts"), "utf8");
+
+  it("only reads run history — no WordPress or write helpers referenced", () => {
+    assert.match(runsRouteSource, /listAutopilotRuns/);
+    for (const forbidden of [
+      "fetchWordPressContent",
+      "applyWordPressAutopilotPlan",
+      "conditionallyUpdateWordPressContent",
+      "saveAutopilotRun",
+      "saveWebsiteAutopilotChange",
+    ]) {
+      assert.ok(!runsRouteSource.includes(forbidden), `runs/route.ts must not reference ${forbidden}`);
+    }
+  });
+
+  it("requires a signed-in session before returning history", () => {
+    assert.match(runsRouteSource, /getSession/);
+    assert.match(runsRouteSource, /UNAUTHENTICATED/);
   });
 });
 

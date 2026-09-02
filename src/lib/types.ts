@@ -347,6 +347,41 @@ export interface WebsiteAutopilotChange {
   wordpressSlug?: string;
 }
 
+/** Compact snapshot of a change shown in an AutopilotRunRecord's history list — avoids re-fetching full WebsiteAutopilotChange records to render history. */
+export interface AutopilotRunChangeSummary {
+  id: string;
+  title: string;
+  changeType: AutopilotChangeType;
+  riskLevel: AutopilotRiskLevel;
+  status: AutopilotChangeStatus;
+  expectedBenefit: string;
+}
+
+/**
+ * One logged run of the Website Autopilot Command Center — "YPNUS improved
+ * these items for you." Distinct from WebsiteAutopilotChange (one edit): a
+ * run groups everything generated together with the plan-level score/summary
+ * so the MLO sees history, not a pile of individual changes to manage.
+ */
+export interface AutopilotRunRecord {
+  id: string;
+  userId?: string;
+  mloProfileId?: string;
+  pageType: AutopilotPageType;
+  pageLabel?: string;
+  createdAt: string;
+  score: number;
+  summaryForMlo: string;
+  autoAppliedCount: number;
+  needsApprovalCount: number;
+  changeCount: number;
+  topChanges: AutopilotRunChangeSummary[];
+  /** Always true tonight — no run has ever published live. */
+  dryRun: boolean;
+  /** WordPress Autopilot's enabled flag at run time, for display only. */
+  wordpressLive: boolean;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -361,4 +396,5 @@ export interface DbShape {
   revenueSubscriptions: RevenueSubscriptionRecord[];
   chatSessions: ChatSessionRecord[];
   websiteAutopilotChanges: WebsiteAutopilotChange[];
+  autopilotRuns: AutopilotRunRecord[];
 }

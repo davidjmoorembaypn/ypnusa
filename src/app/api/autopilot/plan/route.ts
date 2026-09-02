@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
-import { generateWebsiteAutopilotPlan } from "@/lib/ai/website-autopilot";
+import { buildAutopilotRunRecord, generateWebsiteAutopilotPlan } from "@/lib/ai/website-autopilot";
+import { saveAutopilotRun } from "@/lib/db";
 import { getWordPressAutopilotStatus } from "@/lib/wordpress";
 import { isRecord, jsonError, jsonOk, logApiError, parseJsonBody } from "@/lib/http";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
@@ -7,10 +8,12 @@ import type { AutopilotPageType } from "@/lib/types";
 import type { LeadGoal, WebsiteAutopilotPlanInput } from "@/lib/ai/website-autopilot";
 
 /**
- * Dry-run only: generates a Website Autopilot plan for the Command Center UI.
- * Calls the pure, non-persisting generateWebsiteAutopilotPlan — no DB write,
- * no WordPress/network call. getWordPressAutopilotStatus() is a local env-var
- * read used only to show the "dry-run/off" badge, never a live request.
+ * Dry-run only: generates a Website Autopilot plan for the Command Center UI,
+ * then logs a run-history entry (score/summary/counts + a compact top-changes
+ * snapshot) via saveAutopilotRun so the MLO can see history later — it never
+ * persists the full change records, and never touches WordPress.
+ * getWordPressAutopilotStatus() is a local env-var read used only to show
+ * the "dry-run/off" badge, never a live request.
  */
 
 export const runtime = "nodejs";
@@ -72,10 +75,18 @@ export async function POST(request: Request) {
     const pageLabel = optionalString(data.pageLabel, 300);
     const wordpress = getWordPressAutopilotStatus();
 
+    const run = buildAutopilotRunRecord(plan, pageType, {
+      userId: session.sub,
+      pageLabel,
+      wordpressLive: wordpress.enabled,
+    });
+    saveAutopilotRun(run);
+
     return jsonOk({
       dryRun: true,
       pageLabel,
       plan,
+      runId: run.id,
       wordpress: {
         enabled: wordpress.enabled,
         autoApplyLowRisk: wordpress.autoApplyLowRisk,

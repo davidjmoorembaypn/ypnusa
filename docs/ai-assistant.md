@@ -215,3 +215,24 @@ benefit, and risk/status — always under a "No live website changes were
 made. This is a dry-run plan." notice. `WORDPRESS_AUTOPILOT_ENABLED` and
 `WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK` stay off by default; turning this
 into approval-gated deployment/publishing is future work.
+
+### Run History / Change Log
+
+Every generated plan is also logged as an `AutopilotRunRecord`
+(`src/lib/types.ts`, persisted via `saveAutopilotRun`/`listAutopilotRuns` in
+`src/lib/db.ts` — same file-backed store, no new persistence model) so the
+MLO sees a simple history — "YPNUS improved these items for you" — instead
+of a pile of individual changes to manage. `buildAutopilotRunRecord`
+(`website-autopilot.ts`) turns an already-generated `WebsiteAutopilotPlan`
+into a run entry carrying its run date, score, MLO-facing summary,
+auto-applied/needs-approval counts, and a compact "top changes" snapshot
+(auto-applied changes first) — always tagged `dryRun: true` and
+`wordpressLive` set from `getWordPressAutopilotStatus().enabled` (always
+`false` tonight). `GET /api/autopilot/runs` (session-gated, read-only) feeds
+the "Run history" panel on `/dashboard/autopilot`, which refreshes after
+every new plan generation. A user's history is capped at 100 runs
+(`MAX_AUTOPILOT_RUNS_PER_USER` in `db.ts`) so repeated previews can't grow
+the store unbounded. This still never persists a full
+`WebsiteAutopilotChange` record or calls WordPress — `POST /api/autopilot/plan`
+never calls `runWebsiteAutopilot`, `fetchWordPressContent`, or
+`applyWordPressAutopilotPlan`.

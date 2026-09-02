@@ -3,8 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
-import { generateWebsiteAutopilotPlan, runWebsiteAutopilot } from "./website-autopilot";
-import { listWebsiteAutopilotChanges } from "../db";
+import { buildAutopilotRunRecord, generateWebsiteAutopilotPlan, runWebsiteAutopilot } from "./website-autopilot";
+import { listAutopilotRuns, listWebsiteAutopilotChanges, saveAutopilotRun } from "../db";
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "loanpilot-db-website-autopilot-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
@@ -99,5 +99,73 @@ describe("runWebsiteAutopilot — persistence wrapper", () => {
     const stored = listWebsiteAutopilotChanges("user_lo_1");
     assert.equal(stored.length, plan.changes.length);
     assert.ok(stored.every((c) => c.userId === "user_lo_1"));
+  });
+});
+
+describe("buildAutopilotRunRecord — Run History / Change Log foundation", () => {
+  it("carries the plan's score/summary/counts and a dry-run/off status", () => {
+    const plan = generateWebsiteAutopilotPlan(BASE_INPUT);
+    const run = buildAutopilotRunRecord(plan, BASE_INPUT.pageType, {
+      userId: "user_lo_2",
+      pageLabel: "Dallas homepage",
+      wordpressLive: false,
+    });
+    assert.equal(run.score, plan.score);
+    assert.equal(run.summaryForMlo, plan.summaryForMlo);
+    assert.equal(run.autoAppliedCount, plan.autoAppliedCount);
+    assert.equal(run.needsApprovalCount, plan.needsApprovalCount);
+    assert.equal(run.changeCount, plan.changes.length);
+    assert.equal(run.dryRun, true);
+    assert.equal(run.wordpressLive, false);
+    assert.equal(run.pageLabel, "Dallas homepage");
+    assert.ok(run.createdAt);
+  });
+
+  it("surfaces auto-applied changes first in the top-changes preview", () => {
+    const plan = generateWebsiteAutopilotPlan(BASE_INPUT);
+    const run = buildAutopilotRunRecord(plan, BASE_INPUT.pageType, { wordpressLive: false });
+    assert.ok(run.topChanges.length > 0);
+    assert.equal(run.topChanges[0].status, "auto_applied");
+  });
+
+  it("never marks wordpressLive true unless the caller says WordPress Autopilot is enabled", () => {
+    const plan = generateWebsiteAutopilotPlan(BASE_INPUT);
+    const run = buildAutopilotRunRecord(plan, BASE_INPUT.pageType, { wordpressLive: true });
+    assert.equal(run.wordpressLive, true);
+  });
+});
+
+describe("Run history persistence (db.ts) — saveAutopilotRun / listAutopilotRuns", () => {
+  it("persists a run and returns it scoped to its userId, newest first", () => {
+    const plan = generateWebsiteAutopilotPlan(BASE_INPUT);
+    const older = buildAutopilotRunRecord(plan, BASE_INPUT.pageType, {
+      userId: "user_lo_3",
+      wordpressLive: false,
+    });
+    older.createdAt = "2026-01-01T00:00:00.000Z";
+    const newer = buildAutopilotRunRecord(plan, BASE_INPUT.pageType, {
+      userId: "user_lo_3",
+      wordpressLive: false,
+    });
+    newer.createdAt = "2026-01-02T00:00:00.000Z";
+
+    saveAutopilotRun(older);
+    saveAutopilotRun(newer);
+
+    const stored = listAutopilotRuns("user_lo_3");
+    assert.equal(stored.length, 2);
+    assert.equal(stored[0].id, newer.id);
+    assert.equal(stored[1].id, older.id);
+  });
+
+  it("does not leak another MLO's run history", () => {
+    const plan = generateWebsiteAutopilotPlan(BASE_INPUT);
+    const run = buildAutopilotRunRecord(plan, BASE_INPUT.pageType, {
+      userId: "user_lo_4",
+      wordpressLive: false,
+    });
+    saveAutopilotRun(run);
+    const stored = listAutopilotRuns("user_lo_5");
+    assert.ok(!stored.some((r) => r.id === run.id));
   });
 });

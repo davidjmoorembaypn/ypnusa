@@ -85,9 +85,11 @@ const BASE_RISK: Record<AutopilotChangeType, AutopilotRiskLevel> = {
   live_publish: "high",
   paid_ad_copy: "medium",
   sms_email_send: "high",
+  platform_settings_change: "high",
 };
 
-function classifyRisk(changeType: AutopilotChangeType, afterText: string): AutopilotRiskLevel {
+/** Exported so other autopilot surfaces (e.g. src/lib/wordpress.ts) reuse the same risk rules and compliance-keyword guard instead of duplicating them. */
+export function classifyRisk(changeType: AutopilotChangeType, afterText: string): AutopilotRiskLevel {
   const base = BASE_RISK[changeType];
   // Defensive: even a nominally low-risk change type never auto-applies if the
   // generated text itself touches compliance-sensitive language.

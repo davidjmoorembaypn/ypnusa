@@ -100,3 +100,37 @@ is a summary of.
 - **Next safe app-only task:** none pending — awaiting instruction. A
   reasonable candidate: a simple approval UI/endpoint for `needs_approval`
   changes (accept/reject), still with no live publishing wired up.
+
+## Latest completed task: WordPress Autopilot foundation (branch `feature/wordpress-website-autopilot-foundation`)
+
+- **Product direction:** extends the Website/Profile Autopilot so YPNUS can
+  eventually act as a done-for-you operator directly on ypnus.com's WordPress
+  content, not just inside the app — proposing, classifying, and (once
+  explicitly enabled) applying safe copy changes via the WordPress REST API.
+- **Files changed:** `src/lib/wordpress.ts` (new: WordPress REST client +
+  safety gate — `getWordPressAutopilotStatus`, `fetchWordPressContent`,
+  `conditionallyUpdateWordPressContent`, `classifyWordPressChangeRisk`,
+  `applyWordPressAutopilotPlan`), `src/lib/wordpress.test.ts` (new),
+  `.env.example` (new `WORDPRESS_SITE_URL` /
+  `WORDPRESS_AUTOPILOT_USERNAME` / `WORDPRESS_AUTOPILOT_APP_PASSWORD` /
+  `WORDPRESS_AUTOPILOT_ENABLED` / `WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK`
+  block), `docs/WORDPRESS_AUTOPILOT.md` (new reference doc), `docs/ai-assistant.md`
+  (short subsection pointing at it). `src/lib/types.ts`
+  (`WebsiteAutopilotChange` and related types), `src/lib/ai/website-autopilot.ts`
+  (`classifyRisk` exported for reuse), `src/lib/ai/chat-agent.ts`, and
+  `src/components/assistant/assistant-chat.tsx` were extended earlier this
+  session by the orchestrating session, not as part of this doc/env task.
+- **What was completed:** `src/lib/wordpress.ts` reuses `classifyRisk` from
+  `website-autopilot.ts` (no duplicate risk rules) and operates on the same
+  `WebsiteAutopilotChange`/`WebsiteAutopilotPlan` types (no duplicate
+  persistence model). Every write path fails safe to a no-op unless
+  `WORDPRESS_AUTOPILOT_ENABLED=true` AND
+  `WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK=true` are both set, and even then
+  only low-risk changes with an explicit WordPress content ref are ever
+  auto-applied — medium/high-risk changes always go to `needs_approval`.
+- **Dry-run-only status:** both flags default to `false`/unset, so nothing
+  was written to WordPress tonight. No deployment, no Hostinger changes, no
+  live WordPress changes, and no webhook work happened as part of this task.
+- **Next safe app-only task:** a simple approval UI/endpoint for
+  `needs_approval` changes (accept/reject), still with no live publishing
+  wired up — same candidate as the prior entry, still not started.

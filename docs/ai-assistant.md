@@ -187,3 +187,14 @@ the MLO to implement manually.
   WordPress, or any deployment/webhook path. Turning `auto_applied` records
   into real published content on ypnus.com/app.ypnus.com is future work and
   requires explicit approval before being built.
+
+### WordPress-specific extension (`src/lib/wordpress.ts`)
+
+A WordPress-specific extension now exists for eventually applying safe,
+low-risk changes directly to ypnus.com's content via its REST API — reusing
+the same `WebsiteAutopilotChange`/`WebsiteAutopilotPlan` types and risk rules
+above rather than duplicating them. It is fully described in
+[`docs/WORDPRESS_AUTOPILOT.md`](WORDPRESS_AUTOPILOT.md). Tonight it remains
+dry-run-only: `WORDPRESS_AUTOPILOT_ENABLED` and
+`WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK` both default to `false`, so no
+change is ever written to WordPress.

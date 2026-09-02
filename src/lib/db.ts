@@ -5,6 +5,7 @@ import type {
   AppointmentRecord,
   AnalyticsEventRecord,
   BorrowerLeadRecord,
+  ChatSessionRecord,
   CrmLeadRecord,
   DemoRequestRecord,
   IntakeSessionRecord,
@@ -22,13 +23,11 @@ import type {
  * hydrated once from disk (if a snapshot exists) and written through to disk on
  * every mutation on a best-effort basis.
  *
- * Why in-memory-first: on serverless hosts (e.g. Vercel) the application
- * directory is read-only, so file writes throw. Keeping state in memory means
- * multi-step flows (the intake chat posting several `tick`s) still work within a
- * warm instance even when disk persistence is unavailable. On a persistent Node
- * host (`next start`, a VPS, Docker) the disk snapshot additionally survives
- * restarts. Set `LOANPILOT_DATA_DIR` to a writable path to control where the
- * snapshot lives.
+ * Why in-memory-first: keeping state in memory means multi-step flows (the
+ * intake chat posting several `tick`s) stay coherent even if a disk write
+ * fails. On a persistent Node host (`next start`, a VPS, Docker) the disk
+ * snapshot additionally survives restarts. Set `LOANPILOT_DATA_DIR` to a
+ * writable path to control where the snapshot lives.
  */
 
 /**
@@ -154,6 +153,7 @@ const emptyDb = (): DbShape => ({
   demoRequests: [],
   propertyEvaluations: [],
   revenueSubscriptions: defaultRevenueSubscriptions,
+  chatSessions: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -197,6 +197,11 @@ function normalize(snapshot: unknown): DbShape {
     propertyEvaluations: arrayOrEmpty<PropertyEvaluationRecord>(parsed.propertyEvaluations),
     revenueSubscriptions:
       revenueSubscriptions.length > 0 ? revenueSubscriptions : defaultRevenueSubscriptions,
+    chatSessions: arrayOrEmpty<ChatSessionRecord>(parsed.chatSessions).map((session) => ({
+      ...session,
+      capturedFields: isPlainRecord(session.capturedFields) ? session.capturedFields : {},
+      messages: arrayOrEmpty(session.messages),
+    })),
   };
 }
 
@@ -233,7 +238,7 @@ function flushToDisk(db: DbShape): void {
     fs.renameSync(/*turbopackIgnore: true*/ tmp, target);
     lastStorageError = undefined;
   } catch (error) {
-    // Read-only/serverless filesystem: keep serving from memory. Stop retrying
+    // Disk unavailable or read-only: keep serving from memory. Stop retrying
     // so we don't throw on every request.
     diskWritable = false;
     lastStorageError = `Unable to persist data snapshot: ${describeFsError(error)}`;
@@ -350,6 +355,19 @@ export function cancelPendingFollowUps(borrowerLeadId: string): number {
     });
   });
   return cancelled;
+}
+
+export function readChatSession(id: string): ChatSessionRecord | null {
+  return readDb().chatSessions.find((session) => session.id === id) ?? null;
+}
+
+/** Upserts by id — mirrors persistSession's replace-or-append pattern. */
+export function saveChatSession(session: ChatSessionRecord): void {
+  writeDb((db) => {
+    const idx = db.chatSessions.findIndex((s) => s.id === session.id);
+    if (idx >= 0) db.chatSessions[idx] = session;
+    else db.chatSessions.push(session);
+  });
 }
 
 export function appendDemoRequest(record: DemoRequestRecord): void {

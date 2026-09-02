@@ -3,7 +3,7 @@ import type { AiGenerateRequest, AiGenerateResult, AiProvider, AiToolCall } from
 
 /**
  * Default model: claude-opus-5 (Anthropic's current flagship). Override with
- * AI_MODEL for cost/latency tuning once this sees real production traffic —
+ * ANTHROPIC_MODEL for cost/latency tuning once this sees real production traffic —
  * see docs/ai-assistant.md for the tradeoffs.
  */
 const DEFAULT_MODEL = "claude-opus-5";
@@ -18,7 +18,7 @@ export class AnthropicProvider implements AiProvider {
     // No-arg constructor resolves ANTHROPIC_API_KEY from the environment —
     // never hardcode a key here or accept one over the wire from a client.
     this.client = new Anthropic();
-    this.model = process.env.AI_MODEL?.trim() || DEFAULT_MODEL;
+    this.model = process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL;
   }
 
   async generate(request: AiGenerateRequest): Promise<AiGenerateResult> {

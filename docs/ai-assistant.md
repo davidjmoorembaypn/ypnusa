@@ -12,6 +12,36 @@ without touching prompts, routing, or persistence.
 | `mlo_dashboard` | Signed-in loan officer | Requires a valid `ypnus_session` cookie (`src/lib/session.ts`) | Session-scoped — a session can only resume its own transcript (`chat-agent.ts`'s `loadOrCreateSession`). |
 | `lead_qualification` | Anonymous consumer (buyer / seller / refinance) | None | Runs a short slot-filling conversation and calls a structured-extraction tool every turn — see below. |
 
+## Hosting & chatbot landscape (read this before touching deployment)
+
+- **ypnus.com** (marketing) is WordPress on a Hostinger Cloud Server. Its
+  public chatbot today is the **Meow Apps / AI Engine** plugin, backed by
+  **OpenAI** — unrelated to this repo and not to be duplicated by it.
+- **app.ypnus.com** (this repo) is a Node.js app on Hostinger Cloud
+  (`hostinger/README.md`, `npm run deploy:hostinger:*`). There is **no
+  Vercel deployment** for this project — an old `Vercel` GitHub commit
+  status may still appear on PRs from a stale/disconnected integration;
+  it is not real production deployment and should not block merging or
+  be treated as a source of truth. Do not add Vercel config, env-var
+  assumptions, or troubleshooting for it.
+- This assistant (all three modes) is being stabilized inside
+  **app.ypnus.com only**. Near-term: keep Meow/OpenAI running on
+  ypnus.com unchanged; do not add a second public chatbot widget there.
+  The bridge between the two is the existing generic lead-intake webhook,
+  **`POST /api/webhooks/leads`** (`src/app/api/webhooks/leads/route.ts`,
+  gated by `requireSecret` — `ADMIN_TOKEN` or `CRON_SECRET`) — WordPress
+  (via a Meow Apps webhook/function if supported, a form plugin like
+  WPForms/Gravity Forms/Fluent Forms, Zapier, or Make) or a direct POST
+  can already send leads into app.ypnus.com through it. If you want the
+  webhook secret decoupled from the admin/cron token, introduce a
+  dedicated `YPNUS_LEAD_WEBHOOK_SECRET` and wire it into that route —
+  not yet done, and no such secret exists yet. Future: once tested, this
+  assistant's `public_site`/`lead_qualification` modes *may* replace
+  Meow/OpenAI on ypnus.com — not yet, and not part of this foundation.
+- This repo does not add any public-facing chatbot widget to ypnus.com or
+  to any indexed app.ypnus.com page — `AssistantChat`/`AssistantPreviewTabs`
+  are only mounted on `/assistant`, which is `robots: noindex, nofollow`.
+
 ## Architecture
 
 ```
@@ -68,17 +98,28 @@ and pre-approval for buyers, property/payoff status for sellers, rate/balance
 and goal for refinance) rather than a rigid scripted flow, since the point of
 using an LLM here is natural slot-filling instead of another fixed form.
 
-## Setup
+## Setup (Hostinger Cloud / any Node host — no Vercel involved)
 
 1. Get a key at <https://console.anthropic.com/settings/keys>.
-2. Set `ANTHROPIC_API_KEY` in your environment (`.env.local` for local dev,
-   your host's env var config in production). Never commit a real key.
-3. Optionally set `AI_MODEL` to override the default (`claude-opus-5`) —
-   e.g. `claude-sonnet-5` or `claude-haiku-4-5` for lower cost/latency on
-   high-volume routes once you've measured quality is acceptable.
-4. Restart the app. `getAiProvider()` picks up the new env var on next
-   process start (it memoizes per-process; see `resetAiProviderCache` for
-   tests).
+2. Configure environment variables on the server (hPanel's Node.js app env
+   vars, `.env.local` for local dev, or your process manager's env config —
+   never commit a real key):
+   - `ANTHROPIC_API_KEY` — required to enable real replies.
+   - `ANTHROPIC_MODEL` — optional, overrides the default (`claude-opus-5`),
+     e.g. `claude-sonnet-5` or `claude-haiku-4-5` for lower cost/latency once
+     you've measured quality is acceptable.
+   - `YPNUS_LEAD_WEBHOOK_SECRET` — **not yet wired up.** Reserved for a
+     future dedicated secret on `/api/webhooks/leads`; that route currently
+     authenticates via the existing `ADMIN_TOKEN`/`CRON_SECRET` (see
+     `.env.example`) instead.
+3. Run the production build with the existing package scripts
+   (`npm run build`, `npm run start`, or `npm run deploy:hostinger:next` —
+   see `hostinger/README.md`) and restart the app process so it picks up
+   the new env vars (`getAiProvider()` memoizes per-process; see
+   `resetAiProviderCache` for tests).
+4. Confirm ypnus.com's reverse proxy / subdomain routing to app.ypnus.com is
+   intact (Hostinger/Passenger config, not anything in this repo), and check
+   server logs if the assistant doesn't come up after restart.
 
 Nothing else needs to change — `/api/assistant/chat` and the chat UI already
 handle both the configured and not-configured cases.

@@ -237,6 +237,59 @@ export interface RevenueSubscriptionRecord {
   attributedDemoRequestIds?: string[];
 }
 
+/** The three surfaces the AI assistant runs on — see src/lib/ai/prompts.ts. */
+export type AssistantMode = "public_site" | "mlo_dashboard" | "lead_qualification";
+
+export type ChatRole = "user" | "assistant";
+
+export type ConsumerLeadType = "buyer" | "seller" | "refinance" | "other";
+
+export interface ChatMessageRecord {
+  id: string;
+  role: ChatRole;
+  content: string;
+  createdAt: string;
+}
+
+/**
+ * Structured slots the assistant fills in during a lead-qualification
+ * conversation. Distinct from BorrowerAnswers/LoanProgram (the deterministic
+ * intake flow's model) because "seller" leads aren't borrowers at all —
+ * this is a lighter, chat-native shape the AI provider populates via tool use.
+ */
+export interface ChatCapturedFields {
+  name?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  leadType?: ConsumerLeadType;
+  urgency?: Urgency;
+  /** Explicit contact-consent capture — required before any outbound follow-up. */
+  consent?: boolean;
+}
+
+export interface ChatSessionRecord {
+  id: string;
+  mode: AssistantMode;
+  createdAt: string;
+  updatedAt: string;
+  /** Set for mlo_dashboard sessions — the signed-in session's `sub` (src/lib/session.ts). */
+  userId?: string;
+  /** Linked once a lead_qualification conversation is routed into the CRM. */
+  borrowerLeadId?: string;
+  crmLeadId?: string;
+  funnelSource?: string;
+  messages: ChatMessageRecord[];
+  capturedFields: ChatCapturedFields;
+  /** Populated by the AI provider once it has enough signal — see chat-agent.ts. */
+  summary?: string;
+  /** 0-100 lead-quality estimate, distinct from qualification.ts's program-fit scoring. */
+  leadScore?: number;
+  recommendedAction?: string;
+  status: "active" | "qualified" | "closed";
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -249,4 +302,5 @@ export interface DbShape {
   demoRequests: DemoRequestRecord[];
   propertyEvaluations: PropertyEvaluationRecord[];
   revenueSubscriptions: RevenueSubscriptionRecord[];
+  chatSessions: ChatSessionRecord[];
 }

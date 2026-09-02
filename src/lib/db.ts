@@ -5,6 +5,7 @@ import type {
   AppointmentRecord,
   AnalyticsEventRecord,
   BorrowerLeadRecord,
+  ChatSessionRecord,
   CrmLeadRecord,
   DemoRequestRecord,
   IntakeSessionRecord,
@@ -152,6 +153,7 @@ const emptyDb = (): DbShape => ({
   demoRequests: [],
   propertyEvaluations: [],
   revenueSubscriptions: defaultRevenueSubscriptions,
+  chatSessions: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -195,6 +197,11 @@ function normalize(snapshot: unknown): DbShape {
     propertyEvaluations: arrayOrEmpty<PropertyEvaluationRecord>(parsed.propertyEvaluations),
     revenueSubscriptions:
       revenueSubscriptions.length > 0 ? revenueSubscriptions : defaultRevenueSubscriptions,
+    chatSessions: arrayOrEmpty<ChatSessionRecord>(parsed.chatSessions).map((session) => ({
+      ...session,
+      capturedFields: isPlainRecord(session.capturedFields) ? session.capturedFields : {},
+      messages: arrayOrEmpty(session.messages),
+    })),
   };
 }
 
@@ -348,6 +355,19 @@ export function cancelPendingFollowUps(borrowerLeadId: string): number {
     });
   });
   return cancelled;
+}
+
+export function readChatSession(id: string): ChatSessionRecord | null {
+  return readDb().chatSessions.find((session) => session.id === id) ?? null;
+}
+
+/** Upserts by id — mirrors persistSession's replace-or-append pattern. */
+export function saveChatSession(session: ChatSessionRecord): void {
+  writeDb((db) => {
+    const idx = db.chatSessions.findIndex((s) => s.id === session.id);
+    if (idx >= 0) db.chatSessions[idx] = session;
+    else db.chatSessions.push(session);
+  });
 }
 
 export function appendDemoRequest(record: DemoRequestRecord): void {

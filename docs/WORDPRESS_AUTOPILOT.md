@@ -56,6 +56,18 @@ See `.env.example` for the copy-pasteable variable block and inline comments.
 - Hostinger server, DNS, or plugin/theme settings.
 - Any deployment pipeline.
 
+## Unattended runner foundation (`src/lib/ai/autopilot-runner.ts`)
+
+The Command Center and its Run History log (`docs/CLAUDE_WORKING_CONTEXT.md`) both require an MLO to click "generate." `runWebsiteAutopilotForConfiguredSites()` is the same idea running without anyone at a keyboard — the foundation for YPNUS to check and improve ypnus.com on its own schedule later (e.g. a future Hostinger cron hitting `npm run autopilot:run`). **No Hostinger schedule is configured tonight** — this only adds the reusable function and a manual CLI entry point.
+
+- **Default is off.** `WEBSITE_AUTOPILOT_UNATTENDED_ENABLED` defaults to `false`/unset — while off, the runner returns immediately having generated no plan, persisted no run, and made no WordPress call of any kind.
+- **When enabled, it's still dry-run only.** It never calls `fetchWordPressContent`, `conditionallyUpdateWordPressContent`, or `applyWordPressAutopilotPlan` — every run it logs carries `dryRun: true`, unconditionally. `getWordPressAutopilotStatus()` is used only to read env vars for the `wordpressLive` display field, exactly as elsewhere in this doc.
+- **A second, independent flag governs auto-applied logging.** `WEBSITE_AUTOPILOT_AUTO_APPLY_LOW_RISK` (default `false`) is distinct from `WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK` above — that one gates a *live* WordPress write (still requires `WORDPRESS_AUTOPILOT_ENABLED` too); this one only decides whether an unattended run's low-risk changes are logged as `auto_applied` or downgraded to `proposed` (`applyAutoApplyGate`, pure). Medium/high-risk changes — rate/APR, loan-approval promises, guarantees, compliance disclosures, NMLS/license changes, and plugin/theme/server/DNS (`platform_settings_change`) — are never auto-applied by either flag; they always classify `needs_approval` via the same `classifyRisk` rules used everywhere else in this foundation.
+- **Configured targets are a static allowlist**, not a live crawl: `getConfiguredAutopilotTargets()` currently returns one entry, the ypnus.com homepage, with hand-maintained placeholder copy/SEO fields — adding a page later is a config change to that list, not a new live-fetch capability.
+- Each run persists one `AutopilotRunRecord` per target via the existing `saveAutopilotRun` (same history the Command Center's Run History panel reads), and the runner returns a simple aggregate summary: *"YPNUS checked your website and prepared/improved N items across M pages."*
+- **CLI entry**: `npm run autopilot:run` (`scripts/run-website-autopilot.ts`) calls `runWebsiteAutopilotForConfiguredSites()` and prints its summary/JSON — meant for manual runs tonight and a future Hostinger scheduled task later. No Hostinger schedule is configured as part of this change.
+- No manual MLO website work is required for this to eventually run — that's the point of the unattended path — but it stays fully off/dry-run until both an explicit `WEBSITE_AUTOPILOT_UNATTENDED_ENABLED=true` opt-in and (separately, still not done tonight) a real Hostinger schedule and WordPress write path are approved.
+
 ## Related
 
 - [`docs/ai-assistant.md`](ai-assistant.md) — the broader AI assistant foundation, including the app-only Website/Profile Autopilot this extends.

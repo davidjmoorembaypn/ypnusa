@@ -198,3 +198,20 @@ above rather than duplicating them. It is fully described in
 dry-run-only: `WORDPRESS_AUTOPILOT_ENABLED` and
 `WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK` both default to `false`, so no
 change is ever written to WordPress.
+
+### Website Autopilot Command Center (`/dashboard/autopilot`)
+
+A simple, app-only UI for the foundation above — lets a signed-in MLO fill in
+their current copy/SEO/chatbot intro and market details, then generate a
+**dry-run** improvement plan (`POST /api/autopilot/plan`, session-gated,
+rate-limited). The route calls only the pure, non-persisting
+`generateWebsiteAutopilotPlan` and the read-only `getWordPressAutopilotStatus`
+(an env-var read, not a network call) — it never calls
+`runWebsiteAutopilot`, `fetchWordPressContent`, or
+`applyWordPressAutopilotPlan`, so nothing is persisted or published. The
+result panel shows the plan score, MLO-facing summary, auto-applied/
+needs-approval counts, and every change's before/after text, reason, expected
+benefit, and risk/status — always under a "No live website changes were
+made. This is a dry-run plan." notice. `WORDPRESS_AUTOPILOT_ENABLED` and
+`WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK` stay off by default; turning this
+into approval-gated deployment/publishing is future work.

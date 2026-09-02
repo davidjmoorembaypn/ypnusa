@@ -69,6 +69,11 @@ const SECTIONS = [
     title: "Borrower Intelligence",
     description: "Borrower persona, confidence, and signup/conversion outcome predictions.",
   },
+  {
+    href: "/dashboard/autopilot",
+    title: "Website Autopilot",
+    description: "Dry-run website/profile improvement plans — no live changes made.",
+  },
 ] as const;
 
 export default async function DashboardHubPage() {

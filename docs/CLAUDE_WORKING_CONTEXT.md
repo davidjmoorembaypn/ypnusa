@@ -134,3 +134,25 @@ is a summary of.
 - **Next safe app-only task:** a simple approval UI/endpoint for
   `needs_approval` changes (accept/reject), still with no live publishing
   wired up — same candidate as the prior entry, still not started.
+
+## Latest completed task: Website Autopilot Command Center (branch `feature/website-autopilot-command-center`)
+
+- **Product direction:** makes the Website/Profile/WordPress Autopilot
+  foundations usable inside the app tonight, app-only and dry-run only — an
+  MLO can generate and see a preview plan, nothing is deployed or published.
+- **Files changed:** `src/app/api/autopilot/plan/route.ts` (new, session-gated
+  + rate-limited POST route calling only `generateWebsiteAutopilotPlan` and
+  the read-only `getWordPressAutopilotStatus`), `src/app/api/autopilot/plan/route.test.ts`
+  (new: asserts no WordPress write/network helper is referenced, session gate
+  present, dashboard nav link present), `src/components/autopilot/autopilot-panel.tsx`
+  (new client form + result panel), `src/app/dashboard/autopilot/page.tsx`
+  (new, session-gated page using the existing `DashboardShell`), `src/app/dashboard/page.tsx`
+  (added a "Website Autopilot" nav card), `docs/ai-assistant.md`.
+- **No deployment, Hostinger, live WordPress, or Meow/OpenAI change.** No DB
+  persistence either — the route is a pure preview: it never calls
+  `runWebsiteAutopilot`, `fetchWordPressContent`, or
+  `applyWordPressAutopilotPlan`. `WORDPRESS_AUTOPILOT_ENABLED` and
+  `WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK` remain off by default.
+- **Next safe app-only task:** approval-gated deployment/publishing (turning
+  an accepted plan into a real persisted/published change) — still not
+  started, still requires explicit approval before being built.

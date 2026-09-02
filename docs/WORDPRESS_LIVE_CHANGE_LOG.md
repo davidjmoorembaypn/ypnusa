@@ -97,3 +97,89 @@ webhooks, or the Next.js app deployment.
   body markup, outside the `<style>` block — out of this task's approved
   scope; browsers recover from them via standard HTML5 parsing rules, so
   they were left as-is.
+
+## 2026-09-02 — Homepage (page 1829) CTA/link fixes + copy simplification
+
+**Reported symptom:** homepage still "doesn't look good," CTAs seemed to not
+go where expected, messaging didn't clearly say what the product does.
+
+**CTA/link audit (all 17 links on the page checked by fetching each target's
+`<title>`):** every single link on the homepage — `mlo-site-demo/`,
+`pricing-plans/`, `territory/`, `contact/`, `lo-signup.html`,
+`mlo-marketing-automation/`, `refinance-strategies/`, `blog/` + 3 blog
+articles, 4 comparison pages, `about/`, `free-property-analyzer/`, plus the 3
+Stripe checkout links — resolved to a real, correctly-titled, on-topic page.
+**Nothing was actually broken.** The one real gap: **no link to
+`app.ypnus.com` existed anywhere on the page** — "Login" wasn't a broken
+link, it was a missing one.
+
+**Changes made (5 targeted `POST /wpvibe/v1/content/edit` patches, each a
+match-once `str_replace` on `post_content`, each verified `replaced: 1`
+before moving to the next):**
+
+1. Hero eyebrow line changed from "AI Lead Engine + Hyper-Local SEO — Now
+   Live" to **"AI-Powered Lead Growth for Mortgage Loan Officers"**.
+2. Hero sub-copy now explicitly says the AI Assistant "qualifies buyer,
+   seller, and refinance leads" (previously generic "AI intake, scoring,
+   and follow-up").
+3. **Added a Login link** (`Already have an account? Login →`) pointing to
+   `https://app.ypnus.com`, placed under the hero CTA row.
+4. Platform Features grid: renamed the "AI Lead Engine" card to **"AI
+   Assistant"** (copy now describes qualifying buyer/seller/refinance
+   leads) and the "AI Content Writer" card to **"Website Autopilot"**
+   (copy now matches the real product feature — reviews the site/profile
+   and keeps headlines/CTAs/local content current automatically).
+5. **Removed the unstyled, duplicate-CTA trailing block** that sat outside
+   the page's `.ypn-b` design-system wrapper (a plain default-WordPress
+   "Get Started Today" button, a hard-coded blue "Scale Your Mortgage
+   Pipeline" box, and a "Schedule a Demo Today" button — all three
+   duplicating CTAs already present, properly styled, earlier on the page)
+   and replaced it with a single clean "Compare & Learn More" section
+   (the same 4 comparison-page links + About + Free Property Analyzer),
+   re-wrapped in `class="ypn-b"` so it inherits the page's existing color/
+   typography variables instead of falling back to default theme styling.
+   No shortcodes used — plain HTML with inline styles matching the
+   existing palette, consistent with the rest of the page.
+6. Purged LiteSpeed cache after all edits.
+
+**Explicitly NOT touched:** Stripe/payment links (verified all 3 present,
+unchanged), NMLS/DRE license text, the Meow Apps/AI Engine chatbot, draft
+page 5340, `wp_options`, any plugin, WP_DEBUG_LOG, Hostinger, DNS, theme
+files, and app deployment. No shortcodes introduced.
+
+**Verification performed:**
+
+- Re-fetched `post_content` (`context=edit`) — all 5 changes present exactly
+  as written; everything else in the 32,010→31,694-byte content is
+  unchanged (net smaller, since the trailing block shrank).
+- Re-fetched live rendered `.yb-features` section — confirms "AI Assistant"
+  and "Website Autopilot" cards render correctly.
+- `GET /wp/v2/settings` — `page_on_front: 1829` unchanged.
+- Fetched live rendered `<body>` — no critical-error page, style block
+  still clean, no duplicate chatbot markup (`mwai` appears 0 times outside
+  head config, i.e. no extra widget instance was introduced).
+- `buy.stripe.com` appears the same number of times as before (3 checkout
+  buttons + schema references) — payment links untouched.
+
+**Rollback:**
+
+- Five new revisions were created, one per edit: **5348** (06:37:33, before
+  any of today's changes — this is the pre-task rollback point), 5349,
+  5350, 5351, 5352 (06:40:15, after the trailing-block cleanup — the
+  current live state). To fully roll back today's CTA/copy work, restore
+  page 1829 from revision **5348** and purge cache again. (The earlier CSS/
+  cache fix from the prior entry is untouched by a rollback to 5348 — that
+  fix was already baked into 5348's content.)
+
+**Deferred, not part of this task:**
+
+- **Rotate the Google OAuth client secret** found exposed in `wp_options`
+  during an earlier audit pass this session (`ce_google_client_secret`,
+  Code Engine plugin) — flagged for the site owner to do in Google Cloud
+  Console; not acted on here per explicit instruction.
+- Orphaned `wp_options` cleanup (`aioseo_*`, `astra_*`/`ast-block-templates-*`/
+  `bsf_*`, `cky_*`, `_wp_convertkit_settings`) — identified, not deleted,
+  per explicit instruction to stop that work.
+- Draft page 5340's PHP fatal error and the
+  `ypnus-lead-integration-deactivated` plugin naming — still deferred from
+  the prior entry.

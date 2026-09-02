@@ -67,3 +67,36 @@ is a summary of.
   borrower/CRM lead IDs to the MLO pipeline view, (2) add streaming support
   to `AnthropicProvider.generate`, (3) inject live CRM/pipeline context into
   `mlo_dashboard` prompts — see `docs/ai-assistant.md` TODOs.
+
+## Latest completed task: Website/Profile Autopilot foundation (branch `feature/website-profile-autopilot`)
+
+- **Product direction:** YPNUS is designed to *do the work* for MLOs — not
+  hand them a list of suggestions. MLOs are not expected to manually edit
+  websites/profiles; the assistant applies safe changes itself and holds
+  risky/compliance-sensitive ones for review.
+- **Files changed:** `src/lib/types.ts` (`WebsiteAutopilotChange` + related
+  types, `websiteAutopilotChanges` on `DbShape`), `src/lib/db.ts`
+  (`listWebsiteAutopilotChanges`/`saveWebsiteAutopilotChange`, existing
+  file-backed store — no new persistence model), `src/lib/ai/website-autopilot.ts`
+  (new: deterministic `generateWebsiteAutopilotPlan` + persisting
+  `runWebsiteAutopilot`), `src/lib/ai/chat-agent.ts` (mlo_dashboard trigger
+  phrases run the autopilot as an operator, before any AI provider call),
+  `src/components/assistant/assistant-chat.tsx` (starter prompt + Website
+  Autopilot result block), `src/lib/ai/website-autopilot.test.ts` (new),
+  `src/lib/ai/chat-agent.test.ts` (+2 tests), `docs/ai-assistant.md`.
+- **Safe YPNUS-controlled content can be auto-applied:** headline, CTA,
+  chatbot greeting, lead form helper text, buyer/seller/refinance
+  positioning, local market wording, SEO title/meta drafts, profile
+  completeness copy, trust copy (never touching license/legal claims).
+- **Requires approval:** rate/APR language, guaranteed-savings language,
+  loan-approval language, compliance disclosures, NMLS/license changes,
+  brand-claim changes, live WordPress publishing, paid ad copy, SMS/email
+  sending. A keyword scan also defensively upgrades any change whose
+  generated text touches these terms, regardless of its category.
+- **No deployment or WordPress changes were made.** The autopilot only
+  classifies and persists change records inside the app; nothing is
+  published live.
+- Tests: 189/189 passing (`npm test`), clean `tsc`/`lint`.
+- **Next safe app-only task:** none pending — awaiting instruction. A
+  reasonable candidate: a simple approval UI/endpoint for `needs_approval`
+  changes (accept/reject), still with no live publishing wired up.

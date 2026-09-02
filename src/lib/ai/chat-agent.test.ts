@@ -120,6 +120,34 @@ describe("runAssistantTurn — no provider configured", () => {
   });
 });
 
+describe("runAssistantTurn — website/profile autopilot trigger (mlo_dashboard)", () => {
+  it("acts as an operator and returns an autopilot summary without calling the AI provider", async () => {
+    const result = await runAssistantTurn({
+      mode: "mlo_dashboard",
+      userId: "user_lo_autopilot",
+      userMessage: "Improve my website/profile for me.",
+    });
+
+    assert.match(
+      result.reply,
+      /I can prepare and apply safe YPNUS-controlled improvements for you/,
+    );
+    assert.ok(result.autopilot);
+    assert.ok(result.autopilot!.autoAppliedCount >= 0);
+    assert.ok(result.autopilot!.topChanges.length > 0);
+  });
+
+  it("does not trigger the autopilot for unrelated mlo_dashboard messages", async () => {
+    const result = await runAssistantTurn({
+      mode: "mlo_dashboard",
+      userId: "user_lo_autopilot_2",
+      userMessage: "What's my pipeline look like today?",
+    });
+
+    assert.equal(result.autopilot, undefined);
+  });
+});
+
 function makeQualifiedSession(overrides: Partial<ChatSessionRecord> = {}): ChatSessionRecord {
   const now = new Date().toISOString();
   return {

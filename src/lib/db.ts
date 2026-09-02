@@ -14,6 +14,7 @@ import type {
   PropertyEvaluationRecord,
   RevenueSubscriptionRecord,
   ScheduledFollowUpRecord,
+  WebsiteAutopilotChange,
 } from "./types";
 
 /**
@@ -154,6 +155,7 @@ const emptyDb = (): DbShape => ({
   propertyEvaluations: [],
   revenueSubscriptions: defaultRevenueSubscriptions,
   chatSessions: [],
+  websiteAutopilotChanges: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -202,6 +204,7 @@ function normalize(snapshot: unknown): DbShape {
       capturedFields: isPlainRecord(session.capturedFields) ? session.capturedFields : {},
       messages: arrayOrEmpty(session.messages),
     })),
+    websiteAutopilotChanges: arrayOrEmpty<WebsiteAutopilotChange>(parsed.websiteAutopilotChanges),
   };
 }
 
@@ -367,6 +370,20 @@ export function saveChatSession(session: ChatSessionRecord): void {
     const idx = db.chatSessions.findIndex((s) => s.id === session.id);
     if (idx >= 0) db.chatSessions[idx] = session;
     else db.chatSessions.push(session);
+  });
+}
+
+export function listWebsiteAutopilotChanges(userId?: string): WebsiteAutopilotChange[] {
+  const all = readDb().websiteAutopilotChanges;
+  return userId ? all.filter((change) => change.userId === userId) : all;
+}
+
+/** Upserts by id — mirrors saveChatSession's replace-or-append pattern. */
+export function saveWebsiteAutopilotChange(change: WebsiteAutopilotChange): void {
+  writeDb((db) => {
+    const idx = db.websiteAutopilotChanges.findIndex((c) => c.id === change.id);
+    if (idx >= 0) db.websiteAutopilotChanges[idx] = change;
+    else db.websiteAutopilotChanges.push(change);
   });
 }
 

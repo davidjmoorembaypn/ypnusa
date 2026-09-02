@@ -1,17 +1,18 @@
 # WordPress live-site change log — ypnus.com homepage
 
-This log tracks the one approved, controlled live-WordPress action taken so
-far: preparing a replacement homepage for review. **The live homepage has
-not been switched.** ypnus.com still serves the original homepage today.
+This log tracks the approved, controlled live-WordPress actions taken on
+ypnus.com's homepage. **The live homepage has been switched**, with explicit
+user approval, from page 1829 to the new draft page 5340.
 
-## Status: paused for your review — nothing live has changed yet
+## Status: live — homepage switched to page 5340
 
 | | |
 | --- | --- |
-| Old (current, live) homepage | Page ID **1829**, slug `home`, title "Home" |
-| New candidate homepage | Page ID **5340**, slug `ypnus-home-ai-lead-growth`, status **draft** (not public, not linked, not the homepage) |
-| `page_on_front` setting | Still **1829** — unchanged |
-| Live change made | **No** |
+| Old (previous) homepage | Page ID **1829**, slug `home`, title "Home" — still exists, untouched content, just no longer the front page |
+| New (current, live) homepage | Page ID **5340**, slug `ypnus-home-ai-lead-growth`, status **publish** |
+| `page_on_front` setting | **5340** (changed from 1829) |
+| Live change made | **Yes** — user explicitly approved "yes change to the clean draft" |
+| Interim fix (before the switch) | On page 1829, fixed the bio photo's forced square crop (`aspect-ratio:1; object-fit:cover` with no position hint was cutting off the top of the head) by adding `object-position:top center`. One-line CSS change, nothing else touched. |
 
 ## What was done
 
@@ -59,29 +60,47 @@ that the generic requested messaging would otherwise replace:
   `content.raw`) — a pre-existing site behavior, not something this change
   introduced.
 
-## Open items (needs a decision before anything goes live)
+## What happened, in order
 
-- [ ] Review the draft at page ID 5340 (visible in wp-admin while signed
-      in, or via `GET /wp/v2/pages/5340` — it is not publicly reachable
-      while in draft status).
-- [ ] Confirm the ZIP-exclusivity/pricing-link/disclaimer decisions above,
-      or request edits.
-- [ ] Confirm who verifies the single-chatbot-bubble requirement, since no
-      browser tool was available this session.
-- [ ] Explicit go-ahead to (a) publish page 5340, and (b) set it as the
-      homepage (`PUT /wp/v2/settings {"page_on_front": 5340}`).
+1. Investigated a user report that the live homepage looked "malformed" and
+   links "routed to the wrong stuff." Confirmed via the WordPress REST API
+   that `page_on_front` was still 1829 and no CTA hrefs were actually
+   broken — all pointed to real, published pages.
+2. Found and fixed a real, pre-existing bug on page 1829: the bio photo's
+   CSS forced a square crop with no position hint, cutting off the top of
+   the photo (reported as "my head is cut off"). Fixed via a single
+   surgical `str_replace` (`/wpvibe/v1/content/edit`) adding
+   `object-position:top center` — no other content changed.
+3. Could not find a second photo anywhere in page 1829's actual stored
+   content (`content.raw` from the WordPress REST API has exactly one
+   `<img>` tag). Flagged that the "second picture with a broken CTA" the
+   user saw is most likely the Meow/AI Engine chatbot widget's avatar —
+   left untouched per the hard rule not to change chatbot settings.
+4. User confirmed: "yes change to the clean draft." Published page 5340
+   (`PUT /wp/v2/pages/5340 {"status":"publish"}`) and set it as the
+   homepage (`PUT /wp/v2/settings {"page_on_front": 5340}`). LiteSpeed
+   cache auto-purged on that settings change.
+
+## Open follow-ups
+
+- [ ] User to verify https://ypnus.com/ now renders page 5340 correctly
+      (no WPVibe calls were available to double-check this — the account
+      hit ~95/100 of its rolling 24h call budget during this session).
+- [ ] Confirm whether the "second picture with a broken CTA" reported
+      earlier was the Meow/AI Engine chatbot widget — not touched, since
+      that requires separate explicit approval.
+- [ ] Page 5340's lead-flow is still link-out only (no embedded lead-capture
+      form) — flagged by the user as a real gap, not yet addressed.
 
 ## Rollback instructions
 
-**Nothing to roll back yet** — the live homepage was never changed.
+To revert to the previous homepage (page 1829, still fully intact with the
+bio-photo fix applied):
 
-If the page is later published and set as homepage, to fully revert:
-
-1. Restore the old homepage: `PUT /wp/v2/settings` with
-   `{"page_on_front": 1829}` (WPVibe `rest_api` PUT, or WordPress admin →
-   Settings → Reading → "Your homepage displays" → select "Home").
-2. Optionally move the new page (ID 5340) back to draft or trash it —
-   trashing is non-destructive (WordPress moves to trash, not permanent
-   delete).
+1. `PUT /wp/v2/settings` with `{"page_on_front": 1829}` (WPVibe `rest_api`
+   PUT, or WordPress admin → Settings → Reading → "Your homepage displays"
+   → select "Home").
+2. Optionally set page 5340 back to draft or trash it — trashing is
+   non-destructive (WordPress moves to trash, not permanent delete).
 3. No plugin, theme, DNS, Hostinger, payment, or chatbot setting was ever
    touched, so no other rollback is needed regardless of outcome.

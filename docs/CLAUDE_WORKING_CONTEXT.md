@@ -22,3 +22,21 @@
 
 See `docs/HANDS_OFF_OPERATIONS.md` for the full operating model this context
 is a summary of.
+
+## Latest completed task: CRM/borrower-lead handoff
+
+- **Files changed:** `src/lib/ai/chat-agent.ts` (new `linkQualifiedLead`,
+  called from `runAssistantTurn`), `src/lib/ai/chat-agent.test.ts` (5 new
+  tests).
+- **What it does:** once a `lead_qualification` session reaches
+  `status: "qualified"`, it's linked once into the existing deterministic
+  `appendBorrowerLead`/`appendCrmLead` store (via `crm.ts`'s
+  `logCrmActivity`, the only path that already pairs the two correctly) by
+  building a minimal `BorrowerAnswers`/`QualificationSummary` snapshot from
+  the chat's own captured fields/summary/score — not fabricated financial
+  data. `ChatSessionRecord.borrowerLeadId`/`crmLeadId` are set once and guard
+  against ever creating a second lead for the same session.
+- Tests: 180/180 passing (`npm test`), clean `tsc`/`lint`.
+- **Next safe app-only task:** surface `borrowerLeadId`/`crmLeadId` (and a
+  link into the existing MLO pipeline view) in the `/assistant` preview UI
+  so a linked lead is visible without reading `data/store.json` directly.

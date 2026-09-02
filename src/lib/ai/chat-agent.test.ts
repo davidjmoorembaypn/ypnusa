@@ -3,9 +3,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, afterEach, before, beforeEach, describe, it } from "node:test";
-import type { AssistantMode } from "../types";
-import { readChatSession } from "../db";
-import { runAssistantTurn } from "./chat-agent";
+import { generateId } from "../id";
+import type { AssistantMode, ChatSessionRecord } from "../types";
+import { readChatSession, readDb } from "../db";
+import { linkQualifiedLead, runAssistantTurn } from "./chat-agent";
 import { buildSystemPrompt } from "./prompts";
 import { resetAiProviderCache } from "./provider";
 
@@ -112,6 +113,88 @@ describe("runAssistantTurn — no provider configured", () => {
     });
 
     assert.deepEqual(result.capturedFields, {});
+  });
+});
+
+function makeQualifiedSession(overrides: Partial<ChatSessionRecord> = {}): ChatSessionRecord {
+  const now = new Date().toISOString();
+  return {
+    id: generateId("chat"),
+    mode: "lead_qualification",
+    createdAt: now,
+    updatedAt: now,
+    messages: [],
+    capturedFields: {
+      name: "Jamie Rivera",
+      email: "jamie@example.com",
+      phone: "555-0100",
+      leadType: "buyer",
+      urgency: "high",
+      consent: true,
+    },
+    summary: "Wants to buy in the next 60 days.",
+    leadScore: 82,
+    recommendedAction: "Call within the hour.",
+    status: "qualified",
+    ...overrides,
+  };
+}
+
+describe("linkQualifiedLead", () => {
+  it("links a qualified consumer lead by creating and setting borrowerLeadId", () => {
+    const session = makeQualifiedSession();
+    linkQualifiedLead(session);
+
+    assert.ok(session.borrowerLeadId);
+    const db = readDb();
+    const lead = db.borrowerLeads.find((l) => l.id === session.borrowerLeadId);
+    assert.ok(lead);
+    assert.equal(lead?.answers.name, "Jamie Rivera");
+    assert.equal(lead?.sessionId, session.id);
+  });
+
+  it("links the paired CRM lead and sets crmLeadId", () => {
+    const session = makeQualifiedSession();
+    linkQualifiedLead(session);
+
+    assert.ok(session.crmLeadId);
+    const db = readDb();
+    const crm = db.crmLeads.find((c) => c.id === session.crmLeadId);
+    assert.ok(crm);
+    assert.equal(crm?.borrowerLeadId, session.borrowerLeadId);
+  });
+
+  it("does not create a duplicate lead when the session already has a linked borrowerLeadId", () => {
+    const session = makeQualifiedSession({ borrowerLeadId: "lead_existing" });
+    const before = readDb().borrowerLeads.length;
+
+    linkQualifiedLead(session);
+
+    assert.equal(session.borrowerLeadId, "lead_existing");
+    assert.equal(session.crmLeadId, undefined);
+    assert.equal(readDb().borrowerLeads.length, before);
+  });
+
+  it("does not create a duplicate lead when the session already has a linked crmLeadId", () => {
+    const session = makeQualifiedSession({ crmLeadId: "crm_existing" });
+    const before = readDb().crmLeads.length;
+
+    linkQualifiedLead(session);
+
+    assert.equal(session.borrowerLeadId, undefined);
+    assert.equal(session.crmLeadId, "crm_existing");
+    assert.equal(readDb().crmLeads.length, before);
+  });
+
+  it("does not create a lead for an incomplete (not-yet-qualified) session", () => {
+    const session = makeQualifiedSession({ status: "active" });
+    const before = readDb().borrowerLeads.length;
+
+    linkQualifiedLead(session);
+
+    assert.equal(session.borrowerLeadId, undefined);
+    assert.equal(session.crmLeadId, undefined);
+    assert.equal(readDb().borrowerLeads.length, before);
   });
 });
 

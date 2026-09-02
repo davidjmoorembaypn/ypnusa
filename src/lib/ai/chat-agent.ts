@@ -1,7 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { generateId } from "@/lib/id";
 import { readChatSession, saveChatSession } from "@/lib/db";
-import type { AssistantMode, ChatCapturedFields, ChatMessageRecord, ChatSessionRecord } from "@/lib/types";
+import { logCrmActivity, routeLoanOfficer } from "@/lib/crm";
+import type {
+  AssistantMode,
+  BorrowerAnswers,
+  ChatCapturedFields,
+  ChatMessageRecord,
+  ChatSessionRecord,
+  LeadQuality,
+  LoanProgram,
+  QualificationSummary,
+} from "@/lib/types";
 import { getAiProvider } from "./provider";
 import {
   buildSystemPrompt,
@@ -99,6 +109,59 @@ function mergeCapturedFields(
   }
 }
 
+function inferLoanProgram(leadType: ChatCapturedFields["leadType"]): LoanProgram {
+  return leadType === "refinance" ? "REFI" : "CONVENTIONAL";
+}
+
+function inferLeadQuality(score: number | undefined): LeadQuality {
+  if (score === undefined) return "developing";
+  if (score >= 80) return "prime";
+  if (score >= 60) return "strong";
+  if (score >= 35) return "developing";
+  return "watch";
+}
+
+/**
+ * Hands a qualified lead_qualification session off into the same deterministic
+ * borrower-lead / CRM store the manual intake flow uses, so an MLO sees it
+ * alongside every other lead. Chat-captured fields don't map to the full
+ * intake questionnaire, so this builds a minimal snapshot from only what the
+ * chat actually captured (name/email/phone/leadType/urgency/summary/score)
+ * rather than fabricating financial specifics the model never asked about.
+ * No-ops if the session isn't qualified yet, or already has a linked lead —
+ * never creates a second borrower/CRM lead for the same session.
+ */
+export function linkQualifiedLead(session: ChatSessionRecord): void {
+  if (session.status !== "qualified") return;
+  if (session.borrowerLeadId || session.crmLeadId) return;
+
+  const f = session.capturedFields;
+  const answers: BorrowerAnswers = {
+    loanProgram: inferLoanProgram(f.leadType),
+    name: f.name,
+    email: f.email,
+    phone: f.phone,
+    contactConsent: f.consent,
+    purchaseRefiIntent:
+      f.leadType === "refinance" ? "refinance" : f.leadType === "buyer" ? "purchase" : "unsure",
+  };
+
+  const qualification: QualificationSummary = {
+    programScores: { overallScore: session.leadScore },
+    leadQuality: inferLeadQuality(session.leadScore),
+    urgency: f.urgency ?? "standard",
+    recommendedNextStep:
+      session.recommendedAction ?? "Follow up with the lead captured via the AI assistant.",
+    rationale: [session.summary ?? "Captured via the app.ypnus.com lead-qualification assistant."],
+  };
+
+  const assignedLoId = routeLoanOfficer(answers.loanProgram).id;
+  const result = logCrmActivity(answers, qualification, assignedLoId, session.funnelSource, session.id);
+
+  session.borrowerLeadId = result.borrowerLeadId;
+  session.crmLeadId = result.crmLeadId;
+}
+
 function describeProviderError(error: unknown): string {
   if (error instanceof Anthropic.AuthenticationError) {
     return "The assistant's credentials are misconfigured — an operator needs to check ANTHROPIC_API_KEY.";
@@ -178,6 +241,12 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
   } catch (error) {
     console.error("[chat-agent] provider.generate failed", error);
     reply = describeProviderError(error);
+  }
+
+  try {
+    linkQualifiedLead(session);
+  } catch (error) {
+    console.error("[chat-agent] linkQualifiedLead failed", error);
   }
 
   appendMessage(session, "assistant", reply);

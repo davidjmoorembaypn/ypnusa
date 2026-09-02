@@ -18,6 +18,7 @@ import {
   CAPTURE_LEAD_QUALIFICATION_TOOL,
   type LeadQualificationToolInput,
 } from "./prompts";
+import { runWebsiteAutopilot, type WebsiteAutopilotPlan } from "./website-autopilot";
 
 /** Keeps token growth (and the on-disk snapshot) bounded for long-running sessions. */
 const MAX_MESSAGES_PER_SESSION = 60;
@@ -43,6 +44,13 @@ export interface AssistantTurnResult {
   /** Set once linkQualifiedLead has linked this session into the borrower-lead / CRM store. */
   borrowerLeadId?: string;
   crmLeadId?: string;
+  /** Set when this turn triggered the Website/Profile Autopilot (mlo_dashboard mode only). */
+  autopilot?: {
+    summaryForMlo: string;
+    autoAppliedCount: number;
+    needsApprovalCount: number;
+    topChanges: Array<{ title: string; status: string; riskLevel: string }>;
+  };
   /** False whenever no AI provider is configured — the route surfaces this so the UI can show a setup notice instead of treating it as a normal outage. */
   providerConfigured: boolean;
 }
@@ -165,6 +173,61 @@ export function linkQualifiedLead(session: ChatSessionRecord): void {
   session.crmLeadId = result.crmLeadId;
 }
 
+const AUTOPILOT_TRIGGERS: RegExp[] = [
+  /improve my website/i,
+  /improve my profile/i,
+  /landing page better/i,
+  /get me more leads/i,
+  /website\s*\/?\s*profile/i,
+];
+
+function matchesAutopilotTrigger(message: string): boolean {
+  return AUTOPILOT_TRIGGERS.some((re) => re.test(message));
+}
+
+const AUTOPILOT_OPERATOR_STATEMENT =
+  "I can prepare and apply safe YPNUS-controlled improvements for you, then show you what changed. Risky or compliance-sensitive updates will be held for review.";
+
+/**
+ * Runs the Website/Profile Autopilot for an mlo_dashboard session that asked
+ * for help improving its website/profile — acting as an operator (it applies
+ * safe changes itself) rather than just listing advice. Deterministic and
+ * provider-independent, so it works even without an AI provider configured.
+ */
+function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput): AssistantTurnResult {
+  const plan: WebsiteAutopilotPlan = runWebsiteAutopilot({
+    userId: input.userId,
+    pageType: "profile",
+    leadGoal: "all",
+  });
+
+  const reply = `${AUTOPILOT_OPERATOR_STATEMENT} ${plan.summaryForMlo}`;
+  appendMessage(session, "assistant", reply);
+  session.updatedAt = nowIso();
+  saveChatSession(session);
+
+  return {
+    sessionId: session.id,
+    reply,
+    capturedFields: session.capturedFields,
+    summary: session.summary,
+    leadScore: session.leadScore,
+    recommendedAction: session.recommendedAction,
+    status: session.status,
+    borrowerLeadId: session.borrowerLeadId,
+    crmLeadId: session.crmLeadId,
+    providerConfigured: getAiProvider() !== null,
+    autopilot: {
+      summaryForMlo: plan.summaryForMlo,
+      autoAppliedCount: plan.autoAppliedCount,
+      needsApprovalCount: plan.needsApprovalCount,
+      topChanges: plan.changes
+        .slice(0, 5)
+        .map((c) => ({ title: c.title, status: c.status, riskLevel: c.riskLevel })),
+    },
+  };
+}
+
 function describeProviderError(error: unknown): string {
   if (error instanceof Anthropic.AuthenticationError) {
     return "The assistant's credentials are misconfigured — an operator needs to check ANTHROPIC_API_KEY.";
@@ -197,6 +260,10 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
   const session = loadOrCreateSession(input);
   const userMessage = input.userMessage.trim().slice(0, MAX_MESSAGE_LENGTH);
   appendMessage(session, "user", userMessage);
+
+  if (input.mode === "mlo_dashboard" && matchesAutopilotTrigger(userMessage)) {
+    return runAutopilotTurn(session, input);
+  }
 
   const provider = getAiProvider();
   if (!provider) {

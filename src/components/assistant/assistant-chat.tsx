@@ -24,6 +24,12 @@ interface ChatApiSuccess {
   borrowerLeadId?: string;
   crmLeadId?: string;
   providerConfigured: boolean;
+  autopilot?: {
+    summaryForMlo: string;
+    autoAppliedCount: number;
+    needsApprovalCount: number;
+    topChanges: Array<{ title: string; status: string; riskLevel: string }>;
+  };
 }
 
 interface ChatApiFailure {
@@ -86,6 +92,7 @@ export function AssistantChat(props: {
   const [status, setStatus] = useState<ChatApiSuccess["status"] | undefined>(undefined);
   const [borrowerLeadId, setBorrowerLeadId] = useState<string | undefined>(undefined);
   const [crmLeadId, setCrmLeadId] = useState<string | undefined>(undefined);
+  const [autopilot, setAutopilot] = useState<ChatApiSuccess["autopilot"]>(undefined);
 
   const sessionIdRef = useRef<string | null>(null);
   const hasHydratedRef = useRef(false);
@@ -129,9 +136,7 @@ export function AssistantChat(props: {
     setMsgs((prev) => [...prev, { id: makeId(role.slice(0, 2)), role, body: trimmed }]);
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    const message = draft.trim();
+  async function sendMessage(message: string) {
     if (!message || busy || authRequired) return;
 
     pushBubble("user", message);
@@ -178,11 +183,20 @@ export function AssistantChat(props: {
         setBorrowerLeadId(body.borrowerLeadId);
         setCrmLeadId(body.crmLeadId);
       }
+      if (mode === "mlo_dashboard" && body.autopilot) {
+        setAutopilot(body.autopilot);
+      }
     } catch {
       pushBubble("system", "Network error — please check your connection and try again.");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const message = draft.trim();
+    await sendMessage(message);
   }
 
   const showCapturedPanel = mode === "lead_qualification";
@@ -253,6 +267,16 @@ export function AssistantChat(props: {
             </div>
           ) : null}
 
+          {mode === "mlo_dashboard" && msgs.length === 0 && !authRequired ? (
+            <button
+              type="button"
+              onClick={() => sendMessage("Improve my website/profile for me.")}
+              className="self-start rounded-full border border-violet-400/40 bg-violet-500/10 px-4 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+            >
+              Improve my website/profile for me.
+            </button>
+          ) : null}
+
           <form onSubmit={submit} className="flex gap-2">
             <label htmlFor={inputId} className="sr-only">
               Message
@@ -274,6 +298,33 @@ export function AssistantChat(props: {
               {busy ? "Sending…" : "Send"}
             </button>
           </form>
+
+          {mode === "mlo_dashboard" && autopilot ? (
+            <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">
+                Website Autopilot
+              </p>
+              <p className="text-white/85">{autopilot.summaryForMlo}</p>
+              <p className="text-white/60">
+                <span className="font-semibold text-emerald-300">{autopilot.autoAppliedCount}</span> applied
+                automatically ·{" "}
+                <span className="font-semibold text-amber-300">{autopilot.needsApprovalCount}</span> held for
+                review
+              </p>
+              {autopilot.topChanges.length > 0 ? (
+                <ul className="mt-1 space-y-1">
+                  {autopilot.topChanges.map((change, idx) => (
+                    <li key={idx} className="flex items-center justify-between gap-2 text-white/70">
+                      <span className="truncate">{change.title}</span>
+                      <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/50">
+                        {change.status.replace("_", " ")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {showCapturedPanel ? (

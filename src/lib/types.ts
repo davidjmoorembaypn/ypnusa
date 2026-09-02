@@ -290,6 +290,57 @@ export interface ChatSessionRecord {
   status: "active" | "qualified" | "closed";
 }
 
+export type AutopilotPageType = "profile" | "landing_page" | "seo" | "chatbot" | "lead_form";
+
+export type AutopilotChangeType =
+  | "headline"
+  | "cta"
+  | "chatbot_greeting"
+  | "lead_form_helper_text"
+  | "audience_positioning"
+  | "local_market_wording"
+  | "seo_title"
+  | "seo_meta_description"
+  | "profile_completeness"
+  | "trust_copy"
+  | "rate_apr_language"
+  | "guaranteed_savings_language"
+  | "loan_approval_language"
+  | "compliance_disclosure"
+  | "license_nmls_change"
+  | "brand_claim_change"
+  | "live_publish"
+  | "paid_ad_copy"
+  | "sms_email_send";
+
+export type AutopilotRiskLevel = "low" | "medium" | "high";
+
+export type AutopilotChangeStatus =
+  | "proposed"
+  | "auto_applied"
+  | "needs_approval"
+  | "rejected"
+  | "rolled_back";
+
+export interface WebsiteAutopilotChange {
+  id: string;
+  userId?: string;
+  mloProfileId?: string;
+  pageType: AutopilotPageType;
+  changeType: AutopilotChangeType;
+  title: string;
+  beforeText?: string;
+  afterText: string;
+  reason: string;
+  expectedBenefit: string;
+  riskLevel: AutopilotRiskLevel;
+  status: AutopilotChangeStatus;
+  autoApplied: boolean;
+  requiresApproval: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -303,4 +354,5 @@ export interface DbShape {
   propertyEvaluations: PropertyEvaluationRecord[];
   revenueSubscriptions: RevenueSubscriptionRecord[];
   chatSessions: ChatSessionRecord[];
+  websiteAutopilotChanges: WebsiteAutopilotChange[];
 }

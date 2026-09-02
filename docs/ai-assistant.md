@@ -144,7 +144,46 @@ handle both the configured and not-configured cases.
   `sessionId` already works (`src/lib/intake-engine.ts`) and relies on the
   ID being an unguessable `crypto.randomUUID()` — don't log full session IDs
   anywhere client-visible.
-- **No handoff into the CRM yet.** `ChatSessionRecord.borrowerLeadId` /
-  `crmLeadId` exist for linking a qualified chat session into
-  `appendBorrowerLead` / `appendCrmLead` (`src/lib/db.ts`), but nothing calls
-  that yet — the foundation stops at scoring + a recommended action.
+- **CRM handoff is wired.** A qualified `lead_qualification` session now
+  links once into `appendBorrowerLead`/`appendCrmLead` (`chat-agent.ts`'s
+  `linkQualifiedLead`), setting `borrowerLeadId`/`crmLeadId`, surfaced in the
+  `/assistant` preview UI.
+
+## Website/Profile Autopilot (`src/lib/ai/website-autopilot.ts`)
+
+**Product intent: YPNUS does the editing work, not the MLO.** MLOs are busy
+with leads, processing, underwriting, and closings — the assistant should act
+as a done-for-you growth operator, not hand back a list of suggestions for
+the MLO to implement manually.
+
+- `generateWebsiteAutopilotPlan(input)` is a deterministic (non-LLM), pure
+  planner: given an MLO's current copy/SEO fields/market, it returns a list
+  of `WebsiteAutopilotChange` items, each classified `low`/`medium`/`high`
+  risk and a `status` of `auto_applied` / `needs_approval` / `proposed`.
+  `runWebsiteAutopilot` wraps it to persist each change via
+  `saveWebsiteAutopilotChange`/`listWebsiteAutopilotChanges` (`db.ts`,
+  `websiteAutopilotChanges` in `DbShape` — same file-backed store as
+  everything else, no new persistence model needed).
+- **Auto-applied (low risk):** headline, CTA wording, chatbot greeting, lead
+  form helper text, buyer/seller/refinance positioning, local market wording,
+  SEO title/meta drafts, profile completeness copy, trust-building copy that
+  never touches license/legal claims.
+- **Held for review (`needs_approval`, medium/high risk):** rate/APR
+  language, guaranteed-savings language, loan-approval language, compliance
+  disclosures, NMLS/license changes, brand-claim changes, live WordPress
+  publishing, paid ad copy, SMS/email sending. A defensive keyword scan
+  (`containsComplianceLanguage`) also upgrades any nominally low-risk change
+  to `needs_approval` if its generated text touches these terms — risk
+  classification is never purely by category.
+- **In `mlo_dashboard` mode**, messages like "Improve my website/profile for
+  me" or "Get me more leads" trigger `runAutopilotTurn` in `chat-agent.ts`
+  before any AI provider call — it's fully deterministic and works even
+  without `ANTHROPIC_API_KEY` set. The assistant replies as an operator
+  ("I can prepare and apply safe YPNUS-controlled improvements for you...")
+  and returns a simple MLO-facing summary plus counts, shown in the
+  `/assistant` preview UI's Website Autopilot block.
+- **No live publishing.** This foundation only classifies and persists
+  `WebsiteAutopilotChange` records inside the app; it never calls Hostinger,
+  WordPress, or any deployment/webhook path. Turning `auto_applied` records
+  into real published content on ypnus.com/app.ypnus.com is future work and
+  requires explicit approval before being built.

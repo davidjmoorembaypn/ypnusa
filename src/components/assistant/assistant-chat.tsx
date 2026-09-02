@@ -28,7 +28,8 @@ interface ChatApiSuccess {
     summaryForMlo: string;
     autoAppliedCount: number;
     needsApprovalCount: number;
-    topChanges: Array<{ title: string; status: string; riskLevel: string }>;
+    dryRun: boolean;
+    topChanges: Array<{ title: string; status: string; riskLevel: string; expectedBenefit: string }>;
   };
 }
 
@@ -301,9 +302,16 @@ export function AssistantChat(props: {
 
           {mode === "mlo_dashboard" && autopilot ? (
             <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">
-                Website Autopilot
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">
+                  Website Autopilot
+                </p>
+                {autopilot.dryRun ? (
+                  <span className="shrink-0 rounded-full border border-sky-300/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-200">
+                    Preview only — no live changes made
+                  </span>
+                ) : null}
+              </div>
               <p className="text-white/85">{autopilot.summaryForMlo}</p>
               <p className="text-white/60">
                 <span className="font-semibold text-emerald-300">{autopilot.autoAppliedCount}</span> applied
@@ -314,11 +322,14 @@ export function AssistantChat(props: {
               {autopilot.topChanges.length > 0 ? (
                 <ul className="mt-1 space-y-1">
                   {autopilot.topChanges.map((change, idx) => (
-                    <li key={idx} className="flex items-center justify-between gap-2 text-white/70">
-                      <span className="truncate">{change.title}</span>
-                      <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/50">
-                        {change.status.replace("_", " ")}
-                      </span>
+                    <li key={idx} className="text-white/70">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate">{change.title}</span>
+                        <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/50">
+                          {change.status.replace("_", " ")}
+                        </span>
+                      </div>
+                      <p className="truncate text-xs text-white/40">{change.expectedBenefit}</p>
                     </li>
                   ))}
                 </ul>

@@ -49,7 +49,9 @@ export interface AssistantTurnResult {
     summaryForMlo: string;
     autoAppliedCount: number;
     needsApprovalCount: number;
-    topChanges: Array<{ title: string; status: string; riskLevel: string }>;
+    /** Always true today — this app-side turn never publishes to WordPress; see src/lib/wordpress.ts for the (dry-run-by-default) publishing path. */
+    dryRun: boolean;
+    topChanges: Array<{ title: string; status: string; riskLevel: string; expectedBenefit: string }>;
   };
   /** False whenever no AI provider is configured — the route surfaces this so the UI can show a setup notice instead of treating it as a normal outage. */
   providerConfigured: boolean;
@@ -221,9 +223,10 @@ function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput)
       summaryForMlo: plan.summaryForMlo,
       autoAppliedCount: plan.autoAppliedCount,
       needsApprovalCount: plan.needsApprovalCount,
+      dryRun: true,
       topChanges: plan.changes
         .slice(0, 5)
-        .map((c) => ({ title: c.title, status: c.status, riskLevel: c.riskLevel })),
+        .map((c) => ({ title: c.title, status: c.status, riskLevel: c.riskLevel, expectedBenefit: c.expectedBenefit })),
     },
   };
 }

@@ -311,7 +311,8 @@ export type AutopilotChangeType =
   | "brand_claim_change"
   | "live_publish"
   | "paid_ad_copy"
-  | "sms_email_send";
+  | "sms_email_send"
+  | "platform_settings_change";
 
 export type AutopilotRiskLevel = "low" | "medium" | "high";
 
@@ -339,6 +340,11 @@ export interface WebsiteAutopilotChange {
   requiresApproval: boolean;
   createdAt: string;
   updatedAt: string;
+  /** How to undo this change if it was applied — e.g. restore beforeText via the WordPress REST API. Optional: only meaningful once a change has actually been applied somewhere. */
+  rollbackNote?: string;
+  /** Set when this change targets a specific WordPress page/post (src/lib/wordpress.ts). */
+  wordpressPostId?: number;
+  wordpressSlug?: string;
 }
 
 export interface DbShape {

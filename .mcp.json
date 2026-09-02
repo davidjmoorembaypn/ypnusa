@@ -39,6 +39,14 @@
         "WP_API_USERNAME": "${YPNUS_WP_MCP_USERNAME}",
         "WP_API_PASSWORD": "${YPNUS_WP_MCP_APP_PASSWORD}"
       }
+    },
+    "novamira-visual-ypnus-com": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "novamira-visual-mcp@latest"],
+      "env": {
+        "NOVAMIRA_VISUAL_WORKSPACE_URL": "https://ypnus.com/wp-admin/admin-post.php?action=novamira-visual"
+      }
     }
   }
 }

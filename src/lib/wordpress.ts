@@ -72,6 +72,9 @@ export interface WordPressContentSnapshot {
   title: string;
   content: string;
   link: string;
+  /** Rank Math SEO title/description meta, exposed as REST fields by wp-plugins/ypnus-seo-hygiene. */
+  rankMathTitle: string;
+  rankMathDescription: string;
 }
 
 function buildAuthHeader(config: WordPressEnvConfig): string {
@@ -85,6 +88,9 @@ interface WordPressRestItem {
   link: string;
   title?: { rendered?: string };
   content?: { rendered?: string };
+  /** Registered by wp-plugins/ypnus-seo-hygiene's register_rest_field — absent on sites without it. */
+  rank_math_title?: string;
+  rank_math_description?: string;
 }
 
 function toSnapshot(item: WordPressRestItem, type: "page" | "post"): WordPressContentSnapshot {
@@ -95,6 +101,8 @@ function toSnapshot(item: WordPressRestItem, type: "page" | "post"): WordPressCo
     title: item.title?.rendered ?? "",
     content: item.content?.rendered ?? "",
     link: item.link,
+    rankMathTitle: item.rank_math_title ?? "",
+    rankMathDescription: item.rank_math_description ?? "",
   };
 }
 
@@ -128,7 +136,20 @@ export async function fetchWordPressContent(ref: WordPressContentRef): Promise<W
   }
 }
 
-export function prepareWordPressUpdatePayload(change: { afterText: string; title?: string }): Record<string, unknown> {
+export function prepareWordPressUpdatePayload(change: {
+  afterText: string;
+  title?: string;
+  changeType?: AutopilotChangeType;
+}): Record<string, unknown> {
+  // seo_title/seo_meta_description target Rank Math's meta fields (registered as REST
+  // fields by wp-plugins/ypnus-seo-hygiene), never the post body — routing them through
+  // `content` would silently overwrite the page with the SEO copy instead of setting it.
+  if (change.changeType === "seo_title") {
+    return { rank_math_title: change.afterText };
+  }
+  if (change.changeType === "seo_meta_description") {
+    return { rank_math_description: change.afterText };
+  }
   return {
     content: change.afterText,
     ...(change.title ? { title: change.title } : {}),
@@ -137,7 +158,7 @@ export function prepareWordPressUpdatePayload(change: { afterText: string; title
 
 export async function conditionallyUpdateWordPressContent(
   ref: WordPressContentRef,
-  change: { afterText: string; title?: string },
+  change: { afterText: string; title?: string; changeType?: AutopilotChangeType },
 ): Promise<{ applied: boolean; reason: string }> {
   const enabled = parseBooleanEnv("WORDPRESS_AUTOPILOT_ENABLED");
   const config = getWordPressEnvConfig();
@@ -217,7 +238,10 @@ export async function applyWordPressAutopilotPlan(
       continue;
     }
 
-    const outcome = await conditionallyUpdateWordPressContent(ref, { afterText: change.afterText });
+    const outcome = await conditionallyUpdateWordPressContent(ref, {
+      afterText: change.afterText,
+      changeType: change.changeType,
+    });
     if (outcome.applied) {
       change.status = "auto_applied";
       change.autoApplied = true;

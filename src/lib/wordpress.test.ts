@@ -6,6 +6,7 @@ import {
   conditionallyUpdateWordPressContent,
   fetchWordPressContent,
   getWordPressAutopilotStatus,
+  prepareWordPressUpdatePayload,
 } from "./wordpress";
 import type { WebsiteAutopilotChange } from "@/lib/types";
 import type { WebsiteAutopilotPlan } from "@/lib/ai/website-autopilot";
@@ -208,5 +209,68 @@ describe("wordpress.ts — risk classification (delegates to shared classifyRisk
   it("upgrades a nominally low-risk headline containing compliance language away from low", () => {
     const risk = classifyWordPressChangeRisk("headline", "Guaranteed pre-approval today!");
     assert.notEqual(risk, "low");
+  });
+});
+
+describe("wordpress.ts — Rank Math SEO field routing", () => {
+  it("routes seo_title to rank_math_title, never the post content", () => {
+    const payload = prepareWordPressUpdatePayload({ afterText: "Best Fresno Mortgage LOs | YPN", changeType: "seo_title" });
+    assert.deepEqual(payload, { rank_math_title: "Best Fresno Mortgage LOs | YPN" });
+  });
+
+  it("routes seo_meta_description to rank_math_description, never the post content", () => {
+    const payload = prepareWordPressUpdatePayload({
+      afterText: "Exclusive ZIP territory access for licensed MLOs.",
+      changeType: "seo_meta_description",
+    });
+    assert.deepEqual(payload, { rank_math_description: "Exclusive ZIP territory access for licensed MLOs." });
+  });
+
+  it("still routes non-SEO change types to content", () => {
+    const payload = prepareWordPressUpdatePayload({ afterText: "New headline copy", changeType: "headline" });
+    assert.deepEqual(payload, { content: "New headline copy" });
+  });
+
+  it("applyWordPressAutopilotPlan sends an seo_title change as rank_math_title, not content", async () => {
+    process.env.WORDPRESS_SITE_URL = "https://ypnus.com";
+    process.env.WORDPRESS_AUTOPILOT_USERNAME = "autopilot";
+    process.env.WORDPRESS_AUTOPILOT_APP_PASSWORD = "secret";
+    process.env.WORDPRESS_AUTOPILOT_ENABLED = "true";
+    process.env.WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK = "true";
+
+    const originalFetch = globalThis.fetch;
+    let capturedBody: string | undefined;
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      capturedBody = init?.body as string;
+      return new Response(JSON.stringify({ id: 1 }), { status: 200 });
+    }) as unknown as typeof globalThis.fetch;
+
+    try {
+      const plan: WebsiteAutopilotPlan = {
+        score: 90,
+        changes: [
+          makeChange({
+            id: "c_seo_title",
+            riskLevel: "low",
+            changeType: "seo_title",
+            afterText: "Best Fresno Mortgage LOs | YPN",
+          }),
+        ],
+        summaryForMlo: "test",
+        autoAppliedCount: 0,
+        needsApprovalCount: 0,
+        safeToShowMloSummary: true,
+      };
+
+      const result = await applyWordPressAutopilotPlan(plan, { id: 1, type: "page" });
+
+      assert.equal(result.appliedCount, 1);
+      assert.ok(capturedBody);
+      const parsed = JSON.parse(capturedBody as string);
+      assert.deepEqual(parsed, { rank_math_title: "Best Fresno Mortgage LOs | YPN" });
+    } finally {
+      globalThis.fetch = originalFetch;
+      clearWordPressEnv();
+    }
   });
 });

@@ -4,7 +4,9 @@ import type {
   DbShape,
   AppointmentRecord,
   AnalyticsEventRecord,
+  AutopilotRunRecord,
   BorrowerLeadRecord,
+  ChatSessionRecord,
   CrmLeadRecord,
   DemoRequestRecord,
   IntakeSessionRecord,
@@ -13,6 +15,7 @@ import type {
   PropertyEvaluationRecord,
   RevenueSubscriptionRecord,
   ScheduledFollowUpRecord,
+  WebsiteAutopilotChange,
 } from "./types";
 
 /**
@@ -22,13 +25,11 @@ import type {
  * hydrated once from disk (if a snapshot exists) and written through to disk on
  * every mutation on a best-effort basis.
  *
- * Why in-memory-first: on serverless hosts (e.g. Vercel) the application
- * directory is read-only, so file writes throw. Keeping state in memory means
- * multi-step flows (the intake chat posting several `tick`s) still work within a
- * warm instance even when disk persistence is unavailable. On a persistent Node
- * host (`next start`, a VPS, Docker) the disk snapshot additionally survives
- * restarts. Set `LOANPILOT_DATA_DIR` to a writable path to control where the
- * snapshot lives.
+ * Why in-memory-first: keeping state in memory means multi-step flows (the
+ * intake chat posting several `tick`s) stay coherent even if a disk write
+ * fails. On a persistent Node host (`next start`, a VPS, Docker) the disk
+ * snapshot additionally survives restarts. Set `LOANPILOT_DATA_DIR` to a
+ * writable path to control where the snapshot lives.
  */
 
 /**
@@ -154,6 +155,9 @@ const emptyDb = (): DbShape => ({
   demoRequests: [],
   propertyEvaluations: [],
   revenueSubscriptions: defaultRevenueSubscriptions,
+  chatSessions: [],
+  websiteAutopilotChanges: [],
+  autopilotRuns: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -197,6 +201,13 @@ function normalize(snapshot: unknown): DbShape {
     propertyEvaluations: arrayOrEmpty<PropertyEvaluationRecord>(parsed.propertyEvaluations),
     revenueSubscriptions:
       revenueSubscriptions.length > 0 ? revenueSubscriptions : defaultRevenueSubscriptions,
+    chatSessions: arrayOrEmpty<ChatSessionRecord>(parsed.chatSessions).map((session) => ({
+      ...session,
+      capturedFields: isPlainRecord(session.capturedFields) ? session.capturedFields : {},
+      messages: arrayOrEmpty(session.messages),
+    })),
+    websiteAutopilotChanges: arrayOrEmpty<WebsiteAutopilotChange>(parsed.websiteAutopilotChanges),
+    autopilotRuns: arrayOrEmpty<AutopilotRunRecord>(parsed.autopilotRuns),
   };
 }
 
@@ -233,7 +244,7 @@ function flushToDisk(db: DbShape): void {
     fs.renameSync(/*turbopackIgnore: true*/ tmp, target);
     lastStorageError = undefined;
   } catch (error) {
-    // Read-only/serverless filesystem: keep serving from memory. Stop retrying
+    // Disk unavailable or read-only: keep serving from memory. Stop retrying
     // so we don't throw on every request.
     diskWritable = false;
     lastStorageError = `Unable to persist data snapshot: ${describeFsError(error)}`;
@@ -350,6 +361,62 @@ export function cancelPendingFollowUps(borrowerLeadId: string): number {
     });
   });
   return cancelled;
+}
+
+export function readChatSession(id: string): ChatSessionRecord | null {
+  return readDb().chatSessions.find((session) => session.id === id) ?? null;
+}
+
+/** Upserts by id — mirrors persistSession's replace-or-append pattern. */
+export function saveChatSession(session: ChatSessionRecord): void {
+  writeDb((db) => {
+    const idx = db.chatSessions.findIndex((s) => s.id === session.id);
+    if (idx >= 0) db.chatSessions[idx] = session;
+    else db.chatSessions.push(session);
+  });
+}
+
+export function listWebsiteAutopilotChanges(userId?: string): WebsiteAutopilotChange[] {
+  const all = readDb().websiteAutopilotChanges;
+  return userId ? all.filter((change) => change.userId === userId) : all;
+}
+
+/** Upserts by id — mirrors saveChatSession's replace-or-append pattern. */
+export function saveWebsiteAutopilotChange(change: WebsiteAutopilotChange): void {
+  writeDb((db) => {
+    const idx = db.websiteAutopilotChanges.findIndex((c) => c.id === change.id);
+    if (idx >= 0) db.websiteAutopilotChanges[idx] = change;
+    else db.websiteAutopilotChanges.push(change);
+  });
+}
+
+/** Newest first — this is a history log, so recency order is what the UI wants. */
+export function listAutopilotRuns(userId?: string): AutopilotRunRecord[] {
+  const all = readDb().autopilotRuns;
+  const scoped = userId ? all.filter((run) => run.userId === userId) : all;
+  return [...scoped].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** Keep each user's run history bounded so repeated dry-run previews can't grow the store forever. */
+const MAX_AUTOPILOT_RUNS_PER_USER = 100;
+
+/** Upserts by id — mirrors saveWebsiteAutopilotChange's replace-or-append pattern. */
+export function saveAutopilotRun(run: AutopilotRunRecord): void {
+  writeDb((db) => {
+    const idx = db.autopilotRuns.findIndex((r) => r.id === run.id);
+    if (idx >= 0) {
+      db.autopilotRuns[idx] = run;
+      return;
+    }
+    db.autopilotRuns.push(run);
+    if (!run.userId) return;
+    const forUser = db.autopilotRuns.filter((r) => r.userId === run.userId);
+    if (forUser.length <= MAX_AUTOPILOT_RUNS_PER_USER) return;
+    const oldestId = [...forUser].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0]?.id;
+    if (oldestId) {
+      db.autopilotRuns = db.autopilotRuns.filter((r) => r.id !== oldestId);
+    }
+  });
 }
 
 export function appendDemoRequest(record: DemoRequestRecord): void {

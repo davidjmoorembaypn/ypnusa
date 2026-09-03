@@ -106,14 +106,10 @@ neutral `WebPage` structured data.
 
 State (sessions, leads, CRM notes, territory reservations, analytics) is held in an
 **in-memory store** that is hydrated from and written through to a JSON snapshot on a
-best-effort basis. This means:
-
-- **Persistent Node host** (`next start`, a VPS, Docker) → the JSON snapshot survives restarts.
-- **Serverless host** (e.g. Vercel) → the app directory is read-only, so the snapshot can't
-  be written, but multi-step flows still work within a warm instance because state lives in
-  memory. Data resets on cold start — fine for a demo/marketing surface. For durable
-  production data, swap the storage layer in `src/lib/db.ts` for a database (Supabase,
-  Postgres, etc.); a starter schema is in `supabase-leads-schema.sql`.
+best-effort basis. On a persistent Node host (`next start`, a VPS, Docker, Hostinger
+Cloud, Render) the JSON snapshot survives restarts. For durable multi-instance
+production data, swap the storage layer in `src/lib/db.ts` for a database (Supabase,
+Postgres, etc.); a starter schema is in `supabase-leads-schema.sql`.
 
 ## Deploy
 

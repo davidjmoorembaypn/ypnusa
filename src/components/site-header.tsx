@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { marketingUrl } from "@/lib/site";
 
 const NAV = [
@@ -14,7 +14,26 @@ const NAV = [
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
   const signupHref = marketingUrl("/lo-signup.html?plan=free");
+
+  useEffect(() => {
+    let cancelled = false;
+    // ypnus_session is host-only + httpOnly (docs/sso-handoff.md) — can't be read
+    // client-side, so ask the app instead. Matches the shape /api/auth/session
+    // actually returns: { ok: true, session: { email, role } | null }.
+    fetch("/api/auth/session")
+      .then((response) => response.json())
+      .then((body: { session: { email: string; role: string } | null }) => {
+        if (!cancelled) setHasSession(Boolean(body.session));
+      })
+      .catch(() => {
+        if (!cancelled) setHasSession(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#09081b]/85 backdrop-blur-md">
@@ -46,12 +65,21 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <a
-            href={signupHref}
-            className="hidden rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 sm:inline-flex"
-          >
-            Claim your ZIP
-          </a>
+          {hasSession ? (
+            <Link
+              href="/dashboard"
+              className="hidden rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-[#09081b] shadow-lg shadow-emerald-500/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 sm:inline-flex"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <a
+              href={signupHref}
+              className="hidden rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 sm:inline-flex"
+            >
+              Claim your ZIP
+            </a>
+          )}
           <button
             type="button"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 md:hidden"
@@ -101,13 +129,23 @@ export function SiteHeader() {
               Marketing site
             </a>
           </div>
-          <a
-            href={signupHref}
-            className="mt-3 flex items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/20 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-            onClick={() => setMobileOpen(false)}
-          >
-            Start free on ypnus.com
-          </a>
+          {hasSession ? (
+            <Link
+              href="/dashboard"
+              className="mt-3 flex items-center justify-center rounded-full bg-emerald-400 px-5 py-3 text-sm font-semibold text-[#09081b] shadow-lg shadow-emerald-500/20 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
+              onClick={() => setMobileOpen(false)}
+            >
+              Go to dashboard
+            </Link>
+          ) : (
+            <a
+              href={signupHref}
+              className="mt-3 flex items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/20 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+              onClick={() => setMobileOpen(false)}
+            >
+              Start free on ypnus.com
+            </a>
+          )}
         </nav>
       </div>
     </header>

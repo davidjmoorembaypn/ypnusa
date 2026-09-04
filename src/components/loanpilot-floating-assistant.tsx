@@ -2,7 +2,7 @@
 
 import type { BorrowerAnswers, LoanProgram } from "@/lib/types";
 import type { AssistantStep, IntakeTickResponse } from "@/lib/intake-contracts";
-import { PROGRAM_LIST } from "@/lib/programs";
+import { PROGRAM_LIST, coerceLoanProgram } from "@/lib/programs";
 import { useStageTracking } from "@/lib/hooks/useStageTracking";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 
@@ -62,14 +62,19 @@ export function MortgageIntakeChat(props: {
     (brand === "ypn" ? "ypn_embed_canonical" : "loanpilot_ai_surface");
 
   const STORAGE_KEY = brand === "ypn" ? "ypn_intake_sess_v1" : "loanpilot_session_v2";
+  const LANE_STORAGE_KEY = `${STORAGE_KEY}_lane`;
 
   const [loanProgram, setLoanProgram] = useState<LoanProgram>("FHA");
+  /** The lane locks on the first borrower answer, not on session creation. */
+  const [laneLocked, setLaneLocked] = useState(false);
   const [open, setOpen] = useState(variant !== "fab");
 
   const [sessionIdState, setSessionIdState] = useState<string | null>(() =>
     typeof window === "undefined" ? null : null,
   );
   const sessionIdRef = useRef<string | null>(null);
+  /** Ticks read the lane from a ref so a resumed session never posts a stale program. */
+  const loanProgramRef = useRef<LoanProgram>("FHA");
 
   const hasHydratedFsRef = useRef(false);
   const embedBootedRef = useRef(false);
@@ -107,12 +112,18 @@ export function MortgageIntakeChat(props: {
         sessionIdRef.current = stored;
         // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time post-mount hydration from localStorage; the initial render must stay null to match SSR output.
         setSessionIdState(stored);
+
+        const storedLane = coerceLoanProgram(window.localStorage.getItem(LANE_STORAGE_KEY));
+        if (storedLane) {
+          loanProgramRef.current = storedLane;
+          setLoanProgram(storedLane);
+        }
       }
     } catch {
       /** noop */
     }
     setAnonIdState(resolveAnonId());
-  }, [STORAGE_KEY]);
+  }, [STORAGE_KEY, LANE_STORAGE_KEY]);
 
   /** Pre-lead funnel stage: fires once the borrower actually sees the intake surface. */
   useEffect(() => {
@@ -151,25 +162,29 @@ export function MortgageIntakeChat(props: {
     setMsgs((prev) => [...prev, { id: makeId("sy"), role: "system", body: b }]);
   }, []);
 
-  const rememberSession = useCallback((id: string) => {
+  const rememberSession = useCallback((id: string, program: LoanProgram) => {
     sessionIdRef.current = id;
     setSessionIdState(id);
+    loanProgramRef.current = program;
+    setLoanProgram(program);
     try {
       window.localStorage.setItem(STORAGE_KEY, id);
+      window.localStorage.setItem(LANE_STORAGE_KEY, program);
     } catch {
       /** noop */
     }
-  }, [STORAGE_KEY]);
+  }, [STORAGE_KEY, LANE_STORAGE_KEY]);
 
   const purgeSession = useCallback(() => {
     sessionIdRef.current = null;
     setSessionIdState(null);
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LANE_STORAGE_KEY);
     } catch {
       /** noop */
     }
-  }, [STORAGE_KEY]);
+  }, [STORAGE_KEY, LANE_STORAGE_KEY]);
 
   async function hydrateSlots(preview?: IntakeTickResponse["slotPreview"], officerId?: string | null) {
     if (preview?.length) {
@@ -193,7 +208,7 @@ export function MortgageIntakeChat(props: {
     if (!opts?.silent) {
       setLastError(snapshot.ok ? null : snapshot.error ?? "The intake tick could not complete.");
     }
-    rememberSession(snapshot.sessionId);
+    rememberSession(snapshot.sessionId, snapshot.loanProgram);
 
     const denominator = Math.max(1, snapshot.progress.totalApplicable);
     const numerator = snapshot.progress.completed;
@@ -205,6 +220,10 @@ export function MortgageIntakeChat(props: {
     setPct(derivedPct);
     setCounts({ done: numerator, total: snapshot.progress.totalApplicable || denominator });
     setPhase(snapshot.phase);
+
+    if (numerator > 0 || snapshot.phase !== "collecting") {
+      setLaneLocked(true);
+    }
 
     if (snapshot.phase === "crm_synced") {
       setStep(null);
@@ -231,7 +250,10 @@ export function MortgageIntakeChat(props: {
     }
   }
 
-  async function postTick(payload?: IncomingPayload, opts?: { silent?: boolean }) {
+  async function postTick(
+    payload?: IncomingPayload,
+    opts?: { silent?: boolean; programOverride?: LoanProgram },
+  ) {
     if (payload && !startedTrackedRef.current) {
       startedTrackedRef.current = true;
       void trackStage("started_signup");
@@ -244,7 +266,7 @@ export function MortgageIntakeChat(props: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: sessionIdRef.current ?? undefined,
-          loanProgram,
+          loanProgram: opts?.programOverride ?? loanProgramRef.current,
           funnelSource: funnel,
           incoming: payload,
         }),
@@ -310,7 +332,7 @@ export function MortgageIntakeChat(props: {
     void bootConversation();
   }
 
-  function handleReset() {
+  function clearConversation() {
     purgeSession();
     setMsgs([]);
     setDraft("");
@@ -320,10 +342,25 @@ export function MortgageIntakeChat(props: {
     setCrm(undefined);
     setSlots([]);
     setLastError(null);
+    setLaneLocked(false);
+  }
+
+  function handleReset() {
+    clearConversation();
     void postTick();
   }
 
+  /** Switching lanes before the first answer restarts intake on the new program. */
+  function handleLoanProgram(next: LoanProgram) {
+    if (next === loanProgram || laneLocked || busy) return;
+    loanProgramRef.current = next;
+    setLoanProgram(next);
+    clearConversation();
+    void postTick(undefined, { programOverride: next });
+  }
+
   async function submitAnswer(field: AssistantStep, raw: string, label?: string) {
+    setLaneLocked(true);
     pushUser(label ?? raw);
     await postTick({ field: field.field, rawValue: raw });
     setDraft("");
@@ -526,8 +563,8 @@ export function MortgageIntakeChat(props: {
                 labelTone={labelTone}
                 progressNote={progressNote}
                 loanProgram={loanProgram}
-                sessionIdState={sessionIdState}
-                onLoanProgram={(p) => setLoanProgram(p)}
+                laneLocked={laneLocked}
+                onLoanProgram={handleLoanProgram}
                 onClose={() => setOpen(false)}
                 onReset={handleReset}
                 onRetry={() => void postTick()}
@@ -575,8 +612,8 @@ export function MortgageIntakeChat(props: {
               labelTone={labelTone}
               progressNote={progressNote}
               loanProgram={loanProgram}
-              sessionIdState={sessionIdState}
-              onLoanProgram={(p) => setLoanProgram(p)}
+              laneLocked={laneLocked}
+              onLoanProgram={handleLoanProgram}
               onClose={() => setOpen(false)}
               onReset={handleReset}
               onRetry={() => void postTick()}
@@ -627,7 +664,7 @@ function InnerChrome(props: {
   labelTone: string;
   progressNote: string;
   loanProgram: LoanProgram;
-  sessionIdState: string | null;
+  laneLocked: boolean;
   onLoanProgram: (p: LoanProgram) => void;
   onClose: () => void;
   onReset: () => void;
@@ -672,7 +709,7 @@ function InnerChrome(props: {
     labelTone,
     progressNote,
     loanProgram,
-    sessionIdState,
+    laneLocked,
     onLoanProgram,
     onClose,
     onReset,
@@ -759,7 +796,7 @@ function InnerChrome(props: {
           <select
             className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner disabled:opacity-55"
             value={loanProgram}
-            disabled={Boolean(sessionIdState) || busy}
+            disabled={laneLocked || busy}
             onChange={(evt) => onLoanProgram(evt.target.value as LoanProgram)}
           >
             {PROGRAM_LIST.map((p) => (

@@ -32,6 +32,8 @@ export interface BorrowerAnswers {
   email?: string;
   phone?: string;
   contactConsent?: boolean;
+  /** ZIP the borrower is transacting in — not currently collected by the intake flow; optional until it is. */
+  zip?: string;
   /** e.g. 620-679, prefer numeric midpoint for scoring when possible */
   estimatedCreditBand?: string;
   annualIncomeUsd?: number;
@@ -132,7 +134,7 @@ export interface ScheduledFollowUpRecord {
   channel: FollowUpChannel;
   recipient: string;
   scheduledAt: string;
-  status: "pending" | "sending" | "sent" | "failed";
+  status: "pending" | "sending" | "sent" | "failed" | "cancelled";
   bodySummary: string;
   createdAt: string;
   sentAt?: string;
@@ -176,7 +178,10 @@ export interface AnalyticsEventRecord {
     | "appointment_booked"
     | "followup_processed"
     | "demo_requested"
-    | "property_evaluation_saved";
+    | "property_evaluation_saved"
+    | "funnel_stage_viewed"
+    | "funnel_cta_clicked"
+    | "lead_intelligence_computed";
   createdAt: string;
   payload: Record<string, unknown>;
 }
@@ -232,6 +237,151 @@ export interface RevenueSubscriptionRecord {
   attributedDemoRequestIds?: string[];
 }
 
+/** The three surfaces the AI assistant runs on — see src/lib/ai/prompts.ts. */
+export type AssistantMode = "public_site" | "mlo_dashboard" | "lead_qualification";
+
+export type ChatRole = "user" | "assistant";
+
+export type ConsumerLeadType = "buyer" | "seller" | "refinance" | "other";
+
+export interface ChatMessageRecord {
+  id: string;
+  role: ChatRole;
+  content: string;
+  createdAt: string;
+}
+
+/**
+ * Structured slots the assistant fills in during a lead-qualification
+ * conversation. Distinct from BorrowerAnswers/LoanProgram (the deterministic
+ * intake flow's model) because "seller" leads aren't borrowers at all —
+ * this is a lighter, chat-native shape the AI provider populates via tool use.
+ */
+export interface ChatCapturedFields {
+  name?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  leadType?: ConsumerLeadType;
+  urgency?: Urgency;
+  /** Explicit contact-consent capture — required before any outbound follow-up. */
+  consent?: boolean;
+}
+
+export interface ChatSessionRecord {
+  id: string;
+  mode: AssistantMode;
+  createdAt: string;
+  updatedAt: string;
+  /** Set for mlo_dashboard sessions — the signed-in session's `sub` (src/lib/session.ts). */
+  userId?: string;
+  /** Linked once a lead_qualification conversation is routed into the CRM. */
+  borrowerLeadId?: string;
+  crmLeadId?: string;
+  funnelSource?: string;
+  messages: ChatMessageRecord[];
+  capturedFields: ChatCapturedFields;
+  /** Populated by the AI provider once it has enough signal — see chat-agent.ts. */
+  summary?: string;
+  /** 0-100 lead-quality estimate, distinct from qualification.ts's program-fit scoring. */
+  leadScore?: number;
+  recommendedAction?: string;
+  status: "active" | "qualified" | "closed";
+}
+
+export type AutopilotPageType = "profile" | "landing_page" | "seo" | "chatbot" | "lead_form";
+
+export type AutopilotChangeType =
+  | "headline"
+  | "cta"
+  | "chatbot_greeting"
+  | "lead_form_helper_text"
+  | "audience_positioning"
+  | "local_market_wording"
+  | "seo_title"
+  | "seo_meta_description"
+  | "profile_completeness"
+  | "trust_copy"
+  | "rate_apr_language"
+  | "guaranteed_savings_language"
+  | "loan_approval_language"
+  | "compliance_disclosure"
+  | "license_nmls_change"
+  | "brand_claim_change"
+  | "live_publish"
+  | "paid_ad_copy"
+  | "sms_email_send"
+  | "platform_settings_change";
+
+export type AutopilotRiskLevel = "low" | "medium" | "high";
+
+export type AutopilotChangeStatus =
+  | "proposed"
+  | "auto_applied"
+  | "needs_approval"
+  | "rejected"
+  | "rolled_back";
+
+export interface WebsiteAutopilotChange {
+  id: string;
+  userId?: string;
+  mloProfileId?: string;
+  pageType: AutopilotPageType;
+  changeType: AutopilotChangeType;
+  title: string;
+  beforeText?: string;
+  afterText: string;
+  reason: string;
+  expectedBenefit: string;
+  riskLevel: AutopilotRiskLevel;
+  status: AutopilotChangeStatus;
+  autoApplied: boolean;
+  requiresApproval: boolean;
+  createdAt: string;
+  updatedAt: string;
+  /** How to undo this change if it was applied — e.g. restore beforeText via the WordPress REST API. Optional: only meaningful once a change has actually been applied somewhere. */
+  rollbackNote?: string;
+  /** Set when this change targets a specific WordPress page/post (src/lib/wordpress.ts). */
+  wordpressPostId?: number;
+  wordpressSlug?: string;
+}
+
+/** Compact snapshot of a change shown in an AutopilotRunRecord's history list — avoids re-fetching full WebsiteAutopilotChange records to render history. */
+export interface AutopilotRunChangeSummary {
+  id: string;
+  title: string;
+  changeType: AutopilotChangeType;
+  riskLevel: AutopilotRiskLevel;
+  status: AutopilotChangeStatus;
+  expectedBenefit: string;
+}
+
+/**
+ * One logged run of the Website Autopilot Command Center — "YPNUS improved
+ * these items for you." Distinct from WebsiteAutopilotChange (one edit): a
+ * run groups everything generated together with the plan-level score/summary
+ * so the MLO sees history, not a pile of individual changes to manage.
+ */
+export interface AutopilotRunRecord {
+  id: string;
+  userId?: string;
+  mloProfileId?: string;
+  pageType: AutopilotPageType;
+  pageLabel?: string;
+  createdAt: string;
+  score: number;
+  summaryForMlo: string;
+  autoAppliedCount: number;
+  needsApprovalCount: number;
+  changeCount: number;
+  topChanges: AutopilotRunChangeSummary[];
+  /** Always true tonight — no run has ever published live. */
+  dryRun: boolean;
+  /** WordPress Autopilot's enabled flag at run time, for display only. */
+  wordpressLive: boolean;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -244,4 +394,7 @@ export interface DbShape {
   demoRequests: DemoRequestRecord[];
   propertyEvaluations: PropertyEvaluationRecord[];
   revenueSubscriptions: RevenueSubscriptionRecord[];
+  chatSessions: ChatSessionRecord[];
+  websiteAutopilotChanges: WebsiteAutopilotChange[];
+  autopilotRuns: AutopilotRunRecord[];
 }

@@ -34,7 +34,7 @@ Hostinger restore files for the currently-broken app homepage live in [`hostinge
 - `/dashboard/local-seo` — MLO NAP, Google Business Profile, review-feed, and review-link readiness
 
 **Backend (App Router route handlers):**
-- `POST /api/intake/tick` — conversational intake engine (adaptive FHA/VA/DSCR/HELOC/REFI/JUMBO flows, scoring, CRM mirroring, officer routing, nurture scheduling)
+- `POST /api/intake/tick` — conversational intake engine (short shared goal/amount/timeline/credit/contact flow across all loan programs, scoring, CRM mirroring, officer routing, nurture scheduling)
 - `GET  /api/territory/check?zip=NNNNN` — ZIP territory availability
 - `POST /api/demo-request` — officer territory reservation / waitlist capture
 - `POST /api/property/evaluate` — server-validated equity estimate and optional consented review request
@@ -70,6 +70,8 @@ All environment variables are optional — see `.env.example`.
 | `NEXT_PUBLIC_MARKETING_SITE_URL` | WordPress marketing host. Defaults to `https://ypnus.com`. |
 | `YPNUS_WP_API_BASE` | Live territory/signup REST base. Defaults to `https://ypnus.com/wp-json/ypnus/v1`. |
 | `LOANPILOT_DATA_DIR` | Directory for the JSON data snapshot. Defaults to `./data`. Point at a writable path (e.g. `/tmp/ypnus`) on read-only hosts. |
+| `SESSION_SECRET` | Signs the `ypnus_session` cookie. Falls back to a secret persisted at `<data dir>/session-secret.key` when unset — fine for local dev, but set this explicitly in production. |
+| `YPNUS_SSO_SHARED_SECRET` | Shared secret for the `ypnus.com` → `app.ypnus.com` SSO handoff. Required for `/api/auth/callback` to accept a handoff; see `docs/sso-handoff.md`. |
 | `INTAKE_EXTERNAL_WEBHOOK_URL` | If set, completed intakes are POSTed here (Zapier/CRM). |
 | `LOANPILOT_DEMO_MODE` / `LOANPILOT_DEMO_DAY_MINUTES` | Compress the multi-day nurture ladder for live demos. |
 | `LOCAL_SEO_PUBLIC_ORIGIN` | Public origin for local canonical URLs; defaults to `https://ypnus.com`. |
@@ -78,6 +80,7 @@ All environment variables are optional — see `.env.example`.
 | `GBP_REVIEWS_PROVIDER_URL` / `GBP_REVIEWS_PROVIDER_TOKEN` | Authorized server-side source for dynamic verified review records. |
 | `NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY` | Optional browser-restricted key for lazy map embeds. |
 | `REVIEW_REQUEST_API_SECRET` | Bearer secret required by the closing-event endpoint in production. |
+| `ADMIN_TOKEN` / `CRON_SECRET` | Required by the lead-ingest, automation, and telemetry APIs (`/api/webhooks/leads`, `/api/automation/process`, `/api/analytics/summary`, `/api/revenue/summary`). Those routes reject all machine callers until one is set. |
 | `REVIEW_REQUEST_WEBHOOK_URL` / `REVIEW_REQUEST_WEBHOOK_TOKEN` | SMS/email provider handoff for post-closing review messages. |
 
 ## Local SEO deployment
@@ -103,14 +106,10 @@ neutral `WebPage` structured data.
 
 State (sessions, leads, CRM notes, territory reservations, analytics) is held in an
 **in-memory store** that is hydrated from and written through to a JSON snapshot on a
-best-effort basis. This means:
-
-- **Persistent Node host** (`next start`, a VPS, Docker) → the JSON snapshot survives restarts.
-- **Serverless host** (e.g. Vercel) → the app directory is read-only, so the snapshot can't
-  be written, but multi-step flows still work within a warm instance because state lives in
-  memory. Data resets on cold start — fine for a demo/marketing surface. For durable
-  production data, swap the storage layer in `src/lib/db.ts` for a database (Supabase,
-  Postgres, etc.); a starter schema is in `supabase-leads-schema.sql`.
+best-effort basis. On a persistent Node host (`next start`, a VPS, Docker, Hostinger
+Cloud, Render) the JSON snapshot survives restarts. For durable multi-instance
+production data, swap the storage layer in `src/lib/db.ts` for a database (Supabase,
+Postgres, etc.); a starter schema is in `supabase-leads-schema.sql`.
 
 ## Deploy
 

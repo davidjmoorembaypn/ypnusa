@@ -220,13 +220,13 @@ export function getLocalSeoPath(profile: LocalSeoProfile): string {
 export function getPublicBusinessProfile(): PublicBusinessProfile {
   return {
     name: process.env.MLO_PUBLIC_NAME?.trim() || "YPN USA",
-    phone: process.env.MLO_PUBLIC_PHONE?.trim() || "+1-559-205-6940",
+    phone: process.env.MLO_PUBLIC_PHONE?.trim() || "+1-559-512-0372",
     email: process.env.MLO_PUBLIC_EMAIL?.trim() || "support@ypnus.com",
-    streetAddress: process.env.MLO_PUBLIC_STREET_ADDRESS?.trim() || undefined,
-    locality: process.env.MLO_PUBLIC_LOCALITY?.trim() || undefined,
-    region: process.env.MLO_PUBLIC_REGION?.trim() || undefined,
-    postalCode: process.env.MLO_PUBLIC_POSTAL_CODE?.trim() || undefined,
-    nmlsId: process.env.MLO_NMLS_ID?.trim() || undefined,
+    streetAddress: process.env.MLO_PUBLIC_STREET_ADDRESS?.trim() || "247 N L Street",
+    locality: process.env.MLO_PUBLIC_LOCALITY?.trim() || "Dinuba",
+    region: process.env.MLO_PUBLIC_REGION?.trim() || "CA",
+    postalCode: process.env.MLO_PUBLIC_POSTAL_CODE?.trim() || "93618",
+    nmlsId: process.env.MLO_NMLS_ID?.trim() || "787257",
     placeId: process.env.GBP_PLACE_ID?.trim() || undefined,
     profileUrl: normalizeHttpUrl(process.env.GBP_PROFILE_URL),
   };

@@ -48,6 +48,9 @@ Upload `wp-plugins/ypnus-seo-hygiene.zip` (or the folder) as a normal plugin and
 - Excludes attachments from Rank Math sitemaps
 - noindexes thin utility endpoints that should not compete for indexing
 - Documents the marketing vs app host split in `robots.txt`
+- Registers `rank_math_title` / `rank_math_description` as REST-editable fields on
+  pages and posts, so the app's Website Autopilot can propose and apply Rank Math
+  SEO title/description changes via `/wp-json/wp/v2/pages/{id}`
 
 Then in Rank Math:
 

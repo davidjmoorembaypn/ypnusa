@@ -2,7 +2,8 @@
 
 import type { BorrowerAnswers, LoanProgram } from "@/lib/types";
 import type { AssistantStep, IntakeTickResponse } from "@/lib/intake-contracts";
-import { PROGRAM_LIST } from "@/lib/programs";
+import { PROGRAM_LIST, coerceLoanProgram } from "@/lib/programs";
+import { useStageTracking } from "@/lib/hooks/useStageTracking";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 
 type Bubble = { id: string; role: "assistant" | "user" | "system"; body: string };
@@ -19,6 +20,21 @@ function makeId(prefix: string) {
     return `${prefix}_${crypto.randomUUID()}`;
   }
   return `${prefix}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+const ANON_ID_KEY = "ypn_anon_id_v1";
+
+/** One stable per-browser id for pre-session funnel tracking (see useStageTracking). */
+function resolveAnonId(): string {
+  try {
+    const existing = window.localStorage.getItem(ANON_ID_KEY);
+    if (existing) return existing;
+    const created = makeId("anon");
+    window.localStorage.setItem(ANON_ID_KEY, created);
+    return created;
+  } catch {
+    return makeId("anon");
+  }
 }
 
 function slotPretty(iso: string) {
@@ -46,17 +62,27 @@ export function MortgageIntakeChat(props: {
     (brand === "ypn" ? "ypn_embed_canonical" : "loanpilot_ai_surface");
 
   const STORAGE_KEY = brand === "ypn" ? "ypn_intake_sess_v1" : "loanpilot_session_v2";
+  const LANE_STORAGE_KEY = `${STORAGE_KEY}_lane`;
 
   const [loanProgram, setLoanProgram] = useState<LoanProgram>("FHA");
+  /** The lane locks on the first borrower answer, not on session creation. */
+  const [laneLocked, setLaneLocked] = useState(false);
   const [open, setOpen] = useState(variant !== "fab");
 
   const [sessionIdState, setSessionIdState] = useState<string | null>(() =>
     typeof window === "undefined" ? null : null,
   );
   const sessionIdRef = useRef<string | null>(null);
+  /** Ticks read the lane from a ref so a resumed session never posts a stale program. */
+  const loanProgramRef = useRef<LoanProgram>("FHA");
 
   const hasHydratedFsRef = useRef(false);
   const embedBootedRef = useRef(false);
+
+  const [anonIdState, setAnonIdState] = useState<string | null>(null);
+  const viewedTrackedRef = useRef(false);
+  const startedTrackedRef = useRef(false);
+  const completedTrackedRef = useRef(false);
 
   const [msgs, setMsgs] = useState<Bubble[]>([]);
   const [pct, setPct] = useState(8);
@@ -74,8 +100,9 @@ export function MortgageIntakeChat(props: {
   const rootRef = useRef<HTMLDivElement>(null);
 
   const surfaceOpen = variant === "embed" || open;
+  const trackingId = sessionIdState ?? anonIdState ?? "";
+  const { trackStage, trackCtaClick } = useStageTracking(trackingId);
 
-  /** Hydrate persisted session ids after mount without touching SSR */
   useEffect(() => {
     if (hasHydratedFsRef.current) return;
     hasHydratedFsRef.current = true;
@@ -83,13 +110,27 @@ export function MortgageIntakeChat(props: {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (stored) {
         sessionIdRef.current = stored;
-        // Hydrate after SSR so server/client markup stay aligned until mount
-        setSessionIdState(stored); // eslint-disable-line react-hooks/set-state-in-effect
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time post-mount hydration from localStorage; the initial render must stay null to match SSR output.
+        setSessionIdState(stored);
+
+        const storedLane = coerceLoanProgram(window.localStorage.getItem(LANE_STORAGE_KEY));
+        if (storedLane) {
+          loanProgramRef.current = storedLane;
+          setLoanProgram(storedLane);
+        }
       }
     } catch {
       /** noop */
     }
-  }, [STORAGE_KEY]);
+    setAnonIdState(resolveAnonId());
+  }, [STORAGE_KEY, LANE_STORAGE_KEY]);
+
+  /** Pre-lead funnel stage: fires once the borrower actually sees the intake surface. */
+  useEffect(() => {
+    if (!surfaceOpen || !trackingId || viewedTrackedRef.current) return;
+    viewedTrackedRef.current = true;
+    void trackStage("viewed_borrower_page");
+  }, [surfaceOpen, trackingId, trackStage]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -121,25 +162,29 @@ export function MortgageIntakeChat(props: {
     setMsgs((prev) => [...prev, { id: makeId("sy"), role: "system", body: b }]);
   }, []);
 
-  const rememberSession = useCallback((id: string) => {
+  const rememberSession = useCallback((id: string, program: LoanProgram) => {
     sessionIdRef.current = id;
     setSessionIdState(id);
+    loanProgramRef.current = program;
+    setLoanProgram(program);
     try {
       window.localStorage.setItem(STORAGE_KEY, id);
+      window.localStorage.setItem(LANE_STORAGE_KEY, program);
     } catch {
       /** noop */
     }
-  }, [STORAGE_KEY]);
+  }, [STORAGE_KEY, LANE_STORAGE_KEY]);
 
   const purgeSession = useCallback(() => {
     sessionIdRef.current = null;
     setSessionIdState(null);
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LANE_STORAGE_KEY);
     } catch {
       /** noop */
     }
-  }, [STORAGE_KEY]);
+  }, [STORAGE_KEY, LANE_STORAGE_KEY]);
 
   async function hydrateSlots(preview?: IntakeTickResponse["slotPreview"], officerId?: string | null) {
     if (preview?.length) {
@@ -164,9 +209,11 @@ export function MortgageIntakeChat(props: {
     }
   }
 
-  async function applySnapshot(snapshot: IntakeTickResponse) {
-    setLastError(snapshot.ok ? null : snapshot.error ?? "The intake tick could not complete.");
-    rememberSession(snapshot.sessionId);
+  async function applySnapshot(snapshot: IntakeTickResponse, opts?: { silent?: boolean }) {
+    if (!opts?.silent) {
+      setLastError(snapshot.ok ? null : snapshot.error ?? "The intake tick could not complete.");
+    }
+    rememberSession(snapshot.sessionId, snapshot.loanProgram);
 
     const denominator = Math.max(1, snapshot.progress.totalApplicable);
     const numerator = snapshot.progress.completed;
@@ -179,36 +226,52 @@ export function MortgageIntakeChat(props: {
     setCounts({ done: numerator, total: snapshot.progress.totalApplicable || denominator });
     setPhase(snapshot.phase);
 
+    if (numerator > 0 || snapshot.phase !== "collecting") {
+      setLaneLocked(true);
+    }
+
     if (snapshot.phase === "crm_synced") {
       setStep(null);
       setCrm(snapshot.crmArtifacts);
       await hydrateSlots(snapshot.slotPreview, snapshot.crmArtifacts?.assignedOfficer?.id);
-
       setBooked(null);
+      if (snapshot.ok && !completedTrackedRef.current) {
+        completedTrackedRef.current = true;
+        void trackStage("completed_signup");
+      }
     } else {
       setSlots([]);
       setCrm(undefined);
       setStep(snapshot.activeStep ?? null);
     }
 
-    if (snapshot.ok && snapshot.assistantMessage.trim()) {
-      pushAssistant(snapshot.assistantMessage);
-    }
-    if (!snapshot.ok && snapshot.error) {
-      pushSys(snapshot.error);
+    if (!opts?.silent) {
+      if (snapshot.ok && snapshot.assistantMessage.trim()) {
+        pushAssistant(snapshot.assistantMessage);
+      }
+      if (!snapshot.ok && snapshot.error) {
+        pushSys(snapshot.error);
+      }
     }
   }
 
-  async function postTick(payload?: IncomingPayload) {
+  async function postTick(
+    payload?: IncomingPayload,
+    opts?: { silent?: boolean; programOverride?: LoanProgram },
+  ) {
+    if (payload && !startedTrackedRef.current) {
+      startedTrackedRef.current = true;
+      void trackStage("started_signup");
+    }
     setBusy(true);
-    setLastError(null);
+    if (!opts?.silent) setLastError(null);
     try {
       const res = await fetch("/api/intake/tick", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: sessionIdRef.current ?? undefined,
-          loanProgram,
+          loanProgram: opts?.programOverride ?? loanProgramRef.current,
           funnelSource: funnel,
           incoming: payload,
         }),
@@ -219,15 +282,17 @@ export function MortgageIntakeChat(props: {
       }
 
       const snapshot = (await res.json()) as IntakeTickResponse;
-      await applySnapshot(snapshot);
+      await applySnapshot(snapshot, opts);
       return snapshot;
     } catch (error) {
       const message =
         brand === "ypn"
           ? "Connection glitch — retry when you’re back online."
           : "Network turbulence—LoanPilot LOS bridge unavailable.";
-      setLastError(error instanceof Error && error.message ? `${message} ${error.message}` : message);
-      pushSys(message);
+      if (!opts?.silent) {
+        setLastError(error instanceof Error && error.message ? `${message} ${error.message}` : message);
+        pushSys(message);
+      }
       return null;
     } finally {
       setBusy(false);
@@ -239,7 +304,6 @@ export function MortgageIntakeChat(props: {
     await postTick();
   }
 
-  /** Embed: start intake once; guard against Strict Mode double-invoke. */
   useEffect(() => {
     if (variant !== "embed") return;
     if (embedBootedRef.current) return;
@@ -247,11 +311,9 @@ export function MortgageIntakeChat(props: {
     void (async () => {
       await postTick();
     })();
-    // Intentionally once per embed mount; postTick closes over latest state on first paint.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variant]);
 
-  /** Notify iframe parents when the widget height changes (e.g. resize embed container). */
   useEffect(() => {
     if (variant !== "embed") return;
     const el = rootRef.current;
@@ -271,10 +333,11 @@ export function MortgageIntakeChat(props: {
 
   function handleOpen() {
     setOpen(true);
+    void trackCtaClick("start_intake");
     void bootConversation();
   }
 
-  function handleReset() {
+  function clearConversation() {
     purgeSession();
     setMsgs([]);
     setDraft("");
@@ -284,13 +347,77 @@ export function MortgageIntakeChat(props: {
     setCrm(undefined);
     setSlots([]);
     setLastError(null);
+    setLaneLocked(false);
+  }
+
+  function handleReset() {
+    clearConversation();
     void postTick();
   }
 
+  /** Switching lanes before the first answer restarts intake on the new program. */
+  function handleLoanProgram(next: LoanProgram) {
+    if (next === loanProgram || laneLocked || busy) return;
+    loanProgramRef.current = next;
+    setLoanProgram(next);
+    clearConversation();
+    void postTick(undefined, { programOverride: next });
+  }
+
   async function submitAnswer(field: AssistantStep, raw: string, label?: string) {
+    setLaneLocked(true);
     pushUser(label ?? raw);
     await postTick({ field: field.field, rawValue: raw });
     setDraft("");
+  }
+
+  // Contact info (name, phone, email) collapses into a single visual step:
+  // the backend still ticks one field at a time, but we chain all three
+  // silently and only surface one combined user bubble + the final reply.
+  const CONTACT_GROUP_FIELDS = ["name", "phone", "email"] as const;
+  const isContactGroupField = Boolean(step && (CONTACT_GROUP_FIELDS as readonly string[]).includes(step.field));
+  const [contactDraft, setContactDraft] = useState({ name: "", phone: "", email: "" });
+  const [contactGroupError, setContactGroupError] = useState<string | null>(null);
+  const [contactGroupBusy, setContactGroupBusy] = useState(false);
+
+  async function submitContactGroup() {
+    const name = contactDraft.name.trim();
+    const phone = contactDraft.phone.trim();
+    const email = contactDraft.email.trim();
+
+    if (!name || !phone || !email) {
+      setContactGroupError("Fill in name, phone, and email to continue.");
+      return;
+    }
+
+    setContactGroupError(null);
+    setContactGroupBusy(true);
+    pushUser(`${name} · ${phone} · ${email}`);
+
+    const nameRes = await postTick({ field: "name", rawValue: name }, { silent: true });
+    if (!nameRes?.ok) {
+      setContactGroupError(nameRes?.error ?? "Couldn't save your name — try again.");
+      setContactGroupBusy(false);
+      return;
+    }
+
+    const phoneRes = await postTick({ field: "phone", rawValue: phone }, { silent: true });
+    if (!phoneRes?.ok) {
+      setContactGroupError(phoneRes?.error ?? "Couldn't save your phone — check the format.");
+      setContactGroupBusy(false);
+      return;
+    }
+
+    const emailRes = await postTick({ field: "email", rawValue: email }, { silent: true });
+    if (!emailRes?.ok) {
+      setContactGroupError(emailRes?.error ?? "Couldn't save your email — check the format.");
+      setContactGroupBusy(false);
+      return;
+    }
+
+    if (emailRes.assistantMessage.trim()) pushAssistant(emailRes.assistantMessage);
+    setContactDraft({ name: "", phone: "", email: "" });
+    setContactGroupBusy(false);
   }
 
   async function handleBook(startIso: string, loId: string) {
@@ -333,7 +460,10 @@ export function MortgageIntakeChat(props: {
     }
   }
 
-  const inputKind = step?.kind === "number" ? "number" : "text";
+  // Amounts are intentionally rendered as text so borrowers can enter natural
+  // values such as "$500,000" or "500k"; coercion normalizes them server-side.
+  const inputKind =
+    step?.kind === "email" ? "email" : step?.kind === "tel" ? "tel" : "text";
 
   const shellPanel =
     variant === "fab"
@@ -388,8 +518,8 @@ export function MortgageIntakeChat(props: {
         ? "Profile synced — team follow-up engaged"
         : "CRM + nurture automations engaged"
       : brand === "ypn"
-        ? "Adaptive qualification"
-        : "Adaptive LOS questioning";
+        ? "Quick conversational intake"
+        : "Quick conversational intake";
 
   const closedFooter =
     brand === "ypn"
@@ -439,8 +569,8 @@ export function MortgageIntakeChat(props: {
                 labelTone={labelTone}
                 progressNote={progressNote}
                 loanProgram={loanProgram}
-                sessionIdState={sessionIdState}
-                onLoanProgram={(p) => setLoanProgram(p)}
+                laneLocked={laneLocked}
+                onLoanProgram={handleLoanProgram}
                 onClose={() => setOpen(false)}
                 onReset={handleReset}
                 onRetry={() => void postTick()}
@@ -462,6 +592,12 @@ export function MortgageIntakeChat(props: {
                 ringFocus={ringFocus}
                 sendGradient={sendGradient}
                 closedFooter={closedFooter}
+                isContactGroupField={isContactGroupField}
+                contactDraft={contactDraft}
+                setContactDraft={setContactDraft}
+                contactGroupError={contactGroupError}
+                contactGroupBusy={contactGroupBusy}
+                submitContactGroup={() => void submitContactGroup()}
               />
             </section>
           </div>
@@ -482,8 +618,8 @@ export function MortgageIntakeChat(props: {
               labelTone={labelTone}
               progressNote={progressNote}
               loanProgram={loanProgram}
-              sessionIdState={sessionIdState}
-              onLoanProgram={(p) => setLoanProgram(p)}
+              laneLocked={laneLocked}
+              onLoanProgram={handleLoanProgram}
               onClose={() => setOpen(false)}
               onReset={handleReset}
               onRetry={() => void postTick()}
@@ -505,6 +641,12 @@ export function MortgageIntakeChat(props: {
               ringFocus={ringFocus}
               sendGradient={sendGradient}
               closedFooter={closedFooter}
+              isContactGroupField={isContactGroupField}
+              contactDraft={contactDraft}
+              setContactDraft={setContactDraft}
+              contactGroupError={contactGroupError}
+              contactGroupBusy={contactGroupBusy}
+              submitContactGroup={() => void submitContactGroup()}
             />
           </section>
         )
@@ -528,7 +670,7 @@ function InnerChrome(props: {
   labelTone: string;
   progressNote: string;
   loanProgram: LoanProgram;
-  sessionIdState: string | null;
+  laneLocked: boolean;
   onLoanProgram: (p: LoanProgram) => void;
   onClose: () => void;
   onReset: () => void;
@@ -551,6 +693,12 @@ function InnerChrome(props: {
   ringFocus: string;
   sendGradient: string;
   closedFooter: string;
+  isContactGroupField: boolean;
+  contactDraft: { name: string; phone: string; email: string };
+  setContactDraft: (updater: (d: { name: string; phone: string; email: string }) => { name: string; phone: string; email: string }) => void;
+  contactGroupError: string | null;
+  contactGroupBusy: boolean;
+  submitContactGroup: () => void;
 }) {
   const {
     brandMark,
@@ -567,7 +715,7 @@ function InnerChrome(props: {
     labelTone,
     progressNote,
     loanProgram,
-    sessionIdState,
+    laneLocked,
     onLoanProgram,
     onClose,
     onReset,
@@ -590,6 +738,12 @@ function InnerChrome(props: {
     ringFocus,
     sendGradient,
     closedFooter,
+    isContactGroupField,
+    contactDraft,
+    setContactDraft,
+    contactGroupError,
+    contactGroupBusy,
+    submitContactGroup,
   } = props;
 
   return (
@@ -648,7 +802,7 @@ function InnerChrome(props: {
           <select
             className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner disabled:opacity-55"
             value={loanProgram}
-            disabled={Boolean(sessionIdState) || busy}
+            disabled={laneLocked || busy}
             onChange={(evt) => onLoanProgram(evt.target.value as LoanProgram)}
           >
             {PROGRAM_LIST.map((p) => (
@@ -730,7 +884,7 @@ function InnerChrome(props: {
           </div>
         ) : null}
 
-        {step?.chips && step.kind !== "number" ? (
+        {step?.chips && step.kind !== "number" && !isContactGroupField ? (
           <div className="flex flex-wrap gap-2">
             {step.chips.map((chip) => (
               <button
@@ -746,7 +900,55 @@ function InnerChrome(props: {
           </div>
         ) : null}
 
-        {phase === "collecting" ? (
+        {phase === "collecting" && isContactGroupField ? (
+          <div className="space-y-2">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <input
+                disabled={busyFlag || contactGroupBusy}
+                value={contactDraft.name}
+                onChange={(evt) => setContactDraft((d) => ({ ...d, name: evt.target.value }))}
+                type="text"
+                className={`rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+                placeholder="Full name"
+              />
+              <input
+                disabled={busyFlag || contactGroupBusy}
+                value={contactDraft.phone}
+                onChange={(evt) => setContactDraft((d) => ({ ...d, phone: evt.target.value }))}
+                type="tel"
+                className={`rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+                placeholder="(555) 123-9876"
+              />
+              <input
+                disabled={busyFlag || contactGroupBusy}
+                value={contactDraft.email}
+                onChange={(evt) => setContactDraft((d) => ({ ...d, email: evt.target.value }))}
+                onKeyDown={(evt) => {
+                  if (evt.key === "Enter" && !evt.shiftKey) {
+                    evt.preventDefault();
+                    void submitContactGroup();
+                  }
+                }}
+                type="email"
+                className={`rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+                placeholder="name@example.com"
+              />
+            </div>
+            {contactGroupError ? (
+              <p className="text-xs font-medium text-amber-700">{contactGroupError}</p>
+            ) : null}
+            <button
+              type="button"
+              disabled={busyFlag || contactGroupBusy}
+              onClick={() => void submitContactGroup()}
+              className={`w-full rounded-2xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-35 ${sendGradient}`}
+            >
+              {contactGroupBusy ? "Sending…" : "Continue"}
+            </button>
+          </div>
+        ) : null}
+
+        {phase === "collecting" && !isContactGroupField ? (
           <div className="flex gap-2">
             <input
               disabled={busyFlag || !step}
@@ -760,8 +962,9 @@ function InnerChrome(props: {
                 }
               }}
               type={inputKind}
+              inputMode={step?.kind === "number" ? "decimal" : undefined}
               className={`flex-1 rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
-              placeholder={step?.placeholder ?? "Answer the LOS AI"}
+              placeholder={step?.placeholder ?? "Answer the intake assistant"}
             />
             <button
               type="button"
@@ -772,9 +975,11 @@ function InnerChrome(props: {
               {busyFlag ? "Sending…" : "Send"}
             </button>
           </div>
-        ) : (
+        ) : null}
+
+        {phase !== "collecting" ? (
           <p className="text-xs text-slate-500">{closedFooter}</p>
-        )}
+        ) : null}
       </footer>
     </>
   );

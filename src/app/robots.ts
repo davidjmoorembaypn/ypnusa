@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
       // Keep product/telemetry surfaces out of the marketing crawl budget.
       disallow: ["/api/", "/analytics", "/dashboard/", "/embed/"],
     },
-    sitemap: `${APP_SITE_URL}/sitemap.xml`,
+    sitemap: [`${APP_SITE_URL}/sitemap.xml`, `${APP_SITE_URL}/local-seo-sitemap.xml`],
     host: APP_SITE_URL,
   };
 }

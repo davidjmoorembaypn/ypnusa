@@ -29,6 +29,24 @@
       "command": "npx",
       "args": ["--package=hostinger-api-mcp@latest", "hostinger-vps-mcp"],
       "env": { "HOSTINGER_API_TOKEN": "${HOSTINGER_API_TOKEN}" }
+    },
+    "invizo": {
+      "command": "npx",
+      "args": ["-y", "@automattic/mcp-wordpress-remote@latest"],
+      "env": {
+        "WP_API_URL": "https://ypnus.com/wp-json/mcp/novamira",
+        "OAUTH_ENABLED": "false",
+        "WP_API_USERNAME": "${YPNUS_WP_MCP_USERNAME}",
+        "WP_API_PASSWORD": "${YPNUS_WP_MCP_APP_PASSWORD}"
+      }
+    },
+    "novamira-visual-ypnus-com": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "novamira-visual-mcp@latest"],
+      "env": {
+        "NOVAMIRA_VISUAL_WORKSPACE_URL": "https://ypnus.com/wp-admin/admin-post.php?action=novamira-visual"
+      }
     }
   }
 }

@@ -27,6 +27,7 @@ register_activation_hook( __FILE__, 'ypnus_stripe_activate' );
 register_deactivation_hook( __FILE__, 'ypnus_stripe_deactivate' );
 add_action( 'ypnus_stripe_cleanup', 'ypnus_stripe_cleanup_events' );
 add_action( 'rest_api_init', 'ypnus_stripe_register_route' );
+add_action( 'init', 'ypnus_stripe_maybe_upgrade_territory_table' );
 
 function ypnus_stripe_events_table() {
 	global $wpdb;
@@ -36,6 +37,11 @@ function ypnus_stripe_events_table() {
 function ypnus_stripe_lifecycle_table() {
 	global $wpdb;
 	return $wpdb->prefix . 'ypnus_stripe_lifecycle';
+}
+
+function ypnus_stripe_territory_table() {
+	global $wpdb;
+	return $wpdb->prefix . 'ypnus_territory_locks';
 }
 
 function ypnus_stripe_activate() {
@@ -74,6 +80,8 @@ function ypnus_stripe_activate() {
 		) {$charset_collate};"
 	);
 
+	ypnus_stripe_create_territory_table();
+
 	if ( ! wp_next_scheduled( 'ypnus_stripe_cleanup' ) ) {
 		wp_schedule_event( time(), 'daily', 'ypnus_stripe_cleanup' );
 	}
@@ -81,6 +89,41 @@ function ypnus_stripe_activate() {
 
 function ypnus_stripe_deactivate() {
 	wp_clear_scheduled_hook( 'ypnus_stripe_cleanup' );
+}
+
+/**
+ * Creates the ZIP territory lock table. Called from activation for fresh
+ * installs, and from an 'init' upgrade guard for sites where the plugin was
+ * already active before this table existed (register_activation_hook does
+ * not re-fire on plugin update).
+ */
+function ypnus_stripe_create_territory_table() {
+	global $wpdb;
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	$charset_collate = $wpdb->get_charset_collate();
+	$territory_table = ypnus_stripe_territory_table();
+
+	dbDelta(
+		"CREATE TABLE {$territory_table} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			zip_code VARCHAR(10) NOT NULL,
+			user_id BIGINT UNSIGNED NOT NULL,
+			stripe_subscription_id VARCHAR(255) NOT NULL,
+			tier VARCHAR(20) NOT NULL,
+			locked_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY zip_code (zip_code),
+			KEY user_id (user_id)
+		) {$charset_collate};"
+	);
+}
+
+function ypnus_stripe_maybe_upgrade_territory_table() {
+	if ( get_option( 'ypnus_stripe_territory_table_v1' ) ) {
+		return;
+	}
+	ypnus_stripe_create_territory_table();
+	update_option( 'ypnus_stripe_territory_table_v1', 1, false );
 }
 
 function ypnus_stripe_cleanup_events() {
@@ -109,6 +152,28 @@ function ypnus_stripe_register_route() {
 			'methods'             => 'POST',
 			'callback'            => 'ypnus_stripe_webhook_handler',
 			'permission_callback' => '__return_true',
+		)
+	);
+	register_rest_route(
+		'ypnus/v1',
+		'/territory-status',
+		array(
+			'methods'             => 'GET',
+			'callback'            => 'ypnus_stripe_territory_status_handler',
+			'permission_callback' => '__return_true',
+		)
+	);
+}
+
+function ypnus_stripe_territory_status_handler( WP_REST_Request $request ) {
+	$zip = preg_replace( '/[^0-9]/', '', (string) $request->get_param( 'zip' ) );
+	if ( 5 !== strlen( $zip ) ) {
+		return ypnus_stripe_response( array( 'error' => 'invalid_zip' ), 400 );
+	}
+	return ypnus_stripe_response(
+		array(
+			'zip'       => $zip,
+			'available' => ! ypnus_stripe_territory_row( $zip ),
 		)
 	);
 }
@@ -256,6 +321,82 @@ function ypnus_stripe_resolve_subscription_tier( $subscription ) {
 	}
 
 	return 1 === count( $tiers ) ? array_key_first( $tiers ) : '';
+}
+
+function ypnus_stripe_resolve_checkout_zip( $session ) {
+	$zip = isset( $session['metadata']['ypnus_zip'] )
+		? preg_replace( '/[^0-9]/', '', (string) $session['metadata']['ypnus_zip'] )
+		: '';
+	if ( '' === $zip && isset( $session['client_reference_id'] ) ) {
+		$zip = preg_replace( '/[^0-9]/', '', (string) $session['client_reference_id'] );
+	}
+	return 5 === strlen( $zip ) ? $zip : '';
+}
+
+function ypnus_stripe_territory_row( $zip ) {
+	global $wpdb;
+	$table = ypnus_stripe_territory_table();
+	return $wpdb->get_row( $wpdb->prepare( "SELECT user_id FROM {$table} WHERE zip_code = %s", $zip ) );
+}
+
+/**
+ * Claims a ZIP territory for a paying user. Idempotent under webhook
+ * retries: re-claiming a ZIP already held by the same user is a no-op.
+ * The UNIQUE key on zip_code is the actual lock — first INSERT to land
+ * wins the race, the loser gets 0 affected rows rather than an error.
+ */
+function ypnus_stripe_lock_zip_territory( $user_id, $subscription_id, $tier, $zip ) {
+	if ( '' === $zip ) {
+		return array( 'action' => 'skipped_no_zip' );
+	}
+
+	$existing = ypnus_stripe_territory_row( $zip );
+	if ( $existing ) {
+		if ( (int) $existing->user_id === (int) $user_id ) {
+			return array( 'action' => 'already_locked' );
+		}
+		return ypnus_stripe_flag_territory_conflict( $user_id, $subscription_id, $zip, (int) $existing->user_id );
+	}
+
+	global $wpdb;
+	$table    = ypnus_stripe_territory_table();
+	$inserted = $wpdb->query(
+		$wpdb->prepare(
+			"INSERT IGNORE INTO {$table} (zip_code, user_id, stripe_subscription_id, tier, locked_at) VALUES (%s, %d, %s, %s, %s)",
+			$zip,
+			$user_id,
+			$subscription_id,
+			$tier,
+			current_time( 'mysql', true )
+		)
+	);
+	if ( $inserted > 0 ) {
+		update_user_meta( $user_id, 'ypnus_locked_zip', $zip );
+		ypnus_stripe_log( 'territory_locked', array( 'user_id' => $user_id, 'zip' => $zip, 'tier' => $tier ) );
+		return array( 'action' => 'locked' );
+	}
+
+	$holder = ypnus_stripe_territory_row( $zip );
+	return ypnus_stripe_flag_territory_conflict( $user_id, $subscription_id, $zip, $holder ? (int) $holder->user_id : null );
+}
+
+/**
+ * Payment has already moved via Stripe by the time a conflict is detected,
+ * so this is never auto-resolved - flag it for manual refund/reassignment
+ * the same way an account_mapping_conflict is flagged.
+ */
+function ypnus_stripe_flag_territory_conflict( $user_id, $subscription_id, $zip, $held_by_user_id ) {
+	update_user_meta( $user_id, 'ypnus_territory_conflict', $zip );
+	ypnus_stripe_log(
+		'territory_conflict',
+		array(
+			'user_id'         => $user_id,
+			'zip'             => $zip,
+			'held_by_user_id' => $held_by_user_id,
+			'subscription_id' => $subscription_id,
+		)
+	);
+	return array( 'action' => 'territory_conflict' );
 }
 
 function ypnus_stripe_claim_event( $wpdb, $event_id, $event_type, $now = null ) {
@@ -696,13 +837,20 @@ function ypnus_stripe_process_checkout( $event, $async = false ) {
 
 	$current_tier   = ypnus_stripe_allowed_tier( $lifecycle['row']->tier ) ?: $tier;
 	$current_status = (string) $lifecycle['row']->subscription_status;
-	return ypnus_stripe_provision_user(
+	$zip            = ypnus_stripe_resolve_checkout_zip( $session );
+
+	$provision = ypnus_stripe_provision_user(
 		$email,
 		$current_tier,
 		$customer_id,
 		$subscription_id,
 		$current_status
 	);
+	if ( $provision['ok'] ) {
+		$lock                   = ypnus_stripe_lock_zip_territory( $provision['user_id'], $subscription_id, $current_tier, $zip );
+		$provision['territory'] = $lock['action'];
+	}
+	return $provision;
 }
 
 function ypnus_stripe_process_subscription( $event ) {

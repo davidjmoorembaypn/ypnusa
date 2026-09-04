@@ -67,7 +67,7 @@ add_action(
 		);
 
 		foreach ( $noindex_prefixes as $prefix ) {
-			if ( $path === $prefix || str_starts_with( $path, $prefix . '/' ) ) {
+			if ( $path === $prefix || 0 === strpos( $path, $prefix . '/' ) ) {
 				echo "<meta name=\"robots\" content=\"noindex,follow\" />\n";
 				return;
 			}

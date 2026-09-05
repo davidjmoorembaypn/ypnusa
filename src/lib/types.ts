@@ -226,7 +226,7 @@ export interface RevenueSubscriptionRecord {
   startedAt: string;
   tier: PricingTierId;
   status: "trialing" | "active" | "cancelled";
-  source: "seed" | "demo_request" | "admin_adjustment";
+  source: "seed" | "demo_request" | "admin_adjustment" | "stripe_webhook";
   ownerLoId?: string;
   ownerEmail?: string;
   company?: string;
@@ -235,6 +235,8 @@ export interface RevenueSubscriptionRecord {
   monthlyPriceCents?: number;
   lifetimeMonths?: number;
   attributedDemoRequestIds?: string[];
+  /** Set once a Stripe fulfillment event provisions/updates this record — see /api/webhooks/fulfill. */
+  stripeCustomerId?: string;
 }
 
 /** The three surfaces the AI assistant runs on — see src/lib/ai/prompts.ts. */

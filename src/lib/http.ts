@@ -57,6 +57,22 @@ export function requireSecret(request: Request): NextResponse<ApiErrorEnvelope> 
   return matchSuppliedSecret(request, configured);
 }
 
+/**
+ * Machine-to-machine gate for the AWS Lambda Stripe-fulfillment forwarder
+ * (POST /api/webhooks/fulfill). Deliberately a separate secret from
+ * ADMIN_TOKEN/CRON_SECRET — a different caller with a different blast radius —
+ * checked via its own header. Fails closed when LAMBDA_FULFILLMENT_SECRET is unset.
+ */
+export function requireInternalSecret(request: Request): NextResponse<ApiErrorEnvelope> | null {
+  const configured = process.env.LAMBDA_FULFILLMENT_SECRET?.trim();
+  if (!configured) {
+    return jsonError("Unauthorized.", 401, "UNAUTHORIZED");
+  }
+  const supplied = request.headers.get("x-internal-secret")?.trim();
+  if (supplied && supplied === configured) return null;
+  return jsonError("Unauthorized.", 401, "UNAUTHORIZED");
+}
+
 function matchSuppliedSecret(
   request: Request,
   required: string[],

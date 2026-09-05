@@ -112,3 +112,37 @@ export function getPricingTier(id: PricingTierId): PricingTier {
   }
   return tier;
 }
+
+/**
+ * Maps a Stripe price/product id to a paid tier via env vars, for the Lambda
+ * fulfillment webhook (src/app/api/webhooks/fulfill/route.ts). Configure whichever
+ * identifier the checkout event actually carries — priceId is preferred; productId is
+ * a fallback for a setup keyed by product instead of price. Returns null (never "free")
+ * when nothing is configured or nothing matches, so an unrecognized id fails the request
+ * instead of silently provisioning the wrong tier.
+ */
+export function resolveTierFromStripeIdentifier(
+  priceId: string | undefined,
+  productId: string | undefined,
+): PricingTierId | null {
+  const byPriceId: Partial<Record<PricingTierId, string | undefined>> = {
+    starter: process.env.STRIPE_PRICE_ID_STARTER?.trim(),
+    pro: process.env.STRIPE_PRICE_ID_PRO?.trim(),
+    elite: process.env.STRIPE_PRICE_ID_ELITE?.trim(),
+  };
+  const byProductId: Partial<Record<PricingTierId, string | undefined>> = {
+    starter: process.env.STRIPE_PRODUCT_ID_STARTER?.trim(),
+    pro: process.env.STRIPE_PRODUCT_ID_PRO?.trim(),
+    elite: process.env.STRIPE_PRODUCT_ID_ELITE?.trim(),
+  };
+
+  if (priceId) {
+    const match = PAID_PRICING_TIERS.find((tier) => byPriceId[tier.id] === priceId);
+    if (match) return match.id;
+  }
+  if (productId) {
+    const match = PAID_PRICING_TIERS.find((tier) => byProductId[tier.id] === productId);
+    if (match) return match.id;
+  }
+  return null;
+}

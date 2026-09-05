@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import {
   PAID_PRICING_TIERS,
   PRICING_TIERS,
   getPricingTier,
+  resolveTierFromStripeIdentifier,
   type PricingTierId,
 } from "./pricing";
 
@@ -64,5 +65,43 @@ describe("getPricingTier", () => {
     assert.throws(() => getPricingTier("platinum" as PricingTierId), {
       message: "Unknown pricing tier: platinum",
     });
+  });
+});
+
+describe("resolveTierFromStripeIdentifier", () => {
+  const ENV_KEYS = [
+    "STRIPE_PRICE_ID_STARTER",
+    "STRIPE_PRICE_ID_PRO",
+    "STRIPE_PRICE_ID_ELITE",
+    "STRIPE_PRODUCT_ID_STARTER",
+    "STRIPE_PRODUCT_ID_PRO",
+    "STRIPE_PRODUCT_ID_ELITE",
+  ] as const;
+  const savedEnv: Record<string, string | undefined> = {};
+  for (const key of ENV_KEYS) savedEnv[key] = process.env[key];
+
+  afterEach(() => {
+    for (const key of ENV_KEYS) {
+      if (savedEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = savedEnv[key];
+    }
+  });
+
+  it("resolves a configured priceId to its tier", () => {
+    process.env.STRIPE_PRICE_ID_PRO = "price_pro_123";
+    assert.equal(resolveTierFromStripeIdentifier("price_pro_123", undefined), "pro");
+  });
+
+  it("falls back to productId when priceId doesn't match", () => {
+    process.env.STRIPE_PRICE_ID_ELITE = "price_elite_123";
+    process.env.STRIPE_PRODUCT_ID_ELITE = "prod_elite_456";
+    assert.equal(resolveTierFromStripeIdentifier("price_unknown", "prod_elite_456"), "elite");
+  });
+
+  it("returns null — never a default tier — when nothing matches or nothing is configured", () => {
+    delete process.env.STRIPE_PRICE_ID_STARTER;
+    delete process.env.STRIPE_PRODUCT_ID_STARTER;
+    assert.equal(resolveTierFromStripeIdentifier("price_unrecognized", undefined), null);
+    assert.equal(resolveTierFromStripeIdentifier(undefined, undefined), null);
   });
 });

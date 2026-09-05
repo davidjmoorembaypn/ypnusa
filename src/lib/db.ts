@@ -382,6 +382,25 @@ export function saveChatSession(session: ChatSessionRecord): void {
   });
 }
 
+export function findRevenueSubscriptionByStripeCustomerId(
+  stripeCustomerId: string,
+): RevenueSubscriptionRecord | null {
+  return (
+    readDb().revenueSubscriptions.find(
+      (subscription) => subscription.stripeCustomerId === stripeCustomerId,
+    ) ?? null
+  );
+}
+
+/** Upserts by id — mirrors saveChatSession's replace-or-append pattern. */
+export function saveRevenueSubscription(subscription: RevenueSubscriptionRecord): void {
+  writeDb((db) => {
+    const idx = db.revenueSubscriptions.findIndex((s) => s.id === subscription.id);
+    if (idx >= 0) db.revenueSubscriptions[idx] = subscription;
+    else db.revenueSubscriptions.push(subscription);
+  });
+}
+
 export function listWebsiteAutopilotChanges(userId?: string): WebsiteAutopilotChange[] {
   const all = readDb().websiteAutopilotChanges;
   return userId ? all.filter((change) => change.userId === userId) : all;

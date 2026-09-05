@@ -153,10 +153,6 @@ is a summary of.
   `runWebsiteAutopilot`, `fetchWordPressContent`, or
   `applyWordPressAutopilotPlan`. `WORDPRESS_AUTOPILOT_ENABLED` and
   `WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK` remain off by default.
-- **Next safe app-only task:** approval-gated deployment/publishing (turning
-  an accepted plan into a real persisted/published change) — still not
-  started, still requires explicit approval before being built.
-
 ## Latest completed task: Website Autopilot Run History / Change Log (branch `feature/website-autopilot-run-history`)
 
 - **Product direction:** MLOs shouldn't manage website work — they should see
@@ -217,3 +213,37 @@ is a summary of.
 - **Next safe app-only task:** wire real `/api/funnel`/`/api/personalize`
   telemetry into the behavior engine's self-selected intent (still additive,
   still flag-gated) — not started, not part of this task.
+
+## Latest completed task: Website Autopilot unattended runner foundation (branch `feature/website-autopilot-unattended-runner`)
+
+- **Product direction:** YPNUS should eventually be able to check/improve
+  ypnus.com on its own schedule, not only when an MLO clicks "generate" in
+  the app. This adds that reusable entry point — **agent can run unattended
+  later**, but stays off/dry-run by default tonight, and **no manual MLO
+  website work is required** either way.
+- **Files changed:** `src/lib/ai/autopilot-runner.ts` (new —
+  `runWebsiteAutopilotForConfiguredSites()`, `getWebsiteAutopilotRunnerConfig()`,
+  `getConfiguredAutopilotTargets()`, `applyAutoApplyGate`),
+  `src/lib/ai/autopilot-runner.test.ts` (new), `scripts/run-website-autopilot.ts`
+  (new CLI entry), `package.json` (`npm run autopilot:run`), `.env.example`
+  (new `WEBSITE_AUTOPILOT_UNATTENDED_ENABLED` /
+  `WEBSITE_AUTOPILOT_AUTO_APPLY_LOW_RISK`), `docs/WORDPRESS_AUTOPILOT.md`.
+- **Default is off.** `WEBSITE_AUTOPILOT_UNATTENDED_ENABLED` defaults to
+  `false`/unset — while off, the runner generates no plan, persists no run,
+  and makes no WordPress call. When enabled it's still fully dry-run: it
+  never calls `fetchWordPressContent`/`conditionallyUpdateWordPressContent`/
+  `applyWordPressAutopilotPlan`, every logged run carries `dryRun: true`, and
+  `WEBSITE_AUTOPILOT_AUTO_APPLY_LOW_RISK` (a second, independent flag —
+  distinct from `WORDPRESS_AUTOPILOT_AUTO_APPLY_LOW_RISK`, which gates a
+  *live* write) only decides whether low-risk changes are logged
+  `auto_applied` vs. downgraded to `proposed`. Rate/APR, loan-approval,
+  guarantee, compliance-disclosure, NMLS/license, and
+  plugin/theme/server/DNS changes are never auto-applied by either flag.
+- **Allowlist target tonight:** one hardcoded, hand-maintained entry — the
+  ypnus.com homepage — via `getConfiguredAutopilotTargets()`, dry-run only.
+- **This is for a future Hostinger scheduled task — none is configured
+  tonight.** `npm run autopilot:run` is a manual CLI entry point only; no
+  cron, webhook, or deployment change was made.
+- **Next safe app-only task:** wiring a real Hostinger schedule to
+  `npm run autopilot:run` and/or approval-gated live WordPress publishing —
+  both still require explicit approval before being built.

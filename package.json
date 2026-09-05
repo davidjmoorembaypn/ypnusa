@@ -11,6 +11,7 @@
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "lint": "eslint",
     "test": "tsx --test",
+    "autopilot:run": "tsx scripts/run-website-autopilot.ts",
     "deploy:hostinger:list": "node scripts/deploy-hostinger.mjs list",
     "deploy:hostinger:next": "node scripts/deploy-hostinger.mjs deploy-next",
     "deploy:hostinger:status": "node scripts/deploy-hostinger.mjs status",

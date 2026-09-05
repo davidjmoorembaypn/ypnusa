@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { SessionBar } from "@/components/session-bar";
 import { requireSession } from "@/lib/auth";
 import { NurturePipeline } from "@/components/portal/nurture-pipeline";
+import { formatDateTime, formatUsd } from "@/lib/format";
 import { buildNurtureDashboard } from "@/lib/nurture-dashboard";
 
 export const dynamic = "force-dynamic";
@@ -10,23 +11,6 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
-
-function usd(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function shortDate(value: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
 
 export default async function LeadNurturePortalPage() {
   await requireSession("/portal/nurture");
@@ -102,7 +86,7 @@ export default async function LeadNurturePortalPage() {
                     <div>
                       <p className="font-semibold">{review.borrowerName}</p>
                       <p className="mt-1 text-xs text-white/40">
-                        ZIP {review.zip} · {shortDate(review.createdAt)}
+                        ZIP {review.zip} · {formatDateTime(review.createdAt)}
                       </p>
                     </div>
                     <span className="rounded-full bg-amber-400/15 px-2.5 py-1 text-xs font-semibold text-amber-100">
@@ -112,11 +96,11 @@ export default async function LeadNurturePortalPage() {
                   <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <dt className="text-xs text-white/40">Estimated equity</dt>
-                      <dd className="mt-1 font-semibold">{usd(review.estimatedEquityUsd)}</dd>
+                      <dd className="mt-1 font-semibold">{formatUsd(review.estimatedEquityUsd)}</dd>
                     </div>
                     <div>
                       <dt className="text-xs text-white/40">Cash-out illustration</dt>
-                      <dd className="mt-1 font-semibold">{usd(review.illustrativeCashOutUsd)}</dd>
+                      <dd className="mt-1 font-semibold">{formatUsd(review.illustrativeCashOutUsd)}</dd>
                     </div>
                   </dl>
                 </article>

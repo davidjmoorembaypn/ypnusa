@@ -183,3 +183,79 @@ files, and app deployment. No shortcodes introduced.
 - Draft page 5340's PHP fatal error and the
   `ypnus-lead-integration-deactivated` plugin naming — still deferred from
   the prior entry.
+
+## 2026-09-06 — Homepage EHL disclosure + Rank Math legalName data-entry fix
+
+**Context:** follow-up to a commercial-readiness audit (see PR #53) that found
+two live gaps: the homepage's compliance disclosure had no Equal Housing
+icon/alt text or NMLS Consumer Access link, and Rank Math's Local SEO
+"Additional Info" `legalName` field was set to an email address
+(`ypnusa@gmail.com`) instead of the business's legal name.
+
+**Changes made:**
+
+1. **Page 1829 (homepage), `post_content`** — one `POST /wpvibe/v1/content/edit`
+   match-once `str_replace`, appending a new compliance section immediately
+   before the page's closing `</div>` (after the existing `<script>` block).
+   Added: an inline SVG house icon with `aria-label="Equal Housing
+   Opportunity"`, the same NMLS/RESPA/TCPA disclosure wording already used in
+   the (inactive) `custom_html-2` footer widget, and a `Verify on NMLS
+   Consumer Access` link pointing at the exact same URL already verified live
+   elsewhere on the site
+   (`https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/787257`) —
+   reused verbatim rather than re-derived, to avoid introducing a wrong link.
+   Nothing else on the page was touched. Result: `{"status":"edited","replaced":1,"bytes":15334}`.
+2. **Option `rank-math-options-titles`, `additional_info.0.value`** — one
+   `wp option patch update` changing the value from `ypnusa@gmail.com` to
+   `YPN Inc.` (matching the existing `knowledgegraph_name` value already set
+   on the same option). LiteSpeed page cache and the object cache were
+   auto-purged by the write (standard behavior on this site's option-patch
+   path, not a separate action taken here).
+
+**Explicitly NOT touched this pass:**
+
+- `lo-signup.html` (TCPA consent checkbox is still missing there) — this
+  page is **not a WordPress post/page** (a `/wp/v2/pages` slug/search lookup
+  and a `post list --post_type=any` search both returned nothing), so it is
+  outside what the connected WPVibe/REST/WP-CLI tooling can reach. It is
+  most likely a static file in the server's document root or on
+  `app.ypnus.com`'s territory-PHP fallback path — fixing it needs direct
+  file/FTP or hPanel File Manager access, not a WordPress content edit.
+- The NMLS `identifier` schema fix (adding a proper `identifier` property to
+  the Organization/FinancialService JSON-LD node, alongside the existing
+  `founder.hasCredential` one) — the same `additional_info` array mechanism
+  used for the `legalName` fix above is a plausible path, but appending a
+  new array *element* (rather than patching an existing scalar) wasn't
+  something this session could do with confidence via the available
+  WP-CLI `option patch` primitive, so it was left alone rather than risk a
+  malformed live options array. The repo's `wp-plugins/ypnus-trust-and-schema`
+  plugin already solves this correctly in code (merges a proper `identifier`
+  PropertyValue via the `rank_math/json_ld` filter) but installing it live
+  needs a plugin-zip upload path this session didn't have confident access
+  to — a manual "Upload Plugin" in WP Admin remains the simplest route.
+- Deploying `wp-plugins/ypnus-seo-hygiene` or `wp-plugins/ypnus-trust-and-schema`
+  — both already exist as reviewed, versioned code in this repo but were not
+  installed live this pass, for the same plugin-upload-path reason above.
+- Rotating the `ce_google_client_secret` value exposed in `wp_options`
+  (flagged 2026-09-02, still unresolved) — this needs Google Cloud Console
+  access this session does not have; it is not a WordPress-side fix. Note:
+  this session confirmed that WPVibe's own `option get`/`option patch`
+  responses auto-redact fields it recognizes as sensitive (`maps_api_key`,
+  `facebook_secret` both came back as `"REDACTED"` from a live `option get`
+  during this pass) — so the exposure is to direct database-level access
+  (e.g. a raw `db query` SELECT), not to every connected tool by default.
+- Wiring the WordPress-side SSO redirect (`docs/sso-handoff.md`'s "not yet
+  done" section) — the plugin that owns `/wp-json/ypnus/v1/signup` /
+  `/create-mlo` is not versioned in this repo and its live source wasn't
+  inspected this pass; this remains the largest open integration gap
+  between ypnus.com and app.ypnus.com.
+
+**Rollback:**
+
+- Page 1829: a new revision was created by the edit above (the immediately
+  prior revision has the same content minus the appended compliance
+  section). Restore that revision and purge cache to undo.
+- `rank-math-options-titles`: re-run `wp option patch update
+  rank-math-options-titles additional_info 0 value "ypnusa@gmail.com"` to
+  restore the prior (incorrect) value — not recommended, listed only for
+  completeness.

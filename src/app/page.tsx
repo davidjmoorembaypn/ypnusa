@@ -335,7 +335,7 @@ export default function Home() {
             </p>
             <ul className="space-y-3 text-sm text-white/90">
               {[
-                "One loan officer per ZIP — guaranteed exclusivity",
+                "One loan officer per ZIP — exclusive by design",
                 "First-come reservations; popular metros go fast",
                 "Expand into neighboring ZIPs as you grow",
               ].map((item) => (

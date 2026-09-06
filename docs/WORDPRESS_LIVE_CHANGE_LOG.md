@@ -287,12 +287,17 @@ asked for that differentiator reflected in ypnus.com's own copy.
    footer link to `href="https://ypnus.com/features/"`.
 3. **Site-wide internal links** — a `wp search-replace
    https://ypnus.com/marketing-platform/ https://ypnus.com/features/ wp_posts`
-   dry-run found **11 occurrences** across `post_content` (the `guid` column
-   was correctly skipped per WordPress best practice). WPVibe requires
-   human browser approval before running a site-wide `search-replace`
-   (irreversible-without-backup, by its own design) — **the approval link
-   was surfaced to the site owner and this entry will be updated with the
-   outcome once approved and run.**
+   dry-run found 11 occurrences. WPVibe's browser-approval link for this
+   op expired twice before it could be clicked, so it was abandoned in
+   favor of targeted per-post fixes (no approval gate on single-post
+   `content/edit`). A follow-up `GROUP BY post_type, post_status` query
+   broke the 11 down: **8 were stale `revision` rows** (dead history, never
+   served to a visitor or crawler — left untouched), and **3 were live
+   content**: page 698 and page 3163 each had one link fixed the same way
+   as page 530 above, plus one not caught by the original publish/draft
+   scan — a `private`-status page (ID 857, a "Welcome to YPN USA" email
+   template) — fixed too, for consistency, even though it's not
+   public/indexable.
 4. **Nav menu ("YPNUS Primary Nav", menu ID 36)** — checked via
    `/wp/v2/menu-items`; zero items reference `/marketing-platform/`, so no
    menu edit was needed.
@@ -318,9 +323,18 @@ asked for that differentiator reflected in ypnus.com's own copy.
 - `/features/` page 1474's tier-gated pricing matrix — left as-is; only the
   homepage's own AI-assistant copy was updated, worded to stay consistent
   with that matrix rather than contradict it.
-- `/loan-officer-crm/` and the vendor-evaluation page's comparison-table
-  content recommended by the same analysis — not part of this pass's
-  approved scope (technical SEO + AI-assistant copy only).
+- The vendor-evaluation page's comparison-table content and unsupported
+  pricing-claim cleanup recommended by the same analysis — not reached
+  this pass.
+
+**Follow-up in the same pass:** `/loan-officer-crm/` (page 3212) got its
+decision-oriented comparison layer after all — a new "Built for loan
+officers, not generic sales teams" section (who it's for vs. a generic
+CRM, what it replaces vs. integrates with, and a 7-row feature comparison
+table: lead capture, local SEO, territory exclusivity, AI intake, nurture,
+Realtor co-marketing, CRM workflow fields). The co-marketing row is marked
+"Included (Pro/Elite)" to match `/features/`'s existing pricing matrix
+rather than overclaim free-tier parity.
 
 **Verification performed:**
 

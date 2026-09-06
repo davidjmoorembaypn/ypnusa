@@ -259,3 +259,92 @@ icon/alt text or NMLS Consumer Access link, and Rank Math's Local SEO
   rank-math-options-titles additional_info 0 value "ypnusa@gmail.com"` to
   restore the prior (incorrect) value — not recommended, listed only for
   completeness.
+
+## 2026-09-06 — /marketing-platform/ → /features/ URL consolidation + AI-assistant positioning
+
+**Context:** a competitive/technical-SEO analysis found that `/marketing-platform/`
+(page 531) 301-redirects to `/features/` (page 1474), but page 531 was still
+`status: publish`, so Rank Math kept including it in the XML sitemap and
+several internal links still pointed at the old URL — splitting link equity
+around the site's main commercial platform page. Separately, the product
+team is rolling out an agentic AI assistant included with every signup, and
+asked for that differentiator reflected in ypnus.com's own copy.
+
+**Changes made:**
+
+1. **Page 531 (`marketing-platform`), postmeta `rank_math_robots`** — set to
+   `["noindex"]` via `wp post meta update ... --force` (Rank Math treats this
+   as a protected key; `--force` is the standard override, not a bypass of
+   anything plugin-specific). This removes it from Rank Math's XML sitemap
+   going forward without touching whatever mechanism serves the live 301 —
+   that redirect was confirmed to **not** live in Rank Math's own
+   `{prefix}rank_math_redirections` table (a query for `marketing-platform`
+   there returned zero rows), so it's handled by something outside Rank
+   Math (hosting-level, a different redirect plugin, or `.htaccess`) that
+   this change does not touch.
+2. **Page 530 (Realtor Co-Branding Page Builder), `post_content`** — one
+   match-once edit changing its one `href="https://ypnus.com/marketing-platform/"`
+   footer link to `href="https://ypnus.com/features/"`.
+3. **Site-wide internal links** — a `wp search-replace
+   https://ypnus.com/marketing-platform/ https://ypnus.com/features/ wp_posts`
+   dry-run found **11 occurrences** across `post_content` (the `guid` column
+   was correctly skipped per WordPress best practice). WPVibe requires
+   human browser approval before running a site-wide `search-replace`
+   (irreversible-without-backup, by its own design) — **the approval link
+   was surfaced to the site owner and this entry will be updated with the
+   outcome once approved and run.**
+4. **Nav menu ("YPNUS Primary Nav", menu ID 36)** — checked via
+   `/wp/v2/menu-items`; zero items reference `/marketing-platform/`, so no
+   menu edit was needed.
+5. **Homepage (page 1829), `post_content`** — two edits reflecting the new
+   "AI assistant included with every signup" positioning: the existing "AI
+   Assistant" feature-card copy now ends with "Every signup gets a working
+   AI assistant from day one — deeper automation unlocks as you scale
+   plans," and the Free-tier pricing list gained a new first bullet, "AI
+   Assistant included from day one." Wording was deliberately chosen **not**
+   to say "no upsell" or claim full parity across plans — `/features/`
+   (page 1474)'s own "What's Included by Plan" table gates its "24/7 AI
+   chatbot" row to Pro/Elite only, and this pass did not change that pricing
+   table (a tier-gating change is a packaging/business decision, not a
+   copy fix, and wasn't part of the requested scope). An initial draft of
+   the feature-card copy did say "no add-on, no upsell" and was corrected
+   within the same session before being treated as final, once the
+   `/features/` pricing-matrix conflict was spotted.
+
+**Explicitly NOT touched this pass:**
+
+- The live 301 redirect itself (its mechanism wasn't identified — see #1 —
+  and the analysis explicitly said to keep it in place for old links/bookmarks).
+- `/features/` page 1474's tier-gated pricing matrix — left as-is; only the
+  homepage's own AI-assistant copy was updated, worded to stay consistent
+  with that matrix rather than contradict it.
+- `/loan-officer-crm/` and the vendor-evaluation page's comparison-table
+  content recommended by the same analysis — not part of this pass's
+  approved scope (technical SEO + AI-assistant copy only).
+
+**Verification performed:**
+
+- `home`/`siteurl` options both confirmed `https://ypnus.com/` — canonical
+  domain is HTTPS at the WordPress config level.
+- A site-wide `search-replace http://ypnus.com https://ypnus.com wp_posts
+  --dry-run` returned **0** matches — no plain-HTTP internal links exist in
+  `post_content` anywhere on the site. Combined with the HTTPS `home`/
+  `siteurl` settings, canonical signals are clean at the WordPress level;
+  Google's separate HTTP/HTTPS performance rows in Search Console most
+  likely reflect residual pre-HTTPS crawl history consolidating over time,
+  not an active misconfiguration.
+- Both page-531 and page-530 edits confirmed via their own
+  `{"status":"edited","replaced":1}` API responses.
+
+**Rollback:**
+
+- Page 531: `wp post meta delete 531 rank_math_robots` (or update it back to
+  its prior value, if known) restores sitemap inclusion.
+- Page 530: re-run the edit in reverse (swap old/new content) to restore
+  the `/marketing-platform/` link.
+- Page 1829: a new revision was created by each edit; restore the
+  pre-2026-09-06 revision and purge cache to fully undo the AI-assistant
+  copy changes.
+- The pending site-wide `search-replace`, once approved and run, is only
+  reversible by re-running it with `old`/`new` swapped, or restoring a
+  database backup from before it ran.

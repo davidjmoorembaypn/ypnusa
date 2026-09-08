@@ -89,16 +89,37 @@ regardless of what conversational text comes back alongside it.
 
 ### Action tools — what makes it agentic, not just Q&A (`chat-agent.ts`)
 
-Two tools do real work instead of returning text the model just repeats:
+Four tools do real work instead of returning text the model just repeats:
 `check_territory_availability` (public_site + lead_qualification — live ZIP
-lookup via `fetchLiveTerritory`) and `find_explainer_video` (every mode —
-searches `src/lib/ai/explainer-videos.ts`'s registry). Unlike
+lookup via `fetchLiveTerritory`), `find_explainer_video` (every mode —
+searches `src/lib/ai/explainer-videos.ts`'s registry), `start_signup`
+(public_site — returns the real `lo-signup.html` URL, plan/ZIP-aware, so the
+model can never construct or guess a link), and `schedule_meeting`
+(lead_qualification — lists open slots via `listSyncedAvailableSlots`, then
+books one via `bookAppointment` once the visitor picks a time; refuses with
+`not_yet_qualified` until `session.borrowerLeadId` is set). Unlike
 `capture_lead_qualification` (fire-and-forget data capture), these need
 their result fed back to the model for a second turn before it can answer —
 `runWithTools` in `chat-agent.ts` is that loop: call the model, execute any
 action-tool calls, append the result as a message, call again, up to
 `MAX_TOOL_ROUNDS` (3) before forcing a final tool-less answer. `toolsForMode`
-decides which tools each mode gets.
+decides which tools each mode gets — see its test in
+`chat-agent.tools.test.ts` for the exact per-mode tool sets.
+
+`runWithTools` also takes a `mergeCapture` callback that
+`capture_lead_qualification` calls run through immediately (not just after
+the whole turn ends), including `linkQualifiedLead` — so a visitor who
+finishes qualification and asks to schedule a meeting in the same message
+gets a `schedule_meeting` call that already sees the newly-linked
+`borrowerLeadId`, instead of needing one more round trip.
+
+**Floating widget (`src/components/assistant/floating-assistant-widget.tsx`,
+mounted on the homepage in `src/app/page.tsx`)** — public_site mode, site-wide
+launcher rather than the hidden `/assistant` preview route. Auto-opens once
+per browser session ~6s after landing (sessionStorage-gated, never reopens
+after being dismissed that session). Deliberately mounted per-page, not in
+the root layout, so it doesn't follow a signed-in MLO into `/dashboard` where
+other assistant surfaces already live.
 
 **`EXPLAINER_VIDEOS` currently has one seeded entry** — `platform-overview`,
 a general "how YPN USA works" video (ScreenPal id `cOQjYdnwAGI`), matched on

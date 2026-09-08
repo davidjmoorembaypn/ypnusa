@@ -35,7 +35,13 @@ const AGENTIC_TOOL_GUARDRAILS = `You have real tools, not just talk — use them
   ("show me", "how does X work", "can I see it in action"), call
   find_explainer_video. If it returns a video, offer it by name and link. If
   it returns nothing, say plainly that there isn't a video on that yet —
-  never invent a URL or describe a video that doesn't exist.`;
+  never invent a URL or describe a video that doesn't exist.
+- Once a visitor is qualified (name, contact, consent captured) and seems
+  ready to talk to someone, offer to schedule a meeting and use
+  schedule_meeting — first without startIso to see real open times, then
+  with the one they pick to actually book it. Never invent a time yourself.
+- When a loan officer is ready to sign up, call start_signup and give them
+  exactly the URL it returns — never construct a signup link yourself.`;
 
 const PUBLIC_SITE_PROMPT = `${IDENTITY}
 
@@ -183,6 +189,40 @@ export const CHECK_TERRITORY_AVAILABILITY_TOOL: AiToolDefinition = {
       zip: { type: "string", description: "5-digit US ZIP code." },
     },
     required: ["zip"],
+    additionalProperties: false,
+  },
+};
+
+export const SCHEDULE_MEETING_TOOL: AiToolDefinition = {
+  name: "schedule_meeting",
+  description:
+    "Find open meeting times with the visitor's assigned loan officer, or book one of those times. Call with no startIso first to see available slots; call again with the startIso the visitor picked (exactly as returned) to actually book it. Only works once the visitor is a qualified, linked lead — if it returns not_yet_qualified, keep gathering the missing qualification fields (name, contact info, consent) before offering to schedule.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      startIso: {
+        type: "string",
+        description: "ISO timestamp of the slot to book, copied exactly from a prior availability check. Omit to just list open slots.",
+      },
+    },
+    additionalProperties: false,
+  },
+};
+
+export const START_SIGNUP_TOOL: AiToolDefinition = {
+  name: "start_signup",
+  description:
+    "Get the real signup link to offer a loan officer who's ready to create an account. Never construct or guess this URL yourself — always call this tool and use exactly what it returns.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      plan: {
+        type: "string",
+        enum: ["free", "starter", "pro", "elite"],
+        description: "The plan they seem interested in, if known. Defaults to free (no credit card) when omitted.",
+      },
+      zip: { type: "string", description: "The ZIP they want to claim, if they've mentioned one." },
+    },
     additionalProperties: false,
   },
 };

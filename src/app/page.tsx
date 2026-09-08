@@ -3,6 +3,7 @@ import { MortgageIntakeChat } from "@/components/lazy-loanpilot-assistant";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { MortgageCalculator } from "@/components/mortgage-calculator";
 import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepageEngine";
+import { FloatingAssistantWidget } from "@/components/assistant/floating-assistant-widget";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { marketingUrl } from "@/lib/site";
@@ -576,6 +577,8 @@ export default function Home() {
           Claim your ZIP territory — free
         </a>
       </div>
+
+      <FloatingAssistantWidget />
     </div>
   );
 }

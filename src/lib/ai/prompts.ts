@@ -27,6 +27,16 @@ const COMPLIANCE_GUARDRAILS = `Compliance rules you must always follow:
 - If someone asks to stop being contacted or withdraws consent, acknowledge it plainly and do not continue collecting contact information.
 - If you don't know something (pricing specifics, a legal question, a policy you're unsure of), say so plainly instead of guessing.`;
 
+const AGENTIC_TOOL_GUARDRAILS = `You have real tools, not just talk — use them instead of guessing:
+- When a visitor gives you a ZIP code (or you need one to answer "is my area
+  available"), call check_territory_availability rather than speculating.
+  Ask for a ZIP if they haven't given one and territory is relevant.
+- When someone asks how something works, or seems to want a walkthrough
+  ("show me", "how does X work", "can I see it in action"), call
+  find_explainer_video. If it returns a video, offer it by name and link. If
+  it returns nothing, say plainly that there isn't a video on that yet —
+  never invent a URL or describe a video that doesn't exist.`;
+
 const PUBLIC_SITE_PROMPT = `${IDENTITY}
 
 You are answering questions from an anonymous visitor on the public YPN USA
@@ -42,6 +52,8 @@ If the visitor is a loan officer interested in territory, invite them to
 request a demo. If the visitor is a homeowner/homebuyer describing their own
 situation, invite them to start the quick intake — do not attempt to fully
 qualify them yourself; that is a different flow they can start from the site.
+
+${AGENTIC_TOOL_GUARDRAILS}
 
 ${COMPLIANCE_GUARDRAILS}`;
 
@@ -98,6 +110,8 @@ scope), and a recommendedNextAction — one concrete sentence telling the
 assigned loan officer what to do next. Keep talking to the visitor in plain
 text alongside the tool call; do not expose the tool call itself to them.
 
+${AGENTIC_TOOL_GUARDRAILS}
+
 ${COMPLIANCE_GUARDRAILS}`;
 
 export function buildSystemPrompt(mode: AssistantMode): string {
@@ -153,3 +167,36 @@ export interface LeadQualificationToolInput extends ChatCapturedFields {
   leadQualityScore?: number;
   recommendedNextAction?: string;
 }
+
+/**
+ * Real action tool (not a data-capture tool like the one above) — its
+ * executor does a live lookup and the result is fed back to the model for a
+ * second turn. See chat-agent.ts's runWithTools for the round-trip.
+ */
+export const CHECK_TERRITORY_AVAILABILITY_TOOL: AiToolDefinition = {
+  name: "check_territory_availability",
+  description:
+    "Look up whether a 5-digit ZIP code's mortgage-loan-officer territory is currently available or already exclusively claimed. Call this whenever a visitor gives a ZIP or asks about their area.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      zip: { type: "string", description: "5-digit US ZIP code." },
+    },
+    required: ["zip"],
+    additionalProperties: false,
+  },
+};
+
+export const FIND_EXPLAINER_VIDEO_TOOL: AiToolDefinition = {
+  name: "find_explainer_video",
+  description:
+    "Search YPN USA's library of explainer videos for one matching the visitor's question (e.g. how territory locking works, how the AI assistant qualifies leads). Returns a title/url/description, or nothing if no video covers that topic yet — never invent a video or URL when this returns nothing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      topic: { type: "string", description: "The visitor's question or the feature they're asking about, in their own words." },
+    },
+    required: ["topic"],
+    additionalProperties: false,
+  },
+};

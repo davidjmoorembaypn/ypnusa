@@ -12,13 +12,95 @@ import type {
   LoanProgram,
   QualificationSummary,
 } from "@/lib/types";
-import { getAiProvider } from "./provider";
+import { fetchLiveTerritory } from "@/lib/live-territory";
+import { findExplainerVideo } from "./explainer-videos";
+import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
 import {
   buildSystemPrompt,
   CAPTURE_LEAD_QUALIFICATION_TOOL,
+  CHECK_TERRITORY_AVAILABILITY_TOOL,
+  FIND_EXPLAINER_VIDEO_TOOL,
   type LeadQualificationToolInput,
 } from "./prompts";
 import { runWebsiteAutopilot, type WebsiteAutopilotPlan } from "./website-autopilot";
+
+/** Modes where the assistant talks to a prospective customer, not an MLO about their own pipeline. */
+const CUSTOMER_FACING_MODES: AssistantMode[] = ["public_site", "lead_qualification"];
+
+export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
+  const tools: AiToolDefinition[] = [FIND_EXPLAINER_VIDEO_TOOL];
+  if (mode === "lead_qualification") tools.push(CAPTURE_LEAD_QUALIFICATION_TOOL);
+  if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(CHECK_TERRITORY_AVAILABILITY_TOOL);
+  return tools;
+}
+
+/** Runs one real-world action tool and returns a plain-text result for the model. Never throws. */
+async function executeActionTool(call: AiToolCall): Promise<string> {
+  try {
+    if (call.toolName === "check_territory_availability") {
+      const zip = typeof call.input.zip === "string" ? call.input.zip : "";
+      const result = await fetchLiveTerritory(zip);
+      return result
+        ? JSON.stringify({ available: result.available, message: result.message })
+        : JSON.stringify({ error: "Territory lookup is temporarily unavailable." });
+    }
+    if (call.toolName === "find_explainer_video") {
+      const topic = typeof call.input.topic === "string" ? call.input.topic : "";
+      const video = findExplainerVideo(topic);
+      return video
+        ? JSON.stringify({ title: video.title, url: video.url, description: video.description })
+        : JSON.stringify({ found: false, note: "No explainer video covers this topic yet." });
+    }
+    return JSON.stringify({ error: `Unknown tool: ${call.toolName}` });
+  } catch (error) {
+    console.error(`[chat-agent] action tool ${call.toolName} failed`, error);
+    return JSON.stringify({ error: "That lookup failed. Answer without it." });
+  }
+}
+
+const MAX_TOOL_ROUNDS = 3;
+const ACTION_TOOL_NAMES = new Set(["check_territory_availability", "find_explainer_video"]);
+
+/**
+ * Runs the model, and — when it calls a real action tool (territory lookup,
+ * video search) rather than just the data-capture tool — executes it and
+ * feeds the result back for another turn, up to MAX_TOOL_ROUNDS. This is
+ * what makes the assistant agentic rather than a single-shot Q&A: it can act
+ * on live data mid-conversation instead of only describing what it would do.
+ * capture_lead_qualification calls are returned untouched for the caller
+ * (runAssistantTurn) to merge — that tool doesn't need a round-trip reply.
+ */
+export async function runWithTools(
+  provider: AiProvider,
+  system: string,
+  history: AiMessage[],
+  tools: AiToolDefinition[],
+): Promise<{ text: string; captureCalls: AiToolCall[] }> {
+  const messages = [...history];
+  const captureCalls: AiToolCall[] = [];
+
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const result = await provider.generate({ system, messages, tools });
+    for (const call of result.toolCalls) {
+      if (call.toolName === "capture_lead_qualification") captureCalls.push(call);
+    }
+
+    const actionCalls = result.toolCalls.filter((call) => ACTION_TOOL_NAMES.has(call.toolName));
+    if (actionCalls.length === 0) {
+      return { text: result.text, captureCalls };
+    }
+
+    if (result.text.trim()) messages.push({ role: "assistant", content: result.text.trim() });
+    const toolOutputs = await Promise.all(
+      actionCalls.map(async (call) => `[${call.toolName} result] ${await executeActionTool(call)}`),
+    );
+    messages.push({ role: "user", content: toolOutputs.join("\n") });
+  }
+
+  // Ran out of rounds — ask once more without tools so the model must answer in text.
+  const final = await provider.generate({ system, messages });
+  return { text: final.text, captureCalls };
+}
 
 /** Keeps token growth (and the on-disk snapshot) bounded for long-running sessions. */
 const MAX_MESSAGES_PER_SESSION = 60;
@@ -300,19 +382,13 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
 
   let reply: string;
   try {
-    const result = await provider.generate({
-      system,
-      messages: history,
-      tools: input.mode === "lead_qualification" ? [CAPTURE_LEAD_QUALIFICATION_TOOL] : undefined,
-    });
+    const { text, captureCalls } = await runWithTools(provider, system, history, toolsForMode(input.mode));
 
-    for (const call of result.toolCalls) {
-      if (call.toolName === "capture_lead_qualification") {
-        mergeCapturedFields(session, call.input as LeadQualificationToolInput);
-      }
+    for (const call of captureCalls) {
+      mergeCapturedFields(session, call.input as LeadQualificationToolInput);
     }
 
-    reply = result.text.trim() || "Got it — one moment.";
+    reply = text.trim() || "Got it — one moment.";
   } catch (error) {
     console.error("[chat-agent] provider.generate failed", error);
     reply = describeProviderError(error);

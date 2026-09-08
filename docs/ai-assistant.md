@@ -100,7 +100,10 @@ action-tool calls, append the result as a message, call again, up to
 `MAX_TOOL_ROUNDS` (3) before forcing a final tool-less answer. `toolsForMode`
 decides which tools each mode gets.
 
-**`EXPLAINER_VIDEOS` ships empty.** The model is instructed (both in
+**`EXPLAINER_VIDEOS` currently has one seeded entry** — `platform-overview`,
+a general "how YPN USA works" video (ScreenPal id `cOQjYdnwAGI`), matched on
+broad phrasings like "how does this work"/"show me"/"demo". Add more the
+same way. When nothing matches, the model is instructed (both in
 `prompts.ts`'s guardrails and the tool's own description) to say plainly
 that no video exists yet rather than invent a URL — it will never fabricate
 a link. To add a real video: append an entry to the array in

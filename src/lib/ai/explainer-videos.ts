@@ -1,9 +1,9 @@
 /**
  * Registry the assistant's find_explainer_video tool searches (see
- * chat-agent.ts). Empty by default — add an entry per video once you have a
- * real, hosted URL (YouTube/Vimeo/an uploaded file on ypnus.com or
- * app.ypnus.com). Never let the model invent a URL that isn't listed here:
- * the tool executor returns "no video yet" rather than guessing, and
+ * chat-agent.ts). Add an entry per video once you have a real, hosted URL
+ * (YouTube/Vimeo/ScreenPal/an uploaded file on ypnus.com or app.ypnus.com).
+ * Never let the model invent a URL that isn't listed here: the tool executor
+ * returns "no video yet" rather than guessing when nothing matches, and
  * PUBLIC_SITE_PROMPT/LEAD_QUALIFICATION_INTRO instruct the model the same way.
  *
  * `topics` are plain-English keywords/phrases matched case-insensitively
@@ -21,13 +21,28 @@ export interface ExplainerVideo {
 }
 
 export const EXPLAINER_VIDEOS: ExplainerVideo[] = [
-  // {
-  //   id: "territory-lock",
-  //   title: "How ZIP territory locking works",
-  //   url: "https://ypnus.com/wp-content/uploads/2026/09/territory-lock-explainer.mp4",
-  //   description: "Walks through claiming a ZIP, what exclusivity actually locks, and what happens if someone else tries to claim it after you.",
-  //   topics: ["territory", "zip", "exclusive", "lock", "claim a zip"],
-  // },
+  {
+    id: "platform-overview",
+    title: "See how YPN USA works",
+    url: "https://go.screenpal.com/player/cOQjYdnwAGI",
+    description:
+      "A walkthrough of how the platform works end to end — exclusive ZIP territories, AI-driven lead intake, and what a loan officer gets with every signup.",
+    topics: [
+      "how does this work",
+      "how it works",
+      "how does the platform work",
+      "how does ypn work",
+      "show me",
+      "walkthrough",
+      "demo",
+      "see it in action",
+      "platform overview",
+      "what do i get",
+      "tell me more",
+      "explain how",
+      "video",
+    ],
+  },
 ];
 
 /**

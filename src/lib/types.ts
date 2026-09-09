@@ -1,4 +1,5 @@
 import type { PricingTierId } from "./pricing";
+import type { EntitlementStatus } from "./session";
 
 export type LoanProgram =
   | "FHA"
@@ -91,6 +92,24 @@ export interface LoanOfficerRecord {
   calendarId?: string;
   calendarTimeZone?: string;
   calendlyUrl?: string;
+  /**
+   * Entitlement snapshot for server-to-server contexts (automation/lead-delivery
+   * jobs) that have no logged-in session to read a tier claim from — see
+   * src/lib/entitlements.ts's resolveOfficerEntitlement. Both fields are
+   * optional and, as of this writing, never written by any code path: there
+   * is no live sync from ypnus.com's WordPress entitlement store into this
+   * app's local data yet (that would be a separate integration). Until one
+   * exists, an officer with no snapshot is treated as unrestricted here
+   * (not gated) rather than defaulted to "free" — unlike the session-based
+   * resolver, which correctly fails closed to free for a logged-in visitor.
+   * The difference is deliberate: these are pre-existing internal officer
+   * records with no attacker-controlled input, not a live grant a visitor
+   * could claim for themselves, so defaulting to "free" here would only
+   * break already-working seeded/demo automation for every current officer
+   * with no way to fix it short of a real sync — see docs/sso-handoff.md.
+   */
+  entitlementTier?: PricingTierId;
+  entitlementStatus?: EntitlementStatus;
 }
 
 export interface BorrowerLeadRecord {

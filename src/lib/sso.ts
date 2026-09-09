@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "crypto";
-import type { SessionRole } from "@/lib/session";
+import { isPricingTierId, type PricingTierId } from "@/lib/pricing";
+import { isEntitlementStatus, type EntitlementStatus, type SessionRole } from "@/lib/session";
 
 /**
  * SSO handoff contract: how ypnus.com (WordPress) hands an authenticated user off to
@@ -13,7 +14,17 @@ import type { SessionRole } from "@/lib/session";
  *     &role=mlo|admin
  *     &iat=<unix seconds when the token was issued>
  *     &next=<optional relative path, defaults to /dashboard>
- *     &sig=<base64url HMAC-SHA256 of "email|sub|role|iat|next" using YPNUS_SSO_SHARED_SECRET>
+ *     &tier=<free|starter|growth|pro|elite, optional, defaults to "free">
+ *     &subscriptionStatus=<active|trialing|past_due|canceled|none, optional, defaults to "none">
+ *     &trialEndsAt=<ISO timestamp, optional — only meaningful when subscriptionStatus=trialing>
+ *     &sig=<base64url HMAC-SHA256, see canonicalMessage below, using YPNUS_SSO_SHARED_SECRET>
+ *
+ * tier/subscriptionStatus/trialEndsAt are part of the SIGNED message (not optional add-ons
+ * tacked on unsigned) — entitlement claims must be exactly as forgery-resistant as identity
+ * claims, since they gate paid capability. A handoff that omits them signs the empty-string
+ * placeholders shown below, which resolveEntitlement (entitlements.ts) treats as free/none —
+ * omitting these params is always safe, it just means "no entitlement asserted," never
+ * "assume paid."
  *
  * Both hosts must share the same YPNUS_SSO_SHARED_SECRET. The token is single-use in spirit
  * (short-lived, 5 minutes) but not replay-proof across that window — WordPress should treat it
@@ -27,6 +38,9 @@ export interface SsoHandoffClaim {
   email: string;
   role: SessionRole;
   next: string;
+  tier?: PricingTierId;
+  subscriptionStatus?: EntitlementStatus;
+  trialEndsAt?: string;
 }
 
 function ssoSecret(): string | null {
@@ -53,8 +67,17 @@ export function ssoSecretDiagnostics(): SsoSecretDiagnostics {
   };
 }
 
-function canonicalMessage(email: string, sub: string, role: string, iat: string, next: string): string {
-  return [email, sub, role, iat, next].join("|");
+function canonicalMessage(
+  email: string,
+  sub: string,
+  role: string,
+  iat: string,
+  next: string,
+  tier: string,
+  subscriptionStatus: string,
+  trialEndsAt: string,
+): string {
+  return [email, sub, role, iat, next, tier, subscriptionStatus, trialEndsAt].join("|");
 }
 
 export function verifySsoHandoff(url: URL): SsoHandoffClaim | { error: string } {
@@ -68,6 +91,10 @@ export function verifySsoHandoff(url: URL): SsoHandoffClaim | { error: string } 
   const role = url.searchParams.get("role")?.trim();
   const iat = url.searchParams.get("iat")?.trim();
   const next = url.searchParams.get("next")?.trim() || "/dashboard";
+  // Empty-string defaults, not omitted from the signed message — see the module doc comment.
+  const tier = url.searchParams.get("tier")?.trim() ?? "";
+  const subscriptionStatus = url.searchParams.get("subscriptionStatus")?.trim() ?? "";
+  const trialEndsAt = url.searchParams.get("trialEndsAt")?.trim() ?? "";
   const sig = url.searchParams.get("sig")?.trim();
 
   if (!email || !sub || !role || !iat || !sig) {
@@ -87,7 +114,7 @@ export function verifySsoHandoff(url: URL): SsoHandoffClaim | { error: string } 
   }
 
   const expectedSig = createHmac("sha256", secret)
-    .update(canonicalMessage(email, sub, role, iat, next))
+    .update(canonicalMessage(email, sub, role, iat, next, tier, subscriptionStatus, trialEndsAt))
     .digest("base64url");
 
   const provided = Buffer.from(sig);
@@ -96,5 +123,9 @@ export function verifySsoHandoff(url: URL): SsoHandoffClaim | { error: string } 
     return { error: "SSO handoff signature is invalid." };
   }
 
-  return { sub, email, role: role as SessionRole, next };
+  const claim: SsoHandoffClaim = { sub, email, role: role as SessionRole, next };
+  if (isPricingTierId(tier)) claim.tier = tier;
+  if (isEntitlementStatus(subscriptionStatus)) claim.subscriptionStatus = subscriptionStatus;
+  if (trialEndsAt) claim.trialEndsAt = trialEndsAt;
+  return claim;
 }

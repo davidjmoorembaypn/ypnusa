@@ -1,4 +1,5 @@
 import { appendAnalytics, persistFollowUpsBatch, readDb, writeDb } from "./db";
+import { automationDailyLimitFor, resolveOfficerEntitlement } from "./entitlements";
 import { generateId } from "./id";
 import { deliverOutreach } from "./outreach";
 import { buildZipContext } from "./agents/zipContext";
@@ -11,6 +12,29 @@ import type {
   FollowUpPlan,
   ScheduledFollowUpRecord,
 } from "./types";
+
+const ROLLING_DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How many follow-ups this officer has already had sent in the last rolling
+ * day, across all their leads — the counter automationDailyLimitFor's cap
+ * applies against. Pure read over the current snapshot; the caller re-checks
+ * against a fresh snapshot per job, so this doesn't need to be exact under
+ * concurrent runs, only close enough to stop a runaway automation loop.
+ */
+function officerSentInLastDay(db: ReturnType<typeof readDb>, officerId: string): number {
+  const cutoff = Date.now() - ROLLING_DAY_MS;
+  const leadIds = new Set(
+    db.borrowerLeads.filter((lead) => lead.assignedLoId === officerId).map((lead) => lead.id),
+  );
+  return db.followUps.filter(
+    (job) =>
+      job.status === "sent" &&
+      leadIds.has(job.borrowerLeadId) &&
+      job.sentAt &&
+      new Date(job.sentAt).getTime() >= cutoff,
+  ).length;
+}
 
 /**
  * Best-effort ZIP-derived personalization for outreach copy — same
@@ -180,6 +204,24 @@ export async function processDueFollowUps(options?: {
         current.lastError = "Lead or assigned MLO context is missing.";
       });
       failed += 1;
+      continue;
+    }
+
+    // Tier-scaled automation cap (see entitlements.ts). A no-op for every
+    // officer today, since entitlementTier is never populated yet — see
+    // resolveOfficerEntitlement's doc comment — but real and enforced the
+    // moment a live entitlement sync starts writing that field.
+    const dailyLimit = automationDailyLimitFor(resolveOfficerEntitlement(officer));
+    if (officerSentInLastDay(snapshot, officer.id) >= dailyLimit) {
+      writeDb((db) => {
+        const current = db.followUps.find((item) => item.id === jobId);
+        if (!current) return;
+        // Not a failure — retry once the rolling window has room again.
+        current.status = "pending";
+        current.scheduledAt = new Date(Date.now() + ROLLING_DAY_MS / 24).toISOString();
+        current.lastError = "Deferred: daily automation limit reached for this plan.";
+      });
+      events.push(`${job.plan}:${job.channel}:automation_limit_deferred`);
       continue;
     }
 

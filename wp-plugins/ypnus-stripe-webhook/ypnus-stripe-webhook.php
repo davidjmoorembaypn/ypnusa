@@ -11,7 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'YPNUS_STRIPE_ALLOWED_TIERS' ) ) {
-	define( 'YPNUS_STRIPE_ALLOWED_TIERS', array( 'starter', 'pro', 'elite' ) );
+	// 'growth' added for the 5-tier commercial model (free/starter/growth/pro/elite) —
+	// see app.ypnus.com's src/lib/pricing.ts for the canonical tier list and prices.
+	define( 'YPNUS_STRIPE_ALLOWED_TIERS', array( 'starter', 'growth', 'pro', 'elite' ) );
 }
 if ( ! defined( 'YPNUS_STRIPE_SIGNATURE_TOLERANCE' ) ) {
 	define( 'YPNUS_STRIPE_SIGNATURE_TOLERANCE', 300 );

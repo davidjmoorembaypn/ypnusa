@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { isPricingTierId, type PricingTierId } from "@/lib/pricing";
 
 /**
  * Signed, stateless session tokens for app.ypnus.com.
@@ -11,6 +12,9 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
 
 export type SessionRole = "mlo" | "admin";
 
+/** Mirrors Stripe/WordPress subscription_status values — see docs/sso-handoff.md. */
+export type EntitlementStatus = "active" | "trialing" | "past_due" | "canceled" | "none";
+
 export interface SessionPayload {
   /** Stable subject identifier (WordPress user id, or `dev_<email>` in local dev). */
   sub: string;
@@ -18,7 +22,26 @@ export interface SessionPayload {
   role: SessionRole;
   iat: number;
   exp: number;
+  /**
+   * Entitlement claims carried from the SSO handoff (see verifySsoHandoff in
+   * sso.ts) so every request can resolve paid capability from the signed
+   * session alone, with no extra lookup. All optional and absent on older
+   * tokens/local dev-login sessions — src/lib/entitlements.ts treats a
+   * missing tier as "free" (fails closed to the least-privileged tier,
+   * never grants paid capability by omission). See docs/sso-handoff.md for
+   * the exact claim contract WordPress must send once it adopts this.
+   */
+  tier?: PricingTierId;
+  subscriptionStatus?: EntitlementStatus;
+  /** ISO timestamp — set only when subscriptionStatus is "trialing". */
+  trialEndsAt?: string;
 }
+
+export function isEntitlementStatus(value: unknown): value is EntitlementStatus {
+  return value === "active" || value === "trialing" || value === "past_due" || value === "canceled" || value === "none";
+}
+
+export { isPricingTierId };
 
 export const SESSION_COOKIE_NAME = "ypnus_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12; // 12h
@@ -103,7 +126,14 @@ function safeEqual(a: string, b: string): boolean {
   return bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
 }
 
-export function createSessionToken(user: { sub: string; email: string; role: SessionRole }): string {
+export function createSessionToken(user: {
+  sub: string;
+  email: string;
+  role: SessionRole;
+  tier?: PricingTierId;
+  subscriptionStatus?: EntitlementStatus;
+  trialEndsAt?: string;
+}): string {
   const now = Math.floor(Date.now() / 1000);
   const payload: SessionPayload = {
     sub: user.sub,
@@ -111,6 +141,9 @@ export function createSessionToken(user: { sub: string; email: string; role: Ses
     role: user.role,
     iat: now,
     exp: now + SESSION_TTL_SECONDS,
+    tier: user.tier,
+    subscriptionStatus: user.subscriptionStatus,
+    trialEndsAt: user.trialEndsAt,
   };
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${payloadB64}.${sign(payloadB64)}`;
@@ -127,9 +160,26 @@ export function verifySessionToken(token: string | undefined | null): SessionPay
   if (!safeEqual(sig, sign(payloadB64))) return null;
 
   try {
-    const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8")) as SessionPayload;
-    if (typeof payload.exp !== "number" || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    if (!payload.sub || !payload.email || (payload.role !== "mlo" && payload.role !== "admin")) return null;
+    const raw = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8")) as Record<string, unknown>;
+    if (typeof raw.exp !== "number" || raw.exp < Math.floor(Date.now() / 1000)) return null;
+    if (typeof raw.sub !== "string" || !raw.sub) return null;
+    if (typeof raw.email !== "string" || !raw.email) return null;
+    if (raw.role !== "mlo" && raw.role !== "admin") return null;
+
+    const payload: SessionPayload = {
+      sub: raw.sub,
+      email: raw.email,
+      role: raw.role,
+      iat: typeof raw.iat === "number" ? raw.iat : 0,
+      exp: raw.exp,
+    };
+    // Every entitlement field is verified independently and dropped (not just
+    // ignored downstream) if malformed — a tampered/old-shape token degrades
+    // to "no entitlement claim," never to a guessed or partial one.
+    if (isPricingTierId(raw.tier)) payload.tier = raw.tier;
+    if (isEntitlementStatus(raw.subscriptionStatus)) payload.subscriptionStatus = raw.subscriptionStatus;
+    if (typeof raw.trialEndsAt === "string" && raw.trialEndsAt) payload.trialEndsAt = raw.trialEndsAt;
+
     return payload;
   } catch {
     return null;

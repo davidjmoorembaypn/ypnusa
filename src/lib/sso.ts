@@ -29,6 +29,31 @@ import { isEntitlementStatus, type EntitlementStatus, type SessionRole } from "@
  * Both hosts must share the same YPNUS_SSO_SHARED_SECRET. The token is single-use in spirit
  * (short-lived, 5 minutes) but not replay-proof across that window — WordPress should treat it
  * as a one-time redirect, not a durable credential. See docs/sso-handoff.md.
+ *
+ * --- TEMPORARY dual-signature compatibility (remove once the live WordPress SSO bridge is
+ * confirmed sending the 8-field format) ---
+ *
+ * The live `ypnus-app-sso.php` mu-plugin currently signs only the 5-field legacy message
+ * (`email|sub|role|iat|next`) — it predates the entitlement-claim extension below and has not
+ * been redeployed yet. Verifying only the new 8-field format here would reject every real
+ * WordPress login the moment this app ships, since the signature would never match. So this
+ * verifier accepts EITHER format:
+ *
+ *   - legacy (5 fields): treated as carrying NO entitlement claim, full stop. Even if `tier`/
+ *     `subscriptionStatus`/`trialEndsAt` appear in the query string alongside a valid legacy
+ *     signature, they are never read — a legacy signature only ever attests to the 5 fields it
+ *     actually covers, so anything else in the URL is unsigned attacker-controlled input and is
+ *     discarded outright. This is what keeps a legacy handoff safely resolving to "free" instead
+ *     of trusting an unsigned `&tier=elite` tacked onto an otherwise-valid old-format URL.
+ *   - v2 (8 fields): the entitlement claim is verified as part of the signature, same as today.
+ *
+ * Which format a given signature matches is determined purely by which canonical byte string it
+ * verifies against — never by whether the optional fields happen to be present/empty, so this
+ * can't be confused by an attacker padding a legacy URL with blank entitlement params.
+ *
+ * TODO(post-launch): once `ypnus-app-sso.php` is redeployed to sign the 8-field format
+ * (docs/sso-handoff.md), delete `LEGACY_` below and the `matchesLegacy` branch, and always
+ * require the v2 signature.
  */
 
 const HANDOFF_TTL_SECONDS = 300;
@@ -67,7 +92,7 @@ export function ssoSecretDiagnostics(): SsoSecretDiagnostics {
   };
 }
 
-function canonicalMessage(
+function canonicalMessageV2(
   email: string,
   sub: string,
   role: string,
@@ -78,6 +103,17 @@ function canonicalMessage(
   trialEndsAt: string,
 ): string {
   return [email, sub, role, iat, next, tier, subscriptionStatus, trialEndsAt].join("|");
+}
+
+/** LEGACY: matches the 5-field message the live ypnus-app-sso.php still signs today. */
+function canonicalMessageLegacy(email: string, sub: string, role: string, iat: string, next: string): string {
+  return [email, sub, role, iat, next].join("|");
+}
+
+function safeEqual(providedBase64Url: string, expected: string): boolean {
+  const provided = Buffer.from(providedBase64Url);
+  const expectedBuf = Buffer.from(expected);
+  return provided.length === expectedBuf.length && timingSafeEqual(provided, expectedBuf);
 }
 
 export function verifySsoHandoff(url: URL): SsoHandoffClaim | { error: string } {
@@ -113,19 +149,28 @@ export function verifySsoHandoff(url: URL): SsoHandoffClaim | { error: string } 
     return { error: "SSO handoff token has expired." };
   }
 
-  const expectedSig = createHmac("sha256", secret)
-    .update(canonicalMessage(email, sub, role, iat, next, tier, subscriptionStatus, trialEndsAt))
+  const expectedV2 = createHmac("sha256", secret)
+    .update(canonicalMessageV2(email, sub, role, iat, next, tier, subscriptionStatus, trialEndsAt))
     .digest("base64url");
+  const matchesV2 = safeEqual(sig, expectedV2);
 
-  const provided = Buffer.from(sig);
-  const expected = Buffer.from(expectedSig);
-  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
+  const expectedLegacy = createHmac("sha256", secret)
+    .update(canonicalMessageLegacy(email, sub, role, iat, next))
+    .digest("base64url");
+  const matchesLegacy = !matchesV2 && safeEqual(sig, expectedLegacy);
+
+  if (!matchesV2 && !matchesLegacy) {
     return { error: "SSO handoff signature is invalid." };
   }
 
   const claim: SsoHandoffClaim = { sub, email, role: role as SessionRole, next };
-  if (isPricingTierId(tier)) claim.tier = tier;
-  if (isEntitlementStatus(subscriptionStatus)) claim.subscriptionStatus = subscriptionStatus;
-  if (trialEndsAt) claim.trialEndsAt = trialEndsAt;
+  // Legacy signatures never covered tier/subscriptionStatus/trialEndsAt — even if those params
+  // are present in the URL, they're unsigned under this format and must never be trusted. Only
+  // a v2-matched signature can carry an entitlement claim. See the module doc comment above.
+  if (matchesV2) {
+    if (isPricingTierId(tier)) claim.tier = tier;
+    if (isEntitlementStatus(subscriptionStatus)) claim.subscriptionStatus = subscriptionStatus;
+    if (trialEndsAt) claim.trialEndsAt = trialEndsAt;
+  }
   return claim;
 }

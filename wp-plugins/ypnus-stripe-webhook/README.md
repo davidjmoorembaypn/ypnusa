@@ -95,6 +95,10 @@ skipped for it.
 - `checkout.session.completed`
 - `checkout.session.async_payment_succeeded`
 - `checkout.session.async_payment_failed`
+- `customer.subscription.created` — added in 2.1.0 to capture `trial_end` for the 15-day paid
+  trial. A trialing checkout's session payload doesn't carry `trial_end`; this is the first event
+  that does. Must be added to the endpoint's selected events in the Stripe Dashboard — an existing
+  endpoint configured before 2.1.0 will not have it selected by default.
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 - `invoice.payment_failed`
@@ -109,9 +113,25 @@ The plugin stores these fields on the WordPress user:
 - `ypnus_stripe_subscription_id`
 - `ypnus_subscription_status`
 - `ypnus_paid_access` (`1` only for `active` or `trialing`)
+- `ypnus_trial_ends_at` (ISO 8601, added in 2.1.0) — set only while `ypnus_subscription_status`
+  is `trialing`; empty string once the subscription becomes active, past_due, or canceled. Mirrors
+  the `trialEndsAt` field app.ypnus.com's SSO handoff and `entitlements.ts` already expect.
 
 Downstream account authorization must check `ypnus_paid_access`; the WordPress `subscriber` role
-alone does not represent a paid entitlement.
+alone does not represent a paid entitlement. This user meta is the single canonical entitlement
+source for the whole stack — the SSO handoff to app.ypnus.com reads directly from it (via the
+LO-account identity bridge, see `ypnus-lo-account-bridge.php`) rather than maintaining a second
+copy anywhere.
+
+### Identity resolution order (2.1.0+)
+
+When `ypnus-lo-account-bridge.php` is active, `ypnus_stripe_provision_user()` prefers the
+WordPress user it has already linked to the checkout email (`wp_ypnus_lo_accounts.wp_user_id`)
+over a fresh `get_user_by('email', ...)` lookup. This matters whenever the email an MLO checks out
+with differs from the one their `wp_ypnus_lo_accounts` login was created under — without the
+bridge, that would silently create a second, unlinked WordPress user with no way back to the
+account the MLO actually logs in through. Plain email lookup remains the fallback when the bridge
+plugin isn't installed, so this file works standalone exactly as it always has.
 
 ## ZIP territory locking
 
@@ -148,5 +168,6 @@ php wp-plugins/ypnus-stripe-webhook/tests/ypnus-stripe-webhook.test.php
 
 The harness covers signature rotation, replay rejection, invalid signatures, tier resolution,
 unknown-tier failure, atomic event claims, lock release, paid checkout provisioning, trial
-provisioning, payment failure, cancellation, paid-access restriction, and ZIP territory locking
-(claim, idempotent re-claim, conflict, race-losing conflict, and the availability endpoint).
+provisioning, trial-end-date capture and clearing, payment failure, cancellation, paid-access
+restriction, LO-account identity bridge preference, and ZIP territory locking (claim, idempotent
+re-claim, conflict, race-losing conflict, and the availability endpoint).

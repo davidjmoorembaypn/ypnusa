@@ -2,7 +2,7 @@
 /**
  * Plugin Name: YPNUS Stripe Webhook
  * Description: Verifies Stripe webhooks and reconciles YPNUS WordPress account entitlements.
- * Version: 2.0.0
+ * Version: 2.1.0
  * Author: YPN USA
  */
 
@@ -30,6 +30,7 @@ register_deactivation_hook( __FILE__, 'ypnus_stripe_deactivate' );
 add_action( 'ypnus_stripe_cleanup', 'ypnus_stripe_cleanup_events' );
 add_action( 'rest_api_init', 'ypnus_stripe_register_route' );
 add_action( 'init', 'ypnus_stripe_maybe_upgrade_territory_table' );
+add_action( 'init', 'ypnus_stripe_maybe_upgrade_lifecycle_table' );
 
 function ypnus_stripe_events_table() {
 	global $wpdb;
@@ -73,6 +74,7 @@ function ypnus_stripe_activate() {
 			customer_id VARCHAR(255) NOT NULL,
 			tier VARCHAR(20) NOT NULL DEFAULT '',
 			subscription_status VARCHAR(30) NOT NULL,
+			trial_ends_at VARCHAR(32) NOT NULL DEFAULT '',
 			last_event_created BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			last_event_priority SMALLINT UNSIGNED NOT NULL DEFAULT 0,
 			last_event_id VARCHAR(255) NOT NULL,
@@ -87,6 +89,37 @@ function ypnus_stripe_activate() {
 	if ( ! wp_next_scheduled( 'ypnus_stripe_cleanup' ) ) {
 		wp_schedule_event( time(), 'daily', 'ypnus_stripe_cleanup' );
 	}
+}
+
+/**
+ * Adds trial_ends_at to the lifecycle table for sites where the plugin was already
+ * active before this column existed. Same versioned-init-hook pattern as the
+ * territory table upgrade below — register_activation_hook doesn't re-fire on update.
+ */
+function ypnus_stripe_maybe_upgrade_lifecycle_table() {
+	if ( get_option( 'ypnus_stripe_lifecycle_trial_col_v1' ) ) {
+		return;
+	}
+	global $wpdb;
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	$charset_collate = $wpdb->get_charset_collate();
+	$table           = ypnus_stripe_lifecycle_table();
+	dbDelta(
+		"CREATE TABLE {$table} (
+			subscription_id VARCHAR(255) NOT NULL,
+			customer_id VARCHAR(255) NOT NULL,
+			tier VARCHAR(20) NOT NULL DEFAULT '',
+			subscription_status VARCHAR(30) NOT NULL,
+			trial_ends_at VARCHAR(32) NOT NULL DEFAULT '',
+			last_event_created BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			last_event_priority SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+			last_event_id VARCHAR(255) NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (subscription_id),
+			KEY customer_id (customer_id)
+		) {$charset_collate};"
+	);
+	update_option( 'ypnus_stripe_lifecycle_trial_col_v1', 1, false );
 }
 
 function ypnus_stripe_deactivate() {
@@ -504,19 +537,21 @@ function ypnus_stripe_lifecycle_priority( $status, $source ) {
 
 function ypnus_stripe_record_lifecycle( $state ) {
 	global $wpdb;
-	$table = ypnus_stripe_lifecycle_table();
-	$now   = current_time( 'mysql', true );
+	$table         = ypnus_stripe_lifecycle_table();
+	$now           = current_time( 'mysql', true );
+	$trial_ends_at = isset( $state['trial_ends_at'] ) ? (string) $state['trial_ends_at'] : '';
 
 	$inserted = $wpdb->query(
 		$wpdb->prepare(
 			"INSERT IGNORE INTO {$table}
-			(subscription_id, customer_id, tier, subscription_status, last_event_created,
+			(subscription_id, customer_id, tier, subscription_status, trial_ends_at, last_event_created,
 			 last_event_priority, last_event_id, updated_at)
-			VALUES (%s, %s, %s, %s, %d, %d, %s, %s)",
+			VALUES (%s, %s, %s, %s, %s, %d, %d, %s, %s)",
 			$state['subscription_id'],
 			$state['customer_id'],
 			$state['tier'],
 			$state['status'],
+			$trial_ends_at,
 			$state['event_created'],
 			$state['priority'],
 			$state['event_id'],
@@ -534,6 +569,7 @@ function ypnus_stripe_record_lifecycle( $state ) {
 				SET customer_id = %s,
 					tier = IF(%s <> '', %s, tier),
 					subscription_status = %s,
+					trial_ends_at = IF(%s <> '', %s, IF(%s <> 'trialing', '', trial_ends_at)),
 					last_event_created = %d,
 					last_event_priority = %d,
 					last_event_id = %s,
@@ -546,6 +582,9 @@ function ypnus_stripe_record_lifecycle( $state ) {
 				$state['customer_id'],
 				$state['tier'],
 				$state['tier'],
+				$state['status'],
+				$trial_ends_at,
+				$trial_ends_at,
 				$state['status'],
 				$state['event_created'],
 				$state['priority'],
@@ -647,28 +686,67 @@ function ypnus_stripe_write_user_meta( $user_id, $values ) {
 	return true;
 }
 
-function ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscription_id, $status ) {
+/**
+ * Resolves a Stripe subscription's trial end as an ISO 8601 string, or '' if the
+ * subscription isn't trialing / carries no trial_end. Stripe sends trial_end as a
+ * unix timestamp on the subscription object (present on both the subscription
+ * resource itself and, for a trialing checkout, on session.subscription when
+ * expanded — but the webhook payload for checkout.session.completed does not
+ * expand it, so trial length there is asserted via metadata elsewhere and the
+ * authoritative trial_end is picked up on the very next customer.subscription.*
+ * event, which always carries the full subscription object).
+ */
+function ypnus_stripe_resolve_trial_ends_at( $subscription ) {
+	if ( ! is_array( $subscription ) || empty( $subscription['trial_end'] ) || ! is_numeric( $subscription['trial_end'] ) ) {
+		return '';
+	}
+	return gmdate( 'c', (int) $subscription['trial_end'] );
+}
+
+/**
+ * If the LO-account identity bridge (ypnus-lo-account-bridge.php) is active, prefer
+ * the WordPress user it has already linked to this email over a fresh email lookup —
+ * that mapping is the canonical identity link an MLO actually logs in through.
+ * Falls back to plain get_user_by('email', ...) when the bridge isn't deployed, so
+ * this file works standalone exactly as it does today.
+ */
+function ypnus_stripe_resolve_email_user( $email ) {
+	if ( function_exists( 'ypnus_lo_account_wp_user_id' ) ) {
+		$linked_id = ypnus_lo_account_wp_user_id( $email );
+		if ( $linked_id ) {
+			$linked_user = get_user_by( 'id', $linked_id );
+			if ( $linked_user ) {
+				return $linked_user;
+			}
+		}
+	}
+	return get_user_by( 'email', $email );
+}
+
+function ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscription_id, $status, $trial_ends_at = '' ) {
 	$tier = ypnus_stripe_allowed_tier( $tier );
 	if ( ! $tier ) {
 		return false;
 	}
 	$has_access = in_array( $status, array( 'active', 'trialing' ), true ) ? '1' : '0';
-	return ypnus_stripe_write_user_meta(
-		$user_id,
-		array(
-			'ypnus_tier'                   => $tier,
-			'ypnus_stripe_customer_id'     => $customer_id,
-			'ypnus_stripe_subscription_id' => $subscription_id,
-			'ypnus_subscription_status'    => $status,
-			'ypnus_paid_access'             => $has_access,
-		)
+	$values = array(
+		'ypnus_tier'                   => $tier,
+		'ypnus_stripe_customer_id'     => $customer_id,
+		'ypnus_stripe_subscription_id' => $subscription_id,
+		'ypnus_subscription_status'    => $status,
+		'ypnus_paid_access'             => $has_access,
+		// Empty string (not deleted) once the subscription leaves 'trialing' — same
+		// "empty means no claim asserted" convention app.ypnus.com's SSO handoff and
+		// entitlements.ts already use, so this reads cleanly as "no trial" downstream.
+		'ypnus_trial_ends_at'          => 'trialing' === $status ? $trial_ends_at : '',
 	);
+	return ypnus_stripe_write_user_meta( $user_id, $values );
 }
 
 function ypnus_stripe_provision_user( $email, $tier, $customer_id, $subscription_id, $status ) {
 	$customer_user = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_customer_id', $customer_id );
 	$sub_user      = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_subscription_id', $subscription_id );
-	$email_user    = get_user_by( 'email', $email );
+	$email_user    = ypnus_stripe_resolve_email_user( $email );
 
 	$known_ids = array();
 	foreach ( array( $customer_user, $sub_user, $email_user ) as $candidate ) {
@@ -764,7 +842,8 @@ function ypnus_stripe_apply_lifecycle_row( $row ) {
 		$tier,
 		(string) $row->customer_id,
 		(string) $row->subscription_id,
-		(string) $row->subscription_status
+		(string) $row->subscription_status,
+		isset( $row->trial_ends_at ) ? (string) $row->trial_ends_at : ''
 	);
 	return $applied ? array( 'ok' => true ) : array( 'ok' => false, 'error' => 'user_meta_write_failed' );
 }
@@ -864,8 +943,9 @@ function ypnus_stripe_process_subscription( $event ) {
 	$stripe_state = 'customer.subscription.deleted' === $event['type']
 		? 'canceled'
 		: ( isset( $subscription['status'] ) ? sanitize_text_field( $subscription['status'] ) : '' );
-	$status       = ypnus_stripe_subscription_state( $stripe_state );
-	$tier         = ypnus_stripe_resolve_subscription_tier( $subscription );
+	$status        = ypnus_stripe_subscription_state( $stripe_state );
+	$tier          = ypnus_stripe_resolve_subscription_tier( $subscription );
+	$trial_ends_at = ypnus_stripe_resolve_trial_ends_at( $subscription );
 
 	if ( ! $customer_id || ! $sub_id || ! $status ) {
 		return array(
@@ -880,6 +960,7 @@ function ypnus_stripe_process_subscription( $event ) {
 			'customer_id'     => $customer_id,
 			'tier'            => $tier,
 			'status'          => $status,
+			'trial_ends_at'   => $trial_ends_at,
 			'event_created'   => (int) $event['created'],
 			'priority'        => ypnus_stripe_lifecycle_priority( $status, 'subscription' ),
 			'event_id'        => $event['id'],
@@ -976,6 +1057,11 @@ function ypnus_stripe_process_event( $event ) {
 				'ok'     => true,
 				'action' => 'async_payment_failed',
 			);
+		case 'customer.subscription.created':
+			// Captures trial_end from the very first subscription event — checkout.session.completed's
+			// payload doesn't expand it, so a trialing checkout has no trial_ends_at until this (or the
+			// next .updated) event arrives. Requires this event type to be selected in the Stripe
+			// Dashboard's webhook config — see README's "Required Stripe events".
 		case 'customer.subscription.updated':
 		case 'customer.subscription.deleted':
 			return ypnus_stripe_process_subscription( $event );

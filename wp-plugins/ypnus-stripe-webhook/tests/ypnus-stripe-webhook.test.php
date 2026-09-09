@@ -135,6 +135,9 @@ function get_user_by( $field, $value ) {
 		if ( 'email' === $field && $user->user_email === $value ) {
 			return $user;
 		}
+		if ( 'id' === $field && (int) $user->ID === (int) $value ) {
+			return $user;
+		}
 	}
 	return false;
 }
@@ -391,6 +394,88 @@ $trial = ypnus_stripe_process_checkout(
 );
 assert_same( true, $trial['ok'], 'provisions an explicitly configured active trial' );
 assert_same( 'trialing', get_user_meta( $trial['user_id'], 'ypnus_subscription_status', true ), 'stores trialing status' );
+
+assert_same( '', ypnus_stripe_resolve_trial_ends_at( array() ), 'resolves no trial_end from a bare array' );
+assert_same( '', ypnus_stripe_resolve_trial_ends_at( array( 'trial_end' => 'not-a-number' ) ), 'ignores a non-numeric trial_end' );
+assert_same(
+	gmdate( 'c', 1700000000 ),
+	ypnus_stripe_resolve_trial_ends_at( array( 'trial_end' => 1700000000 ) ),
+	'converts a Stripe trial_end unix timestamp to ISO 8601'
+);
+
+// customer.subscription.updated for the same trialing subscription now carries the real
+// trial_end from Stripe — the lifecycle row (canned here as record_lifecycle's own return
+// value would be) reflects it, and apply_lifecycle_row must write it to user meta.
+$GLOBALS['wpdb']                = new FakeWpdb();
+$GLOBALS['wpdb']->query_results = array( 1 );
+$GLOBALS['wpdb']->row_results   = array(
+	(object) array(
+		'subscription_id'     => 'sub_trial',
+		'customer_id'         => 'cus_trial',
+		'tier'                => 'pro',
+		'subscription_status' => 'trialing',
+		'trial_ends_at'       => gmdate( 'c', 1700000000 ),
+		'last_event_id'       => 'evt_trial_updated',
+	),
+);
+$trial_updated = ypnus_stripe_process_subscription(
+	array(
+		'id'      => 'evt_trial_updated',
+		'type'    => 'customer.subscription.updated',
+		'created' => $timestamp + 1,
+		'data'    => array(
+			'object' => array(
+				'id'         => 'sub_trial',
+				'customer'   => 'cus_trial',
+				'status'     => 'trialing',
+				'trial_end'  => 1700000000,
+				'metadata'   => array( 'ypnus_tier' => 'pro' ),
+			),
+		),
+	)
+);
+assert_same( true, $trial_updated['ok'], 'processes the trial-carrying subscription.updated event' );
+assert_same(
+	gmdate( 'c', 1700000000 ),
+	get_user_meta( $trial['user_id'], 'ypnus_trial_ends_at', true ),
+	'stores the trial end date on the linked WordPress user'
+);
+
+// Once the same subscription converts to active (trial over / first real invoice), the
+// stored trial end must clear rather than linger as a stale future date.
+$GLOBALS['wpdb']                = new FakeWpdb();
+$GLOBALS['wpdb']->query_results = array( 1 );
+$GLOBALS['wpdb']->row_results   = array(
+	(object) array(
+		'subscription_id'     => 'sub_trial',
+		'customer_id'         => 'cus_trial',
+		'tier'                => 'pro',
+		'subscription_status' => 'active',
+		'trial_ends_at'       => '',
+		'last_event_id'       => 'evt_trial_converted',
+	),
+);
+$trial_converted = ypnus_stripe_process_subscription(
+	array(
+		'id'      => 'evt_trial_converted',
+		'type'    => 'customer.subscription.updated',
+		'created' => $timestamp + 2,
+		'data'    => array(
+			'object' => array(
+				'id'       => 'sub_trial',
+				'customer' => 'cus_trial',
+				'status'   => 'active',
+				'metadata' => array( 'ypnus_tier' => 'pro' ),
+			),
+		),
+	)
+);
+assert_same( true, $trial_converted['ok'], 'processes the trial-to-active conversion' );
+assert_same(
+	'',
+	get_user_meta( $trial['user_id'], 'ypnus_trial_ends_at', true ),
+	'clears the trial end date once the subscription is no longer trialing'
+);
 
 update_user_meta( $paid_user_id, 'ypnus_subscription_status', 'active' );
 update_user_meta( $paid_user_id, 'ypnus_paid_access', '1' );
@@ -674,6 +759,66 @@ assert_same(
 	'90005',
 	get_user_meta( $zip_conflict_checkout['user_id'], 'ypnus_territory_conflict', true ),
 	'stores the conflicted zip on the losing user'
+);
+
+// LO-account identity bridge preference (ypnus-lo-account-bridge.php, when deployed):
+// a Stripe checkout email that doesn't literally match any wp_users row must still land
+// on the correct, already-linked account rather than spinning up a duplicate WP user —
+// this is exactly the case where an MLO checks out with a different email than the one
+// their WordPress account was created under, but the bridge already knows they're the
+// same person.
+$bridge_target_id = wp_insert_user(
+	array(
+		'user_login' => 'bridge-target',
+		'user_email' => 'bridge-target@example.com',
+		'user_pass'  => 'unused',
+		'role'       => 'subscriber',
+	)
+);
+function ypnus_lo_account_wp_user_id( $email ) {
+	return 'checkout-alias@example.com' === $email ? $GLOBALS['ypnus_test_bridge_target_id'] : 0;
+}
+$GLOBALS['ypnus_test_bridge_target_id'] = $bridge_target_id;
+
+$GLOBALS['wpdb']                = new FakeWpdb();
+$GLOBALS['wpdb']->query_results = array( 1 );
+$GLOBALS['wpdb']->row_results   = array(
+	(object) array(
+		'subscription_id'     => 'sub_bridge',
+		'customer_id'         => 'cus_bridge',
+		'tier'                => 'starter',
+		'subscription_status' => 'active',
+		'last_event_id'       => 'evt_bridge',
+	),
+);
+$bridge_checkout = ypnus_stripe_process_checkout(
+	array(
+		'id'      => 'evt_bridge',
+		'type'    => 'checkout.session.completed',
+		'created' => $timestamp,
+		'data'    => array(
+			'object' => array(
+				'mode'           => 'subscription',
+				'payment_status' => 'paid',
+				'customer'       => 'cus_bridge',
+				'subscription'   => 'sub_bridge',
+				'payment_link'   => 'plink_starter',
+				'customer_email' => 'checkout-alias@example.com',
+				'metadata'       => array(),
+			),
+		),
+	)
+);
+assert_same( true, $bridge_checkout['ok'], 'provisions via the bridge-linked account' );
+assert_same(
+	$bridge_target_id,
+	$bridge_checkout['user_id'],
+	'attaches entitlement to the bridge-linked wp_user instead of creating a duplicate'
+);
+assert_same(
+	'starter',
+	get_user_meta( $bridge_target_id, 'ypnus_tier', true ),
+	'writes canonical entitlement meta onto the linked account'
 );
 
 fwrite( STDOUT, "PASS: {$assertions} assertions\n" );

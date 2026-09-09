@@ -3,9 +3,12 @@ import { MortgageIntakeChat } from "@/components/lazy-loanpilot-assistant";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { MortgageCalculator } from "@/components/mortgage-calculator";
 import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepageEngine";
+import { FloatingAssistantWidget } from "@/components/assistant/floating-assistant-widget";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { marketingUrl } from "@/lib/site";
+import { PRICING_TIERS } from "@/lib/pricing";
+import { checkoutUrlForTier } from "@/lib/checkout";
 
 const LIFE_EVENTS = [
   {
@@ -86,73 +89,6 @@ const OWNERSHIP = [
 
 const PROGRAMS = ["FHA", "VA", "Conventional", "DSCR", "HELOC", "Refinance", "Jumbo"];
 
-const PRICING = [
-  {
-    name: "Free",
-    price: "$0",
-    cadence: "forever · no card",
-    tagline: "Prove demand on your first ZIP",
-    features: [
-      "1 exclusive ZIP to start",
-      "AI borrower intake assistant",
-      "Qualification + scoring",
-      "You own every lead you capture",
-      "Upgrade when pull-through is real",
-    ],
-    cta: "Start free",
-    plan: "free",
-    highlight: false,
-  },
-  {
-    name: "Starter",
-    price: "$29.99",
-    cadence: "/mo",
-    tagline: "Lock a small exclusive footprint",
-    features: [
-      "Up to 3 exclusive ZIPs",
-      "Branded borrower experience",
-      "AI intake + follow-up",
-      "Territory demand reports",
-      "Cancel anytime",
-    ],
-    cta: "Claim Starter",
-    plan: "starter",
-    highlight: false,
-  },
-  {
-    name: "Pro",
-    price: "$99.99",
-    cadence: "/mo",
-    tagline: "For the serious loan officer",
-    features: [
-      "Up to 5 exclusive ZIPs",
-      "Portable MLO website",
-      "SMS + email nurture ladders",
-      "Calendar booking + CRM mirroring",
-      "Keep leads & site if you switch",
-    ],
-    cta: "Claim Pro",
-    plan: "pro",
-    highlight: true,
-  },
-  {
-    name: "Elite",
-    price: "$299.99",
-    cadence: "/mo",
-    tagline: "Unlimited exclusive capacity",
-    features: [
-      "Unlimited exclusive ZIPs",
-      "Priority territory expansion",
-      "Advanced life-event signals",
-      "White-glove onboarding",
-      "Team / brokerage ready",
-    ],
-    cta: "Go Elite",
-    plan: "elite",
-    highlight: false,
-  },
-];
-
 const FAQ = [
   {
     q: "What does “exclusive ZIP territory” actually mean?",
@@ -172,11 +108,13 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Start free on one ZIP with no credit card. Paid plans are Starter $29.99/mo, Pro $99.99/mo, and Elite $299.99/mo when you're ready to lock more exclusive capacity.",
+    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Starter $29.99/mo, Growth $99/mo, Pro $199/mo, and Elite $299/mo — every paid plan includes a 15-day free trial.",
   },
 ];
 
 function signupHrefForPlan(plan: string) {
+  // Free stays on the marketing signup path directly — checkoutUrlForTier's
+  // Stripe Payment Link resolution only applies to paid tiers.
   return marketingUrl(`/lo-signup.html?plan=${encodeURIComponent(plan)}`);
 }
 
@@ -463,10 +401,10 @@ export default function Home() {
             <p className="mt-4 text-slate-600">Reserve a ZIP, deploy your AI, and own the pipeline it builds.</p>
           </div>
 
-          <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {PRICING.map((tier) => (
+          <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+            {PRICING_TIERS.map((tier) => (
               <article
-                key={tier.name}
+                key={tier.id}
                 className={`flex min-h-full flex-col rounded-3xl border p-6 transition duration-200 hover:-translate-y-1 md:p-8 ${
                   tier.highlight
                     ? "border-violet-400 bg-[#09081b] text-white shadow-2xl shadow-violet-500/20 ring-2 ring-violet-400/40"
@@ -493,7 +431,7 @@ export default function Home() {
                   ))}
                 </ul>
                 <a
-                  href={signupHrefForPlan(tier.plan)}
+                  href={tier.id === "free" ? signupHrefForPlan(tier.id) : checkoutUrlForTier(tier.id)}
                   className={`mt-8 inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 ${
                     tier.highlight
                       ? "bg-amber-400 text-[#09081b] shadow-lg shadow-amber-500/30"
@@ -576,6 +514,8 @@ export default function Home() {
           Claim your ZIP territory — free
         </a>
       </div>
+
+      <FloatingAssistantWidget />
     </div>
   );
 }

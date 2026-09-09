@@ -150,8 +150,8 @@ describe("revenue pulse", async () => {
   it("counts only active or trialing subscriptions toward MRR", () => {
     const pulse = summarizeRevenuePulse();
 
-    // 9999 (pro) + 29999 (elite trial) + 29999 (inferred elite from the brokerage demo)
-    assert.equal(pulse.totals.mrrCents, 69_997);
+    // 9999 (pro) + 29900 (elite trial) + 29900 (inferred elite from the brokerage demo)
+    assert.equal(pulse.totals.mrrCents, 69_799);
     assert.equal(pulse.totals.activeSubscriptions, 3);
     assert.ok(
       !pulse.ltvByMlo.some((mlo) => mlo.planNames.includes("Starter")),
@@ -163,7 +163,7 @@ describe("revenue pulse", async () => {
     const elite = summarizeRevenuePulse().tierBreakdown.find((tier) => tier.tierId === "elite");
 
     assert.equal(elite?.bookings, 2);
-    assert.equal(elite?.monthlyRevenueCents, 59_998);
+    assert.equal(elite?.monthlyRevenueCents, 59_800);
   });
 
   it("infers a subscription for unclaimed demo ZIPs and skips claimed or invalid ones", () => {
@@ -189,16 +189,17 @@ describe("revenue pulse", async () => {
 
     assert.equal(shares.free, 0);
     assert.equal(shares.starter, 0);
+    assert.equal(shares.growth, 0);
     assert.equal(shares.pro, 14);
     assert.equal(shares.elite, 86);
-    assert.equal(breakdown.length, 4);
+    assert.equal(breakdown.length, 5);
   });
 
   it("ranks MLOs by lifetime value from subscription months plus pipeline value", () => {
     const [first, second] = summarizeRevenuePulse().ltvByMlo;
 
     assert.equal(first?.loId, "lo_b");
-    assert.equal(first?.projectedSubscriptionLtvCents, 539_982); // 29999 * default 18 months
+    assert.equal(first?.projectedSubscriptionLtvCents, 538_200); // 29900 * default 18 months
     assert.equal(first?.leadPipelineValueCents, 0);
 
     assert.equal(second?.loId, "lo_a");
@@ -214,7 +215,7 @@ describe("revenue pulse", async () => {
   it("averages lifetime value across every MLO", () => {
     const pulse = summarizeRevenuePulse();
 
-    assert.equal(pulse.totals.averageLtvPerMloCents, 330_986);
+    assert.equal(pulse.totals.averageLtvPerMloCents, 330_095);
   });
 
   it("builds a funnel that never regresses below the persisted record counts", () => {
@@ -236,7 +237,7 @@ describe("revenue pulse", async () => {
       links.map((link) => `${link.from}->${link.to}`),
       ["intake->qualified", "qualified->booked", "booked->subscription"],
     );
-    assert.equal(links.at(-1)?.valueCents, 69_997);
+    assert.equal(links.at(-1)?.valueCents, 69_799);
   });
 
   it("reports zeroed totals and assumptions for an empty ledger", () => {

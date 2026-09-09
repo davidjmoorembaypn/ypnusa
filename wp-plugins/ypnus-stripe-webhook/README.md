@@ -67,7 +67,7 @@ Remove the retired secret after Stripe's rotation grace period.
 Each Payment Link must include:
 
 ```text
-ypnus_tier = starter | pro | elite
+ypnus_tier = starter | growth | pro | elite
 ```
 
 For a Payment Link that intentionally starts with no payment because of a trial, also include:

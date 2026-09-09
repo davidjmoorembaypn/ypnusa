@@ -14,7 +14,8 @@ type FlowStageId = "intake" | "qualified" | "booked" | "subscription";
 const DEFAULT_LIFETIME_MONTHS: Record<PricingTierId, number> = {
   free: 3,
   starter: 12,
-  pro: 15,
+  growth: 14,
+  pro: 16,
   elite: 18,
 };
 

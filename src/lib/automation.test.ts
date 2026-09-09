@@ -171,6 +171,37 @@ describe("automation.ts outreach personalization connector", async () => {
     assert.equal(countAfter, countBefore);
   });
 
+  it("defers (does not send) a follow-up once the officer's tier-scaled automation limit is reached", async () => {
+    const { writeDb } = await import("./db");
+    writeDb((db) => {
+      db.loanOfficers.push({
+        id: "lo_free_tier_test",
+        name: "Free Tier Officer",
+        email: "free-tier@example.com",
+        specialties: ["FHA"],
+        weeklyWindows: [],
+        entitlementTier: "free",
+        entitlementStatus: "active",
+      });
+    });
+
+    const lead = buildLead({ assignedLoId: "lo_free_tier_test" });
+    appendBorrowerLead(lead);
+    const followUp = buildFollowUp(lead.id);
+    persistFollowUpsBatch([followUp]);
+
+    const summary = await processDueFollowUps({ borrowerLeadId: lead.id });
+
+    // Deferred, not a failure — the free tier's automation limit is 0.
+    assert.equal(summary.processed, 0);
+    assert.equal(summary.failed, 0);
+    assert.equal(received.length, 0, "no outreach should have actually been delivered");
+
+    const job = readDb().followUps.find((entry) => entry.id === followUp.id);
+    assert.equal(job?.status, "pending");
+    assert.match(job?.lastError ?? "", /daily automation limit/);
+  });
+
   it("keeps the existing cadence and contactConsent gating unchanged", () => {
     const consented = scheduleBorrowerJourney("lead_consent_yes", {
       loanProgram: "FHA",

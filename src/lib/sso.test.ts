@@ -141,6 +141,16 @@ describe("SSO handoff verification", () => {
     assert.ok("error" in result);
   });
 
+  it("rejects delimiters in signed fields before legacy or v2 signature comparison", () => {
+    process.env.YPNUS_SSO_SHARED_SECRET = TEST_SECRET;
+    const iat = String(Math.floor(Date.now() / 1000));
+    const next = "/dashboard|elite|active|2099-01-01T00:00:00Z";
+    const result = verifySsoHandoff(
+      buildLegacyUrl({ next, iat, sig: signLegacy("jordan@example.com", "wp_42", "mlo", iat, next) }),
+    );
+    assert.deepEqual(result, { error: "SSO handoff parameters contain an illegal character." });
+  });
+
   it("carries a signed tier/subscriptionStatus/trialEndsAt claim through when present", () => {
     process.env.YPNUS_SSO_SHARED_SECRET = TEST_SECRET;
     const result = verifySsoHandoff(

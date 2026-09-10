@@ -61,7 +61,8 @@ export async function POST(request: Request) {
     });
 
     if (result.handoffRequested && result.handoffPhone) {
-      return new NextResponse(dialTwiml(result.reply, result.handoffPhone), { headers: TWIML_HEADERS });
+      const dialActionUrl = `${APP_SITE_URL}/api/voice/dial-status`;
+      return new NextResponse(dialTwiml(result.reply, result.handoffPhone, dialActionUrl), { headers: TWIML_HEADERS });
     }
 
     const actionUrl = `${APP_SITE_URL}/api/voice/respond?sid=${encodeURIComponent(result.sessionId)}`;

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { describe, it } from "node:test";
 import {
+  dialStatusTwiml,
   dialTwiml,
   gatherSpeechTwiml,
   REJECT_TWIML,
@@ -99,20 +100,40 @@ describe("TwiML builders", () => {
     assert.match(REJECT_TWIML, /<Reject\/>/);
   });
 
-  it("dialTwiml says the text, dials a normalized number, and falls back to Say/Hangup", () => {
-    const xml = dialTwiml("Connecting you now.", "+1-559-512-0372");
+  it("dialTwiml says the text, dials a normalized number with an action callback, and has no trailing fallback", () => {
+    const xml = dialTwiml("Connecting you now.", "+1-559-512-0372", "https://app.ypnus.com/api/voice/dial-status");
     assert.match(xml, /<Say voice="Polly\.Joanna">Connecting you now\.<\/Say><Dial/);
-    assert.match(xml, /<Dial timeout="20">\+15595120372<\/Dial>/);
-    assert.match(xml, /<Dial[^]*<\/Dial><Say[^]*<\/Say><Hangup\/>/);
+    assert.match(
+      xml,
+      /<Dial timeout="20" action="https:\/\/app\.ypnus\.com\/api\/voice\/dial-status">\+15595120372<\/Dial>/,
+    );
+    // No bare trailing Say/Hangup — Twilio would run it after ANY dial outcome
+    // (including a normal completed call) without an action callback.
+    assert.doesNotMatch(xml, /<\/Dial><Say/);
   });
 
   it("dialTwiml strips non-digit characters but keeps a leading +", () => {
-    const xml = dialTwiml("Hold on.", "(559) 512-0372");
-    assert.match(xml, /<Dial timeout="20">5595120372<\/Dial>/);
+    const xml = dialTwiml("Hold on.", "(559) 512-0372", "https://app.ypnus.com/api/voice/dial-status");
+    assert.match(xml, /<Dial timeout="20" action="[^"]+">5595120372<\/Dial>/);
   });
 
-  it("dialTwiml escapes XML in the spoken text", () => {
-    const xml = dialTwiml("Team A & B", "+15595120372");
+  it("dialTwiml escapes XML in the spoken text and the action URL", () => {
+    const xml = dialTwiml("Team A & B", "+15595120372", "https://app.ypnus.com/api/voice/dial-status?x=1&y=2");
     assert.match(xml, /Team A &amp; B/);
+    assert.match(xml, /action="https:\/\/app\.ypnus\.com\/api\/voice\/dial-status\?x=1&amp;y=2"/);
+  });
+
+  it("dialStatusTwiml hangs up silently for a completed call", () => {
+    const xml = dialStatusTwiml("completed");
+    assert.match(xml, /<Response><Hangup\/><\/Response>/);
+    assert.doesNotMatch(xml, /<Say/);
+  });
+
+  it("dialStatusTwiml apologizes and hangs up for busy/no-answer/failed", () => {
+    for (const status of ["busy", "no-answer", "failed", "canceled"]) {
+      const xml = dialStatusTwiml(status);
+      assert.match(xml, /No one&apos;s available/);
+      assert.match(xml, /<Hangup\/>/);
+    }
   });
 });

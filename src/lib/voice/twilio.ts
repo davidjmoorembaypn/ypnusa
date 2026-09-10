@@ -93,15 +93,34 @@ export function sayAndHangupTwiml(text: string): string {
 
 /**
  * Speaks `text` (the assistant's own "connecting you" line), then dials a
- * real person. Twilio only advances past <Dial> to the trailing
- * <Say>/<Hangup> if the call goes unanswered, is busy, or fails — a picked-up
- * call just continues as a normal two-party call and never reaches them.
+ * real person. `actionUrl` is required: without a <Dial action> callback,
+ * Twilio moves on to the next verb after ANY dial outcome — including a
+ * normal completed call — so a bare trailing <Say>/<Hangup> here would play
+ * a "no one's available" apology even after a successful call. Twilio POSTs
+ * DialCallStatus to actionUrl once the dial ends; see dialStatusTwiml, which
+ * turns that into the right response (silent hangup vs. apology).
  */
-export function dialTwiml(text: string, phoneNumber: string): string {
+export function dialTwiml(text: string, phoneNumber: string, actionUrl: string): string {
   return (
     `${TWIML_HEADER}<Response>` +
     `<Say voice="${VOICE}">${escapeXml(toSpeakableText(text))}</Say>` +
-    `<Dial timeout="20">${escapeXml(normalizePhoneForDial(phoneNumber))}</Dial>` +
+    `<Dial timeout="20" action="${escapeXml(actionUrl)}">${escapeXml(normalizePhoneForDial(phoneNumber))}</Dial>` +
+    `</Response>`
+  );
+}
+
+/**
+ * Response to the <Dial action> callback Twilio posts once a handoff dial
+ * ends (DialCallStatus form param). A completed call already happened as a
+ * normal two-party conversation — just hang up silently. Anything else
+ * (busy/no-answer/failed/canceled) gets the apology before hanging up.
+ */
+export function dialStatusTwiml(dialCallStatus: string): string {
+  if (dialCallStatus === "completed") {
+    return `${TWIML_HEADER}<Response><Hangup/></Response>`;
+  }
+  return (
+    `${TWIML_HEADER}<Response>` +
     `<Say voice="${VOICE}">${escapeXml(NO_ANSWER_MESSAGE)}</Say>` +
     `<Hangup/>` +
     `</Response>`

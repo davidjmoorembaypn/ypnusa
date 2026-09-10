@@ -89,6 +89,14 @@ describe("findExplainerVideo", () => {
     const found = findExplainerVideo("Can you show me how does this work exactly?");
     assert.equal(found?.id, "platform-overview");
   });
+
+  it("finds the seeded own-vs-shared-leads video for natural shared-vs-exclusive phrasings", () => {
+    assert.equal(
+      findExplainerVideo("What is the difference between shared and exclusive leads?")?.id,
+      "own-vs-shared-leads",
+    );
+    assert.equal(findExplainerVideo("is it own vs. rent for my pipeline")?.id, "own-vs-shared-leads");
+  });
 });
 
 describe("toolsForMode", () => {

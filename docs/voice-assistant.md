@@ -43,13 +43,18 @@ gives you for validating requests, not a bearer token you invent.
 A caller who explicitly asks for a real person (never triggered proactively,
 and never just because a question is hard) gets transferred mid-call:
 
-```
+```text
 caller: "can I just talk to a person"
   → model calls request_human_handoff
-  → /api/voice/respond returns <Say>(the model's reply)</Say><Dial>MLO_PUBLIC_PHONE</Dial>
+  → /api/voice/respond returns <Say>(the model's reply)</Say>
+    <Dial action="/api/voice/dial-status">MLO_PUBLIC_PHONE</Dial>
   → picked up: normal two-party call, chat-agent is out of the loop
-  → unanswered/busy/failed: <Say>apology</Say><Hangup/> (Twilio's own
-    <Dial> fallthrough — see dialTwiml in src/lib/voice/twilio.ts)
+  → dial ends (any outcome) → Twilio POSTs DialCallStatus to the action URL
+    → completed: silent <Hangup/> (the call already happened)
+    → busy/no-answer/failed: <Say>apology</Say><Hangup/>
+    (see dialTwiml/dialStatusTwiml in src/lib/voice/twilio.ts — an action
+    callback is required here because without one, Twilio runs whatever
+    follows <Dial> after EVERY outcome, completed calls included)
 ```
 
 The web chat widget shares the same tool (`lead_qualification` mode is used

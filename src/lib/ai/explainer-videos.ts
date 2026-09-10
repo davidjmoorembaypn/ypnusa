@@ -43,6 +43,27 @@ export const EXPLAINER_VIDEOS: ExplainerVideo[] = [
       "video",
     ],
   },
+  {
+    id: "own-vs-shared-leads",
+    title: "The Only Mortgage Lead Strategy You Need in 2026",
+    url: "https://www.youtube.com/watch?v=MdwrE3LjLMA",
+    description:
+      "Explains the core ownership model: shared mortgage leads put several loan officers in the same race for the same borrower, while YPN USA locks one paid officer per ZIP so the leads that territory generates route to them, not competitors.",
+    topics: [
+      "shared leads",
+      "buying leads",
+      "cold leads",
+      "own my territory",
+      "own vs rent",
+      "rented pipeline",
+      "lead strategy",
+      "mortgage lead strategy",
+      "why is this different",
+      "difference between free and paid",
+      "claim my zip",
+      "territory lock",
+    ],
+  },
 ];
 
 /**

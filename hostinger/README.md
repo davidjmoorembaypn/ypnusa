@@ -82,6 +82,36 @@ This repo is the **product app** for `https://app.ypnus.com` on a Hostinger
 | `NEXT_PUBLIC_SITE_URL` | `https://app.ypnus.com` |
 | `NEXT_PUBLIC_MARKETING_SITE_URL` | `https://ypnus.com` |
 | `YPNUS_WP_API_BASE` | `https://ypnus.com/wp-json/ypnus/v1` |
+
+### If `npm run build` fails on Hostinger with an out-of-memory / RLIMIT_AS error
+
+Cloud Startup (and other shared/LVE-based) hosting caps each account's virtual
+address space (`RLIMIT_AS` / `ulimit -v`), separate from physical RAM and PHP's
+`memory_limit`. Node/V8 reserves a large virtual address range at build time
+regardless of how much it actually uses, so `next build` can hit that ceiling
+even though the account has "enough" RAM on paper. This can't be raised from
+SSH or any PHP-facing setting — it's an account-level LVE restriction.
+
+Fix: build outside that LVE and deploy only the built output, instead of
+letting Hostinger's Node.js Builds API run `npm run build` on your account.
+
+```bash
+node scripts/deploy-hostinger.mjs deploy-prebuilt [domain]
+```
+
+This builds `.next/standalone` locally (this repo already builds cleanly),
+copies `.next/static` and `public/` alongside it per Next's own standalone
+deployment docs, uploads that bundle instead of the source tree, and sets
+Hostinger's build step to a no-op so it just runs `node server.js` against
+the already-built bundle. **Not yet live-tested against Hostinger's API** —
+the exact fields their Node.js Builds endpoint expects for a "skip build,
+just run" flow aren't documented; run it once with a real
+`HOSTINGER_API_TOKEN` and adjust `build_script`/`start_script` in
+`deployPrebuilt()` if Hostinger's build phase still tries to run something
+real.
+
+If this approach doesn't pan out, the fallback is a VPS plan, where these
+process limits are configurable directly.
 | `LOANPILOT_DATA_DIR` | `/tmp/ypnus-data` |
 | `SESSION_SECRET` | random 32+ byte string — signs the `ypnus_session` cookie |
 | `YPNUS_SSO_SHARED_SECRET` | random secret shared with the WordPress SSO handoff (see `docs/sso-handoff.md`) |

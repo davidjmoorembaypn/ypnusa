@@ -743,7 +743,7 @@ function ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscri
 	return ypnus_stripe_write_user_meta( $user_id, $values );
 }
 
-function ypnus_stripe_provision_user( $email, $tier, $customer_id, $subscription_id, $status ) {
+function ypnus_stripe_provision_user( $email, $tier, $customer_id, $subscription_id, $status, $trial_ends_at = '' ) {
 	$customer_user = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_customer_id', $customer_id );
 	$sub_user      = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_subscription_id', $subscription_id );
 	$email_user    = ypnus_stripe_resolve_email_user( $email );
@@ -791,7 +791,7 @@ function ypnus_stripe_provision_user( $email, $tier, $customer_id, $subscription
 		$is_new = true;
 	}
 
-	if ( ! ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscription_id, $status ) ) {
+	if ( ! ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscription_id, $status, $trial_ends_at ) ) {
 		return array(
 			'ok'    => false,
 			'error' => 'user_meta_write_failed',
@@ -925,7 +925,8 @@ function ypnus_stripe_process_checkout( $event, $async = false ) {
 		$current_tier,
 		$customer_id,
 		$subscription_id,
-		$current_status
+		$current_status,
+		isset( $lifecycle['row']->trial_ends_at ) ? (string) $lifecycle['row']->trial_ends_at : ''
 	);
 	if ( $provision['ok'] ) {
 		$lock                   = ypnus_stripe_lock_zip_territory( $provision['user_id'], $subscription_id, $current_tier, $zip );

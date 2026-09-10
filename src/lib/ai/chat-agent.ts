@@ -1,7 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { generateId } from "@/lib/id";
-import { readChatSession, saveChatSession } from "@/lib/db";
+import { bookAppointment, listSyncedAvailableSlots } from "@/lib/calendar";
+import { readChatSession, readDb, saveChatSession } from "@/lib/db";
 import { logCrmActivity, routeLoanOfficer } from "@/lib/crm";
+import { marketingUrl } from "@/lib/site";
 import type {
   AssistantMode,
   BorrowerAnswers,
@@ -12,13 +14,168 @@ import type {
   LoanProgram,
   QualificationSummary,
 } from "@/lib/types";
-import { getAiProvider } from "./provider";
+import { fetchLiveTerritory } from "@/lib/live-territory";
+import { findExplainerVideo } from "./explainer-videos";
+import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
 import {
   buildSystemPrompt,
   CAPTURE_LEAD_QUALIFICATION_TOOL,
+  CHECK_TERRITORY_AVAILABILITY_TOOL,
+  FIND_EXPLAINER_VIDEO_TOOL,
+  SCHEDULE_MEETING_TOOL,
+  START_SIGNUP_TOOL,
   type LeadQualificationToolInput,
 } from "./prompts";
 import { runWebsiteAutopilot, type WebsiteAutopilotPlan } from "./website-autopilot";
+
+/** Modes where the assistant talks to a prospective customer, not an MLO about their own pipeline. */
+const CUSTOMER_FACING_MODES: AssistantMode[] = ["public_site", "lead_qualification"];
+
+export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
+  const tools: AiToolDefinition[] = [FIND_EXPLAINER_VIDEO_TOOL];
+  if (mode === "lead_qualification") {
+    tools.push(CAPTURE_LEAD_QUALIFICATION_TOOL, SCHEDULE_MEETING_TOOL);
+  }
+  if (mode === "public_site") {
+    tools.push(START_SIGNUP_TOOL);
+  }
+  if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(CHECK_TERRITORY_AVAILABILITY_TOOL);
+  return tools;
+}
+
+function signupUrl(input: { plan?: unknown; zip?: unknown }): string {
+  const plan = typeof input.plan === "string" ? input.plan : "free";
+  const params = new URLSearchParams({ plan });
+  if (typeof input.zip === "string" && input.zip.trim()) params.set("zip", input.zip.trim());
+  return marketingUrl(`/lo-signup.html?${params.toString()}`);
+}
+
+/** Runs schedule_meeting: lists open slots (no startIso) or books one (startIso given). */
+async function executeScheduleMeeting(call: AiToolCall, session: ChatSessionRecord): Promise<string> {
+  if (!session.borrowerLeadId) {
+    return JSON.stringify({
+      error: "not_yet_qualified",
+      note: "This lead isn't linked yet — finish gathering name, contact info, and consent first.",
+    });
+  }
+
+  const lead = readDb().borrowerLeads.find((item) => item.id === session.borrowerLeadId);
+  if (!lead) return JSON.stringify({ error: "lead_not_found" });
+
+  const startIso = typeof call.input.startIso === "string" ? call.input.startIso.trim() : "";
+  if (!startIso) {
+    const slots = await listSyncedAvailableSlots(lead.assignedLoId, 8);
+    return JSON.stringify({
+      slots: slots.slice(0, 3).map((slot) => ({ startIso: slot.start, endIso: slot.end })),
+    });
+  }
+
+  try {
+    const appointment = await bookAppointment({
+      borrowerLeadId: session.borrowerLeadId,
+      loId: lead.assignedLoId,
+      startIso,
+    });
+    return JSON.stringify({ booked: true, startIso: appointment.start });
+  } catch (error) {
+    return JSON.stringify({
+      error: "booking_failed",
+      message: error instanceof Error ? error.message : "Could not book that time.",
+    });
+  }
+}
+
+/** Runs one real-world action tool and returns a plain-text result for the model. Never throws. */
+async function executeActionTool(call: AiToolCall, session: ChatSessionRecord): Promise<string> {
+  try {
+    if (call.toolName === "check_territory_availability") {
+      const zip = typeof call.input.zip === "string" ? call.input.zip : "";
+      const result = await fetchLiveTerritory(zip);
+      return result
+        ? JSON.stringify({ available: result.available, message: result.message })
+        : JSON.stringify({ error: "Territory lookup is temporarily unavailable." });
+    }
+    if (call.toolName === "find_explainer_video") {
+      const topic = typeof call.input.topic === "string" ? call.input.topic : "";
+      const video = findExplainerVideo(topic);
+      return video
+        ? JSON.stringify({ title: video.title, url: video.url, description: video.description })
+        : JSON.stringify({ found: false, note: "No explainer video covers this topic yet." });
+    }
+    if (call.toolName === "start_signup") {
+      return JSON.stringify({ url: signupUrl(call.input) });
+    }
+    if (call.toolName === "schedule_meeting") {
+      return await executeScheduleMeeting(call, session);
+    }
+    return JSON.stringify({ error: `Unknown tool: ${call.toolName}` });
+  } catch (error) {
+    console.error(`[chat-agent] action tool ${call.toolName} failed`, error);
+    return JSON.stringify({ error: "That lookup failed. Answer without it." });
+  }
+}
+
+const MAX_TOOL_ROUNDS = 3;
+const ACTION_TOOL_NAMES = new Set([
+  "check_territory_availability",
+  "find_explainer_video",
+  "start_signup",
+  "schedule_meeting",
+]);
+
+/**
+ * Runs the model, and — when it calls a real action tool (territory lookup,
+ * video search, scheduling, signup link) rather than just the data-capture
+ * tool — executes it and feeds the result back for another turn, up to
+ * MAX_TOOL_ROUNDS. This is what makes the assistant agentic rather than a
+ * single-shot Q&A: it can act on live data mid-conversation instead of only
+ * describing what it would do.
+ *
+ * capture_lead_qualification calls are merged into `session` immediately
+ * (via the caller-supplied `mergeCapture`/`linkLead`), before any action
+ * tools in that same round run — so a visitor who finishes qualification
+ * and asks to schedule a meeting in the same turn gets a session that's
+ * already linked (borrowerLeadId set) by the time schedule_meeting checks
+ * for one, rather than needing a whole extra round trip. Callers (today,
+ * only runAssistantTurn) still get every capture_lead_qualification call
+ * back too, since they may want to do their own bookkeeping with it.
+ */
+export async function runWithTools(
+  provider: AiProvider,
+  system: string,
+  history: AiMessage[],
+  tools: AiToolDefinition[],
+  session: ChatSessionRecord,
+  mergeCapture: (call: AiToolCall) => void,
+): Promise<{ text: string; captureCalls: AiToolCall[] }> {
+  const messages = [...history];
+  const captureCalls: AiToolCall[] = [];
+
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const result = await provider.generate({ system, messages, tools });
+    for (const call of result.toolCalls) {
+      if (call.toolName === "capture_lead_qualification") {
+        captureCalls.push(call);
+        mergeCapture(call);
+      }
+    }
+
+    const actionCalls = result.toolCalls.filter((call) => ACTION_TOOL_NAMES.has(call.toolName));
+    if (actionCalls.length === 0) {
+      return { text: result.text, captureCalls };
+    }
+
+    if (result.text.trim()) messages.push({ role: "assistant", content: result.text.trim() });
+    const toolOutputs = await Promise.all(
+      actionCalls.map(async (call) => `[${call.toolName} result] ${await executeActionTool(call, session)}`),
+    );
+    messages.push({ role: "user", content: toolOutputs.join("\n") });
+  }
+
+  // Ran out of rounds — ask once more without tools so the model must answer in text.
+  const final = await provider.generate({ system, messages });
+  return { text: final.text, captureCalls };
+}
 
 /** Keeps token growth (and the on-disk snapshot) bounded for long-running sessions. */
 const MAX_MESSAGES_PER_SESSION = 60;
@@ -300,19 +457,26 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
 
   let reply: string;
   try {
-    const result = await provider.generate({
+    const { text } = await runWithTools(
+      provider,
       system,
-      messages: history,
-      tools: input.mode === "lead_qualification" ? [CAPTURE_LEAD_QUALIFICATION_TOOL] : undefined,
-    });
-
-    for (const call of result.toolCalls) {
-      if (call.toolName === "capture_lead_qualification") {
+      history,
+      toolsForMode(input.mode),
+      session,
+      (call) => {
         mergeCapturedFields(session, call.input as LeadQualificationToolInput);
-      }
-    }
+        // Link as soon as qualification completes (not just at the end of the
+        // turn) so a schedule_meeting call later in the same turn sees a
+        // linked session immediately — see runWithTools's doc comment.
+        try {
+          linkQualifiedLead(session);
+        } catch (error) {
+          console.error("[chat-agent] linkQualifiedLead (mid-turn) failed", error);
+        }
+      },
+    );
 
-    reply = result.text.trim() || "Got it — one moment.";
+    reply = text.trim() || "Got it — one moment.";
   } catch (error) {
     console.error("[chat-agent] provider.generate failed", error);
     reply = describeProviderError(error);

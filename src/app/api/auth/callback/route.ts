@@ -15,7 +15,14 @@ export async function GET(request: Request) {
       return jsonError(result.error, 401, "SSO_HANDOFF_INVALID");
     }
 
-    await createSession({ sub: result.sub, email: result.email, role: result.role });
+    await createSession({
+      sub: result.sub,
+      email: result.email,
+      role: result.role,
+      tier: result.tier,
+      subscriptionStatus: result.subscriptionStatus,
+      trialEndsAt: result.trialEndsAt,
+    });
 
     return NextResponse.redirect(new URL(result.next, url.origin));
   } catch (error) {

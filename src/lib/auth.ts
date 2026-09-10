@@ -9,11 +9,21 @@ import {
   SESSION_COOKIE_OPTIONS,
   createSessionToken,
   verifySessionToken,
+  type EntitlementStatus,
   type SessionPayload,
   type SessionRole,
 } from "@/lib/session";
+import { resolveEntitlement, type Entitlement } from "@/lib/entitlements";
+import type { PricingTierId } from "@/lib/pricing";
 
-export async function createSession(user: { sub: string; email: string; role: SessionRole }): Promise<void> {
+export async function createSession(user: {
+  sub: string;
+  email: string;
+  role: SessionRole;
+  tier?: PricingTierId;
+  subscriptionStatus?: EntitlementStatus;
+  trialEndsAt?: string;
+}): Promise<void> {
   const token = createSessionToken(user);
   const store = await cookies();
   store.set(SESSION_COOKIE_NAME, token, SESSION_COOKIE_OPTIONS);
@@ -29,6 +39,11 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const store = await cookies();
   return verifySessionToken(store.get(SESSION_COOKIE_NAME)?.value);
 });
+
+/** Convenience: the current request's resolved entitlement (see entitlements.ts) — free by default until WordPress sends real tier claims. */
+export async function getEntitlement(): Promise<Entitlement> {
+  return resolveEntitlement(await getSession());
+}
 
 /**
  * Authoritative page-level gate. `proxy.ts` is an optimistic redirect only — a

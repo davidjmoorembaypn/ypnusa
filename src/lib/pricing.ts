@@ -1,4 +1,4 @@
-export type PricingTierId = "free" | "starter" | "pro" | "elite";
+export type PricingTierId = "free" | "starter" | "growth" | "pro" | "elite";
 
 export interface PricingTier {
   id: PricingTierId;
@@ -14,7 +14,12 @@ export interface PricingTier {
   zipCapacityLabel: string;
   countyCapacityNote: string;
   capacityNote: string;
+  /** 0 for tiers with no trial (free has nothing to trial; paid tiers all share one trial length). */
+  trialDays: number;
 }
+
+/** Every paid tier gets the same trial length — see TRIAL_DAYS usage in entitlements.ts. */
+export const TRIAL_DAYS = 15;
 
 export const PRICING_TIERS: readonly PricingTier[] = [
   {
@@ -23,9 +28,9 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     price: "$0",
     priceMonthlyCents: 0,
     cadence: "forever / no card",
-    tagline: "Prove demand on your first ZIP",
+    tagline: "Run Cerebro and prove demand before you pay anything",
     features: [
-      "1 exclusive ZIP to start",
+      "Cerebro AI growth diagnostic",
       "AI borrower intake assistant",
       "Qualification + scoring",
       "You own every lead you capture",
@@ -33,10 +38,11 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     ],
     cta: "Start free",
     highlight: false,
-    zipCapacity: 1,
-    zipCapacityLabel: "1 ZIP",
+    zipCapacity: 0,
+    zipCapacityLabel: "No exclusive ZIP yet",
     countyCapacityNote: "No county expansion",
-    capacityNote: "1 exclusive ZIP to start",
+    capacityNote: "Cerebro + intake only — no ZIP-exclusive lead delivery until you upgrade",
+    trialDays: 0,
   },
   {
     id: "starter",
@@ -44,66 +50,94 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     price: "$29.99",
     priceMonthlyCents: 2999,
     cadence: "/mo",
-    tagline: "Lock a small exclusive footprint",
+    tagline: "Lock your first exclusive ZIP",
     features: [
-      "Up to 3 exclusive ZIPs",
+      "1 included exclusive ZIP",
       "Branded borrower experience",
       "AI intake + follow-up",
       "Territory demand reports",
-      "Cancel anytime",
+      "15-day free trial",
     ],
-    cta: "Claim Starter",
+    cta: "Start 15-day trial",
     highlight: false,
-    zipCapacity: 3,
-    zipCapacityLabel: "Up to 3 ZIPs",
-    countyCapacityNote: "ZIP-first coverage with territory reports",
-    capacityNote: "Up to 3 exclusive ZIPs",
+    zipCapacity: 1,
+    zipCapacityLabel: "1 included ZIP",
+    countyCapacityNote: "Additional ZIPs available as paid add-ons, subject to availability",
+    capacityNote: "1 included exclusive ZIP — additional ZIPs are separate paid add-ons",
+    trialDays: TRIAL_DAYS,
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    price: "$99",
+    priceMonthlyCents: 9900,
+    cadence: "/mo",
+    tagline: "More automation, same exclusive footprint",
+    features: [
+      "1 included exclusive ZIP",
+      "Higher automation run limits",
+      "SMS + email nurture ladders",
+      "Calendar booking + CRM mirroring",
+      "15-day free trial",
+    ],
+    cta: "Start 15-day trial",
+    highlight: true,
+    zipCapacity: 1,
+    zipCapacityLabel: "1 included ZIP",
+    countyCapacityNote: "Additional ZIPs available as paid add-ons, subject to availability",
+    capacityNote: "1 included exclusive ZIP — higher plans buy more automation, not more included ZIPs",
+    trialDays: TRIAL_DAYS,
   },
   {
     id: "pro",
     name: "Pro",
-    price: "$99.99",
-    priceMonthlyCents: 9999,
+    price: "$199",
+    priceMonthlyCents: 19900,
     cadence: "/mo",
     tagline: "For the serious loan officer",
     features: [
-      "Up to 5 exclusive ZIPs",
+      "1 included exclusive ZIP",
       "Portable MLO website",
-      "SMS + email nurture ladders",
-      "Calendar booking + CRM mirroring",
-      "Keep leads & site if you switch",
+      "Priority lead delivery",
+      "Advanced life-event signals",
+      "15-day free trial",
     ],
-    cta: "Claim Pro",
-    highlight: true,
-    zipCapacity: 5,
-    zipCapacityLabel: "Up to 5 ZIPs",
-    countyCapacityNote: "County demand posture for serious MLOs",
-    capacityNote: "Up to 5 exclusive ZIPs",
+    cta: "Start 15-day trial",
+    highlight: false,
+    zipCapacity: 1,
+    zipCapacityLabel: "1 included ZIP",
+    countyCapacityNote: "Additional ZIPs available as paid add-ons, subject to availability",
+    capacityNote: "1 included exclusive ZIP — higher plans buy more capability, not more included ZIPs",
+    trialDays: TRIAL_DAYS,
   },
   {
     id: "elite",
     name: "Elite",
-    price: "$299.99",
-    priceMonthlyCents: 29999,
+    price: "$299",
+    priceMonthlyCents: 29900,
     cadence: "/mo",
-    tagline: "Unlimited exclusive capacity",
+    tagline: "Maximum automation and priority support",
     features: [
-      "Unlimited exclusive ZIPs",
-      "Priority territory expansion",
-      "Advanced life-event signals",
+      "1 included exclusive ZIP",
+      "Priority territory add-on access",
+      "Unlimited automation runs",
       "White-glove onboarding",
-      "Team / brokerage ready",
+      "15-day free trial",
     ],
-    cta: "Go Elite",
+    cta: "Start 15-day trial",
     highlight: false,
-    zipCapacity: "unlimited",
-    zipCapacityLabel: "Unlimited ZIPs",
-    countyCapacityNote: "Priority county expansion for teams and brokerages",
-    capacityNote: "Unlimited exclusive ZIPs plus priority territory expansion",
+    zipCapacity: 1,
+    zipCapacityLabel: "1 included ZIP",
+    countyCapacityNote: "Priority access to additional ZIP add-ons, subject to availability",
+    capacityNote: "1 included exclusive ZIP — priority access when adding more",
+    trialDays: TRIAL_DAYS,
   },
 ];
 
 export const PAID_PRICING_TIERS = PRICING_TIERS.filter((tier) => tier.priceMonthlyCents > 0);
+
+/** Tiers in ascending order of capability — index comparison powers `tierAtLeast` in entitlements.ts. */
+export const PRICING_TIER_ORDER: readonly PricingTierId[] = ["free", "starter", "growth", "pro", "elite"];
 
 export function getPricingTier(id: PricingTierId): PricingTier {
   const tier = PRICING_TIERS.find((candidate) => candidate.id === id);
@@ -111,4 +145,8 @@ export function getPricingTier(id: PricingTierId): PricingTier {
     throw new Error(`Unknown pricing tier: ${id}`);
   }
   return tier;
+}
+
+export function isPricingTierId(value: unknown): value is PricingTierId {
+  return typeof value === "string" && PRICING_TIER_ORDER.includes(value as PricingTierId);
 }

@@ -8,10 +8,10 @@ import {
 } from "./pricing";
 
 describe("pricing catalog", () => {
-  it("exposes the four tiers in ascending price order with unique ids", () => {
+  it("exposes the five tiers in ascending price order with unique ids", () => {
     const ids = PRICING_TIERS.map((tier) => tier.id);
 
-    assert.deepEqual(ids, ["free", "starter", "pro", "elite"]);
+    assert.deepEqual(ids, ["free", "starter", "growth", "pro", "elite"]);
     assert.equal(new Set(ids).size, ids.length);
 
     const prices = PRICING_TIERS.map((tier) => tier.priceMonthlyCents);
@@ -22,13 +22,13 @@ describe("pricing catalog", () => {
     const highlighted = PRICING_TIERS.filter((tier) => tier.highlight);
 
     assert.equal(highlighted.length, 1);
-    assert.equal(highlighted[0]?.id, "pro");
+    assert.equal(highlighted[0]?.id, "growth");
   });
 
-  it("keeps ZIP capacity monotonic with price and unlimited only on Elite", () => {
+  it("gives Free zero ZIPs and every paid tier exactly 1 included ZIP — higher plans buy capability, not more ZIPs", () => {
     const capacities = PRICING_TIERS.map((tier) => tier.zipCapacity);
 
-    assert.deepEqual(capacities, [1, 3, 5, "unlimited"]);
+    assert.deepEqual(capacities, [0, 1, 1, 1, 1]);
     for (const tier of PRICING_TIERS) {
       assert.ok(tier.capacityNote.length > 0, `${tier.id} is missing a capacity note`);
       assert.ok(tier.countyCapacityNote.length > 0, `${tier.id} is missing a county note`);
@@ -47,9 +47,16 @@ describe("pricing catalog", () => {
   it("excludes the free tier from the paid list", () => {
     assert.deepEqual(
       PAID_PRICING_TIERS.map((tier) => tier.id),
-      ["starter", "pro", "elite"],
+      ["starter", "growth", "pro", "elite"],
     );
     assert.ok(PAID_PRICING_TIERS.every((tier) => tier.priceMonthlyCents > 0));
+  });
+
+  it("gives every paid tier the same 15-day trial and gives free tier none", () => {
+    assert.equal(getPricingTier("free").trialDays, 0);
+    for (const tier of PAID_PRICING_TIERS) {
+      assert.equal(tier.trialDays, 15, `${tier.id} should have a 15-day trial`);
+    }
   });
 });
 

@@ -31,6 +31,22 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
+  async redirects() {
+    return [
+      {
+        // Marketing copy and prior deploy docs (hostinger/README.md,
+        // hostinger-wp-node-devops/references/ypnus.md) document
+        // app.ypnus.com/register as the CTA target, but account creation
+        // actually lives on ypnus.com (see docs/sso-handoff.md) — /login
+        // already is the single "continue to ypnus.com" gateway for both
+        // sign-in and sign-up intents. Redirect so that target 404s never
+        // happen regardless of which URL a CTA was written against.
+        source: "/register",
+        destination: "/login",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

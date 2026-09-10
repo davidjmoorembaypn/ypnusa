@@ -87,6 +87,53 @@ fields it already knew, not just new ones — so `chat-agent.ts` can merge
 without needing its own NLU. This keeps extraction machine-parseable
 regardless of what conversational text comes back alongside it.
 
+### Action tools — what makes it agentic, not just Q&A (`chat-agent.ts`)
+
+Four tools do real work instead of returning text the model just repeats:
+`check_territory_availability` (public_site + lead_qualification — live ZIP
+lookup via `fetchLiveTerritory`), `find_explainer_video` (every mode —
+searches `src/lib/ai/explainer-videos.ts`'s registry), `start_signup`
+(public_site — returns the real `lo-signup.html` URL, plan/ZIP-aware, so the
+model can never construct or guess a link), and `schedule_meeting`
+(lead_qualification — lists open slots via `listSyncedAvailableSlots`, then
+books one via `bookAppointment` once the visitor picks a time; refuses with
+`not_yet_qualified` until `session.borrowerLeadId` is set). Unlike
+`capture_lead_qualification` (fire-and-forget data capture), these need
+their result fed back to the model for a second turn before it can answer —
+`runWithTools` in `chat-agent.ts` is that loop: call the model, execute any
+action-tool calls, append the result as a message, call again, up to
+`MAX_TOOL_ROUNDS` (3) before forcing a final tool-less answer. `toolsForMode`
+decides which tools each mode gets — see its test in
+`chat-agent.tools.test.ts` for the exact per-mode tool sets.
+
+`runWithTools` also takes a `mergeCapture` callback that
+`capture_lead_qualification` calls run through immediately (not just after
+the whole turn ends), including `linkQualifiedLead` — so a visitor who
+finishes qualification and asks to schedule a meeting in the same message
+gets a `schedule_meeting` call that already sees the newly-linked
+`borrowerLeadId`, instead of needing one more round trip.
+
+**Floating widget (`src/components/assistant/floating-assistant-widget.tsx`,
+mounted on the homepage in `src/app/page.tsx`)** — public_site mode, site-wide
+launcher rather than the hidden `/assistant` preview route. Auto-opens once
+per browser session ~6s after landing (sessionStorage-gated, never reopens
+after being dismissed that session). Deliberately mounted per-page, not in
+the root layout, so it doesn't follow a signed-in MLO into `/dashboard` where
+other assistant surfaces already live.
+
+**`EXPLAINER_VIDEOS` currently has one seeded entry** — `platform-overview`,
+a general "how YPN USA works" video (ScreenPal id `cOQjYdnwAGI`), matched on
+broad phrasings like "how does this work"/"show me"/"demo". Add more the
+same way. When nothing matches, the model is instructed (both in
+`prompts.ts`'s guardrails and the tool's own description) to say plainly
+that no video exists yet rather than invent a URL — it will never fabricate
+a link. To add a real video: append an entry to the array in
+`src/lib/ai/explainer-videos.ts` with `id`, `title`, a real hosted `url`,
+`description`, and a few natural-language `topics` the visitor might use to
+ask about it. No other code changes needed; `findExplainerVideo`'s
+keyword-hit matching picks it up automatically. See
+`chat-agent.tools.test.ts` for the registry-population test pattern.
+
 ### Buyer / seller / refinance flows
 
 `leadType` is a chat-native field (`buyer | seller | refinance | other`),

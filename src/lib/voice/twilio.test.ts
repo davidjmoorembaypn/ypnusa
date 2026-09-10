@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { describe, it } from "node:test";
-import { gatherSpeechTwiml, REJECT_TWIML, sayAndHangupTwiml, toSpeakableText, validateTwilioSignature } from "./twilio";
+import {
+  dialTwiml,
+  gatherSpeechTwiml,
+  REJECT_TWIML,
+  sayAndHangupTwiml,
+  toSpeakableText,
+  validateTwilioSignature,
+} from "./twilio";
 
 /**
  * Independent re-implementation of Twilio's documented signing algorithm
@@ -90,5 +97,22 @@ describe("TwiML builders", () => {
 
   it("REJECT_TWIML is a bare Reject response", () => {
     assert.match(REJECT_TWIML, /<Reject\/>/);
+  });
+
+  it("dialTwiml says the text, dials a normalized number, and falls back to Say/Hangup", () => {
+    const xml = dialTwiml("Connecting you now.", "+1-559-512-0372");
+    assert.match(xml, /<Say voice="Polly\.Joanna">Connecting you now\.<\/Say><Dial/);
+    assert.match(xml, /<Dial timeout="20">\+15595120372<\/Dial>/);
+    assert.match(xml, /<Dial[^]*<\/Dial><Say[^]*<\/Say><Hangup\/>/);
+  });
+
+  it("dialTwiml strips non-digit characters but keeps a leading +", () => {
+    const xml = dialTwiml("Hold on.", "(559) 512-0372");
+    assert.match(xml, /<Dial timeout="20">5595120372<\/Dial>/);
+  });
+
+  it("dialTwiml escapes XML in the spoken text", () => {
+    const xml = dialTwiml("Team A & B", "+15595120372");
+    assert.match(xml, /Team A &amp; B/);
   });
 });

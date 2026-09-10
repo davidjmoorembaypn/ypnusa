@@ -56,6 +56,15 @@ function escapeXml(text: string): string {
 const TWIML_HEADER = '<?xml version="1.0" encoding="UTF-8"?>';
 const VOICE = "Polly.Joanna";
 const NO_INPUT_MESSAGE = "I didn't catch that. Feel free to call back anytime — goodbye for now.";
+const NO_ANSWER_MESSAGE =
+  "No one's available to take your call right now. Please try again shortly — goodbye for now.";
+
+/** Keeps a leading "+" (if present) and digits only — Twilio's <Number> wants E.164, not "+1-559-512-0372". */
+function normalizePhoneForDial(phone: string): string {
+  const trimmed = phone.trim();
+  const plus = trimmed.startsWith("+") ? "+" : "";
+  return plus + trimmed.replace(/\D/g, "");
+}
 
 /**
  * Speaks `text`, then gathers speech and posts the transcript to
@@ -79,6 +88,23 @@ export function gatherSpeechTwiml(text: string, actionUrl: string): string {
 export function sayAndHangupTwiml(text: string): string {
   return (
     `${TWIML_HEADER}<Response><Say voice="${VOICE}">${escapeXml(toSpeakableText(text))}</Say><Hangup/></Response>`
+  );
+}
+
+/**
+ * Speaks `text` (the assistant's own "connecting you" line), then dials a
+ * real person. Twilio only advances past <Dial> to the trailing
+ * <Say>/<Hangup> if the call goes unanswered, is busy, or fails — a picked-up
+ * call just continues as a normal two-party call and never reaches them.
+ */
+export function dialTwiml(text: string, phoneNumber: string): string {
+  return (
+    `${TWIML_HEADER}<Response>` +
+    `<Say voice="${VOICE}">${escapeXml(toSpeakableText(text))}</Say>` +
+    `<Dial timeout="20">${escapeXml(normalizePhoneForDial(phoneNumber))}</Dial>` +
+    `<Say voice="${VOICE}">${escapeXml(NO_ANSWER_MESSAGE)}</Say>` +
+    `<Hangup/>` +
+    `</Response>`
   );
 }
 

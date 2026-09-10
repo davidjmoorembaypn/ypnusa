@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { runAssistantTurn } from "@/lib/ai/chat-agent";
 import { logApiError } from "@/lib/http";
 import { APP_SITE_URL } from "@/lib/site";
-import { gatherSpeechTwiml, REJECT_TWIML, validateTwilioSignature } from "@/lib/voice/twilio";
+import { dialTwiml, gatherSpeechTwiml, REJECT_TWIML, validateTwilioSignature } from "@/lib/voice/twilio";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,6 +59,10 @@ export async function POST(request: Request) {
       userMessage: speech,
       funnelSource: "phone_call",
     });
+
+    if (result.handoffRequested && result.handoffPhone) {
+      return new NextResponse(dialTwiml(result.reply, result.handoffPhone), { headers: TWIML_HEADERS });
+    }
 
     const actionUrl = `${APP_SITE_URL}/api/voice/respond?sid=${encodeURIComponent(result.sessionId)}`;
     return new NextResponse(gatherSpeechTwiml(result.reply, actionUrl), { headers: TWIML_HEADERS });

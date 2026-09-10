@@ -42,7 +42,11 @@ const AGENTIC_TOOL_GUARDRAILS = `You have real tools, not just talk — use them
   schedule_meeting — first without startIso to see real open times, then
   with the one they pick to actually book it. Never invent a time yourself.
 - When a loan officer is ready to sign up, call start_signup and give them
-  exactly the URL it returns — never construct a signup link yourself.`;
+  exactly the URL it returns — never construct a signup link yourself.
+- If someone explicitly asks to speak with a real person, a human, or a loan
+  officer directly (not just asking a question you can answer yourself),
+  call request_human_handoff. Never offer this proactively or use it as a
+  fallback just because a question is hard — only on an explicit ask.`;
 
 const PUBLIC_SITE_PROMPT = `${IDENTITY}
 
@@ -237,6 +241,22 @@ export const START_SIGNUP_TOOL: AiToolDefinition = {
         description: "The plan they seem interested in, if known. Defaults to free (no credit card) when omitted.",
       },
       zip: { type: "string", description: "The ZIP they want to claim, if they've mentioned one." },
+    },
+    additionalProperties: false,
+  },
+};
+
+export const REQUEST_HUMAN_HANDOFF_TOOL: AiToolDefinition = {
+  name: "request_human_handoff",
+  description:
+    "Connect the visitor to a real person right now. Call this only when they explicitly ask to speak with a human, a real person, or a loan officer directly — never proactively, and never just because a question is hard to answer.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      reason: {
+        type: "string",
+        description: "One short phrase for internal notes on why they asked for a human.",
+      },
     },
     additionalProperties: false,
   },

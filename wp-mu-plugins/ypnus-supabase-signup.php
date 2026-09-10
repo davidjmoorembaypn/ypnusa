@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'YPNUS_SIGNUP_DB_VERSION', '1.1.0' ); // bumped 2026-08-19: added zip_of_interest
+define( 'YPNUS_SIGNUP_DB_VERSION', '1.2.0' ); // added password_hash
 define( 'YPNUS_INTAKE_DB_VERSION', '1.0.0' );
 
 /**
@@ -58,7 +58,17 @@ function ypnus_intake_table_name() {
  * @return string
  */
 function ypnus_intake_client_ip() {
-	foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' ) as $key ) {
+	$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
+	if ( ! filter_var( $remote_addr, FILTER_VALIDATE_IP ) ) {
+		return '';
+	}
+
+	$trusted_proxies = (array) apply_filters( 'ypnus_trusted_proxy_ips', array() );
+	if ( ! in_array( $remote_addr, $trusted_proxies, true ) ) {
+		return $remote_addr;
+	}
+
+	foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR' ) as $key ) {
 		if ( empty( $_SERVER[ $key ] ) ) {
 			continue;
 		}
@@ -70,7 +80,26 @@ function ypnus_intake_client_ip() {
 			return $raw;
 		}
 	}
-	return '';
+	return $remote_addr;
+}
+
+/** Authorize private LO data to the linked account owner or an administrator. */
+function ypnus_private_lo_data_permission( WP_REST_Request $request ) {
+	if ( ! is_user_logged_in() ) {
+		return new WP_Error( 'rest_forbidden', 'Authentication is required.', array( 'status' => 401 ) );
+	}
+	if ( current_user_can( 'manage_options' ) ) {
+		return true;
+	}
+	$lo_id = sanitize_text_field( (string) $request->get_param( 'lo_id' ) );
+	if ( '' === $lo_id || ! function_exists( 'ypnus_resolve_or_link_wp_user' ) ) {
+		return new WP_Error( 'rest_forbidden', 'You are not authorized to access this account.', array( 'status' => 403 ) );
+	}
+	$owner_id = ypnus_resolve_or_link_wp_user( $lo_id );
+	if ( is_wp_error( $owner_id ) || (int) $owner_id !== get_current_user_id() ) {
+		return new WP_Error( 'rest_forbidden', 'You are not authorized to access this account.', array( 'status' => 403 ) );
+	}
+	return true;
 }
 
 /**
@@ -105,6 +134,7 @@ add_action(
 				email varchar(190) NOT NULL,
 				phone varchar(40) NOT NULL,
 				zip_of_interest varchar(5) DEFAULT NULL,
+				password_hash varchar(255) NOT NULL DEFAULT '',
 				status varchar(20) NOT NULL DEFAULT 'trial',
 				source varchar(40) NOT NULL DEFAULT 'lo-signup',
 				created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -456,7 +486,7 @@ add_action(
 			'/profile',
 			array(
 				'methods'             => 'GET',
-				'permission_callback' => '__return_true',
+				'permission_callback' => 'ypnus_private_lo_data_permission',
 				'callback'            => static function ( WP_REST_Request $request ) {
 					$lo_id = sanitize_text_field( (string) $request->get_param( 'lo_id' ) );
 					if ( $lo_id === '' ) {
@@ -486,7 +516,7 @@ add_action(
 			'/leads',
 			array(
 				'methods'             => 'GET',
-				'permission_callback' => '__return_true',
+				'permission_callback' => 'ypnus_private_lo_data_permission',
 				'callback'            => static function ( WP_REST_Request $request ) {
 					$lo_id = sanitize_text_field( (string) $request->get_param( 'lo_id' ) );
 					if ( $lo_id === '' ) {

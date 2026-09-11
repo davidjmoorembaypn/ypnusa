@@ -16,7 +16,8 @@ Caller dials the YPN USA number
     mode "lead_qualification" (territory check, lead capture, scheduling,
     explainer-video lookup all available)
   → reply is spoken back (Twilio's own TTS), then <Gather> again
-  → loop continues until the caller hangs up or stops responding
+  → loop continues until the caller hangs up, stops responding, or asks
+    for a real person — see "Human handoff" below
 ```
 
 No new AI logic was written for this — `/api/voice/respond` calls
@@ -36,6 +37,34 @@ params, per [Twilio's docs](https://www.twilio.com/docs/usage/security#validatin
 Both routes fail closed — return a bare `<Reject/>` — if `TWILIO_AUTH_TOKEN`
 is unset or the signature doesn't match. This is the same secret Twilio
 gives you for validating requests, not a bearer token you invent.
+
+## Human handoff
+
+A caller who explicitly asks for a real person (never triggered proactively,
+and never just because a question is hard) gets transferred mid-call:
+
+```text
+caller: "can I just talk to a person"
+  → model calls request_human_handoff
+  → /api/voice/respond returns <Say>(the model's reply)</Say>
+    <Dial action="/api/voice/dial-status">MLO_PUBLIC_PHONE</Dial>
+  → picked up: normal two-party call, chat-agent is out of the loop
+  → dial ends (any outcome) → Twilio POSTs DialCallStatus to the action URL
+    → completed: silent <Hangup/> (the call already happened)
+    → busy/no-answer/failed: <Say>apology</Say><Hangup/>
+    (see dialTwiml/dialStatusTwiml in src/lib/voice/twilio.ts — an action
+    callback is required here because without one, Twilio runs whatever
+    follows <Dial> after EVERY outcome, completed calls included)
+```
+
+The web chat widget shares the same tool (`lead_qualification` mode is used
+by both), so the same "talk to a person" request there gets a reply
+surfacing `handoffPhone` as a tap-to-call number instead of an actual dial.
+
+The number dialed is `MLO_PUBLIC_PHONE` (same env var and fallback,
+`+1-559-512-0372`, as the business phone already in the homepage's
+Organization schema) — set it once, reused everywhere a real human number
+is needed.
 
 ## Setup (User Action Card)
 
@@ -62,10 +91,6 @@ that can't be done from code.
 - **English only** — Twilio's speech recognition defaults to `en-US`; a
   Spanish-speaking caller base would need `language` set on `<Gather>` and
   a matching `<Say>` voice.
-- **No mid-call handoff to a human.** A caller who wants a real person has
-  no `<Dial>`-to-a-real-number escape hatch yet — the assistant will offer
-  to schedule a callback instead, since that's what `schedule_meeting`
-  already does.
 - **No call-status webhook** (missed/failed/completed call analytics) —
   only the live Gather/Say loop is wired up. Would need a separate
   `statusCallback` endpoint on the Twilio number.

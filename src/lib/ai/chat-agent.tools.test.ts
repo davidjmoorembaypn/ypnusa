@@ -16,6 +16,7 @@ import {
   CAPTURE_LEAD_QUALIFICATION_TOOL,
   CHECK_TERRITORY_AVAILABILITY_TOOL,
   FIND_EXPLAINER_VIDEO_TOOL,
+  REQUEST_HUMAN_HANDOFF_TOOL,
   SCHEDULE_MEETING_TOOL,
   START_SIGNUP_TOOL,
 } from "./prompts";
@@ -88,6 +89,14 @@ describe("findExplainerVideo", () => {
     const found = findExplainerVideo("Can you show me how does this work exactly?");
     assert.equal(found?.id, "platform-overview");
   });
+
+  it("finds the seeded own-vs-shared-leads video for natural shared-vs-exclusive phrasings", () => {
+    assert.equal(
+      findExplainerVideo("What is the difference between shared and exclusive leads?")?.id,
+      "own-vs-shared-leads",
+    );
+    assert.equal(findExplainerVideo("is it own vs. rent for my pipeline")?.id, "own-vs-shared-leads");
+  });
 });
 
 describe("toolsForMode", () => {
@@ -99,7 +108,7 @@ describe("toolsForMode", () => {
     );
   });
 
-  it("gives lead_qualification video + territory + lead capture + scheduling, but not signup", () => {
+  it("gives lead_qualification video + territory + lead capture + scheduling + human handoff, but not signup", () => {
     const names = new Set(toolsForMode("lead_qualification").map((t) => t.name));
     assert.deepEqual(
       names,
@@ -108,6 +117,7 @@ describe("toolsForMode", () => {
         CAPTURE_LEAD_QUALIFICATION_TOOL.name,
         SCHEDULE_MEETING_TOOL.name,
         CHECK_TERRITORY_AVAILABILITY_TOOL.name,
+        REQUEST_HUMAN_HANDOFF_TOOL.name,
       ]),
     );
   });
@@ -142,7 +152,7 @@ describe("runWithTools", () => {
 
   it("returns immediately when the model makes no tool calls", async () => {
     const provider = scriptedProvider([toolCallResult([], "Hi there!")]);
-    const { text, captureCalls } = await runWithTools(
+    const { text, captureCalls, actionCalls } = await runWithTools(
       provider,
       "sys",
       [],
@@ -152,6 +162,7 @@ describe("runWithTools", () => {
     );
     assert.equal(text, "Hi there!");
     assert.deepEqual(captureCalls, []);
+    assert.deepEqual(actionCalls, []);
   });
 
   it("collects capture_lead_qualification calls and runs the merge callback for each", async () => {
@@ -247,6 +258,32 @@ describe("runWithTools", () => {
     // borrowerLeadId intentionally unset — this session was never qualified/linked.
     await runWithTools(provider, "sys", [], [SCHEDULE_MEETING_TOOL], fakeSession(), noopMerge);
     assert.match(toolResultContent, /not_yet_qualified/);
+  });
+
+  it("request_human_handoff executes and is surfaced back in actionCalls for the caller to detect", async () => {
+    const call: AiToolCall = { toolName: "request_human_handoff", input: { reason: "wants a person" } };
+    let toolResultContent = "";
+    const provider: AiProvider = {
+      name: "fake",
+      async generate(request) {
+        if (request.messages.length === 0) return toolCallResult([call]);
+        toolResultContent = request.messages.map((m) => m.content).join("\n");
+        return toolCallResult([], "Connecting you now.");
+      },
+    };
+    const { text, actionCalls } = await runWithTools(
+      provider,
+      "sys",
+      [],
+      [REQUEST_HUMAN_HANDOFF_TOOL],
+      fakeSession(),
+      noopMerge,
+    );
+    assert.equal(text, "Connecting you now.");
+    assert.equal(actionCalls.length, 1);
+    assert.equal(actionCalls[0]?.toolName, "request_human_handoff");
+    assert.match(toolResultContent, /"connecting":true/);
+    assert.match(toolResultContent, /"phone":"\+1-559-512-0372"/);
   });
 
   it("stops after MAX_TOOL_ROUNDS and forces a final tool-less answer", async () => {

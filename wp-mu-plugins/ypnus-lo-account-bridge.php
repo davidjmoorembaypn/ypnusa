@@ -290,7 +290,14 @@ add_filter(
 		}
 		$data = $response->get_data();
 		if ( is_array( $data ) && ! empty( $data['success'] ) && ! empty( $data['lo_id'] ) ) {
-			ypnus_resolve_or_link_wp_user( (string) $data['lo_id'] );
+			$wp_user_id = ypnus_resolve_or_link_wp_user( (string) $data['lo_id'] );
+			if ( ! is_wp_error( $wp_user_id ) ) {
+				// The custom LO credential was verified by /ypnus/v1/login. Establish the matching
+				// WordPress session so same-origin /profile and /leads requests authenticate as
+				// the linked owner instead of being administrator-only in practice.
+				wp_set_current_user( (int) $wp_user_id );
+				wp_set_auth_cookie( (int) $wp_user_id, false, is_ssl() );
+			}
 		}
 		return $response;
 	},

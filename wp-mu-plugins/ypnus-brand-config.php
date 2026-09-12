@@ -120,12 +120,11 @@ function ypn_stripe_urls(): array {
  * @return array<string, string>
  */
 function ypn_stripe_annual_urls(): array {
-	$monthly  = ypn_stripe_urls();
 	$defaults = array(
-		'starter' => $monthly['starter'] ?? '',
-		'growth'  => $monthly['growth'] ?? '',
-		'pro'     => $monthly['pro'] ?? '',
-		'elite'   => $monthly['elite'] ?? '',
+		'starter' => '',
+		'growth'  => '',
+		'pro'     => '',
+		'elite'   => '',
 	);
 	$custom = get_option( 'ypnus_stripe_annual_urls', array() );
 	if ( ! is_array( $custom ) ) {

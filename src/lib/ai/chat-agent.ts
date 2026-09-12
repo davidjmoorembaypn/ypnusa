@@ -22,6 +22,7 @@ import {
   CAPTURE_LEAD_QUALIFICATION_TOOL,
   CHECK_TERRITORY_AVAILABILITY_TOOL,
   FIND_EXPLAINER_VIDEO_TOOL,
+  REQUEST_HUMAN_HANDOFF_TOOL,
   SCHEDULE_MEETING_TOOL,
   START_SIGNUP_TOOL,
   type LeadQualificationToolInput,
@@ -34,7 +35,7 @@ const CUSTOMER_FACING_MODES: AssistantMode[] = ["public_site", "lead_qualificati
 export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
   const tools: AiToolDefinition[] = [FIND_EXPLAINER_VIDEO_TOOL];
   if (mode === "lead_qualification") {
-    tools.push(CAPTURE_LEAD_QUALIFICATION_TOOL, SCHEDULE_MEETING_TOOL);
+    tools.push(CAPTURE_LEAD_QUALIFICATION_TOOL, SCHEDULE_MEETING_TOOL, REQUEST_HUMAN_HANDOFF_TOOL);
   }
   if (mode === "public_site") {
     tools.push(START_SIGNUP_TOOL);
@@ -85,6 +86,15 @@ async function executeScheduleMeeting(call: AiToolCall, session: ChatSessionReco
   }
 }
 
+/**
+ * The number a human handoff dials. Same env var + fallback as the
+ * local-SEO business-phone field (src/lib/local-seo.ts) — one number, set
+ * once, reused everywhere a real human phone number is needed.
+ */
+function resolveHandoffPhone(): string {
+  return process.env.MLO_PUBLIC_PHONE?.trim() || "+1-559-512-0372";
+}
+
 /** Runs one real-world action tool and returns a plain-text result for the model. Never throws. */
 async function executeActionTool(call: AiToolCall, session: ChatSessionRecord): Promise<string> {
   try {
@@ -108,6 +118,9 @@ async function executeActionTool(call: AiToolCall, session: ChatSessionRecord): 
     if (call.toolName === "schedule_meeting") {
       return await executeScheduleMeeting(call, session);
     }
+    if (call.toolName === "request_human_handoff") {
+      return JSON.stringify({ connecting: true, phone: resolveHandoffPhone() });
+    }
     return JSON.stringify({ error: `Unknown tool: ${call.toolName}` });
   } catch (error) {
     console.error(`[chat-agent] action tool ${call.toolName} failed`, error);
@@ -121,6 +134,7 @@ const ACTION_TOOL_NAMES = new Set([
   "find_explainer_video",
   "start_signup",
   "schedule_meeting",
+  "request_human_handoff",
 ]);
 
 /**
@@ -147,9 +161,10 @@ export async function runWithTools(
   tools: AiToolDefinition[],
   session: ChatSessionRecord,
   mergeCapture: (call: AiToolCall) => void,
-): Promise<{ text: string; captureCalls: AiToolCall[] }> {
+): Promise<{ text: string; captureCalls: AiToolCall[]; actionCalls: AiToolCall[] }> {
   const messages = [...history];
   const captureCalls: AiToolCall[] = [];
+  const allActionCalls: AiToolCall[] = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const result = await provider.generate({ system, messages, tools });
@@ -162,8 +177,9 @@ export async function runWithTools(
 
     const actionCalls = result.toolCalls.filter((call) => ACTION_TOOL_NAMES.has(call.toolName));
     if (actionCalls.length === 0) {
-      return { text: result.text, captureCalls };
+      return { text: result.text, captureCalls, actionCalls: allActionCalls };
     }
+    allActionCalls.push(...actionCalls);
 
     if (result.text.trim()) messages.push({ role: "assistant", content: result.text.trim() });
     const toolOutputs = await Promise.all(
@@ -174,7 +190,7 @@ export async function runWithTools(
 
   // Ran out of rounds — ask once more without tools so the model must answer in text.
   const final = await provider.generate({ system, messages });
-  return { text: final.text, captureCalls };
+  return { text: final.text, captureCalls, actionCalls: allActionCalls };
 }
 
 /** Keeps token growth (and the on-disk snapshot) bounded for long-running sessions. */
@@ -201,6 +217,9 @@ export interface AssistantTurnResult {
   /** Set once linkQualifiedLead has linked this session into the borrower-lead / CRM store. */
   borrowerLeadId?: string;
   crmLeadId?: string;
+  /** Set when the visitor explicitly asked to talk to a real person (request_human_handoff). Voice callers get dialed to this number; the web widget can surface it as a tap-to-call link. */
+  handoffRequested?: boolean;
+  handoffPhone?: string;
   /** Set when this turn triggered the Website/Profile Autopilot (mlo_dashboard mode only). */
   autopilot?: {
     summaryForMlo: string;
@@ -456,8 +475,9 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
   }));
 
   let reply: string;
+  let handoffPhone: string | undefined;
   try {
-    const { text } = await runWithTools(
+    const { text, actionCalls } = await runWithTools(
       provider,
       system,
       history,
@@ -477,6 +497,9 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
     );
 
     reply = text.trim() || "Got it — one moment.";
+    if (actionCalls.some((call) => call.toolName === "request_human_handoff")) {
+      handoffPhone = resolveHandoffPhone();
+    }
   } catch (error) {
     console.error("[chat-agent] provider.generate failed", error);
     reply = describeProviderError(error);
@@ -503,5 +526,6 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
     borrowerLeadId: session.borrowerLeadId,
     crmLeadId: session.crmLeadId,
     providerConfigured: true,
+    ...(handoffPhone ? { handoffRequested: true, handoffPhone } : {}),
   };
 }

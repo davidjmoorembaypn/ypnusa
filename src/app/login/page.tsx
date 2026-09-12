@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const ALLOWED_NEXT_PREFIXES = ["/dashboard", "/portal", "/analytics", "/admin"];
+const ALLOWED_NEXT_PREFIXES = ["/dashboard", "/portal", "/analytics", "/admin", "/onboarding"];
 
 function resolveNext(raw: string | string[] | undefined): string {
   const value = Array.isArray(raw) ? raw[0] : raw;

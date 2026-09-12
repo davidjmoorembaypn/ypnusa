@@ -3,6 +3,7 @@ import path from "path";
 import type {
   DbShape,
   AppointmentRecord,
+  AgentOnboardingRecord,
   AnalyticsEventRecord,
   AutopilotRunRecord,
   BorrowerLeadRecord,
@@ -158,6 +159,7 @@ const emptyDb = (): DbShape => ({
   chatSessions: [],
   websiteAutopilotChanges: [],
   autopilotRuns: [],
+  agentOnboarding: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -208,6 +210,7 @@ function normalize(snapshot: unknown): DbShape {
     })),
     websiteAutopilotChanges: arrayOrEmpty<WebsiteAutopilotChange>(parsed.websiteAutopilotChanges),
     autopilotRuns: arrayOrEmpty<AutopilotRunRecord>(parsed.autopilotRuns),
+    agentOnboarding: arrayOrEmpty<AgentOnboardingRecord>(parsed.agentOnboarding),
   };
 }
 
@@ -422,6 +425,18 @@ export function saveAutopilotRun(run: AutopilotRunRecord): void {
     if (oldestId) {
       db.autopilotRuns = db.autopilotRuns.filter((r) => r.id !== oldestId);
     }
+  });
+}
+
+export function readAgentOnboarding(userId: string): AgentOnboardingRecord | null {
+  return readDb().agentOnboarding.find((record) => record.userId === userId) ?? null;
+}
+
+export function saveAgentOnboarding(record: AgentOnboardingRecord): void {
+  writeDb((db) => {
+    const idx = db.agentOnboarding.findIndex((item) => item.userId === record.userId);
+    if (idx >= 0) db.agentOnboarding[idx] = record;
+    else db.agentOnboarding.push(record);
   });
 }
 

@@ -56,6 +56,15 @@ function escapeXml(text: string): string {
 const TWIML_HEADER = '<?xml version="1.0" encoding="UTF-8"?>';
 const VOICE = "Polly.Joanna";
 const NO_INPUT_MESSAGE = "I didn't catch that. Feel free to call back anytime — goodbye for now.";
+const NO_ANSWER_MESSAGE =
+  "No one's available to take your call right now. Please try again shortly — goodbye for now.";
+
+/** Keeps a leading "+" (if present) and digits only — Twilio's <Number> wants E.164, not "+1-559-512-0372". */
+function normalizePhoneForDial(phone: string): string {
+  const trimmed = phone.trim();
+  const plus = trimmed.startsWith("+") ? "+" : "";
+  return plus + trimmed.replace(/\D/g, "");
+}
 
 /**
  * Speaks `text`, then gathers speech and posts the transcript to
@@ -79,6 +88,42 @@ export function gatherSpeechTwiml(text: string, actionUrl: string): string {
 export function sayAndHangupTwiml(text: string): string {
   return (
     `${TWIML_HEADER}<Response><Say voice="${VOICE}">${escapeXml(toSpeakableText(text))}</Say><Hangup/></Response>`
+  );
+}
+
+/**
+ * Speaks `text` (the assistant's own "connecting you" line), then dials a
+ * real person. `actionUrl` is required: without a <Dial action> callback,
+ * Twilio moves on to the next verb after ANY dial outcome — including a
+ * normal completed call — so a bare trailing <Say>/<Hangup> here would play
+ * a "no one's available" apology even after a successful call. Twilio POSTs
+ * DialCallStatus to actionUrl once the dial ends; see dialStatusTwiml, which
+ * turns that into the right response (silent hangup vs. apology).
+ */
+export function dialTwiml(text: string, phoneNumber: string, actionUrl: string): string {
+  return (
+    `${TWIML_HEADER}<Response>` +
+    `<Say voice="${VOICE}">${escapeXml(toSpeakableText(text))}</Say>` +
+    `<Dial timeout="20" action="${escapeXml(actionUrl)}">${escapeXml(normalizePhoneForDial(phoneNumber))}</Dial>` +
+    `</Response>`
+  );
+}
+
+/**
+ * Response to the <Dial action> callback Twilio posts once a handoff dial
+ * ends (DialCallStatus form param). A completed call already happened as a
+ * normal two-party conversation — just hang up silently. Anything else
+ * (busy/no-answer/failed/canceled) gets the apology before hanging up.
+ */
+export function dialStatusTwiml(dialCallStatus: string): string {
+  if (dialCallStatus === "completed") {
+    return `${TWIML_HEADER}<Response><Hangup/></Response>`;
+  }
+  return (
+    `${TWIML_HEADER}<Response>` +
+    `<Say voice="${VOICE}">${escapeXml(NO_ANSWER_MESSAGE)}</Say>` +
+    `<Hangup/>` +
+    `</Response>`
   );
 }
 

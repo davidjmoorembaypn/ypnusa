@@ -225,7 +225,7 @@ function ypn_payment_plans(): array {
 				'amount'        => round( $amount * 12 * 0.85, 2 ),
 				'monthly_equiv' => '$' . number_format( round( $amount * 0.85, 2 ), 2 ) . '/mo',
 				'discount_pct'  => 15,
-				'stripe'        => $annual[ $tier ] ?? ( $monthly[ $tier ] ?? '' ),
+				'stripe'        => $annual[ $tier ] ?? '',
 				'paypal'        => $paypal['urls'][ $tier ] ?? '',
 			),
 		);

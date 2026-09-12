@@ -10,6 +10,11 @@ export const metadata: Metadata = {
 
 const SECTIONS = [
   {
+    href: "/onboarding",
+    title: "Activate Cerebro",
+    description: "Set the mission, permissions, guardrails, and run a safe agent test.",
+  },
+  {
     href: "/portal/nurture",
     title: "Lead Nurture & Appointments",
     description: "AI-qualified borrowers, outreach health, and calendar conversions.",

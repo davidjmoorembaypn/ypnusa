@@ -45,7 +45,9 @@ function ypnus_lo_accounts_table() {
  * register_activation_hook doesn't fire for a plain mu-plugin drop-in at all, so this is the
  * only migration path available here.
  */
-add_action( 'init', 'ypnus_lo_bridge_maybe_upgrade_schema', 4 );
+// The signup plugin creates its base table at priority 5. Run after it so a fresh install
+// receives wp_user_id during the same request instead of waiting for a later page load.
+add_action( 'init', 'ypnus_lo_bridge_maybe_upgrade_schema', 6 );
 
 function ypnus_lo_bridge_maybe_upgrade_schema() {
 	if ( get_option( 'ypnus_lo_bridge_schema_v1' ) ) {

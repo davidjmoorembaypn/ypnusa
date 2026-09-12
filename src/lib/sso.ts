@@ -50,6 +50,8 @@ import { isEntitlementStatus, type EntitlementStatus, type SessionRole } from "@
  * Which format a given signature matches is determined purely by which canonical byte string it
  * verifies against — never by whether the optional fields happen to be present/empty, so this
  * can't be confused by an attacker padding a legacy URL with blank entitlement params.
+ * Every signed field must exclude the `|` delimiter. Without that restriction, a legacy field
+ * containing `|` could produce the same canonical byte string as a v2 claim with shifted fields.
  *
  * TODO(post-launch): once `ypnus-app-sso.php` is redeployed to sign the 8-field format
  * (docs/sso-handoff.md), delete `LEGACY_` below and the `matchesLegacy` branch, and always
@@ -135,6 +137,9 @@ export function verifySsoHandoff(url: URL): SsoHandoffClaim | { error: string } 
 
   if (!email || !sub || !role || !iat || !sig) {
     return { error: "Missing required SSO handoff parameters." };
+  }
+  if ([email, sub, role, iat, next, tier, subscriptionStatus, trialEndsAt].some((field) => field.includes("|"))) {
+    return { error: "SSO handoff parameters contain an illegal character." };
   }
   if (role !== "mlo" && role !== "admin") {
     return { error: "Unrecognized role in SSO handoff." };

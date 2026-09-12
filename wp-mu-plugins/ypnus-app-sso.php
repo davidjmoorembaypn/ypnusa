@@ -83,7 +83,9 @@ function ypnus_app_sso_url( $email, $sub, $role = 'mlo', $next = '/dashboard', $
 		$params['trialEndsAt'] = $trial_ends_at;
 	}
 
-	return add_query_arg( $params, 'https://app.ypnus.com/api/auth/callback' );
+	// Sign raw values above, but encode each value before add_query_arg; it does not encode
+	// caller-supplied values and would otherwise turn literal plus signs into spaces.
+	return add_query_arg( array_map( 'rawurlencode', $params ), 'https://app.ypnus.com/api/auth/callback' );
 }
 
 /**

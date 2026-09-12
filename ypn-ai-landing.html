@@ -756,77 +756,6 @@
       font-weight: 700;
     }
 
-    /* ZIP territory checker (hero) */
-    .zip-check {
-      max-width: 480px;
-      margin: 0 auto 1.75rem;
-      background: var(--navy);
-      border-radius: 18px;
-      padding: 1.35rem 1.5rem;
-      box-shadow: 0 18px 48px rgba(9, 21, 42, 0.18);
-      text-align: left;
-    }
-
-    .zip-check-label {
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin: 0 0 0.65rem;
-    }
-
-    .zip-check-form {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .zip-check-form input {
-      flex: 1;
-      min-width: 0;
-      padding: 0.7rem 0.9rem;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-family: inherit;
-      background: var(--white);
-      color: var(--navy);
-    }
-
-    .zip-check-form input:focus {
-      outline: 2px solid var(--gold);
-    }
-
-    .zip-check-form button {
-      background: linear-gradient(135deg, var(--gold), #d4bc6a);
-      color: var(--navy);
-      font-weight: 700;
-      font-size: 0.9rem;
-      padding: 0 1.15rem;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      white-space: nowrap;
-      font-family: inherit;
-    }
-
-    .zip-check-result {
-      margin: 0.75rem 0 0;
-      min-height: 1.4em;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.85);
-    }
-
-    .zip-check-result a {
-      color: var(--gold);
-      text-decoration: underline;
-      font-weight: 600;
-    }
-
-    @media (max-width: 480px) {
-      .zip-check-form {
-        flex-direction: column;
-      }
-    }
-
     /* Live demo section */
     .demo {
       background: #f6f8fa;
@@ -886,104 +815,13 @@
       box-shadow: 0 24px 64px rgba(9, 21, 42, 0.18);
     }
 
-    .demo-frame-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.6rem 0.65rem 0.85rem;
-    }
-
-    .demo-frame-header-left {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      min-width: 0;
-    }
-
-    .demo-frame-avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--gold), #a88a3a);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 0.9rem;
-      color: var(--navy);
-      flex-shrink: 0;
-    }
-
-    .demo-frame-info h3 {
-      margin: 0;
-      font-size: 0.92rem;
-      color: var(--white);
-    }
-
-    .demo-frame-info span {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.72rem;
-      color: rgba(255, 255, 255, 0.6);
-    }
-
-    .demo-frame-info span::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #4ade80;
-      box-shadow: 0 0 5px #4ade80;
-      flex-shrink: 0;
-    }
-
-    .demo-frame-open {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--gold);
-      text-decoration: underline;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .demo-frame-open:hover {
-      color: var(--white);
-    }
-
-    .demo-frame-body {
-      position: relative;
-      border-radius: 16px;
-      overflow: hidden;
-      background: #fff;
-    }
-
     .demo-frame-wrap iframe {
       display: block;
       width: 100%;
       height: min(640px, 78vh);
       border: 0;
+      border-radius: 16px;
       background: #fff;
-    }
-
-    .demo-fallback {
-      position: absolute;
-      inset: 0;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      padding: 2rem;
-      text-align: center;
-      background: #faf9f6;
-      color: var(--muted-dark);
-      font-size: 0.95rem;
-    }
-
-    .demo-fallback.visible {
-      display: flex;
     }
 
     /* Sticky mobile conversion bar */
@@ -1060,25 +898,6 @@
           <div class="hero-ctas">
             <a class="btn btn-primary btn-lg" href="#early-access">Get Early Access</a>
             <a class="btn btn-outline btn-lg" href="#demo">Try the Live Demo</a>
-          </div>
-
-          <div class="zip-check" id="zip-check">
-            <p class="zip-check-label">Check your ZIP territory availability</p>
-            <form class="zip-check-form" id="zipCheckForm">
-              <input
-                type="text"
-                id="zipCheckInput"
-                placeholder="e.g. 90210"
-                maxlength="5"
-                pattern="[0-9]{5}"
-                inputmode="numeric"
-                autocomplete="postal-code"
-                aria-label="ZIP code"
-                required
-              />
-              <button type="submit">Check</button>
-            </form>
-            <p class="zip-check-result" id="zipCheckResult" aria-live="polite"></p>
           </div>
 
           <p class="trust-line">
@@ -1177,29 +996,11 @@
             <a class="btn btn-primary btn-lg" href="#early-access">Get Early Access</a>
           </div>
           <div class="demo-frame-wrap">
-            <div class="demo-frame-header">
-              <div class="demo-frame-header-left">
-                <div class="demo-frame-avatar" aria-hidden="true">C</div>
-                <div class="demo-frame-info">
-                  <h3>Cerebro</h3>
-                  <span>AI Mortgage Agent · Live</span>
-                </div>
-              </div>
-              <a href="https://app.ypnus.com/embed/intake" target="_blank" rel="noopener" class="demo-frame-open">Open full screen →</a>
-            </div>
-            <div class="demo-frame-body">
-              <iframe
-                id="demoFrame"
-                src="https://app.ypnus.com/embed/intake"
-                title="Cerebro AI borrower intake live demo"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-              ></iframe>
-              <div class="demo-fallback" id="demoFallback">
-                <p>Cerebro is ready for you.</p>
-                <a class="btn btn-primary" href="https://app.ypnus.com/embed/intake" target="_blank" rel="noopener">Talk to Cerebro →</a>
-              </div>
-            </div>
+            <iframe
+              src="./ypn-ai-borrower-intake.html?embed=1"
+              title="YPN AI borrower intake live demo"
+              loading="lazy"
+            ></iframe>
           </div>
         </div>
       </div>
@@ -1505,75 +1306,6 @@
             showFallback('Network issue — retry, or');
           });
       });
-    })();
-
-    (function () {
-      var form = document.getElementById('zipCheckForm');
-      var input = document.getElementById('zipCheckInput');
-      var result = document.getElementById('zipCheckResult');
-      if (!form || !input || !result) return;
-
-      form.addEventListener('submit', function (event) {
-        event.preventDefault();
-        var zip = input.value.trim();
-
-        if (!/^\d{5}$/.test(zip)) {
-          result.textContent = 'Enter a valid 5-digit ZIP.';
-          return;
-        }
-
-        result.textContent = 'Checking availability…';
-
-        var controller = 'AbortController' in window ? new AbortController() : null;
-        var timeoutId = controller
-          ? setTimeout(function () {
-              controller.abort();
-            }, 8000)
-          : null;
-
-        fetch('/wp-json/ypnus/v1/zip-check/' + encodeURIComponent(zip), {
-          headers: { Accept: 'application/json' },
-          signal: controller ? controller.signal : undefined,
-        })
-          .then(function (resp) {
-            if (timeoutId) clearTimeout(timeoutId);
-            if (!resp.ok) throw new Error('bad status');
-            return resp.json();
-          })
-          .then(function (data) {
-            if (typeof data.available !== 'boolean') throw new Error('unusable payload');
-            var place = data.city && data.state ? data.city + ', ' + data.state : 'ZIP ' + zip;
-            if (data.available) {
-              result.innerHTML =
-                '✓ ' +
-                place +
-                ' is open. <a href="#early-access">Claim it now →</a>';
-            } else {
-              result.textContent =
-                (data.message && data.message.trim()) ||
-                place + ' is currently held by another MLO. Join early access for the waitlist.';
-            }
-          })
-          .catch(function () {
-            if (timeoutId) clearTimeout(timeoutId);
-            result.innerHTML =
-              "Couldn't reach live availability right now — <a href=\"#early-access\">get early access</a> and we'll confirm your ZIP.";
-          });
-      });
-    })();
-
-    (function () {
-      var frame = document.getElementById('demoFrame');
-      var fallback = document.getElementById('demoFallback');
-      if (!frame || !fallback) return;
-
-      var loaded = false;
-      frame.addEventListener('load', function () {
-        loaded = true;
-      });
-      setTimeout(function () {
-        if (!loaded) fallback.classList.add('visible');
-      }, 6000);
     })();
 
     (function () {

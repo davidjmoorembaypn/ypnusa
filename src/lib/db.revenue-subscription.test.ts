@@ -29,22 +29,25 @@ function subscription(
 }
 
 describe("revenue subscription persistence (db.ts)", async () => {
-  const { readDb, findRevenueSubscriptionByStripeCustomerId, saveRevenueSubscription } =
+  const { readDb, findRevenueSubscriptionByStripeSubscriptionId, saveRevenueSubscription } =
     await import("./db");
 
   after(() => {
     fs.rmSync(dataDir, { recursive: true, force: true });
   });
 
-  it("returns null for a stripeCustomerId that was never saved", () => {
-    assert.equal(findRevenueSubscriptionByStripeCustomerId("cus_never_saved"), null);
+  it("returns null for a stripeSubscriptionId that was never saved", () => {
+    assert.equal(findRevenueSubscriptionByStripeSubscriptionId("sub_never_saved"), null);
   });
 
-  it("appends a brand-new subscription, findable by stripeCustomerId", () => {
-    const record = subscription("sub_new_1", { stripeCustomerId: "cus_123" });
+  it("appends a brand-new subscription, findable by stripeSubscriptionId", () => {
+    const record = subscription("sub_new_1", {
+      stripeCustomerId: "cus_123",
+      stripeSubscriptionId: "sub_stripe_123",
+    });
     saveRevenueSubscription(record);
 
-    assert.deepEqual(findRevenueSubscriptionByStripeCustomerId("cus_123"), record);
+    assert.deepEqual(findRevenueSubscriptionByStripeSubscriptionId("sub_stripe_123"), record);
   });
 
   it("upserts on a repeat save with the same id instead of duplicating", () => {
@@ -52,6 +55,7 @@ describe("revenue subscription persistence (db.ts)", async () => {
 
     const updated = subscription("sub_new_1", {
       stripeCustomerId: "cus_123",
+      stripeSubscriptionId: "sub_stripe_123",
       tier: "elite",
       status: "cancelled",
     });
@@ -60,8 +64,33 @@ describe("revenue subscription persistence (db.ts)", async () => {
     const db = readDb();
     assert.equal(db.revenueSubscriptions.length, countBefore);
 
-    const stored = findRevenueSubscriptionByStripeCustomerId("cus_123");
+    const stored = findRevenueSubscriptionByStripeSubscriptionId("sub_stripe_123");
     assert.equal(stored?.tier, "elite");
     assert.equal(stored?.status, "cancelled");
+  });
+
+  it("distinguishes two subscriptions belonging to the same customer", () => {
+    const first = subscription("sub_a", {
+      stripeCustomerId: "cus_shared",
+      stripeSubscriptionId: "sub_stripe_a",
+      status: "active",
+    });
+    const second = subscription("sub_b", {
+      stripeCustomerId: "cus_shared",
+      stripeSubscriptionId: "sub_stripe_b",
+      status: "active",
+    });
+    saveRevenueSubscription(first);
+    saveRevenueSubscription(second);
+
+    const cancelledFirst: RevenueSubscriptionRecord = { ...first, status: "cancelled" };
+    saveRevenueSubscription(cancelledFirst);
+
+    assert.equal(findRevenueSubscriptionByStripeSubscriptionId("sub_stripe_a")?.status, "cancelled");
+    assert.equal(
+      findRevenueSubscriptionByStripeSubscriptionId("sub_stripe_b")?.status,
+      "active",
+      "cancelling one of a customer's subscriptions must not touch their other subscription",
+    );
   });
 });

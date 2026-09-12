@@ -385,12 +385,17 @@ export function saveChatSession(session: ChatSessionRecord): void {
   });
 }
 
-export function findRevenueSubscriptionByStripeCustomerId(
-  stripeCustomerId: string,
+/**
+ * Keyed by stripeSubscriptionId, not stripeCustomerId — one customer can hold more than
+ * one subscription over time, and a customer-only lookup would let a delete event for a
+ * stale/replaced subscription cancel the customer's current one.
+ */
+export function findRevenueSubscriptionByStripeSubscriptionId(
+  stripeSubscriptionId: string,
 ): RevenueSubscriptionRecord | null {
   return (
     readDb().revenueSubscriptions.find(
-      (subscription) => subscription.stripeCustomerId === stripeCustomerId,
+      (subscription) => subscription.stripeSubscriptionId === stripeSubscriptionId,
     ) ?? null
   );
 }

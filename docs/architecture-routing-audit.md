@@ -150,11 +150,16 @@ retired:
 
 | File | Notes |
 | --- | --- |
-| `ypn-ai-landing.html` | Canonical `https://ypnus.com/` (`ypn-ai-landing.html:8`) |
-| `ypn-ai-borrower-intake.html` | Standalone intake |
-| `borrower-intake-widget.html` | Embeddable widget |
-| `dashboard.html` | Legacy Supabase dashboard (CDN Supabase client) (`dashboard.html:10`) |
+| `ypn-ai-borrower-intake.html` | Legacy standalone intake, verified live at `https://ypnus.com/ypn-ai-borrower-intake.html` (200, content matches this file). Deliberately left reachable — see the `YPNUS_LEGACY_INTAKE_PAGE_URL` comment in `wp-mu-plugins/ypnus-supabase-signup.php`. Do not delete without first wiring a redirect. |
 | `hostinger/app-ypnus/index.html` | Emergency static app homepage |
+
+The actual `https://ypnus.com/` homepage is **not** any file in this repo — it's
+authored directly as a `wp:html` block on the WordPress "Home" page (post ID
+1829), edited in place via WPVibe/Novamira, with zero connection to this git
+history. Three files previously listed here (`ypn-ai-landing.html`,
+`borrower-intake-widget.html`, `dashboard.html`) were checked against their
+presumed live URLs and all returned 404 — dead, unreferenced by any deploy
+path, and pending removal from the repo.
 
 ## Cross-host traffic flows
 

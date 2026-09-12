@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'YPNUS_SIGNUP_DB_VERSION', '1.1.0' ); // bumped 2026-08-19: added zip_of_interest
+define( 'YPNUS_SIGNUP_DB_VERSION', '1.2.0' ); // added password_hash
 define( 'YPNUS_INTAKE_DB_VERSION', '1.0.0' );
 
 /**
@@ -54,23 +54,98 @@ function ypnus_intake_table_name() {
 	return $wpdb->prefix . 'ypnus_borrower_leads';
 }
 
+/** Return whether an IP belongs to an exact address or CIDR in the supplied list. */
+function ypnus_ip_matches_ranges( $ip, array $ranges ) {
+	$ip_binary = @inet_pton( $ip );
+	if ( false === $ip_binary ) {
+		return false;
+	}
+	foreach ( $ranges as $range ) {
+		$parts          = explode( '/', trim( (string) $range ), 2 );
+		$network_binary = @inet_pton( $parts[0] );
+		if ( false === $network_binary || strlen( $network_binary ) !== strlen( $ip_binary ) ) {
+			continue;
+		}
+		$bits = isset( $parts[1] ) ? (int) $parts[1] : strlen( $ip_binary ) * 8;
+		if ( $bits < 0 || $bits > strlen( $ip_binary ) * 8 ) {
+			continue;
+		}
+		$bytes = intdiv( $bits, 8 );
+		$extra = $bits % 8;
+		if ( substr( $ip_binary, 0, $bytes ) !== substr( $network_binary, 0, $bytes ) ) {
+			continue;
+		}
+		if ( $extra ) {
+			$mask = ( 0xff << ( 8 - $extra ) ) & 0xff;
+			if ( ( ord( $ip_binary[ $bytes ] ) & $mask ) !== ( ord( $network_binary[ $bytes ] ) & $mask ) ) {
+				continue;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 /**
  * @return string
  */
 function ypnus_intake_client_ip() {
-	foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' ) as $key ) {
-		if ( empty( $_SERVER[ $key ] ) ) {
-			continue;
-		}
-		$raw = (string) wp_unslash( $_SERVER[ $key ] );
-		if ( $key === 'HTTP_X_FORWARDED_FOR' ) {
-			$raw = trim( explode( ',', $raw )[0] );
-		}
-		if ( filter_var( $raw, FILTER_VALIDATE_IP ) ) {
-			return $raw;
+	$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
+	if ( ! filter_var( $remote_addr, FILTER_VALIDATE_IP ) ) {
+		return '';
+	}
+
+	// Cloudflare overwrites CF-Connecting-IP at its edge. Only honor that header when the
+	// immediate peer is in Cloudflare's published ranges; otherwise it is attacker input.
+	$cloudflare_ranges = array(
+		'173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+		'141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+		'197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+		'104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22', '2400:cb00::/32',
+		'2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32',
+		'2a06:98c0::/29', '2c0f:f248::/32',
+	);
+	if ( ypnus_ip_matches_ranges( $remote_addr, $cloudflare_ranges ) && ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+		$cloudflare_ip = trim( (string) wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
+		if ( filter_var( $cloudflare_ip, FILTER_VALIDATE_IP ) ) {
+			return $cloudflare_ip;
 		}
 	}
-	return '';
+
+	// A custom reverse proxy may opt in only after being configured to overwrite XFF.
+	$trusted_proxies = (array) apply_filters( 'ypnus_trusted_proxy_ips', array() );
+	if ( ypnus_ip_matches_ranges( $remote_addr, $trusted_proxies ) && ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+		$forwarded_ip = trim( explode( ',', (string) wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) )[0] );
+		if ( filter_var( $forwarded_ip, FILTER_VALIDATE_IP ) ) {
+			return $forwarded_ip;
+		}
+	}
+	return $remote_addr;
+}
+
+/** Authorize private LO data to the linked account owner or an administrator. */
+function ypnus_private_lo_data_permission( WP_REST_Request $request ) {
+	if ( ! is_user_logged_in() ) {
+		return new WP_Error( 'rest_forbidden', 'Authentication is required.', array( 'status' => 401 ) );
+	}
+	if ( current_user_can( 'manage_options' ) ) {
+		return true;
+	}
+	$lo_id = sanitize_text_field( (string) $request->get_param( 'lo_id' ) );
+	if ( '' === $lo_id ) {
+		return new WP_Error( 'rest_forbidden', 'You are not authorized to access this account.', array( 'status' => 403 ) );
+	}
+	global $wpdb;
+	$owner_id = $wpdb->get_var(
+		$wpdb->prepare(
+			'SELECT wp_user_id FROM ' . ypnus_signup_table_name() . ' WHERE lo_id = %s AND wp_user_id IS NOT NULL LIMIT 1',
+			$lo_id
+		)
+	);
+	if ( ! $owner_id || (int) $owner_id !== get_current_user_id() ) {
+		return new WP_Error( 'rest_forbidden', 'You are not authorized to access this account.', array( 'status' => 403 ) );
+	}
+	return true;
 }
 
 /**
@@ -105,6 +180,7 @@ add_action(
 				email varchar(190) NOT NULL,
 				phone varchar(40) NOT NULL,
 				zip_of_interest varchar(5) DEFAULT NULL,
+				password_hash varchar(255) NOT NULL DEFAULT '',
 				status varchar(20) NOT NULL DEFAULT 'trial',
 				source varchar(40) NOT NULL DEFAULT 'lo-signup',
 				created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -456,7 +532,7 @@ add_action(
 			'/profile',
 			array(
 				'methods'             => 'GET',
-				'permission_callback' => '__return_true',
+				'permission_callback' => 'ypnus_private_lo_data_permission',
 				'callback'            => static function ( WP_REST_Request $request ) {
 					$lo_id = sanitize_text_field( (string) $request->get_param( 'lo_id' ) );
 					if ( $lo_id === '' ) {
@@ -486,7 +562,7 @@ add_action(
 			'/leads',
 			array(
 				'methods'             => 'GET',
-				'permission_callback' => '__return_true',
+				'permission_callback' => 'ypnus_private_lo_data_permission',
 				'callback'            => static function ( WP_REST_Request $request ) {
 					$lo_id = sanitize_text_field( (string) $request->get_param( 'lo_id' ) );
 					if ( $lo_id === '' ) {

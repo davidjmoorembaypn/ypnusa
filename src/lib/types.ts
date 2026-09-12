@@ -401,6 +401,32 @@ export interface AutopilotRunRecord {
   wordpressLive: boolean;
 }
 
+export type AgentOnboardingGoal = "speed_to_lead" | "nurture_to_booking" | "partner_growth";
+export type AgentOnboardingStatus = "draft" | "ready" | "active";
+
+/** Per-MLO activation policy for Cerebro's real lead-follow-up agent. */
+export interface AgentOnboardingRecord {
+  userId: string;
+  email: string;
+  status: AgentOnboardingStatus;
+  completedStep: number;
+  goal: AgentOnboardingGoal;
+  goalDescription: string;
+  territoryZip?: string;
+  connections: {
+    email: boolean;
+    sms: boolean;
+    calendar: boolean;
+    crm: boolean;
+  };
+  autonomy: "approval_first" | "autonomous_with_guardrails";
+  confidenceThreshold: number;
+  testPassedAt?: string;
+  activatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -416,4 +442,5 @@ export interface DbShape {
   chatSessions: ChatSessionRecord[];
   websiteAutopilotChanges: WebsiteAutopilotChange[];
   autopilotRuns: AutopilotRunRecord[];
+  agentOnboarding: AgentOnboardingRecord[];
 }

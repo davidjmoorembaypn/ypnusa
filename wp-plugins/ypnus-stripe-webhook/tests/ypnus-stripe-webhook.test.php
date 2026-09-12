@@ -369,6 +369,7 @@ $GLOBALS['wpdb']->row_results   = array(
 		'customer_id'         => 'cus_trial',
 		'tier'                => 'pro',
 		'subscription_status' => 'trialing',
+		'trial_ends_at'       => gmdate( 'c', 1700000000 ),
 		'last_event_id'       => 'evt_trial',
 	),
 );
@@ -394,6 +395,11 @@ $trial = ypnus_stripe_process_checkout(
 );
 assert_same( true, $trial['ok'], 'provisions an explicitly configured active trial' );
 assert_same( 'trialing', get_user_meta( $trial['user_id'], 'ypnus_subscription_status', true ), 'stores trialing status' );
+assert_same(
+	gmdate( 'c', 1700000000 ),
+	get_user_meta( $trial['user_id'], 'ypnus_trial_ends_at', true ),
+	'checkout provisioning preserves the lifecycle trial end date'
+);
 
 assert_same( '', ypnus_stripe_resolve_trial_ends_at( array() ), 'resolves no trial_end from a bare array' );
 assert_same( '', ypnus_stripe_resolve_trial_ends_at( array( 'trial_end' => 'not-a-number' ) ), 'ignores a non-numeric trial_end' );

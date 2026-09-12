@@ -120,12 +120,11 @@ function ypn_stripe_urls(): array {
  * @return array<string, string>
  */
 function ypn_stripe_annual_urls(): array {
-	$monthly  = ypn_stripe_urls();
 	$defaults = array(
-		'starter' => $monthly['starter'] ?? '',
-		'growth'  => $monthly['growth'] ?? '',
-		'pro'     => $monthly['pro'] ?? '',
-		'elite'   => $monthly['elite'] ?? '',
+		'starter' => '',
+		'growth'  => '',
+		'pro'     => '',
+		'elite'   => '',
 	);
 	$custom = get_option( 'ypnus_stripe_annual_urls', array() );
 	if ( ! is_array( $custom ) ) {
@@ -225,7 +224,7 @@ function ypn_payment_plans(): array {
 				'amount'        => round( $amount * 12 * 0.85, 2 ),
 				'monthly_equiv' => '$' . number_format( round( $amount * 0.85, 2 ), 2 ) . '/mo',
 				'discount_pct'  => 15,
-				'stripe'        => $annual[ $tier ] ?? ( $monthly[ $tier ] ?? '' ),
+				'stripe'        => $annual[ $tier ] ?? '',
 				'paypal'        => $paypal['urls'][ $tier ] ?? '',
 			),
 		);

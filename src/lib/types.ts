@@ -245,7 +245,7 @@ export interface RevenueSubscriptionRecord {
   startedAt: string;
   tier: PricingTierId;
   status: "trialing" | "active" | "cancelled";
-  source: "seed" | "demo_request" | "admin_adjustment";
+  source: "seed" | "demo_request" | "admin_adjustment" | "stripe_webhook";
   ownerLoId?: string;
   ownerEmail?: string;
   company?: string;
@@ -254,6 +254,20 @@ export interface RevenueSubscriptionRecord {
   monthlyPriceCents?: number;
   lifetimeMonths?: number;
   attributedDemoRequestIds?: string[];
+  /** Set once a Stripe fulfillment event provisions/updates this record — see /api/webhooks/fulfill. */
+  stripeCustomerId?: string;
+  /**
+   * The Stripe subscription this record tracks — the actual lookup key for fulfillment
+   * events (see /api/webhooks/fulfill), not stripeCustomerId: one customer can hold more
+   * than one subscription over time (e.g. a replacement created before the old one is
+   * deleted), and keying by customer alone would let a delete event for a stale
+   * subscription cancel the customer's current one.
+   */
+  stripeSubscriptionId?: string;
+  /** Stripe event id last applied to this record — guards an exact-duplicate redelivery from reapplying. */
+  lastStripeEventId?: string;
+  /** Unix seconds (Stripe event.created) of the last applied event — an older/out-of-order event is rejected rather than overwriting newer state. */
+  lastStripeEventCreatedAt?: number;
 }
 
 /** The three surfaces the AI assistant runs on — see src/lib/ai/prompts.ts. */

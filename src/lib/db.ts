@@ -385,6 +385,30 @@ export function saveChatSession(session: ChatSessionRecord): void {
   });
 }
 
+/**
+ * Keyed by stripeSubscriptionId, not stripeCustomerId — one customer can hold more than
+ * one subscription over time, and a customer-only lookup would let a delete event for a
+ * stale/replaced subscription cancel the customer's current one.
+ */
+export function findRevenueSubscriptionByStripeSubscriptionId(
+  stripeSubscriptionId: string,
+): RevenueSubscriptionRecord | null {
+  return (
+    readDb().revenueSubscriptions.find(
+      (subscription) => subscription.stripeSubscriptionId === stripeSubscriptionId,
+    ) ?? null
+  );
+}
+
+/** Upserts by id — mirrors saveChatSession's replace-or-append pattern. */
+export function saveRevenueSubscription(subscription: RevenueSubscriptionRecord): void {
+  writeDb((db) => {
+    const idx = db.revenueSubscriptions.findIndex((s) => s.id === subscription.id);
+    if (idx >= 0) db.revenueSubscriptions[idx] = subscription;
+    else db.revenueSubscriptions.push(subscription);
+  });
+}
+
 export function listWebsiteAutopilotChanges(userId?: string): WebsiteAutopilotChange[] {
   const all = readDb().websiteAutopilotChanges;
   return userId ? all.filter((change) => change.userId === userId) : all;

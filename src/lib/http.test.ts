@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { jsonError, jsonOk, parseJsonBody, requireSecret } from "./http";
+import { jsonError, jsonOk, parseJsonBody, requireInternalSecret, requireSecret } from "./http";
 
 function post(headers: Record<string, string> = {}): Request {
   return new Request("https://app.ypnus.com/api/test", { method: "POST", headers });
@@ -23,6 +23,32 @@ describe("requireSecret", () => {
     assert.equal(requireSecret(post({ authorization: "Bearer top-secret" })), null);
     assert.equal(requireSecret(post({ "x-admin-token": "top-secret" })), null);
 
+    delete process.env.ADMIN_TOKEN;
+  });
+});
+
+describe("requireInternalSecret", () => {
+  it("denies when no secret is configured", () => {
+    delete process.env.LAMBDA_FULFILLMENT_SECRET;
+
+    const response = requireInternalSecret(post());
+
+    assert.equal(response?.status, 401);
+  });
+
+  it("denies a wrong secret, is blind to the admin secret, and allows the configured one", () => {
+    process.env.LAMBDA_FULFILLMENT_SECRET = "lambda-secret";
+    process.env.ADMIN_TOKEN = "top-secret";
+
+    assert.equal(requireInternalSecret(post({ "x-internal-secret": "nope" }))?.status, 401);
+    assert.equal(
+      requireInternalSecret(post({ authorization: "Bearer top-secret" }))?.status,
+      401,
+      "must not accept the ADMIN_TOKEN/CRON_SECRET credential",
+    );
+    assert.equal(requireInternalSecret(post({ "x-internal-secret": "lambda-secret" })), null);
+
+    delete process.env.LAMBDA_FULFILLMENT_SECRET;
     delete process.env.ADMIN_TOKEN;
   });
 });

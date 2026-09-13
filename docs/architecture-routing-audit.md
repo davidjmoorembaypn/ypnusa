@@ -178,9 +178,9 @@ path, and pending removal from the repo.
 | --- | --- | --- | --- |
 | 1 | `us.ypnus.com` undefined — no DNS, routes, or docs in repo | High if planned | Zero grep matches |
 | 2 | SSO not live on WordPress — callback exists but WP plugin unchanged | High | `docs/sso-handoff.md:75-82` |
-| 3 | `/dashboard` 404 after SSO — default `next=/dashboard` has no page | Medium | `src/lib/sso.ts:54` vs only `src/app/dashboard/local-seo/page.tsx` |
-| 4 | Auth is proxy-only — protected pages/APIs lack server-side `getSession()`; no role enforcement | Medium–High | `src/proxy.ts:5-9`, no `getSession` in page files |
-| 5 | Admin/cron APIs open by default if `ADMIN_TOKEN`/`CRON_SECRET` unset | High | `src/lib/http.ts:46-47` |
+| 3 | ~~`/dashboard` 404 after SSO~~ — **Resolved.** `src/app/dashboard/page.tsx` now exists and calls `requireSession` | ~~Medium~~ | `src/app/dashboard/page.tsx` |
+| 4 | ~~Auth is proxy-only~~ — **Resolved.** Every protected page calls `requireSession`/`requireAdminSession`; APIs behind proxy-gated pages call `requireAdminSessionOrSecret` | ~~Medium–High~~ | `src/lib/auth.ts:52-79` |
+| 5 | ~~Admin/cron APIs open by default~~ — **Resolved.** `requireSecret` now denies when neither secret is configured | ~~High~~ | `src/lib/http.ts:46-56` |
 | 6 | `REVIEW_REQUEST_API_SECRET` optional in non-production; required in prod | Medium | `src/app/api/reviews/request/route.ts:8-9` |
 | 7 | Stale Hostinger README Stripe env vars — app Stripe routes removed | Medium (ops confusion) | `hostinger/README.md:114-116` vs no Stripe routes in `src/` |
 | 8 | Dual stack on app.ypnus.com — Next.js + legacy PHP territory routes in `.htaccess`; `territory.php` not in repo | Medium | `hostinger/app-ypnus/.htaccess:14-19` |
@@ -190,7 +190,7 @@ path, and pending removal from the repo.
 | 12 | Live production state unknown — docs say app may still be static HTML + broken redirects | Unknown | `hostinger/README.md:8` |
 | 13 | Cloudflare / DNS / TLS — scripts exist but no committed zone config | Unknown | `hostinger/README.md:26-27` |
 | 14 | WordPress zip-check / MLO toolkit — behavior and routes not versioned in this repo | Unknown | `src/lib/live-territory.ts:25-27` |
-| 15 | Render health check uses `/` not `/api/health` | Low | `render.yaml:19` |
+| 15 | ~~Render health check uses `/` not `/api/health`~~ — **Resolved.** | ~~Low~~ | `render.yaml:17` |
 | 16 | CORS on `/api/demo-request` locked to a single marketing origin — no staging origin support | Low | `src/app/api/demo-request/route.ts:16-20` |
 
 ## Suggested routing matrix (evidence-backed targets)

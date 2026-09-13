@@ -49,21 +49,27 @@ Required if using `/api/webhooks/fulfill`:
 | `STRIPE_PRICE_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Maps a Stripe price to a paid tier |
 | `STRIPE_PRODUCT_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Fallback mapping by product instead of price |
 
-## 3. Known launch gap — legal pages
+## 3. Legal pages — resolved (PR #65)
 
-**No Privacy Policy or Terms of Service exists anywhere in this app**, and
-the footer (`src/components/site-footer.tsx`) doesn't link to any on
-ypnus.com either. This app collects PII directly (borrower intake, equity
-snapshot tool, demo requests) and this business runs live Stripe payments —
-normally a hard blocker before taking real traffic, and Stripe's own
-merchant terms expect a published privacy policy.
+~~No Privacy Policy or Terms of Service exists anywhere in this app~~ —
+fixed. Four pages now exist and are linked from the footer
+(`src/components/site-footer.tsx`) and the sitemap (`src/app/sitemap.ts`):
 
-This needs a business/legal decision, not code:
-1. Confirm whether ypnus.com already publishes these pages.
-2. If yes — add footer links here pointing to them (quick, no legal risk).
-3. If no — get real legal review for a licensed mortgage business (NMLS
-   #787257) before publishing anything; do not ship placeholder/boilerplate
-   legal text.
+- `/privacy-policy` — GLBA-style financial-privacy language, CCPA/CPRA
+  state-rights section, TCPA consent language for phone/SMS intake.
+- `/terms-of-service` — "not a lender" disclaimer, Subscriber/billing/
+  territory terms, Fair Housing/ECOA/TCPA acceptable-use rules, AI-output
+  disclaimer.
+- `/licensing-disclosures` — NMLS #787257 (individual record,
+  `/individual/787257`, not the company path) / DRE #01852847 / Equal
+  Housing Opportunity, with a link to NMLS Consumer Access.
+- `/accessibility-statement` — WCAG 2.1 AA commitment.
+
+**Still open, not code:** a mortgage-compliance attorney should review this
+drafted content before it's treated as final — see the note in PR #65. Not
+a blocker to deploying the pages themselves; the pages accurately describe
+what the code does today (verified against `src/lib/crm.ts`'s actual
+routing logic, not an aspirational claim).
 
 ## 4. Optional integrations (safe to launch without, work is dry-run/off by default)
 
@@ -108,3 +114,9 @@ be checked here. Verify directly on Hostinger:
 - ✅ Three dead repo-root static HTML files removed (confirmed 404 live,
   unreferenced by any code path).
 - ✅ Branded 404 page added (was falling back to Next.js's generic default).
+- ✅ Privacy Policy, Terms of Service, Licensing & Disclosures, and
+  Accessibility Statement pages added and linked from the footer/sitemap
+  (see §3) — closes the launch-blocking legal-pages gap (PR #65).
+- ✅ Render's `healthCheckPath` switched from `/` to `/api/health`
+  (`render.yaml`) — checks the actual storage layer instead of rendering
+  the full marketing homepage on every probe.

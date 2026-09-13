@@ -253,3 +253,45 @@ fix without further product/legal input:
 
 All of the above verified together: `npm run lint` (0 errors), `npm test`
 (357/357), `npm run build` (clean), and `php -l` on every touched PHP file.
+
+## 9. CodeRabbit review follow-ups (same PR)
+
+CodeRabbit's automated review on PR #67 caught one real bug this session's
+own testing missed, plus two items worth a documented decision rather than
+a reflexive fix:
+
+- ✅ **Fixed:** `loanpilot-floating-assistant.tsx`'s `clearConversation()`
+  reset the conversation but not `contactDraft`/`contactConsent` — a user
+  could reset mid-flow and submit new contact info without re-checking the
+  consent box (the stale `true` survived the reset). Now cleared alongside
+  the rest of the conversation state.
+- ✅ **Fixed (partial, by design):** `/api/demo-request` — hit directly by
+  ypnus.com's own marketing forms via CORS, not just `territory-claim.tsx` —
+  now accepts and persists a `consent`/`consentAt` field when a caller sends
+  one (and `territory-claim.tsx` now sends it, since it already gated
+  client-side). **Deliberately not hard-rejecting** requests that omit it,
+  unlike the WP `/intake` route in §8: this endpoint is called directly by
+  external ypnus.com marketing-site forms this repo can't inspect from this
+  session (network-blocked), and rejecting unconditionally risked silently
+  breaking live lead capture with no way to verify the blast radius first.
+  Same underlying gap as `wp-mu-plugins/ypnus-supabase-signup.php`'s
+  `/intake` — someone with ypnus.com access needs to confirm those forms
+  send consent before this can safely flip to hard-rejecting.
+- **Noted, not changed:** `src/lib/http.ts`'s `safeEqual()` returns `false`
+  on a length mismatch before calling `timingSafeEqual` — CodeRabbit flagged
+  this (itself rated trivial/low-value) as leaking the configured secret's
+  *length* via timing, not the secret itself. Left as-is: this is the exact
+  pattern already used pre-existing in `src/lib/sso.ts`, `session.ts`, and
+  `voice/twilio.ts`, so "fixing" it here alone would make this file
+  inconsistent with three established call sites rather than close a real
+  gap.
+- **Noted, not changed:** `src/components/equity-snapshot.tsx` posts to
+  `/api/property/evaluate` with the same pre-existing (not touched this
+  session) consent-checkbox pattern that inspired the two fixes above, and
+  that route doesn't persist a consent field either. Out of scope for this
+  PR (untouched file, not flagged by the review since it's outside the
+  diff) — worth the same `consent`/`consentAt` treatment as `demo-request`
+  in a follow-up.
+
+Re-verified after these fixes: `npm run lint` (0 errors), `npm test`
+(357/357), `npm run build` (clean).

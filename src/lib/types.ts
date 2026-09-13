@@ -220,6 +220,9 @@ export interface DemoRequestRecord {
   message?: string;
   source?: string;
   status: "new" | "contacted";
+  /** Whether the submitter checked a contact-consent (TCPA) box, if the caller sent one. */
+  consent?: boolean;
+  consentAt?: string;
 }
 
 export interface PropertyEvaluationRecord {

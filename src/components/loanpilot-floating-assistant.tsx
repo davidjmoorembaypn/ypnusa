@@ -339,6 +339,8 @@ export function MortgageIntakeChat(props: {
     setSlots([]);
     setLastError(null);
     setLaneLocked(false);
+    setContactDraft({ name: "", phone: "", email: "" });
+    setContactConsent(false);
   }
 
   function handleReset() {

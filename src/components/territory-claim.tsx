@@ -168,6 +168,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           ...form,
           zip: check.status === "result" ? check.zip : zip,
           source,
+          consent,
         },
       );
       if (!data?.ok) {

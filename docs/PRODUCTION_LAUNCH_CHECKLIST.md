@@ -90,7 +90,15 @@ routing logic, not an aspirational claim).
 This session's sandbox network policy blocks outbound access to both
 `ypnus.com` and `developers.hostinger.com` (confirmed via the agent proxy's
 own status endpoint, not a transient failure), so none of the following can
-be checked here. Verify directly on Hostinger:
+be checked here. This still held in a later session where the Hostinger
+hosting/DNS/domains/VPS MCP tools were attached and callable: every call
+(`hosting_listWebsitesV1`, `domains_getDomainListV1`,
+`DNS_getDNSRecordsV1`) came back `request blocked: no rule or allowlist
+entry allows host "developers.hostinger.com"`, and
+`/__agentproxy/status` recorded matching `connect_rejected` /
+403-on-CONNECT entries — an organization egress-policy denial, not a tool
+or credential problem, so it isn't something to retry or route around.
+Verify directly on Hostinger (hPanel or a session with that host allowed):
 
 - [ ] The Hostinger Node.js deployment for app.ypnus.com is actually running
       the latest `main` (currently `7e54d4b` as of this doc).
@@ -120,3 +128,30 @@ be checked here. Verify directly on Hostinger:
 - ✅ Render's `healthCheckPath` switched from `/` to `/api/health`
   (`render.yaml`) — checks the actual storage layer instead of rendering
   the full marketing homepage on every probe.
+
+## 7. Regression sweep (this session)
+
+Re-verified the whole repo end to end after a fresh `npm install`; no
+regressions found and nothing needed fixing:
+
+- ✅ `npm install` — 376 packages, **0 vulnerabilities**.
+- ✅ `npm run lint` — 0 errors (2 pre-existing unused-arg warnings in
+  `src/lib/flows.ts`, unrelated to launch readiness).
+- ✅ `npm test` — **357/357 tests pass** across 81 suites, including the
+  Stripe fulfillment idempotency/ZIP-claim-conflict tests
+  (`src/app/api/webhooks/fulfill/route.test.ts`) and the WordPress
+  autopilot Rank Math field-routing tests.
+- ✅ `npm run build` — production build succeeds (all routes compile,
+  including the dynamic `/api/webhooks/fulfill`, `/api/webhooks/leads`,
+  and static legal/SEO pages added in PR #65).
+- ✅ Spot-checked the in-repo WordPress plugins
+  (`wp-plugins/ypnus-stripe-webhook`, `wp-mu-plugins/ypnus-supabase-signup`,
+  `wp-mu-plugins/ypnus-lo-account-bridge`) for the usual commercial-readiness
+  red flags (missing Stripe signature verification, unparameterized
+  `$wpdb` queries, TODO/FIXME/placeholder markers) — none found; the Stripe
+  webhook plugin verifies its HMAC signature (`ypnus_stripe_verify_signature`)
+  before trusting any event and every `$wpdb->query`/`get_row` call with a
+  variable value goes through `$wpdb->prepare`.
+- No open PRs or issues in this repo as of this sweep — everything actionable
+  from §§1–5 above is infrastructure/legal, not code, and stays open pending
+  direct Hostinger/attorney access this session doesn't have.

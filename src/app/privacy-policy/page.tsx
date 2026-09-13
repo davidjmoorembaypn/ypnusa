@@ -87,9 +87,12 @@ export default function PrivacyPolicyPage() {
       <h2>5. How we share information</h2>
       <ul>
         <li>
-          <strong>With the Subscriber who owns the relevant ZIP territory</strong> &mdash; a
-          Borrower&rsquo;s inquiry is shared with that Subscriber so they can follow up, which is
-          the core purpose of the platform.
+          <strong>With a participating loan officer Subscriber</strong> &mdash; a Borrower&rsquo;s
+          inquiry is shared with a Subscriber on the platform so they can follow up, which is the
+          core purpose of the platform. Assignment is based on the loan program involved and
+          current workload among active Subscribers; it is not guaranteed to be limited to
+          whichever Subscriber currently holds the ZIP-code territory associated with the
+          inquiry.
         </li>
         <li>
           <strong>Stripe</strong> &mdash; processes Subscriber payments. We do not store full

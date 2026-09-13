@@ -33,10 +33,10 @@ export function SiteFooter() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">Product</p>
           <ul className="mt-4 space-y-2 text-sm">
-            <li><a href="#how" className="transition hover:text-white">How it works</a></li>
-            <li><a href="#territories" className="transition hover:text-white">Territories</a></li>
-            <li><a href="#demo" className="transition hover:text-white">Live demo</a></li>
-            <li><a href="#pricing" className="transition hover:text-white">Pricing</a></li>
+            <li><Link href="/#how" className="transition hover:text-white">How it works</Link></li>
+            <li><Link href="/#territories" className="transition hover:text-white">Territories</Link></li>
+            <li><Link href="/#demo" className="transition hover:text-white">Live demo</Link></li>
+            <li><Link href="/#pricing" className="transition hover:text-white">Pricing</Link></li>
             <li><Link href="/analytics" className="transition hover:text-white">Analytics</Link></li>
           </ul>
         </div>
@@ -75,7 +75,7 @@ export function SiteFooter() {
             David J. Moore, MBA · NMLS #787257 · DRE #01852847 · Equal Housing Opportunity · Marketing
             technology only — not a commitment to lend. ·{" "}
             <a
-              href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/COMPANY/787257"
+              href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/787257"
               target="_blank"
               rel="noopener noreferrer"
               className="underline transition hover:text-white"

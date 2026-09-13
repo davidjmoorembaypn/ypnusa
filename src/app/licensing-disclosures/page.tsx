@@ -34,7 +34,7 @@ export default function LicensingDisclosuresPage() {
         Current state-by-state licensing information, branch details, and regulatory status can be
         verified at{" "}
         <a
-          href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/COMPANY/787257"
+          href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/787257"
           target="_blank"
           rel="noopener noreferrer"
         >

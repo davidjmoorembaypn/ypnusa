@@ -6,9 +6,8 @@ import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepa
 import { FloatingAssistantWidget } from "@/components/assistant/floating-assistant-widget";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { marketingUrl } from "@/lib/site";
 import { PRICING_TIERS } from "@/lib/pricing";
-import { checkoutUrlForTier } from "@/lib/checkout";
+import { PricingCta } from "@/components/pricing-cta";
 
 const LIFE_EVENTS = [
   {
@@ -111,12 +110,6 @@ const FAQ = [
     a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Starter $29.99/mo, Growth $99/mo, Pro $199/mo, and Elite $299/mo — every paid plan includes a 15-day free trial.",
   },
 ];
-
-function signupHrefForPlan(plan: string) {
-  // Free stays on the marketing signup path directly — checkoutUrlForTier's
-  // Stripe Payment Link resolution only applies to paid tiers.
-  return marketingUrl(`/lo-signup.html?plan=${encodeURIComponent(plan)}`);
-}
 
 export default function Home() {
   return (
@@ -430,16 +423,16 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href={tier.id === "free" ? signupHrefForPlan(tier.id) : checkoutUrlForTier(tier.id)}
-                  className={`mt-8 inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 ${
+                <PricingCta
+                  tierId={tier.id}
+                  className={`mt-8 inline-flex min-h-[48px] items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 ${
                     tier.highlight
                       ? "bg-amber-400 text-[#09081b] shadow-lg shadow-amber-500/30"
                       : "bg-[#09081b] text-white"
                   }`}
                 >
                   {tier.cta}
-                </a>
+                </PricingCta>
                 <a
                   href="#territories"
                   className={`mt-3 text-center text-xs font-semibold underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 ${

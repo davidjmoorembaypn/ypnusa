@@ -409,6 +409,53 @@ export function saveRevenueSubscription(subscription: RevenueSubscriptionRecord)
   });
 }
 
+/**
+ * Upserts a subscription and, if a valid zip is given, locks it into that
+ * subscription's claimedZips in the same writeDb transaction as the upsert —
+ * so two overlapping fulfillment events for different subscriptions can never
+ * both claim the same zip. If another active/trialing subscription belonging
+ * to a *different* customer already holds the zip, the upsert still proceeds
+ * (payment already succeeded) but the zip is left unclaimed and `zipConflict`
+ * comes back true for the caller to log. A subscription belonging to the same
+ * customer (e.g. a replacement created before Stripe's delete event for the
+ * old one arrives) is never treated as a conflict — that's an idempotent
+ * territory transfer, not a competing claim.
+ */
+export function saveRevenueSubscriptionWithZipClaim(
+  subscription: RevenueSubscriptionRecord,
+  zip: string | null,
+): { record: RevenueSubscriptionRecord; zipClaimed: boolean; zipConflict: boolean } {
+  let result!: { record: RevenueSubscriptionRecord; zipClaimed: boolean; zipConflict: boolean };
+  writeDb((db) => {
+    const zipConflict =
+      zip !== null &&
+      db.revenueSubscriptions.some(
+        (s) =>
+          s.id !== subscription.id &&
+          s.stripeCustomerId !== subscription.stripeCustomerId &&
+          (s.status === "active" || s.status === "trialing") &&
+          s.claimedZips.includes(zip),
+      );
+    const zipClaimed = zip !== null && !zipConflict && !subscription.claimedZips.includes(zip);
+    // On conflict, also strip the contested zip from *this* record's own claimedZips —
+    // it may already be there from a stale prior state (e.g. this subscription was
+    // reactivated and its old claimedZips array was never cleared), which would
+    // otherwise leave two active/trialing subscriptions both listing the same zip.
+    const record: RevenueSubscriptionRecord = zipClaimed
+      ? { ...subscription, claimedZips: [...subscription.claimedZips, zip] }
+      : zipConflict
+        ? { ...subscription, claimedZips: subscription.claimedZips.filter((claimed) => claimed !== zip) }
+        : subscription;
+
+    const idx = db.revenueSubscriptions.findIndex((s) => s.id === record.id);
+    if (idx >= 0) db.revenueSubscriptions[idx] = record;
+    else db.revenueSubscriptions.push(record);
+
+    result = { record, zipClaimed, zipConflict };
+  });
+  return result;
+}
+
 export function listWebsiteAutopilotChanges(userId?: string): WebsiteAutopilotChange[] {
   const all = readDb().websiteAutopilotChanges;
   return userId ? all.filter((change) => change.userId === userId) : all;

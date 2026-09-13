@@ -44,6 +44,26 @@ function signupHrefFor(zip?: string, plan = "free") {
   return `${MARKETING_SIGNUP}?${params.toString()}`;
 }
 
+/** Fired on `window` whenever a ZIP check resolves, so PricingCta can react live. */
+export const ZIP_CHECKED_EVENT = "ypnus:zip-checked";
+
+/**
+ * Reflects a confirmed ZIP into this page's own URL (no navigation/reload) so a
+ * page reload or shared link carries it, and broadcasts a same-page event so
+ * components mounted before this check — the pricing tier CTAs — can pick it up
+ * immediately rather than only on their own next mount. See PricingCta.
+ */
+function syncZipToPageUrl(zip: string) {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set("zip", zip);
+    window.history.replaceState(window.history.state, "", url);
+    window.dispatchEvent(new CustomEvent(ZIP_CHECKED_EVENT, { detail: { zip } }));
+  } catch {
+    /** noop — purely a cross-component convenience, never blocks the check flow. */
+  }
+}
+
 export function TerritoryClaim({ source = "territory_section" }: { source?: string }) {
   const zipInputId = useId();
   const [zip, setZip] = useState("");
@@ -106,6 +126,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         demandTotal: data.demand?.total ?? null,
         source: data.source,
       });
+      // Never propagate an unavailable ZIP into the pricing CTAs — a visitor could
+      // otherwise pay for a territory the page just described as already claimed.
+      if (data.available) syncZipToPageUrl(data.zip);
       void enrichWithIntelligence(data.zip, data.available, data.demand?.total ?? undefined);
     } catch {
       setCheck({ status: "error", message: "Couldn't reach the territory service — try again." });

@@ -180,3 +180,76 @@ regressions found and nothing needed fixing:
 - No open PRs or issues in this repo as of this sweep — everything actionable
   from §§1–5 above is infrastructure/legal, not code, and stays open pending
   direct Hostinger/attorney access this session doesn't have.
+
+## 8. Deeper audit + fixes (same day, follow-up pass)
+
+Ran three parallel focused audits (WordPress plugins, every Next.js API
+route, frontend compliance surfaces) and fixed everything that was safe to
+fix without further product/legal input:
+
+- ✅ **Timing-safe secret comparison.** `src/lib/http.ts`'s `requireInternalSecret`
+  and `matchSuppliedSecret`, plus `src/app/api/reviews/request/route.ts`'s
+  `isAuthorized`, compared secrets with plain `===`/`Array.includes` — a
+  timing side-channel on `ADMIN_TOKEN`/`CRON_SECRET`/`LAMBDA_FULFILLMENT_SECRET`/
+  `REVIEW_REQUEST_API_SECRET`. Added a shared `safeEqual()` (same
+  `crypto.timingSafeEqual` pattern already used in `src/lib/sso.ts`,
+  `src/lib/session.ts`, and `src/lib/voice/twilio.ts`) and switched all of
+  them to it.
+- ✅ **Missing rate limits.** `webhooks/leads`, `onboarding`, `agent`, and
+  `funnel/optimize` wrote data with no rate limiting despite sibling routes
+  with the same auth shape (`automation/process`, `personalize`,
+  `funnel/track`) having one — added `enforceRateLimit`/`rateLimit` calls
+  matching each route's existing auth pattern. (`cta`'s lack of a limiter is
+  a deliberate, commented decision — pure/cheap in-memory computation — left
+  as-is.)
+- ✅ **TCPA consent gaps (frontend).** `src/components/territory-claim.tsx`
+  (ZIP-reservation form) and `src/components/loanpilot-floating-assistant.tsx`
+  (the borrower intake chat's contact-info step, used by both the floating
+  widget and `/embed/intake`) collected a phone number for SMS/call follow-up
+  with no consent checkbox at all — unlike `src/components/equity-snapshot.tsx`,
+  which already had one. Added the same unchecked-by-default, required
+  checkbox + submit-blocking pattern to both.
+- ✅ **TCPA consent gap (WordPress backend).** `wp-mu-plugins/ypnus-supabase-signup.php`'s
+  `/intake` REST route (the one `docs/WORDPRESS_LIVE_CHANGE_LOG.md:217`
+  already flagged as missing a TCPA checkbox on the `lo-signup.html` static
+  page) had no server-side consent enforcement either — added a
+  `tcpa_consent`/`consent_at` column pair (versioned `dbDelta` migration,
+  `YPNUS_INTAKE_DB_VERSION` bumped to `1.1.0`) and the route now rejects any
+  submission missing `tcpa_consent=true`. **Still open:** the actual
+  borrower-facing widget that POSTs to this endpoint is a static file outside
+  this repo (per the change-log entry) — it needs to actually send
+  `tcpa_consent` from a real checkbox, or every submission will now 400.
+  This backend change is defense-in-depth, not a substitute for that.
+- ✅ **Rank Math schema drift.** `wp-plugins/ypnus-trust-and-schema/ypnus-trust-and-schema.php`'s
+  `SoftwareApplication.offers` listed Starter/Pro/Elite but omitted the
+  canonical "Growth" tier — added it.
+- ✅ **Embed disclosure.** `/embed/intake` (an iframe-embeddable,
+  borrower-facing surface) rendered with no NMLS/Equal Housing text at all,
+  unlike every other public page (via `SiteFooter`) — added a minimal
+  one-line disclosure to `src/app/embed/intake/page.tsx`.
+
+**Reviewed, deliberately not changed:**
+
+- `SiteFooter` isn't rendered on internal dashboard/portal/onboarding/login
+  routes — those are authenticated MLO-tool screens (per `references/ypnus.md`:
+  "audience is mortgage loan officers, not consumers"), not consumer-facing
+  loan touchpoints, so the consumer-disclosure rationale doesn't clearly
+  apply the same way it does to `/embed/intake`. Flagging here rather than
+  changing unilaterally — a product call, not a bug.
+- Equal Housing Opportunity renders as text only, no logo — HUD advertising
+  guidance treats the text statement alone as sufficient; not a compliance
+  blocker.
+- `privacy-policy`/`terms-of-service`/`accessibility-statement` don't cross-link
+  to each other (only `licensing-disclosures` does) — cosmetic, all four are
+  independently reachable from the footer and sitemap already.
+- WP `territory_conflict`/`account_mapping_conflict` states (a paying
+  customer stuck unprovisioned) log to a `wp_option` but never alert anyone —
+  real gap, but fixing it means deciding on a notification channel/owner,
+  not a safe unilateral code change.
+- `wp-mu-plugins/ypnus-supabase-signup.php`'s `/intake` `lo_id` isn't
+  validated against a real LO account before insert (leads can land against
+  a bogus id) — same reasoning, needs a decision on failure behavior
+  (reject vs. flag) before changing.
+
+All of the above verified together: `npm run lint` (0 errors), `npm test`
+(357/357), `npm run build` (clean), and `php -l` on every touched PHP file.

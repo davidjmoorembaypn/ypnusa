@@ -1,4 +1,4 @@
-import { logApiError } from "@/lib/http";
+import { logApiError, safeEqual } from "@/lib/http";
 import { getPublicBusinessProfile } from "@/lib/local-seo";
 import { OUTBOUND_TIMEOUT_MS } from "@/lib/outbound";
 import {
@@ -9,7 +9,8 @@ import {
 function isAuthorized(request: Request): boolean {
   const secret = process.env.REVIEW_REQUEST_API_SECRET?.trim();
   if (!secret) return process.env.NODE_ENV !== "production";
-  return request.headers.get("authorization") === `Bearer ${secret}`;
+  const provided = request.headers.get("authorization") ?? "";
+  return safeEqual(provided, `Bearer ${secret}`);
 }
 
 export async function POST(request: Request) {

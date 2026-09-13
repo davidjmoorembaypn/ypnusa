@@ -9,6 +9,7 @@ import {
 import { generateId } from "@/lib/id";
 import { finalizeIntakeArtifacts } from "@/lib/intake-pipeline";
 import { coerceLoanProgram } from "@/lib/programs";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import type { BorrowerAnswers, IntakeSessionRecord } from "@/lib/types";
 import { optionalText } from "@/lib/validation";
 
@@ -30,6 +31,13 @@ interface InboundLeadPayload {
 export async function POST(request: Request) {
   const unauthorized = requireSecret(request);
   if (unauthorized) return unauthorized;
+
+  const limited = enforceRateLimit(request, {
+    scope: "webhooks-leads",
+    limit: 30,
+    message: "Too many lead events — please slow down and try again shortly.",
+  });
+  if (limited) return limited;
 
   const parsed = await parseJsonBody<InboundLeadPayload>(request);
   if (!parsed.ok) return jsonError(parsed.error, 400, parsed.code);

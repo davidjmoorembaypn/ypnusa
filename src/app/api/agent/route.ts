@@ -7,6 +7,7 @@ import type { BorrowerProfile, BorrowerProfileBasics } from "@/lib/borrower/prof
 import type { FunnelStageName } from "@/lib/predictive/outcomeEngine";
 import { isRecord, jsonError, logApiError, parseJsonBody } from "@/lib/http";
 import { requireSessionOrSecret } from "@/lib/auth";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,13 @@ const VALID_TASK_TYPES = new Set<AgentTaskType>([
 export async function POST(request: Request) {
   const unauthorized = await requireSessionOrSecret(request);
   if (unauthorized) return unauthorized;
+
+  const limited = rateLimit(`agent:${clientKey(request)}`, 30, 60_000);
+  if (!limited.ok) {
+    return jsonError("Too many requests — please slow down and try again shortly.", 429, "RATE_LIMITED", {
+      headers: { "Retry-After": String(limited.retryAfter) },
+    });
+  }
 
   const parsed = await parseJsonBody<unknown>(request);
   if (!parsed.ok) return jsonError(parsed.error, 400, parsed.code);

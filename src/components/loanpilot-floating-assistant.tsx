@@ -370,6 +370,7 @@ export function MortgageIntakeChat(props: {
   const [contactDraft, setContactDraft] = useState({ name: "", phone: "", email: "" });
   const [contactGroupError, setContactGroupError] = useState<string | null>(null);
   const [contactGroupBusy, setContactGroupBusy] = useState(false);
+  const [contactConsent, setContactConsent] = useState(false);
 
   async function submitContactGroup() {
     const name = contactDraft.name.trim();
@@ -378,6 +379,10 @@ export function MortgageIntakeChat(props: {
 
     if (!name || !phone || !email) {
       setContactGroupError("Fill in name, phone, and email to continue.");
+      return;
+    }
+    if (!contactConsent) {
+      setContactGroupError("Please confirm you agree to be contacted.");
       return;
     }
 
@@ -580,6 +585,8 @@ export function MortgageIntakeChat(props: {
                 isContactGroupField={isContactGroupField}
                 contactDraft={contactDraft}
                 setContactDraft={setContactDraft}
+                contactConsent={contactConsent}
+                setContactConsent={setContactConsent}
                 contactGroupError={contactGroupError}
                 contactGroupBusy={contactGroupBusy}
                 submitContactGroup={() => void submitContactGroup()}
@@ -629,6 +636,8 @@ export function MortgageIntakeChat(props: {
               isContactGroupField={isContactGroupField}
               contactDraft={contactDraft}
               setContactDraft={setContactDraft}
+              contactConsent={contactConsent}
+              setContactConsent={setContactConsent}
               contactGroupError={contactGroupError}
               contactGroupBusy={contactGroupBusy}
               submitContactGroup={() => void submitContactGroup()}
@@ -681,6 +690,8 @@ function InnerChrome(props: {
   isContactGroupField: boolean;
   contactDraft: { name: string; phone: string; email: string };
   setContactDraft: (updater: (d: { name: string; phone: string; email: string }) => { name: string; phone: string; email: string }) => void;
+  contactConsent: boolean;
+  setContactConsent: (value: boolean) => void;
   contactGroupError: string | null;
   contactGroupBusy: boolean;
   submitContactGroup: () => void;
@@ -726,6 +737,8 @@ function InnerChrome(props: {
     isContactGroupField,
     contactDraft,
     setContactDraft,
+    contactConsent,
+    setContactConsent,
     contactGroupError,
     contactGroupBusy,
     submitContactGroup,
@@ -919,6 +932,18 @@ function InnerChrome(props: {
                 placeholder="name@example.com"
               />
             </div>
+            <label className="flex items-start gap-2 text-[11px] leading-4 text-slate-600">
+              <input
+                type="checkbox"
+                checked={contactConsent}
+                onChange={(evt) => setContactConsent(evt.target.checked)}
+                disabled={busyFlag || contactGroupBusy}
+                required
+                className="mt-0.5 accent-violet-600"
+              />
+              YPN USA and an assigned loan officer may contact me by email, text, or phone about
+              this request. Message and data rates may apply; reply STOP to opt out.
+            </label>
             {contactGroupError ? (
               <p className="text-xs font-medium text-amber-700">{contactGroupError}</p>
             ) : null}

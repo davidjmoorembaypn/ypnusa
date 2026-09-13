@@ -103,6 +103,7 @@ function ypnus_trust_schema_entities() {
 			),
 			'offers' => array(
 				array( '@type' => 'Offer', 'name' => 'Starter', 'url' => $pricing_url, 'priceCurrency' => 'USD', 'category' => 'subscription' ),
+				array( '@type' => 'Offer', 'name' => 'Growth', 'url' => $pricing_url, 'priceCurrency' => 'USD', 'category' => 'subscription' ),
 				array( '@type' => 'Offer', 'name' => 'Pro', 'url' => $pricing_url, 'priceCurrency' => 'USD', 'category' => 'subscription' ),
 				array( '@type' => 'Offer', 'name' => 'Elite', 'url' => $pricing_url, 'priceCurrency' => 'USD', 'category' => 'subscription' ),
 			),

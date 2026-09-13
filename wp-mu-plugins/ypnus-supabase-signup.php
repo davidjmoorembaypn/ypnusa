@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'YPNUS_SIGNUP_DB_VERSION', '1.2.0' ); // added password_hash
-define( 'YPNUS_INTAKE_DB_VERSION', '1.0.0' );
+define( 'YPNUS_INTAKE_DB_VERSION', '1.1.0' ); // added tcpa_consent / consent_at
 
 /**
  * Canonical MLO acquisition/intake entry as of 1.2.0. app.ypnus.com/embed/intake is a real,
@@ -213,6 +213,8 @@ add_action(
 				payload longtext NULL,
 				source_url varchar(255) NOT NULL DEFAULT '',
 				status varchar(20) NOT NULL DEFAULT 'new',
+				tcpa_consent tinyint(1) NOT NULL DEFAULT 0,
+				consent_at datetime NULL DEFAULT NULL,
 				created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				PRIMARY KEY  (id),
 				KEY lo_id (lo_id),
@@ -609,6 +611,15 @@ add_action(
 						return new WP_Error( 'missing_fields', 'Name, email, and phone are required.', array( 'status' => 400 ) );
 					}
 
+					$tcpa_consent = filter_var( $request->get_param( 'tcpa_consent' ), FILTER_VALIDATE_BOOLEAN );
+					if ( ! $tcpa_consent ) {
+						return new WP_Error(
+							'consent_required',
+							'Contact consent (tcpa_consent) is required before submitting this lead.',
+							array( 'status' => 400 )
+						);
+					}
+
 					$lead_score    = max( 0, min( 100, (int) $request->get_param( 'lead_score' ) ) );
 					$lead_quality  = sanitize_text_field( (string) $request->get_param( 'lead_quality' ) );
 					$loan_type     = sanitize_text_field( (string) $request->get_param( 'loan_type' ) );
@@ -646,8 +657,10 @@ add_action(
 							'payload'              => $payload,
 							'source_url'           => $source_url,
 							'status'               => 'new',
+							'tcpa_consent'         => 1,
+							'consent_at'           => current_time( 'mysql' ),
 						),
-						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s' )
+						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
 					);
 
 					if ( ! $inserted ) {

@@ -74,8 +74,15 @@ subscriptions; it does **not** sync Stripe claims live from WordPress:
 
 ### REST API (documented, not implemented in this repo)
 
-- `GET /wp-json/ypnus/v1/zip-check/{zip}` — `src/lib/live-territory.ts:44`
-- `POST /wp-json/ypnus/v1/login`, `/request-reset`, `/reset-password`, `/profile`, `/create-mlo` — `docs/sso-handoff.md:78-79`
+Confirmed live and registered via a direct `GET /wp-json/ypnus/v1` index fetch on
+2026-09-13 — not implemented in this repo, but not vaporware either:
+
+- `GET /wp-json/ypnus/v1/zip-check/{zip}` — `src/lib/live-territory.ts:44`; functionally
+  tested against ZIP 93720, returned real demand data
+- `POST /wp-json/ypnus/v1/login`, `/request-reset`, `/reset-password`, `/profile`, `/create-mlo` — `docs/sso-handoff.md:78-79`;
+  registered and live, but the `/login` handler's actual signed-redirect behavior
+  (HMAC contract in `docs/sso-handoff.md`) wasn't verified — that needs either the
+  plugin source or a real end-to-end login test
 
 ### Marketing HTML paths referenced (WordPress / static, not Next.js)
 
@@ -177,19 +184,19 @@ path, and pending removal from the repo.
 | # | Risk / unknown | Severity | Evidence |
 | --- | --- | --- | --- |
 | 1 | `us.ypnus.com` undefined — no DNS, routes, or docs in repo | High if planned | Zero grep matches |
-| 2 | SSO not live on WordPress — callback exists but WP plugin unchanged | High | `docs/sso-handoff.md:75-82` |
+| 2 | SSO not live on WordPress — **Partially resolved.** `POST /wp-json/ypnus/v1/login`, `/request-reset`, `/reset-password`, `/create-mlo`, `/profile` are registered and live on ypnus.com (confirmed via a live REST index fetch). **Still unverified:** whether `/login` actually performs the signed redirect to `app.ypnus.com/api/auth/callback` per `docs/sso-handoff.md`'s exact HMAC contract — plugin source wasn't readable from this check, and testing requires a real login | Medium (down from High) | `docs/sso-handoff.md:75-82`; live route confirmation 2026-09-13 |
 | 3 | ~~`/dashboard` 404 after SSO~~ — **Resolved.** `src/app/dashboard/page.tsx` now exists and calls `requireSession` | ~~Medium~~ | `src/app/dashboard/page.tsx` |
 | 4 | ~~Auth is proxy-only~~ — **Resolved.** Every protected page calls `requireSession`/`requireAdminSession`; APIs behind proxy-gated pages call `requireAdminSessionOrSecret` | ~~Medium–High~~ | `src/lib/auth.ts:52-79` |
 | 5 | ~~Admin/cron APIs open by default~~ — **Resolved.** `requireSecret` now denies when neither secret is configured | ~~High~~ | `src/lib/http.ts:46-56` |
 | 6 | `REVIEW_REQUEST_API_SECRET` optional in non-production; required in prod | Medium | `src/app/api/reviews/request/route.ts:8-9` |
-| 7 | Stale Hostinger README Stripe env vars — app Stripe routes removed | Medium (ops confusion) | `hostinger/README.md:114-116` vs no Stripe routes in `src/` |
+| 7 | ~~Stale Hostinger README Stripe env vars~~ — **Resolved.** `hostinger/README.md` already documents the removal accurately (no `STRIPE_*` env var expected on this app) | ~~Medium~~ | `hostinger/README.md:120-122,139-150` |
 | 8 | Dual stack on app.ypnus.com — Next.js + legacy PHP territory routes in `.htaccess`; `territory.php` not in repo | Medium | `hostinger/app-ypnus/.htaccess:14-19` |
 | 9 | Local SEO canonical vs hosting mismatch — pages built on app, canonicals on ypnus.com; reverse-proxy not configured in repo | High for SEO routing | `src/lib/local-seo.ts:203-204`, `README.md:85-90` |
 | 10 | File store is instance-local — `/tmp/ypnus-data` on Hostinger/Render; multi-instance sessions need `SESSION_SECRET` | High at scale | `hostinger/README.md:82`, `src/lib/session.ts:29-31` |
 | 11 | Rate limits in-memory only — not shared across instances | Medium | `src/lib/rate-limit.ts:4-7` |
-| 12 | Live production state unknown — docs say app may still be static HTML + broken redirects | Unknown | `hostinger/README.md:8` |
+| 12 | Live production state — **Partially resolved.** ypnus.com (WordPress) confirmed live, correct plugin set active, functional REST responses. **Still unknown:** app.ypnus.com (Next.js/Hostinger) — this session's network egress to `app.ypnus.com` and `developers.hostinger.com` is blocked, so current deploy commit / env vars / DNS can't be checked from here | Unknown (app.ypnus.com only) | Live WordPress checks 2026-09-13; `hostinger/README.md:8` |
 | 13 | Cloudflare / DNS / TLS — scripts exist but no committed zone config | Unknown | `hostinger/README.md:26-27` |
-| 14 | WordPress zip-check / MLO toolkit — behavior and routes not versioned in this repo | Unknown | `src/lib/live-territory.ts:25-27` |
+| 14 | ~~WordPress zip-check / MLO toolkit unverified~~ — **Resolved (behavior confirmed live).** `GET /wp-json/ypnus/v1/zip-check/93720` returns real, correctly-shaped data (`{"available":true,"city":"Fresno","demand":{...}}`), not a stub. Route source still isn't versioned in this repo (owned by `ypnus-mlo-toolkit` on WordPress) | Low (down from Unknown) | Live test 2026-09-13; `src/lib/live-territory.ts:25-27` |
 | 15 | ~~Render health check uses `/` not `/api/health`~~ — **Resolved.** | ~~Low~~ | `render.yaml:17` |
 | 16 | CORS on `/api/demo-request` locked to a single marketing origin — no staging origin support | Low | `src/app/api/demo-request/route.ts:16-20` |
 

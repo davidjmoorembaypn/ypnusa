@@ -845,7 +845,7 @@ function InnerChrome(props: {
                   type="button"
                   disabled={busyFlag || Boolean(booked)}
                   onClick={() => void handleBook(slot.start, slot.loId)}
-                  className={`rounded-full border bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-xs transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 ${chipSlot}`}
+                  className={`min-h-[48px] rounded-full border bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-xs transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 ${chipSlot}`}
                 >
                   {slotPretty(slot.start)}
                 </button>
@@ -876,7 +876,7 @@ function InnerChrome(props: {
                 key={chip.value}
                 type="button"
                 disabled={busyFlag || phaseForChips === "crm_synced"}
-                className={`rounded-full border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-900 shadow-xs transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-40 ${chipHover}`}
+                className={`min-h-[48px] rounded-full border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-900 shadow-xs transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-40 ${chipHover}`}
                 onClick={() => step && submitAnswer(step, chip.value, chip.label)}
               >
                 {chip.label}
@@ -893,7 +893,7 @@ function InnerChrome(props: {
                 value={contactDraft.name}
                 onChange={(evt) => setContactDraft((d) => ({ ...d, name: evt.target.value }))}
                 type="text"
-                className={`rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+                className={`min-h-[48px] rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
                 placeholder="Full name"
               />
               <input
@@ -901,7 +901,7 @@ function InnerChrome(props: {
                 value={contactDraft.phone}
                 onChange={(evt) => setContactDraft((d) => ({ ...d, phone: evt.target.value }))}
                 type="tel"
-                className={`rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+                className={`min-h-[48px] rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
                 placeholder="(555) 123-9876"
               />
               <input
@@ -915,7 +915,7 @@ function InnerChrome(props: {
                   }
                 }}
                 type="email"
-                className={`rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+                className={`min-h-[48px] rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
                 placeholder="name@example.com"
               />
             </div>
@@ -926,7 +926,7 @@ function InnerChrome(props: {
               type="button"
               disabled={busyFlag || contactGroupBusy}
               onClick={() => void submitContactGroup()}
-              className={`w-full rounded-2xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-35 ${sendGradient}`}
+              className={`min-h-[48px] w-full rounded-2xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-35 ${sendGradient}`}
             >
               {contactGroupBusy ? "Sending…" : "Continue"}
             </button>
@@ -948,14 +948,14 @@ function InnerChrome(props: {
               }}
               type={inputKind}
               inputMode={step?.kind === "number" ? "decimal" : undefined}
-              className={`flex-1 rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
+              className={`min-h-[48px] flex-1 rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
               placeholder={step?.placeholder ?? "Answer the intake assistant"}
             />
             <button
               type="button"
               disabled={busyFlag || !step}
               onClick={() => step && submitAnswer(step, draft)}
-              className={`rounded-2xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-35 ${sendGradient}`}
+              className={`min-h-[48px] rounded-2xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-35 ${sendGradient}`}
             >
               {busyFlag ? "Sending…" : "Send"}
             </button>

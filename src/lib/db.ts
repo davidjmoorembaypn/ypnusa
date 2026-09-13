@@ -409,6 +409,42 @@ export function saveRevenueSubscription(subscription: RevenueSubscriptionRecord)
   });
 }
 
+/**
+ * Upserts a subscription and, if a valid zip is given, locks it into that
+ * subscription's claimedZips in the same writeDb transaction as the upsert —
+ * so two overlapping fulfillment events for different subscriptions can never
+ * both claim the same zip. If another active/trialing subscription already
+ * holds the zip, the upsert still proceeds (payment already succeeded) but the
+ * zip is left unclaimed and `zipConflict` comes back true for the caller to log.
+ */
+export function saveRevenueSubscriptionWithZipClaim(
+  subscription: RevenueSubscriptionRecord,
+  zip: string | null,
+): { record: RevenueSubscriptionRecord; zipClaimed: boolean; zipConflict: boolean } {
+  let result!: { record: RevenueSubscriptionRecord; zipClaimed: boolean; zipConflict: boolean };
+  writeDb((db) => {
+    const zipConflict =
+      zip !== null &&
+      db.revenueSubscriptions.some(
+        (s) =>
+          s.id !== subscription.id &&
+          (s.status === "active" || s.status === "trialing") &&
+          s.claimedZips.includes(zip),
+      );
+    const zipClaimed = zip !== null && !zipConflict && !subscription.claimedZips.includes(zip);
+    const record: RevenueSubscriptionRecord = zipClaimed
+      ? { ...subscription, claimedZips: [...subscription.claimedZips, zip] }
+      : subscription;
+
+    const idx = db.revenueSubscriptions.findIndex((s) => s.id === record.id);
+    if (idx >= 0) db.revenueSubscriptions[idx] = record;
+    else db.revenueSubscriptions.push(record);
+
+    result = { record, zipClaimed, zipConflict };
+  });
+  return result;
+}
+
 export function listWebsiteAutopilotChanges(userId?: string): WebsiteAutopilotChange[] {
   const all = readDb().websiteAutopilotChanges;
   return userId ? all.filter((change) => change.userId === userId) : all;

@@ -1,6 +1,7 @@
 import {
   findRevenueSubscriptionByStripeSubscriptionId,
   saveRevenueSubscription,
+  saveRevenueSubscriptionWithZipClaim,
 } from "@/lib/db";
 import { generateId } from "@/lib/id";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/lib/http";
 import { resolveTierFromStripeIdentifier } from "@/lib/pricing";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { isValidZip, normalizeZip } from "@/lib/territory";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 import { optionalText, requiredText } from "@/lib/validation";
 
@@ -42,6 +44,12 @@ interface FulfillmentPayload {
   stripeSubscriptionId?: unknown;
   priceId?: unknown;
   productId?: unknown;
+  /**
+   * The ZIP territory the borrower reserved before checkout (forwarded from Stripe
+   * checkout session metadata by the Lambda). Only ever locked on checkout.session.completed —
+   * see `saveRevenueSubscriptionWithZipClaim`.
+   */
+  zip?: unknown;
   eventType?: unknown;
   /** Required only for checkout.session.completed — Stripe's own payment_status on the session object. */
   paymentStatus?: unknown;
@@ -158,6 +166,8 @@ export async function POST(request: Request) {
     const customerEmail = optionalText(parsed.data.customerEmail, 320);
     const userId = optionalText(parsed.data.userId, 200);
     const now = new Date().toISOString();
+    const requestedZip = normalizeZip(parsed.data.zip);
+    const zipToClaim = isValidZip(requestedZip) ? requestedZip : null;
 
     const record: RevenueSubscriptionRecord = existing
       ? {
@@ -185,10 +195,23 @@ export async function POST(request: Request) {
           lastStripeEventId: eventId,
           lastStripeEventCreatedAt: eventCreatedAt,
         };
-    saveRevenueSubscription(record);
+    const { zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(record, zipToClaim);
+    if (zipConflict) {
+      logApiError(
+        "/api/webhooks/fulfill",
+        new Error(`ZIP ${zipToClaim} was already claimed by another active subscription — left unclaimed for subscription ${record.id}.`),
+      );
+    }
 
     return jsonOk(
-      { applied: true, subscriptionId: record.id, tier: record.tier, status: record.status },
+      {
+        applied: true,
+        subscriptionId: record.id,
+        tier: record.tier,
+        status: record.status,
+        zipClaimed,
+        zipConflict,
+      },
       { status: existing ? 200 : 201 },
     );
   } catch (error) {

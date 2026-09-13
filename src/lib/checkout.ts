@@ -35,8 +35,19 @@ function configuredPaymentLink(tier: PricingTierId): string | null {
   return value || null;
 }
 
-export function checkoutUrlForTier(tier: PricingTierId): string {
-  return configuredPaymentLink(tier) ?? marketingUrl(`/lo-signup.html?plan=${encodeURIComponent(tier)}`);
+/**
+ * `zip`, when given, carries a ZIP a visitor already checked (via TerritoryClaim)
+ * through to signup so the territory they reserved is the one that gets locked —
+ * mirrors signupHrefFor's zip passthrough in territory-claim.tsx. Only applied to
+ * the lo-signup.html fallback: a direct Stripe Payment Link doesn't read query
+ * params, so zip continuity there stays entirely on the WordPress/Stripe side.
+ */
+export function checkoutUrlForTier(tier: PricingTierId, zip?: string): string {
+  const direct = configuredPaymentLink(tier);
+  if (direct) return direct;
+  const params = new URLSearchParams({ plan: tier });
+  if (zip) params.set("zip", zip);
+  return marketingUrl(`/lo-signup.html?${params.toString()}`);
 }
 
 /** True when a direct Stripe Payment Link is configured for this tier (vs. falling back to lo-signup.html). */

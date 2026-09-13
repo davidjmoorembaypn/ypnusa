@@ -114,6 +114,31 @@ Verify directly on Hostinger (hPanel or a session with that host allowed):
       actually deployed and pointed at the correct Stripe webhook endpoint,
       and its secret matches `LAMBDA_FULFILLMENT_SECRET` here.
 
+**Update:** the user pasted the actual generated `server.js` (and its
+embedded `nextConfig` JSON) from the live `app.ypnus.com` Node.js deployment,
+which answers part of the first item without needing Hostinger access:
+
+- Confirms `output: "standalone"` is deployed as intended, `distDir: "./.next"`,
+  and `configFileName: "next.config.ts"` — the live server is running a
+  standalone build of *this* Next.js config, not something else.
+- `repoRoot` / `outputFileTracingRoot` / `turbopack.root` all point at
+  `/home/u853154979/domains/ypnus.com/app/hbuilds/current_backup`. This
+  repo's own `scripts/deploy-hostinger.mjs` ships archives via Hostinger's
+  official `POST .../nodejs/builds/settings/from-archive` API rather than
+  managing directories itself, so `hbuilds/current_backup` is almost
+  certainly Hostinger's own build-pipeline path, not evidence of a stale
+  rollback — but that's an inference, not a verified fact. Worth a
+  one-line confirmation from whoever has hPanel access that this is the
+  *current* live slot and not a leftover backup.
+- No env vars are inlined into `nextConfig` (`"env":{}`), consistent with
+  Passenger injecting them via the hPanel Node.js panel rather than a
+  committed `.env` — matches the intended setup.
+- Caught one real, fixable gap from this: `poweredByHeader` was never set,
+  so the default (`true`) means production was sending an
+  `X-Powered-By: Next.js` header on every response. Fixed in
+  `next.config.ts` (`poweredByHeader: false`) — minor hardening, no
+  behavior change, verified with a clean `next build`.
+
 ## 6. Already fixed this session
 
 - ✅ Two critical unauthenticated RCE vulnerabilities in Next.js

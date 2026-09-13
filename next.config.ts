@@ -27,6 +27,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Smaller Hostinger / Node host deploys; `next start` still works.
   output: "standalone",
+  // Don't advertise the framework on every response.
+  poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,

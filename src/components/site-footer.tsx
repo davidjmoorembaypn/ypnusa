@@ -53,8 +53,24 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-2 px-6 py-5 text-xs text-white/50 sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} YPN Inc. / YPN USA. All rights reserved.</p>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 py-5 text-xs text-white/50">
+          <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+            <p>© {new Date().getFullYear()} YPN Inc. / YPN USA. All rights reserved.</p>
+            <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <Link href="/privacy-policy" className="underline transition hover:text-white">
+                Privacy Policy
+              </Link>
+              <Link href="/terms-of-service" className="underline transition hover:text-white">
+                Terms of Service
+              </Link>
+              <Link href="/licensing-disclosures" className="underline transition hover:text-white">
+                Licensing &amp; Disclosures
+              </Link>
+              <Link href="/accessibility-statement" className="underline transition hover:text-white">
+                Accessibility
+              </Link>
+            </nav>
+          </div>
           <p>
             David J. Moore, MBA · NMLS #787257 · DRE #01852847 · Equal Housing Opportunity · Marketing
             technology only — not a commitment to lend. ·{" "}

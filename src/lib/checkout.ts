@@ -38,13 +38,21 @@ function configuredPaymentLink(tier: PricingTierId): string | null {
 /**
  * `zip`, when given, carries a ZIP a visitor already checked (via TerritoryClaim)
  * through to signup so the territory they reserved is the one that gets locked —
- * mirrors signupHrefFor's zip passthrough in territory-claim.tsx. Only applied to
- * the lo-signup.html fallback: a direct Stripe Payment Link doesn't read query
- * params, so zip continuity there stays entirely on the WordPress/Stripe side.
+ * mirrors signupHrefFor's zip passthrough in territory-claim.tsx. A direct Stripe
+ * Payment Link carries it via `client_reference_id` — Stripe forwards that
+ * straight onto the resulting checkout session, and `ypnus_stripe_resolve_checkout_zip`
+ * (wp-plugins/ypnus-stripe-webhook.php) already reads it as its fallback when
+ * `metadata.ypnus_zip` isn't set. Without this, a checkout through a direct
+ * Payment Link would provision the customer without ever locking their territory.
  */
 export function checkoutUrlForTier(tier: PricingTierId, zip?: string): string {
   const direct = configuredPaymentLink(tier);
-  if (direct) return direct;
+  if (direct) {
+    if (!zip) return direct;
+    const url = new URL(direct);
+    url.searchParams.set("client_reference_id", zip);
+    return url.toString();
+  }
   const params = new URLSearchParams({ plan: tier });
   if (zip) params.set("zip", zip);
   return marketingUrl(`/lo-signup.html?${params.toString()}`);

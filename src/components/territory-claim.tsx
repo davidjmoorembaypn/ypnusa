@@ -126,7 +126,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         demandTotal: data.demand?.total ?? null,
         source: data.source,
       });
-      syncZipToPageUrl(data.zip);
+      // Never propagate an unavailable ZIP into the pricing CTAs — a visitor could
+      // otherwise pay for a territory the page just described as already claimed.
+      if (data.available) syncZipToPageUrl(data.zip);
       void enrichWithIntelligence(data.zip, data.available, data.demand?.total ?? undefined);
     } catch {
       setCheck({ status: "error", message: "Couldn't reach the territory service — try again." });

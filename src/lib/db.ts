@@ -413,9 +413,13 @@ export function saveRevenueSubscription(subscription: RevenueSubscriptionRecord)
  * Upserts a subscription and, if a valid zip is given, locks it into that
  * subscription's claimedZips in the same writeDb transaction as the upsert —
  * so two overlapping fulfillment events for different subscriptions can never
- * both claim the same zip. If another active/trialing subscription already
- * holds the zip, the upsert still proceeds (payment already succeeded) but the
- * zip is left unclaimed and `zipConflict` comes back true for the caller to log.
+ * both claim the same zip. If another active/trialing subscription belonging
+ * to a *different* customer already holds the zip, the upsert still proceeds
+ * (payment already succeeded) but the zip is left unclaimed and `zipConflict`
+ * comes back true for the caller to log. A subscription belonging to the same
+ * customer (e.g. a replacement created before Stripe's delete event for the
+ * old one arrives) is never treated as a conflict — that's an idempotent
+ * territory transfer, not a competing claim.
  */
 export function saveRevenueSubscriptionWithZipClaim(
   subscription: RevenueSubscriptionRecord,
@@ -428,6 +432,7 @@ export function saveRevenueSubscriptionWithZipClaim(
       db.revenueSubscriptions.some(
         (s) =>
           s.id !== subscription.id &&
+          s.stripeCustomerId !== subscription.stripeCustomerId &&
           (s.status === "active" || s.status === "trialing") &&
           s.claimedZips.includes(zip),
       );

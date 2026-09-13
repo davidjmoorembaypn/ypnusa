@@ -85,4 +85,24 @@ describe("saveRevenueSubscriptionWithZipClaim", async () => {
     assert.equal(result.zipClaimed, false);
     assert.deepEqual(result.record.claimedZips, []);
   });
+
+  it("strips a stale contested zip from the record's own claimedZips on conflict", () => {
+    // sub_e already stale-holds 77001 in its own claimedZips (e.g. from before it
+    // was cancelled and reactivated). Meanwhile a genuinely different customer,
+    // sub_f, now legitimately holds 77001. Re-saving sub_e with that same zip
+    // must not leave two active subscriptions both listing it.
+    const staleHolder: RevenueSubscriptionRecord = {
+      ...subscription("sub_e", "cus_sub_e"),
+      claimedZips: ["77001"],
+    };
+    saveRevenueSubscriptionWithZipClaim(subscription("sub_f", "cus_sub_f"), "77001");
+
+    const result = saveRevenueSubscriptionWithZipClaim(staleHolder, "77001");
+    assert.equal(result.zipConflict, true);
+    assert.equal(result.zipClaimed, false);
+    assert.deepEqual(result.record.claimedZips, []);
+
+    const stored = readDb().revenueSubscriptions.find((s) => s.id === "sub_e");
+    assert.deepEqual(stored?.claimedZips, []);
+  });
 });

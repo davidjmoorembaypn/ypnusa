@@ -437,9 +437,15 @@ export function saveRevenueSubscriptionWithZipClaim(
           s.claimedZips.includes(zip),
       );
     const zipClaimed = zip !== null && !zipConflict && !subscription.claimedZips.includes(zip);
+    // On conflict, also strip the contested zip from *this* record's own claimedZips —
+    // it may already be there from a stale prior state (e.g. this subscription was
+    // reactivated and its old claimedZips array was never cleared), which would
+    // otherwise leave two active/trialing subscriptions both listing the same zip.
     const record: RevenueSubscriptionRecord = zipClaimed
       ? { ...subscription, claimedZips: [...subscription.claimedZips, zip] }
-      : subscription;
+      : zipConflict
+        ? { ...subscription, claimedZips: subscription.claimedZips.filter((claimed) => claimed !== zip) }
+        : subscription;
 
     const idx = db.revenueSubscriptions.findIndex((s) => s.id === record.id);
     if (idx >= 0) db.revenueSubscriptions[idx] = record;

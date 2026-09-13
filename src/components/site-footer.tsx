@@ -33,10 +33,10 @@ export function SiteFooter() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">Product</p>
           <ul className="mt-4 space-y-2 text-sm">
-            <li><a href="#how" className="transition hover:text-white">How it works</a></li>
-            <li><a href="#territories" className="transition hover:text-white">Territories</a></li>
-            <li><a href="#demo" className="transition hover:text-white">Live demo</a></li>
-            <li><a href="#pricing" className="transition hover:text-white">Pricing</a></li>
+            <li><Link href="/#how" className="transition hover:text-white">How it works</Link></li>
+            <li><Link href="/#territories" className="transition hover:text-white">Territories</Link></li>
+            <li><Link href="/#demo" className="transition hover:text-white">Live demo</Link></li>
+            <li><Link href="/#pricing" className="transition hover:text-white">Pricing</Link></li>
             <li><Link href="/analytics" className="transition hover:text-white">Analytics</Link></li>
           </ul>
         </div>
@@ -53,13 +53,29 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-2 px-6 py-5 text-xs text-white/50 sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} YPN Inc. / YPN USA. All rights reserved.</p>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 py-5 text-xs text-white/50">
+          <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+            <p>© {new Date().getFullYear()} YPN Inc. / YPN USA. All rights reserved.</p>
+            <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <Link href="/privacy-policy" className="underline transition hover:text-white">
+                Privacy Policy
+              </Link>
+              <Link href="/terms-of-service" className="underline transition hover:text-white">
+                Terms of Service
+              </Link>
+              <Link href="/licensing-disclosures" className="underline transition hover:text-white">
+                Licensing &amp; Disclosures
+              </Link>
+              <Link href="/accessibility-statement" className="underline transition hover:text-white">
+                Accessibility
+              </Link>
+            </nav>
+          </div>
           <p>
             David J. Moore, MBA · NMLS #787257 · DRE #01852847 · Equal Housing Opportunity · Marketing
             technology only — not a commitment to lend. ·{" "}
             <a
-              href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/COMPANY/787257"
+              href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/787257"
               target="_blank"
               rel="noopener noreferrer"
               className="underline transition hover:text-white"

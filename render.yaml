@@ -14,7 +14,7 @@ services:
     autoDeploy: true
     buildCommand: npm ci && npm run build
     startCommand: npm run start
-    healthCheckPath: /
+    healthCheckPath: /api/health
     envVars:
       # Product app host. Keep this on app.ypnus.com so SEO/canonicals don't
       # collide with the WordPress marketing site on ypnus.com.

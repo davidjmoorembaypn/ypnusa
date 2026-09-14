@@ -13,17 +13,17 @@ const LIFE_EVENTS = [
   {
     tag: "Probate",
     title: "Probate & estate financing",
-    body: "Surface newly filed probate cases in your territory the day they hit the court record — long before the property reaches the MLS.",
+    body: "Use supported public probate records to identify potential estate-financing needs before a property reaches the MLS.",
   },
   {
     tag: "Divorce",
     title: "Divorce & refinance signals",
-    body: "Catch dissolution filings that often trigger a refinance or a sell-and-rebuy, so you're the first lender in the conversation.",
+    body: "Use supported public dissolution records as a signal for possible refinance or sell-and-rebuy needs.",
   },
   {
     tag: "Marriage",
     title: "New-union homebuyers",
-    body: "Newly married couples are prime first-time-buyer candidates. Reach them with life-stage messaging that builds trust, not friction.",
+    body: "Where lawfully available, use life-stage signals to provide relevant homebuyer education without sensitive targeting or pressure.",
   },
 ];
 
@@ -128,7 +128,7 @@ export default function Home() {
               Own your mortgage leads — <span className="text-violet-300">without waiting on Realtors.</span>
             </h1>
             <p className="mt-5 text-lg text-white/90">
-              YPN USA gives you an exclusive ZIP-code territory and an always-on AI agent that captures,
+              Paid YPN USA plans let you secure an exclusive ZIP-code territory and use an always-on AI assistant that captures,
               qualifies, and nurtures every borrower in it — automatically. And the leads and website are
               yours to keep, even if you switch brokerages.
             </p>
@@ -138,7 +138,7 @@ export default function Home() {
                 href="#territories"
                 className="inline-flex items-center justify-center rounded-full bg-amber-400 px-7 py-3.5 text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
               >
-                Claim your ZIP — free
+                Check ZIP availability — free
               </a>
               <a
                 href="#demo"
@@ -261,7 +261,7 @@ export default function Home() {
             </span>
             <h2 className="text-3xl font-semibold lg:text-4xl">Own your ZIP codes. Stop sharing leads.</h2>
             <p className="text-lg text-white/85">
-              Every borrower who searches for financing in your territory routes to you — and only you.
+              Every borrower inquiry generated through your YPN USA pages and campaigns routes to you — and only you.
               No lead resold to five competitors. No race to dial first. Just your market, protected.
             </p>
             <ul className="space-y-3 text-sm text-white/90">
@@ -319,9 +319,8 @@ export default function Home() {
               Find motivated borrowers before the listing hits
             </h2>
             <p className="mt-4 text-white/80">
-              Beyond inbound capture, YPN USA monitors public court and county records in your territory to
-              surface borrowers at the exact life moment they need financing — a head start no shared-lead
-              vendor can offer.
+              Where supported data is available, YPN USA can organize public-record signals in your territory
+              to help identify timely financing conversations. Availability varies by county and plan.
             </p>
           </div>
 
@@ -337,8 +336,7 @@ export default function Home() {
             ))}
           </div>
           <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-white/45">
-            Built on anonymized, publicly available records and paired with compliant, life-stage-aware outreach.
-            Availability of specific data sources varies by county and plan.
+            Availability, permitted use, and freshness of public-record data vary by county and plan. Users remain responsible for privacy, licensing, and outreach compliance.
           </p>
         </div>
       </section>

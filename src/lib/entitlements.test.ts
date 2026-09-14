@@ -110,11 +110,12 @@ describe("automationDailyLimitFor", () => {
 });
 
 describe("resolveOfficerEntitlement", () => {
-  it("treats an officer with no entitlement snapshot as unrestricted (not free) — see the doc comment for why", () => {
+  it("fails closed when an officer has no verified entitlement snapshot", () => {
     const result = resolveOfficerEntitlement({});
-    assert.equal(result.tier, "elite");
+    assert.equal(result.tier, "free");
     assert.equal(result.hasVerifiedClaim, false);
-    assert.equal(automationDailyLimitFor(result), Number.POSITIVE_INFINITY);
+    assert.equal(automationDailyLimitFor(result), 0);
+    assert.equal(canReceivePaidLeadDelivery(result), false);
   });
 
   it("once a snapshot exists, it's enforced exactly like a session claim (fails closed on lapsed payment)", () => {

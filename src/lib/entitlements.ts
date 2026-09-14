@@ -94,17 +94,13 @@ export function canReceivePaidLeadDelivery(entitlement: Entitlement): boolean {
 }
 
 /**
- * Entitlement for server-to-server contexts (automation/lead-delivery jobs)
- * with no logged-in session — see LoanOfficerRecord.entitlementTier's doc
- * comment in types.ts for why an officer with no snapshot resolves as
- * unrestricted ("elite", uncapped) rather than "free": there is no live
- * sync populating this field yet, and defaulting to free here would only
- * break every currently-working seeded/demo officer with no way to fix it.
- * The moment a real sync starts writing entitlementTier/entitlementStatus,
- * this starts enforcing real per-officer limits with no further code change.
+ * Entitlement for server-to-server automation and lead-delivery jobs.
+ * Production fails closed: an officer without a verified entitlement snapshot
+ * receives free access, so paid lead delivery and automation cannot run before
+ * billing synchronization is complete.
  */
 export function resolveOfficerEntitlement(officer: Pick<LoanOfficerRecord, "entitlementTier" | "entitlementStatus">): Entitlement {
-  if (!officer.entitlementTier) return { tier: "elite", status: "active", hasVerifiedClaim: false };
+  if (!officer.entitlementTier) return FREE_ENTITLEMENT;
 
   const status = officer.entitlementStatus ?? "none";
   return {

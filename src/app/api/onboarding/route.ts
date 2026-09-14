@@ -3,6 +3,7 @@ import { createSafeAgentTest, GOAL_COPY } from "@/lib/agent-onboarding";
 import { readAgentOnboarding, saveAgentOnboarding } from "@/lib/db";
 import { automationDailyLimitFor } from "@/lib/entitlements";
 import { isRecord, jsonError, jsonOk, logApiError, parseJsonBody } from "@/lib/http";
+import { rateLimit } from "@/lib/rate-limit";
 import type { AgentOnboardingGoal, AgentOnboardingRecord } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -23,6 +24,14 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) return jsonError("Authentication required.", 401, "UNAUTHORIZED");
+
+  const limited = rateLimit(`onboarding:${session.sub}`, 30, 60_000);
+  if (!limited.ok) {
+    return jsonError("Too many requests — please slow down and try again shortly.", 429, "RATE_LIMITED", {
+      headers: { "Retry-After": String(limited.retryAfter) },
+    });
+  }
+
   try {
     const parsed = await parseJsonBody(request);
     if (!parsed.ok || !isRecord(parsed.data)) return jsonError("Invalid onboarding data.", 400, "INVALID_BODY");

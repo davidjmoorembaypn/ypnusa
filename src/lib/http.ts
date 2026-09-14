@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 
 export interface ApiErrorEnvelope {
@@ -42,6 +43,13 @@ export function logApiError(route: string, error: unknown): void {
   console.error(`[api] ${route} failed`, error);
 }
 
+/** Constant-time string compare — avoids a timing side-channel on secret/token checks. */
+export function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
+}
+
 /**
  * Machine-to-machine gate. Denies the request unless it presents ADMIN_TOKEN or
  * CRON_SECRET — including when neither is configured, so an endpoint that mutates
@@ -69,7 +77,7 @@ export function requireInternalSecret(request: Request): NextResponse<ApiErrorEn
     return jsonError("Unauthorized.", 401, "UNAUTHORIZED");
   }
   const supplied = request.headers.get("x-internal-secret")?.trim();
-  if (supplied && supplied === configured) return null;
+  if (supplied && safeEqual(supplied, configured)) return null;
   return jsonError("Unauthorized.", 401, "UNAUTHORIZED");
 }
 
@@ -87,7 +95,7 @@ function matchSuppliedSecret(
     bearer,
   ].filter((secret): secret is string => Boolean(secret));
 
-  if (supplied.some((secret) => required.includes(secret))) return null;
+  if (supplied.some((secret) => required.some((expected) => safeEqual(secret, expected)))) return null;
 
   return jsonError("Unauthorized.", 401, "UNAUTHORIZED");
 }

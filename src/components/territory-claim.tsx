@@ -69,6 +69,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const [zip, setZip] = useState("");
   const [check, setCheck] = useState<CheckState>({ status: "idle" });
   const [submit, setSubmit] = useState<SubmitState>({ status: "idle" });
+  const [consent, setConsent] = useState(false);
   const personalization = usePersonalization();
   const cta = useCTAEngine();
 
@@ -155,6 +156,10 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       setSubmit({ status: "error", message: "Name, work email, and company are required." });
       return;
     }
+    if (!consent) {
+      setSubmit({ status: "error", message: "Please confirm you agree to be contacted." });
+      return;
+    }
     setSubmit({ status: "submitting" });
     try {
       const { data } = await postJson<{ ok?: boolean; error?: string; message?: string }>(
@@ -163,6 +168,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           ...form,
           zip: check.status === "result" ? check.zip : zip,
           source,
+          consent,
         },
       );
       if (!data?.ok) {
@@ -376,6 +382,18 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               rows={2}
               className="mt-1 w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-violet-300"
             />
+          </label>
+
+          <label className="sm:col-span-2 flex items-start gap-3 text-xs leading-5 text-white/55">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(event) => setConsent(event.target.checked)}
+              required
+              className="mt-1 accent-amber-400"
+            />
+            YPN USA and an assigned loan officer may contact me by email and, if provided, text or
+            phone about this request. Message and data rates may apply; reply STOP to opt out.
           </label>
 
           {submit.status === "error" ? (

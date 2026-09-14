@@ -69,6 +69,8 @@ async function handlePost(request: Request) {
       return jsonError("Enter a valid 5-digit ZIP code.", 400, "INVALID_ZIP");
     }
 
+    const consent = body.consent === true;
+
     const record: DemoRequestRecord = {
       id: generateId("demo"),
       createdAt: new Date().toISOString(),
@@ -82,6 +84,14 @@ async function handlePost(request: Request) {
       message: optionalText(body.message, 1000),
       source: optionalText(body.source, 80) ?? "marketing_site",
       status: "new",
+      // Not rejected when absent yet: ypnus.com's own marketing forms call this
+      // endpoint directly (see CORS_HEADERS above) and may not send this field
+      // yet. Captured so it's recorded whenever a caller does send it, without
+      // silently breaking live lead capture from callers that don't. See
+      // docs/PRODUCTION_LAUNCH_CHECKLIST.md for the follow-up to enforce this
+      // once every caller is confirmed to send it.
+      consent: consent || undefined,
+      consentAt: consent ? new Date().toISOString() : undefined,
     };
 
     const territory = appendDemoRequestWithTerritoryCheck(record);

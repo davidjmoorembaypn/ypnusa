@@ -1,0 +1,30 @@
+<?php
+$payload = @file_get_contents('php://input');
+$event = json_decode($payload);
+
+// Verify Stripe signature
+$sig = $_SERVER['HTTP_STRIPE_SIGNATURE'];
+// Add your endpoint secret from Stripe Dashboard
+$endpoint_secret = 'whsec_xxxxxxxxxxxxx';
+
+if ($event->type == 'checkout.session.completed') {
+    $email = $event->data->object->customer_details->email;
+    $name = $event->data->object->customer_details->name;
+    
+    // 1. Send to GHL
+    $ghl = curl_init('https://services.leadconnectorhq.com/hooks/YOUR_GHL_WEBHOOK');
+    curl_setopt($ghl, CURLOPT_POST, 1);
+    curl_setopt($ghl, CURLOPT_POSTFIELDS, json_encode([
+        'email' => $email,
+        'name' => $name,
+        'tags' => 'realtor-client-paid'
+    ]));
+    curl_setopt($ghl, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_exec($ghl);
+    
+    // 2. Email onboarding form
+    mail($email, "Your YPN Website Build Starts Now", 
+        "Hi $name,\n\nComplete this form to start: https://form.typeform.com/to/YOUR_FORM\n\nYPN Inc");
+}
+http_response_code(200);
+?>

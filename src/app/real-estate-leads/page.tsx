@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { RealEstateLeadsServiceSchema } from "@/components/seo/silo-schema";
 import { StubNotice } from "@/components/silo/stub-notice";
 import { marketingUrl } from "@/lib/site";
 
@@ -19,6 +20,7 @@ export default function RealEstateLeadsPage() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
       <Breadcrumbs items={BREADCRUMB_ITEMS} />
+      <RealEstateLeadsServiceSchema />
 
       <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
         Lead-gen hub

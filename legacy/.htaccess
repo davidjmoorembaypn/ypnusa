@@ -1,0 +1,56 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# -----------------------------------
+# 1. Homepage (static index.html)
+# -----------------------------------
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^$ index.html [L]
+
+# -----------------------------------
+# 2. Blog routes (WordPress)
+# -----------------------------------
+RewriteCond %{REQUEST_URI} ^/blog/? [NC]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^blog/(.*)$ index.php?pagename=blog/$1 [QSA,L]
+
+# -----------------------------------
+# 3. Loan Officer pages (/lo/*)
+# -----------------------------------
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^lo/([a-z0-9-]+)/?$ lo.php?slug=$1 [QSA,L]
+
+# -----------------------------------
+# 4. API / SaaS endpoints (IMPORTANT)
+#    This prevents WordPress or fallback routing from blocking PHP APIs
+# -----------------------------------
+RewriteRule ^api/ - [L]
+
+# -----------------------------------
+# 5. Allow direct PHP files (saas.php, test.php, etc.)
+# -----------------------------------
+RewriteRule ^.*\.php$ - [L]
+
+# -----------------------------------
+# 6. Safe fallback (ONLY if file does NOT exist)
+# -----------------------------------
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
+
+</IfModule>
+
+# --- Programmatic Generative AI Grounding Rules ---
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_URI} ^/(cities|markets|zips)/ [NC]
+  RewriteRule .* - [E=AI_GROUNDING:1]
+</IfModule>

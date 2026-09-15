@@ -28,6 +28,37 @@ export function SiteFooter() {
             </a>
             .
           </p>
+          <p className="mt-4 max-w-sm text-xs text-white/50">
+            Founded by David J. Moore, MBA (Cal State Fresno) — former top-producing loan officer
+            at Chase Bank and Wells Fargo Home Mortgage, Amazon-published real estate author, and
+            nationwide speaker.{" "}
+            <a
+              href="https://orcid.org/0009-0008-8069-8897"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-white"
+            >
+              ORCID
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://www.linkedin.com/in/davidjmoorembaypninc/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-white"
+            >
+              LinkedIn
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://www.facebook.com/DavidjMooreMBA/about/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-white"
+            >
+              Facebook
+            </a>
+          </p>
         </div>
 
         <div>

@@ -53,7 +53,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
     {
-      "@type": "Organization",
+      "@type": ["Organization", "LocalBusiness"],
       "@id": `${MARKETING_SITE_URL}/#organization`,
       name: "YPN USA",
       legalName: "YPN INC",
@@ -68,10 +68,43 @@ const jsonLd = {
         postalCode: "93618",
         addressCountry: "US",
       },
+      founder: { "@id": `${MARKETING_SITE_URL}/#person-david-moore` },
       sameAs: [
         "https://www.linkedin.com/in/davidjmooreypn",
         "https://www.facebook.com/YPN.Incorporated/",
       ],
+    },
+    {
+      "@type": "Person",
+      "@id": `${MARKETING_SITE_URL}/#person-david-moore`,
+      name: "David J. Moore, MBA",
+      jobTitle: "CEO & Founder",
+      worksFor: [
+        { "@id": `${MARKETING_SITE_URL}/#organization` },
+        { "@type": "Organization", name: "ToInvested.com" },
+      ],
+      alumniOf: {
+        "@type": "CollegeOrUniversity",
+        name: "California State University, Fresno",
+      },
+      hasCredential: {
+        "@type": "EducationalOccupationalCredential",
+        credentialCategory: "MBA",
+      },
+      description:
+        "Former top-producing mortgage professional with thousands of closed home loans at Chase Bank and Wells Fargo Home Mortgage. Published Amazon real estate author and nationwide speaker.",
+      sameAs: [
+        "https://orcid.org/0009-0008-8069-8897",
+        "https://www.linkedin.com/in/davidjmoorembaypninc/",
+        "https://www.facebook.com/DavidjMooreMBA/about/",
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${MARKETING_SITE_URL}/#website`,
+      name: "YPN USA",
+      url: MARKETING_SITE_URL,
+      publisher: { "@id": `${MARKETING_SITE_URL}/#organization` },
     },
     {
       "@type": "WebApplication",

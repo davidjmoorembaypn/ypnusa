@@ -1,0 +1,6 @@
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"ToInvested","url":"https://toinvested.com"}</script>
+<?php
+echo "<h1>Test Successful - PHP is running</h1>";
+echo "<p>Current time: " . date('Y-m-d H:i:s') . "</p>";
+echo "<p>If you see this, PHP is working.</p>";
+?>

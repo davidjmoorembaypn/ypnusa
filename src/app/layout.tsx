@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import { APP_SITE_URL, MARKETING_SITE_URL } from "@/lib/site";
+import { APP_SITE_URL, MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -53,7 +53,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
     {
-      "@type": ["Organization", "LocalBusiness"],
+      "@type": ["Organization", "ProfessionalService"],
       "@id": `${MARKETING_SITE_URL}/#organization`,
       name: "YPN USA",
       legalName: "YPN INC",
@@ -68,6 +68,7 @@ const jsonLd = {
         postalCode: "93618",
         addressCountry: "US",
       },
+      areaServed: centralValleyAreaServed(),
       founder: { "@id": `${MARKETING_SITE_URL}/#person-david-moore` },
       sameAs: [
         "https://www.linkedin.com/in/davidjmooreypn",

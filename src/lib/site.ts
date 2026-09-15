@@ -23,3 +23,21 @@ export function appUrl(path = "/"): string {
   if (!path || path === "/") return APP_SITE_URL;
   return `${APP_SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+/** Central Valley CA cities YPN USA local SEO targets, in addition to HQ. */
+export const CENTRAL_VALLEY_CITIES = [
+  "Fresno",
+  "Clovis",
+  "Sanger",
+  "Kingsburg",
+  "Reedley",
+  "Dinuba",
+] as const;
+
+/** schema.org `areaServed` entries for the Central Valley CA local SEO silo. */
+export function centralValleyAreaServed() {
+  return CENTRAL_VALLEY_CITIES.map((city) => ({
+    "@type": "City" as const,
+    name: `${city}, CA`,
+  }));
+}

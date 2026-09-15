@@ -4,18 +4,23 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { marketingUrl } from "@/lib/site";
 
-const NAV = [
-  { href: "#how", label: "How it works" },
-  { href: "#territories", label: "Territories" },
-  { href: "#ownership", label: "You own it" },
-  { href: "#demo", label: "Live demo" },
+/**
+ * Unified header nav (Features | Pricing | Free Tools | Log In | Get Started)
+ * shared with the ypnus.com marketing site's own header — keep both in sync.
+ * `internal` uses next/link; everything else is a plain <a> (anchor scroll or
+ * cross-origin to the marketing site).
+ */
+const NAV: Array<{ href: string; label: string; internal?: boolean }> = [
+  { href: marketingUrl("/features.html"), label: "Features" },
   { href: "#pricing", label: "Pricing" },
+  { href: "/tools/equity", label: "Free Tools", internal: true },
 ];
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasSession, setHasSession] = useState(false);
   const signupHref = marketingUrl("/lo-signup.html?plan=free");
+  const loginHref = "/login";
 
   useEffect(() => {
     let cancelled = false;
@@ -51,17 +56,22 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-7 text-sm font-medium text-white/75 md:flex">
-          {NAV.map((item) => (
-            <a key={item.href} href={item.href} className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300">
-              {item.label}
-            </a>
-          ))}
-          <Link href="/portal/nurture" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300">
-            MLO portal
-          </Link>
-          <a href={marketingUrl("/")} className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300">
-            Marketing site
-          </a>
+          {NAV.map((item) =>
+            item.internal ? (
+              <Link key={item.href} href={item.href} className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300">
+                {item.label}
+              </Link>
+            ) : (
+              <a key={item.href} href={item.href} className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300">
+                {item.label}
+              </a>
+            ),
+          )}
+          {!hasSession ? (
+            <Link href={loginHref} className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300">
+              Log In
+            </Link>
+          ) : null}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -77,7 +87,7 @@ export function SiteHeader() {
               href={signupHref}
               className="hidden rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 sm:inline-flex"
             >
-              Claim your ZIP
+              Get Started
             </a>
           )}
           <button
@@ -104,30 +114,36 @@ export function SiteHeader() {
       >
         <nav className="mx-4 mb-4 rounded-3xl border border-white/10 bg-[#120f2a]/95 p-4 shadow-2xl shadow-black/30">
           <div className="grid gap-1 text-sm font-medium text-white/80">
-            {NAV.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
+            {NAV.map((item) =>
+              item.internal ? (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-2xl px-4 py-3 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-2xl px-4 py-3 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {item.label}
+                </a>
+              ),
+            )}
+            {!hasSession ? (
+              <Link
+                href={loginHref}
                 className="rounded-2xl px-4 py-3 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
                 onClick={() => setMobileOpen(false)}
               >
-                {item.label}
-              </a>
-            ))}
-            <Link
-              href="/portal/nurture"
-              className="rounded-2xl px-4 py-3 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
-              onClick={() => setMobileOpen(false)}
-            >
-              MLO portal
-            </Link>
-            <a
-              href={marketingUrl("/")}
-              className="rounded-2xl px-4 py-3 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
-              onClick={() => setMobileOpen(false)}
-            >
-              Marketing site
-            </a>
+                Log In
+              </Link>
+            ) : null}
           </div>
           {hasSession ? (
             <Link
@@ -143,7 +159,7 @@ export function SiteHeader() {
               className="mt-3 flex items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/20 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
               onClick={() => setMobileOpen(false)}
             >
-              Start free on ypnus.com
+              Get Started
             </a>
           )}
         </nav>

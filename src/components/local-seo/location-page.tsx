@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import {
@@ -291,6 +292,11 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
         url: canonicalUrl,
         about: `${profile.city}, ${profile.stateCode} mortgage information`,
       };
+  const breadcrumbItems = [
+    { name: "Home", href: "/" },
+    { name: "MLO Local SEO & ZIP Code Territory Claims", href: "/#territories" },
+    { name: profile.kind === "city" ? `${profile.city}, ${profile.stateCode}` : profile.slug },
+  ];
   const relatedProfiles = LOCAL_SEO_PROFILES.filter(
     (candidate) =>
       candidate.slug !== profile.slug &&
@@ -309,6 +315,7 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
         <section className="relative isolate overflow-hidden bg-[#09081b] text-white">
           <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative mx-auto max-w-6xl px-6 py-16 lg:py-24">
+            <Breadcrumbs items={breadcrumbItems} className="mb-6" />
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300">
               {profile.city}, {profile.stateCode} · {profile.county}
             </p>

@@ -227,5 +227,5 @@ export function resolveDynamicHeroCopy(persisted: PersistedBehavior, variant: Co
     }
     return { eyebrow: "Welcome back", primaryCtaLabel: "Resume pre-approval", primaryCtaHref: "#calculator" };
   }
-  return { eyebrow: "Exclusive ZIP demand · for MLOs", primaryCtaLabel: "Claim your ZIP — free", primaryCtaHref: "#territories" };
+  return { eyebrow: "Agentic AI System · Exclusive ZIP demand", primaryCtaLabel: "Claim your ZIP — free", primaryCtaHref: "#territories" };
 }

@@ -107,7 +107,7 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Starter $29.99/mo, Growth $99/mo, Pro $199/mo, and Elite $299/mo — every paid plan includes a 15-day free trial.",
+    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo — every paid plan includes a 15-day free trial, and every paid plan locks that ZIP out for local competitors the moment you subscribe.",
   },
 ];
 
@@ -122,15 +122,17 @@ export default function Home() {
         <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:py-24">
           <div className="max-w-xl">
             <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
-              Exclusive ZIP demand · for MLOs
+              Agentic AI System · Exclusive ZIP demand
             </span>
             <h1 className="mt-6 text-balance text-4xl font-semibold leading-[1.08] lg:text-[3.4rem]">
-              Own your mortgage leads — <span className="text-violet-300">without waiting on Realtors.</span>
+              An Agentic AI System that owns your mortgage leads —{" "}
+              <span className="text-violet-300">without waiting on Realtors.</span>
             </h1>
             <p className="mt-5 text-lg text-white/90">
-              Paid YPN USA plans let you secure an exclusive ZIP-code territory and use an always-on AI assistant that captures,
-              qualifies, and nurtures every borrower in it — automatically. And the leads and website are
-              yours to keep, even if you switch brokerages.
+              The moment you start a paid YPN USA plan, your ZIP-code territory locks — competitors
+              can&apos;t sell into it. Your always-on Agentic AI System then captures, qualifies, and
+              nurtures every borrower in that ZIP automatically. And the leads and website are yours
+              to keep, even if you switch brokerages.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-4 text-sm font-semibold">
@@ -185,7 +187,7 @@ export default function Home() {
           {[
             ["🔒", "Exclusive to you", "One MLO per ZIP"],
             ["🔑", "Own your leads", "Portable for life"],
-            ["🤖", "AI does the work", "Capture to booking"],
+            ["🤖", "Agentic AI System", "Capture to booking"],
             ["⚡", "Live in days", "No developer needed"],
           ].map(([icon, title, sub]) => (
             <div key={title} className="px-3 py-2">

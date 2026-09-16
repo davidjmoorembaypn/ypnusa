@@ -49,6 +49,48 @@ This is **not** a blank-slate build. `ypnusa` is a mature, mostly-shipped produc
    `/pricing/`, breadcrumb schema) — spot-checked, no further action unless Phase 4
    verification finds a regression.
 
+## `loans.ypnus.com` audit (2026-09-16, per user direction to use it as staging reference)
+
+`loans.ypnus.com` is a live WordPress site at
+`/home/u853154979/domains/ypnus.com/public_html/loans/` — **not** part of this repo, and
+not touched by this branch. It's the real destination `checkout.ts`'s `marketingUrl()`
+already links out to. Findings:
+
+- **Funnel pages already integrate exactly as this app's docs claim**: `lo-signup.html`
+  calls `GET /wp-json/ypnus/v1/signup-config`, `GET /wp-json/ypnus/v1/zip-check/{zip}`,
+  and `POST /wp-json/ypnus/v1/signup`; `check-zip.html` calls the same zip-check
+  endpoint. This matches `AGENTS.md`'s note that live ZIP availability reads through to
+  that WP REST endpoint. No hidden duplicate logic found here worth porting — the
+  existing "WordPress owns checkout, this app links out / reads through" split is
+  intentional and already consistent, not an oversight.
+- **Live pricing.html today** (WordPress-rendered, the actual page customers see) shows
+  Starter $29.99, Pro **$99.99**, Elite **$299.99**, plus a $49.99 "DFY LO Website"
+  add-on — different numbers than this repo's pre-change `pricing.ts` (which had "Pro"
+  at $199). The WP side's "Pro ≈ $99" is actually already closer to the directive's
+  target than this repo was, which supports the 4-tier collapse decision.
+- **Real, separate, currently-live bug found (not part of this branch's scope, flagging
+  for a fast follow-up)**: `wp-content/plugins/ypnus-stripe-webhook/ypnus-stripe-webhook.php`
+  (v2.0.0, the active copy) hardcodes `YPNUS_STRIPE_ALLOWED_TIERS` to
+  `['starter','pro','elite']` — **`growth` is missing**, so growth-tier Stripe webhook
+  events are silently dropped today (entitlement never applied). A fixed v2.1.0 (adds
+  `growth`, plus territory-lock table migrations) already exists on disk but landed in a
+  sibling folder `ypnus-stripe-webhook(1)/` because of a WordPress upload-naming
+  collision — **it was never actually activated**. Whatever the final tier id set ends
+  up being after this branch's rename, that plugin's allowed-tier list needs to be
+  updated (ideally by properly deploying v2.1.0 first) or the same silent-drop bug will
+  recur under the new tier names.
+- Two other stray/uncommitted-looking items noticed in `wp-content/plugins/` worth a
+  look when someone's next in there: `ypnus-lead-integration-deactivated` (named as
+  disabled — confirm nothing still depends on it) and `ypnus-init-erjpjgsv` (auto-generated-
+  looking name, unclear purpose).
+- Directive's system-architecture section asks for `app.ypnus.com` to own "Stripe
+  checkout endpoints" directly. That's a real conflict with the current, deliberate
+  design (`checkout.ts`'s own doc comment: "Stripe billing is owned entirely by
+  ypnus.com's WordPress plugin", by design). Moving Stripe ownership into the Next app
+  would be a live-cutover project (webhook secrets, in-flight subscriptions, dual-write
+  risk) — **not attempted on this branch**; flagging as a decision for the user rather
+  than guessing.
+
 ## Status
 
 - [x] Phase 1 — recon complete (this file)

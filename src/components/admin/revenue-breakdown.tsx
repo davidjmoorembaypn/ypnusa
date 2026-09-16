@@ -28,13 +28,11 @@ function tierAccent(tierId: PricingTierId): string {
   switch (tierId) {
     case "free":
       return "from-slate-300 to-slate-500";
-    case "starter":
-      return "from-cyan-300 to-cyan-600";
-    case "growth":
-      return "from-sky-300 to-blue-500";
     case "pro":
       return "from-teal-300 to-emerald-500";
-    case "elite":
+    case "growth":
+      return "from-sky-300 to-blue-500";
+    case "exclusive":
       return "from-violet-400 to-cyan-400";
     default: {
       const exhaustive: never = tierId;

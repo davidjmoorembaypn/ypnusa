@@ -14,7 +14,7 @@ import { isEntitlementStatus, type EntitlementStatus, type SessionRole } from "@
  *     &role=mlo|admin
  *     &iat=<unix seconds when the token was issued>
  *     &next=<optional relative path, defaults to /dashboard>
- *     &tier=<free|starter|growth|pro|elite, optional, defaults to "free">
+ *     &tier=<free|pro|growth|exclusive, optional, defaults to "free">
  *     &subscriptionStatus=<active|trialing|past_due|canceled|none, optional, defaults to "none">
  *     &trialEndsAt=<ISO timestamp, optional — only meaningful when subscriptionStatus=trialing>
  *     &sig=<base64url HMAC-SHA256, see canonicalMessage below, using YPNUS_SSO_SHARED_SECRET>
@@ -44,7 +44,7 @@ import { isEntitlementStatus, type EntitlementStatus, type SessionRole } from "@
  *     signature, they are never read — a legacy signature only ever attests to the 5 fields it
  *     actually covers, so anything else in the URL is unsigned attacker-controlled input and is
  *     discarded outright. This is what keeps a legacy handoff safely resolving to "free" instead
- *     of trusting an unsigned `&tier=elite` tacked onto an otherwise-valid old-format URL.
+ *     of trusting an unsigned `&tier=exclusive` tacked onto an otherwise-valid old-format URL.
  *   - v2 (8 fields): the entitlement claim is verified as part of the signature, same as today.
  *
  * Which format a given signature matches is determined purely by which canonical byte string it

@@ -237,7 +237,7 @@ export const START_SIGNUP_TOOL: AiToolDefinition = {
     properties: {
       plan: {
         type: "string",
-        enum: ["free", "starter", "pro", "elite"],
+        enum: ["free", "pro", "growth", "exclusive"],
         description: "The plan they seem interested in, if known. Defaults to free (no credit card) when omitted.",
       },
       zip: { type: "string", description: "The ZIP they want to claim, if they've mentioned one." },

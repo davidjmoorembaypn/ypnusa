@@ -52,7 +52,7 @@ export function tierRank(tier: PricingTierId): number {
   return PRICING_TIER_ORDER.indexOf(tier);
 }
 
-/** True when `entitlement`'s tier is at or above `minTier` in capability order (free < starter < growth < pro < elite). */
+/** True when `entitlement`'s tier is at or above `minTier` in capability order (free < pro < growth < exclusive). */
 export function tierAtLeast(entitlement: Entitlement, minTier: PricingTierId): boolean {
   return tierRank(entitlement.tier) >= tierRank(minTier);
 }
@@ -78,10 +78,9 @@ export function hasZipCapacity(entitlement: Entitlement, currentZipCount: number
  */
 const AUTOMATION_DAILY_LIMITS: Record<PricingTierId, number> = {
   free: 0,
-  starter: 25,
-  growth: 100,
-  pro: 300,
-  elite: Number.POSITIVE_INFINITY,
+  pro: 50,
+  growth: 200,
+  exclusive: Number.POSITIVE_INFINITY,
 };
 
 export function automationDailyLimitFor(entitlement: Entitlement): number {

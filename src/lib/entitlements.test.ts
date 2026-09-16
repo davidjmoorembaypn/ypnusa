@@ -41,31 +41,31 @@ describe("resolveEntitlement", () => {
     assert.equal(result.trialEndsAt, "2026-10-01T00:00:00Z");
   });
 
-  it("falls back to free once payment has lapsed (past_due), even though the tier claim still says elite", () => {
-    const result = resolveEntitlement(session({ tier: "elite", subscriptionStatus: "past_due" }));
+  it("falls back to free once payment has lapsed (past_due), even though the tier claim still says exclusive", () => {
+    const result = resolveEntitlement(session({ tier: "exclusive", subscriptionStatus: "past_due" }));
     assert.equal(result.tier, "free");
   });
 
   it("falls back to free for a canceled subscription", () => {
-    const result = resolveEntitlement(session({ tier: "elite", subscriptionStatus: "canceled" }));
+    const result = resolveEntitlement(session({ tier: "exclusive", subscriptionStatus: "canceled" }));
     assert.equal(result.tier, "free");
   });
 });
 
 describe("tierAtLeast / isPaidEntitlement", () => {
-  it("orders tiers free < starter < growth < pro < elite", () => {
-    const elite = resolveEntitlement(session({ tier: "elite", subscriptionStatus: "active" }));
-    for (const tier of ["free", "starter", "growth", "pro", "elite"] as const) {
-      assert.equal(tierAtLeast(elite, tier), true, `elite should be at least ${tier}`);
+  it("orders tiers free < pro < growth < exclusive", () => {
+    const exclusive = resolveEntitlement(session({ tier: "exclusive", subscriptionStatus: "active" }));
+    for (const tier of ["free", "pro", "growth", "exclusive"] as const) {
+      assert.equal(tierAtLeast(exclusive, tier), true, `exclusive should be at least ${tier}`);
     }
-    const starter = resolveEntitlement(session({ tier: "starter", subscriptionStatus: "active" }));
-    assert.equal(tierAtLeast(starter, "growth"), false);
-    assert.equal(tierAtLeast(starter, "starter"), true);
+    const pro = resolveEntitlement(session({ tier: "pro", subscriptionStatus: "active" }));
+    assert.equal(tierAtLeast(pro, "growth"), false);
+    assert.equal(tierAtLeast(pro, "pro"), true);
   });
 
   it("free is never a paid entitlement; every other tier is", () => {
     assert.equal(isPaidEntitlement(FREE_ENTITLEMENT), false);
-    assert.equal(isPaidEntitlement(resolveEntitlement(session({ tier: "starter", subscriptionStatus: "active" }))), true);
+    assert.equal(isPaidEntitlement(resolveEntitlement(session({ tier: "pro", subscriptionStatus: "active" }))), true);
   });
 });
 
@@ -76,7 +76,7 @@ describe("ZIP capacity", () => {
   });
 
   it("every paid tier includes exactly 1 ZIP — higher plans buy capability, not more included ZIPs", () => {
-    for (const tier of ["starter", "growth", "pro", "elite"] as const) {
+    for (const tier of ["pro", "growth", "exclusive"] as const) {
       const entitlement = resolveEntitlement(session({ tier, subscriptionStatus: "active" }));
       assert.equal(hasZipCapacity(entitlement, 0), true, `${tier} should allow the 1st ZIP`);
       assert.equal(hasZipCapacity(entitlement, 1), false, `${tier} should not allow a 2nd ZIP without an add-on`);
@@ -90,8 +90,8 @@ describe("canReceivePaidLeadDelivery", () => {
   });
 
   it("any active paid tier can", () => {
-    const starter = resolveEntitlement(session({ tier: "starter", subscriptionStatus: "trialing" }));
-    assert.equal(canReceivePaidLeadDelivery(starter), true);
+    const pro = resolveEntitlement(session({ tier: "pro", subscriptionStatus: "trialing" }));
+    assert.equal(canReceivePaidLeadDelivery(pro), true);
   });
 });
 
@@ -100,12 +100,12 @@ describe("automationDailyLimitFor", () => {
     assert.equal(automationDailyLimitFor(FREE_ENTITLEMENT), 0);
   });
 
-  it("scales up with tier, elite is uncapped", () => {
-    const starter = resolveEntitlement(session({ tier: "starter", subscriptionStatus: "active" }));
+  it("scales up with tier, exclusive is uncapped", () => {
+    const pro = resolveEntitlement(session({ tier: "pro", subscriptionStatus: "active" }));
     const growth = resolveEntitlement(session({ tier: "growth", subscriptionStatus: "active" }));
-    const elite = resolveEntitlement(session({ tier: "elite", subscriptionStatus: "active" }));
-    assert.ok(automationDailyLimitFor(growth) > automationDailyLimitFor(starter));
-    assert.equal(automationDailyLimitFor(elite), Number.POSITIVE_INFINITY);
+    const exclusive = resolveEntitlement(session({ tier: "exclusive", subscriptionStatus: "active" }));
+    assert.ok(automationDailyLimitFor(growth) > automationDailyLimitFor(pro));
+    assert.equal(automationDailyLimitFor(exclusive), Number.POSITIVE_INFINITY);
   });
 });
 
@@ -119,10 +119,10 @@ describe("resolveOfficerEntitlement", () => {
   });
 
   it("once a snapshot exists, it's enforced exactly like a session claim (fails closed on lapsed payment)", () => {
-    const active = resolveOfficerEntitlement({ entitlementTier: "starter", entitlementStatus: "active" });
-    assert.equal(active.tier, "starter");
+    const active = resolveOfficerEntitlement({ entitlementTier: "pro", entitlementStatus: "active" });
+    assert.equal(active.tier, "pro");
 
-    const lapsed = resolveOfficerEntitlement({ entitlementTier: "elite", entitlementStatus: "past_due" });
+    const lapsed = resolveOfficerEntitlement({ entitlementTier: "exclusive", entitlementStatus: "past_due" });
     assert.equal(lapsed.tier, "free");
   });
 });
@@ -130,11 +130,11 @@ describe("resolveOfficerEntitlement", () => {
 describe("requireTierOrError", () => {
   it("returns null (pass) when the entitlement meets the minimum", () => {
     const growth = resolveEntitlement(session({ tier: "growth", subscriptionStatus: "active" }));
-    assert.equal(requireTierOrError(growth, "starter"), null);
+    assert.equal(requireTierOrError(growth, "pro"), null);
   });
 
   it("returns a 402 UPGRADE_REQUIRED error when it doesn't", async () => {
-    const response = requireTierOrError(FREE_ENTITLEMENT, "starter");
+    const response = requireTierOrError(FREE_ENTITLEMENT, "pro");
     assert.ok(response);
     assert.equal(response!.status, 402);
     const body = await response!.json();

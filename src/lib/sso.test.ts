@@ -144,7 +144,7 @@ describe("SSO handoff verification", () => {
   it("rejects delimiters in signed fields before legacy or v2 signature comparison", () => {
     process.env.YPNUS_SSO_SHARED_SECRET = TEST_SECRET;
     const iat = String(Math.floor(Date.now() / 1000));
-    const next = "/dashboard|elite|active|2099-01-01T00:00:00Z";
+    const next = "/dashboard|exclusive|active|2099-01-01T00:00:00Z";
     const result = verifySsoHandoff(
       buildLegacyUrl({ next, iat, sig: signLegacy("jordan@example.com", "wp_42", "mlo", iat, next) }),
     );
@@ -177,9 +177,9 @@ describe("SSO handoff verification", () => {
 
   it("rejects a handoff whose tier/status claim was tampered with after signing (can't forge paid access)", () => {
     process.env.YPNUS_SSO_SHARED_SECRET = TEST_SECRET;
-    const legit = buildUrl({ tier: "starter", subscriptionStatus: "active" });
+    const legit = buildUrl({ tier: "pro", subscriptionStatus: "active" });
     // Swap in a higher tier without re-signing — the signature covers tier/status, so this must fail.
-    legit.searchParams.set("tier", "elite");
+    legit.searchParams.set("tier", "exclusive");
     const result = verifySsoHandoff(legit);
     assert.ok("error" in result);
   });
@@ -230,7 +230,7 @@ describe("SSO handoff verification", () => {
       const url = buildLegacyUrl();
       // Legacy signature only covers email|sub|role|iat|next — appending these afterwards must
       // not grant paid entitlement, since they were never part of what was signed.
-      url.searchParams.set("tier", "elite");
+      url.searchParams.set("tier", "exclusive");
       url.searchParams.set("subscriptionStatus", "active");
       url.searchParams.set("trialEndsAt", "2099-01-01T00:00:00Z");
       const result = verifySsoHandoff(url);
@@ -257,7 +257,7 @@ describe("SSO handoff verification", () => {
       // A v2 signature (covering the 8-field message with real entitlement values) must not
       // verify against the 5-field legacy message either — the two canonical strings differ in
       // byte content, not just field count, so cross-format confusion should be impossible.
-      const v2Sig = sign("jordan@example.com", "wp_42", "mlo", iat, "/dashboard", "elite", "active", "");
+      const v2Sig = sign("jordan@example.com", "wp_42", "mlo", iat, "/dashboard", "exclusive", "active", "");
       const asLegacy = buildLegacyUrl({ iat, sig: v2Sig });
       const result = verifySsoHandoff(asLegacy);
       assert.ok("error" in result);

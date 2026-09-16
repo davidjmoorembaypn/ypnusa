@@ -230,7 +230,7 @@ describe("runWithTools", () => {
   });
 
   it("start_signup returns a real, unguessed URL built from plan/zip", async () => {
-    const call: AiToolCall = { toolName: "start_signup", input: { plan: "starter", zip: "93720" } };
+    const call: AiToolCall = { toolName: "start_signup", input: { plan: "pro", zip: "93720" } };
     let toolResultContent = "";
     const provider: AiProvider = {
       name: "fake",
@@ -241,7 +241,7 @@ describe("runWithTools", () => {
       },
     };
     await runWithTools(provider, "sys", [], [START_SIGNUP_TOOL], fakeSession(), noopMerge);
-    assert.match(toolResultContent, /lo-signup\.html\?plan=starter&zip=93720/);
+    assert.match(toolResultContent, /lo-signup\.html\?plan=pro&zip=93720/);
   });
 
   it("schedule_meeting refuses to look up slots before the lead is linked", async () => {

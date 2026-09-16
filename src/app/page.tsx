@@ -130,9 +130,10 @@ export default function Home() {
             </h1>
             <p className="mt-5 text-lg text-white/90">
               The moment you start a paid YPN USA plan, your ZIP-code territory locks — competitors
-              can&apos;t sell into it. Your always-on Agentic AI System then captures, qualifies, and
-              nurtures every borrower in that ZIP automatically. And the leads and website are yours
-              to keep, even if you switch brokerages.
+              can&apos;t sell into it. Your always-on Agentic AI System then runs the full workflow —
+              capturing, qualifying, nurturing, and booking every borrower in that ZIP automatically,
+              so you own the local market instead of splitting it. And the leads and website are
+              yours to keep, even if you switch brokerages.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-4 text-sm font-semibold">
@@ -216,9 +217,11 @@ export default function Home() {
         <div className="mx-auto w-full max-w-6xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">Everything an MLO needs</p>
-            <h2 className="mt-3 text-3xl font-semibold lg:text-4xl">An AI agent that does the whole job</h2>
+            <h2 className="mt-3 text-3xl font-semibold lg:text-4xl">Your Agentic AI System runs the whole workflow</h2>
             <p className="mt-4 text-slate-600">
-              YPN USA isn&apos;t another lead form. It&apos;s an autonomous teammate that works your territory around the clock.
+              YPN USA isn&apos;t another lead form. It&apos;s the Agentic AI System that automates lead
+              acquisition and end-to-end workflow execution across your exclusive ZIP territory —
+              working it around the clock so you own the local market, not just a slice of it.
             </p>
           </div>
 

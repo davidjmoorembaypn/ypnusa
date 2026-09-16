@@ -48,10 +48,10 @@ const subscriptions: RevenueSubscriptionRecord[] = [
     lifetimeMonths: 10,
   },
   {
-    id: "sub_elite_trial",
+    id: "sub_exclusive_trial",
     createdAt: "2026-01-01T00:00:00.000Z",
     startedAt: "2026-01-01T00:00:00.000Z",
-    tier: "elite",
+    tier: "exclusive",
     status: "trialing",
     source: "seed",
     ownerLoId: "lo_b",
@@ -62,7 +62,7 @@ const subscriptions: RevenueSubscriptionRecord[] = [
     id: "sub_cancelled",
     createdAt: "2026-01-01T00:00:00.000Z",
     startedAt: "2026-01-01T00:00:00.000Z",
-    tier: "starter",
+    tier: "pro",
     status: "cancelled",
     source: "seed",
     ownerLoId: "lo_a",
@@ -150,20 +150,21 @@ describe("revenue pulse", async () => {
   it("counts only active or trialing subscriptions toward MRR", () => {
     const pulse = summarizeRevenuePulse();
 
-    // 9999 (pro) + 29900 (elite trial) + 29900 (inferred elite from the brokerage demo)
+    // 9999 (pro) + 29900 (exclusive trial) + 29900 (inferred exclusive from the brokerage demo)
     assert.equal(pulse.totals.mrrCents, 69_799);
     assert.equal(pulse.totals.activeSubscriptions, 3);
-    assert.ok(
-      !pulse.ltvByMlo.some((mlo) => mlo.planNames.includes("Starter")),
-      "a cancelled subscription must not be attributed",
+    assert.equal(
+      pulse.ltvByMlo.find((mlo) => mlo.loId === "lo_a")?.subscriptionCount,
+      1,
+      "the cancelled pro subscription must not be attributed alongside the active one",
     );
   });
 
   it("falls back to the catalog price when a subscription has no override", () => {
-    const elite = summarizeRevenuePulse().tierBreakdown.find((tier) => tier.tierId === "elite");
+    const exclusive = summarizeRevenuePulse().tierBreakdown.find((tier) => tier.tierId === "exclusive");
 
-    assert.equal(elite?.bookings, 2);
-    assert.equal(elite?.monthlyRevenueCents, 59_800);
+    assert.equal(exclusive?.bookings, 2);
+    assert.equal(exclusive?.monthlyRevenueCents, 59_800);
   });
 
   it("infers a subscription for unclaimed demo ZIPs and skips claimed or invalid ones", () => {
@@ -188,11 +189,10 @@ describe("revenue pulse", async () => {
     const shares = Object.fromEntries(breakdown.map((tier) => [tier.tierId, tier.sharePct]));
 
     assert.equal(shares.free, 0);
-    assert.equal(shares.starter, 0);
     assert.equal(shares.growth, 0);
     assert.equal(shares.pro, 14);
-    assert.equal(shares.elite, 86);
-    assert.equal(breakdown.length, 5);
+    assert.equal(shares.exclusive, 86);
+    assert.equal(breakdown.length, 4);
   });
 
   it("ranks MLOs by lifetime value from subscription months plus pipeline value", () => {
@@ -263,9 +263,9 @@ describe("revenue pulse", async () => {
 
   it("infers the tier from the stated team size wording", () => {
     const cases: Array<{ volume: string | undefined; tier: string }> = [
-      { volume: "Whole brokerage", tier: "Elite" },
-      { volume: "6-20 leads / month", tier: "Pro" },
-      { volume: "2-5 leads / month", tier: "Starter" },
+      { volume: "Whole brokerage", tier: "Exclusive" },
+      { volume: "6-20 leads / month", tier: "Growth" },
+      { volume: "2-5 leads / month", tier: "Pro" },
       { volume: "just me", tier: "Free" },
       { volume: undefined, tier: "Free" },
     ];

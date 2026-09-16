@@ -22,10 +22,9 @@ import type { PricingTierId } from "@/lib/pricing";
  * constructs or guesses one.
  */
 const PAYMENT_LINK_ENV_VARS: Record<Exclude<PricingTierId, "free">, string> = {
-  starter: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_STARTER",
-  growth: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_GROWTH",
   pro: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_PRO",
-  elite: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ELITE",
+  growth: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_GROWTH",
+  exclusive: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_EXCLUSIVE",
 };
 
 function configuredPaymentLink(tier: PricingTierId): string | null {

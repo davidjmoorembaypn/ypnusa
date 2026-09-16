@@ -29,7 +29,7 @@ GET https://app.ypnus.com/api/auth/callback
   &role=mlo|admin
   &iat=<unix seconds when the token was issued>
   &next=<optional relative path into the app, defaults to /dashboard>
-  &tier=<free|starter|growth|pro|elite, optional>
+  &tier=<free|pro|growth|exclusive, optional>
   &subscriptionStatus=<active|trialing|past_due|canceled|none, optional>
   &trialEndsAt=<ISO timestamp, optional — only meaningful when subscriptionStatus=trialing>
   &sig=<base64url HMAC-SHA256, see below>

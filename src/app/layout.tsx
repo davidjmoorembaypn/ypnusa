@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { APP_SITE_URL, MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
+import { PRICING_TIERS } from "@/lib/pricing";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -115,12 +116,12 @@ const jsonLd = {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
-      offers: [
-        { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Starter", price: "29.99", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Pro", price: "99.99", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Elite", price: "299.99", priceCurrency: "USD" },
-      ],
+      offers: PRICING_TIERS.map((tier) => ({
+        "@type": "Offer",
+        name: tier.name,
+        price: (tier.priceMonthlyCents / 100).toFixed(2),
+        priceCurrency: "USD",
+      })),
       description:
         "Mortgage growth platform for licensed loan officers with exclusive ZIP territories, AI borrower intake, qualification, and nurture.",
     },

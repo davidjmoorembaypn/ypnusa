@@ -7,7 +7,7 @@ import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
  * src/lib/auth.ts / getSession() for the authoritative per-request check that route
  * handlers and pages must still perform; proxy alone is not a full auth boundary).
  */
-const PROTECTED_PREFIXES = ["/dashboard", "/portal", "/analytics", "/admin"];
+const PROTECTED_PREFIXES = ["/dashboard", "/portal", "/analytics", "/admin", "/onboarding"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -25,5 +25,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/portal/:path*", "/analytics/:path*", "/admin/:path*"],
+  matcher: ["/dashboard/:path*", "/portal/:path*", "/analytics/:path*", "/admin/:path*", "/onboarding/:path*"],
 };

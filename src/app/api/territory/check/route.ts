@@ -29,6 +29,16 @@ export async function GET(request: Request) {
       });
     }
 
+    // Demo inventory is not authoritative and must never drive a paid signup.
+    if (process.env.NODE_ENV === "production") {
+      return jsonError(
+        "Live ZIP availability is temporarily unavailable. Please try again shortly.",
+        503,
+        "TERRITORY_UNAVAILABLE",
+        { headers: { "Cache-Control": "no-store", "Retry-After": "30" } },
+      );
+    }
+
     const local = checkTerritory(zip);
     return NextResponse.json({ ...local, source: "local_demo" });
   } catch (error) {

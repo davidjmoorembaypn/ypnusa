@@ -27,22 +27,28 @@ export default async function LoginPage({
   const params = await searchParams;
   const next = resolveNext(params.next);
   const signupHref = marketingUrl(`/lo-signup.html?plan=free&app_next=${encodeURIComponent(next)}`);
+  const loginHref = marketingUrl(`/lo-dashboard.html?app_next=${encodeURIComponent(next)}`);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16 text-slate-900">
       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-700">Sign in</p>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight">Access your YPN USA dashboard</h1>
       <p className="mt-4 text-sm leading-6 text-slate-600">
-        Account creation and identity verification happen on ypnus.com. Once you sign in or sign up
-        there, you&apos;re redirected back here into an authenticated app.ypnus.com session — this app
-        never asks for your ypnus.com password directly.
+        Already have an account? Sign in with the email address you used to join YPN USA.
+        New here? Create a free account to get started.
       </p>
       <a
-        href={signupHref}
+        href={loginHref}
         className="mt-6 inline-flex items-center justify-center rounded-full bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800"
       >
-        Continue to ypnus.com
+        Sign in to my account
       </a>
+      <a href={signupHref} className="mt-3 inline-flex items-center justify-center rounded-full border border-violet-200 px-5 py-3 text-sm font-semibold text-violet-700 hover:bg-violet-50">
+        Create a free account
+      </a>
+      <p className="mt-5 text-sm leading-6 text-slate-600">
+        Trouble accessing your account? <a href="mailto:support@ypnus.com" className="font-medium text-violet-700 underline">Contact support</a>.
+      </p>
 
       {process.env.NODE_ENV !== "production" && <DevLoginForm next={next} />}
     </main>

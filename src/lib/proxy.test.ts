@@ -25,6 +25,12 @@ describe("proxy (dashboard gate)", () => {
     assert.match(location!, /\/login\?next=%2Fdashboard%2Flocal-seo/);
   });
 
+  it("redirects onboarding before streaming a page response", () => {
+    const response = proxy(requestFor("/onboarding"));
+    assert.equal(response.status, 307);
+    assert.equal(response.headers.get("location"), "https://app.ypnus.com/login?next=%2Fonboarding");
+  });
+
   it("lets an authenticated request through to a protected route", () => {
     const token = createSessionToken({ sub: "wp_1", email: "jordan@example.com", role: "mlo" });
     const response = proxy(requestFor("/portal/nurture", token));

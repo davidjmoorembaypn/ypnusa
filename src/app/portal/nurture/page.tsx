@@ -4,7 +4,7 @@ import { SessionBar } from "@/components/session-bar";
 import { requireSession } from "@/lib/auth";
 import { NurturePipeline } from "@/components/portal/nurture-pipeline";
 import { formatDateTime, formatUsd } from "@/lib/format";
-import { buildNurtureDashboard } from "@/lib/nurture-dashboard";
+import { buildNurtureDashboardForSession } from "@/lib/nurture-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 };
 
 export default async function LeadNurturePortalPage() {
-  await requireSession("/portal/nurture");
-  const dashboard = buildNurtureDashboard();
+  const session = await requireSession("/portal/nurture");
+  const dashboard = buildNurtureDashboardForSession(session);
   const metricCards = [
     ["Active AI conversations", dashboard.totals.activeConversations],
     ["Upcoming appointments", dashboard.totals.upcomingAppointments],

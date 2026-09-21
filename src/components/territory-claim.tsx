@@ -53,10 +53,11 @@ export const ZIP_CHECKED_EVENT = "ypnus:zip-checked";
  * components mounted before this check — the pricing tier CTAs — can pick it up
  * immediately rather than only on their own next mount. See PricingCta.
  */
-function syncZipToPageUrl(zip: string) {
+function syncZipToPageUrl(zip: string | null) {
   try {
     const url = new URL(window.location.href);
-    url.searchParams.set("zip", zip);
+    if (zip) url.searchParams.set("zip", zip);
+    else url.searchParams.delete("zip");
     window.history.replaceState(window.history.state, "", url);
     window.dispatchEvent(new CustomEvent(ZIP_CHECKED_EVENT, { detail: { zip } }));
   } catch {
@@ -86,6 +87,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   async function runCheck() {
     if (check.status === "checking") return;
     const clean = zip.replace(/\D/g, "").slice(0, 5);
+    syncZipToPageUrl(null);
     setZip(clean);
     if (clean.length !== 5) {
       setCheck({ status: "error", message: "Enter a valid 5-digit ZIP code." });
@@ -94,7 +96,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     setCheck({ status: "checking" });
     setSubmit({ status: "idle" });
     try {
-      const res = await fetch(`/api/territory/check?zip=${encodeURIComponent(clean)}`);
+      const res = await fetch(`/api/territory/check?zip=${encodeURIComponent(clean)}`, {
+        signal: AbortSignal.timeout(15_000),
+      });
       if (!res.ok) {
         setCheck({ status: "error", message: "Couldn't check that territory — try again." });
         return;
@@ -190,8 +194,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         ? `ZIP ${check.zip}`
         : "";
   const signupHref =
-    check.status === "result"
-      ? check.signupUrl || signupHrefFor(check.zip)
+    check.status === "result" && check.available
+      ? signupHrefFor(check.zip)
       : signupHrefFor();
   const resultTitle =
     check.status === "result"
@@ -237,7 +241,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/70">
             <p className="font-medium text-white">Instant ZIP availability</p>
             <p className="mt-1 text-[13px]">
-              Enter a 5-digit ZIP to see whether it is still exclusive, then reserve in-app or continue to the full signup.
+              Enter a 5-digit ZIP to check availability. Free signup does not reserve a ZIP; exclusivity begins with a paid plan.
             </p>
           </div>
         ) : null}
@@ -299,8 +303,11 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               href={signupHref}
               className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             >
-              {check.available ? "Claim this ZIP free →" : "Start free on a nearby ZIP →"}
+              {check.available ? "Start free with this ZIP →" : "Explore other ZIPs →"}
             </a>
+            <p className="mt-2 text-[12px] text-white/70">
+              Availability can change. A free account or inquiry does not lock this territory.
+            </p>
             {cta.data?.microNudges?.length ? (
               <ul className="mt-3 space-y-1 text-[12px] leading-5 text-white/70">
                 {cta.data.microNudges
@@ -318,7 +325,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       {showForm && submit.status !== "done" ? (
         <form onSubmit={submitReservation} className="mt-6 grid gap-3 sm:grid-cols-2">
           <p className="sm:col-span-2 text-sm font-semibold text-white">
-            {claimed ? "Join the waitlist for this territory" : `Reserve ZIP ${check.zip}`}
+            {claimed ? "Join the waitlist for this territory" : `Ask about ZIP ${check.zip}`}
           </p>
 
           <Field
@@ -409,7 +416,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               ? "Submitting…"
               : claimed
                 ? "Join the waitlist"
-                : "Reserve my territory"}
+                : "Request territory details"}
           </button>
           <p className="sm:col-span-2 text-[11px] text-white/50">
             Prefer the full signup?{" "}
@@ -424,7 +431,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       {submit.status === "done" ? (
         <div className="mt-6 rounded-2xl border border-emerald-300/40 bg-emerald-400/10 px-5 py-5 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-200">
-            {claimed ? "Waitlist request received" : "Reservation request received"}
+            {claimed ? "Waitlist request received" : "Territory inquiry received"}
           </p>
           <p className="mt-2 text-sm font-semibold text-emerald-100">{submit.message}</p>
           <a

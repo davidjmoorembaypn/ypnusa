@@ -1,9 +1,10 @@
-import { appendAnalytics } from "@/lib/db";
+import { appendAnalytics, appendDemoRequest } from "@/lib/db";
 import { isRecord, jsonError, jsonOk, logApiError, parseJsonBody } from "@/lib/http";
 import { generateId } from "@/lib/id";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import { appendDemoRequestWithTerritoryCheck, isValidZip, normalizeZip } from "@/lib/territory";
+import { isValidZip, normalizeZip } from "@/lib/territory";
+import { fetchLiveTerritory } from "@/lib/live-territory";
 import type { DemoRequestRecord } from "@/lib/types";
 import { isValidEmail, optionalText } from "@/lib/validation";
 
@@ -94,7 +95,10 @@ async function handlePost(request: Request) {
       consentAt: consent ? new Date().toISOString() : undefined,
     };
 
-    const territory = appendDemoRequestWithTerritoryCheck(record);
+    // This captures interest only. The live ledger, not seeded demo reservations,
+    // determines availability; saving an inquiry must not claim paid exclusivity.
+    const territory = zip ? await fetchLiveTerritory(zip) : null;
+    appendDemoRequest(record);
 
     appendAnalytics({
       type: "demo_requested",
@@ -114,7 +118,7 @@ async function handlePost(request: Request) {
       message:
         territory && !territory.available
           ? "We've logged your request and added you to the waitlist for that territory."
-          : "You're in — a YPN USA specialist will reach out within one business day to activate your territory.",
+          : "Your inquiry is saved. This does not reserve a ZIP. Availability and paid-plan activation must be confirmed before exclusivity begins.",
     });
   } catch (error) {
     logApiError("/api/demo-request", error);

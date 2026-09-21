@@ -61,12 +61,18 @@ function buildFollowUp(borrowerLeadId: string, overrides: Partial<ScheduledFollo
 
 describe("automation.ts outreach personalization connector", async () => {
   const { processDueFollowUps, scheduleBorrowerJourney } = await import("./automation");
-  const { appendBorrowerLead, persistFollowUpsBatch, readDb } = await import("./db");
+  const { appendBorrowerLead, persistFollowUpsBatch, readDb, writeDb } = await import("./db");
 
   let server: http.Server;
   let received: Array<{ body: string; subject: string; recipient: string }> = [];
 
   before(async () => {
+    writeDb((db) => {
+      const officer = db.loanOfficers.find((item) => item.id === "lo_jordan_lee");
+      assert.ok(officer);
+      officer.entitlementTier = "growth";
+      officer.entitlementStatus = "active";
+    });
     server = http.createServer((req, res) => {
       let raw = "";
       req.on("data", (chunk) => {

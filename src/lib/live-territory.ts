@@ -24,8 +24,8 @@ export interface LiveZipCheckResponse {
 
 /**
  * Ask the live WordPress territory ledger (ypnus.com) for ZIP availability.
- * Returns null when the remote API is unreachable so callers can fall back
- * to the local demo store.
+ * Returns null when the remote API is unreachable. Production callers must
+ * report unavailability rather than presenting the local demo store as live.
  */
 export async function fetchLiveTerritory(
   rawZip: unknown,
@@ -51,13 +51,13 @@ export async function fetchLiveTerritory(
       signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
     });
     if (!res.ok) {
-      console.warn(`[live-territory] zip-check for ${zip} returned HTTP ${res.status}; using local data.`);
+      console.warn(`[live-territory] zip-check for ${zip} returned HTTP ${res.status}; live availability unavailable.`);
       return null;
     }
     const data = (await res.json()) as LiveZipCheckResponse;
     if (typeof data.available !== "boolean") {
       console.warn(
-        `[live-territory] zip-check for ${zip} returned an unusable payload; using local data.`,
+        `[live-territory] zip-check for ${zip} returned an unusable payload; live availability unavailable.`,
       );
       return null;
     }
@@ -84,7 +84,7 @@ export async function fetchLiveTerritory(
     };
   } catch (error) {
     console.warn(
-      `[live-territory] zip-check for ${zip} failed; using local data.`,
+      `[live-territory] zip-check for ${zip} failed; live availability unavailable.`,
       error instanceof Error ? error.message : error,
     );
     return null;

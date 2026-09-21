@@ -46,6 +46,10 @@ describe("borrower nurture and booking integration", async () => {
 
   before(() => {
     writeDb((db) => {
+      const officer = db.loanOfficers.find((item) => item.id === lead.assignedLoId);
+      assert.ok(officer);
+      officer.entitlementTier = "growth";
+      officer.entitlementStatus = "active";
       db.borrowerLeads = [lead];
       db.followUps = [];
       db.appointments = [];

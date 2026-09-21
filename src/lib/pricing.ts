@@ -136,6 +136,10 @@ export const PRICING_TIERS: readonly PricingTier[] = [
 
 export const PAID_PRICING_TIERS = PRICING_TIERS.filter((tier) => tier.priceMonthlyCents > 0);
 
+// Keep the legacy Starter identifier for existing subscriptions and signed SSO
+// claims, but do not offer the retired $29.99 tier to new customers.
+export const PUBLIC_PRICING_TIERS = PRICING_TIERS.filter((tier) => tier.id !== "starter");
+
 /** Tiers in ascending order of capability — index comparison powers `tierAtLeast` in entitlements.ts. */
 export const PRICING_TIER_ORDER: readonly PricingTierId[] = ["free", "starter", "growth", "pro", "elite"];
 

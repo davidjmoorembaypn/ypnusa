@@ -36,9 +36,7 @@ export function PricingCta({
 
   useEffect(() => {
     function applyZip(zip: string | null | undefined) {
-      if (zip && /^\d{5}$/.test(zip)) {
-        setHref(hrefFor(tierId, zip));
-      }
+      setHref(hrefFor(tierId, zip && /^\d{5}$/.test(zip) ? zip : undefined));
     }
 
     try {
@@ -48,7 +46,7 @@ export function PricingCta({
     }
 
     function onZipChecked(event: Event) {
-      applyZip((event as CustomEvent<{ zip?: string }>).detail?.zip);
+      applyZip((event as CustomEvent<{ zip?: string | null }>).detail?.zip);
     }
     window.addEventListener(ZIP_CHECKED_EVENT, onZipChecked);
     return () => window.removeEventListener(ZIP_CHECKED_EVENT, onZipChecked);

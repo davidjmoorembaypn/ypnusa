@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import {
   PAID_PRICING_TIERS,
+  PUBLIC_PRICING_TIERS,
   PRICING_TIERS,
   getPricingTier,
   resolveTierFromStripeIdentifier,
@@ -9,6 +10,11 @@ import {
 } from "./pricing";
 
 describe("pricing catalog", () => {
+  it("offers only current plans while preserving legacy subscription resolution", () => {
+    assert.deepEqual(PUBLIC_PRICING_TIERS.map((tier) => tier.id), ["free", "growth", "pro", "elite"]);
+    assert.deepEqual(PUBLIC_PRICING_TIERS.map((tier) => tier.priceMonthlyCents), [0, 9900, 19900, 29900]);
+    assert.equal(getPricingTier("starter").priceMonthlyCents, 2999);
+  });
   it("exposes the five tiers in ascending price order with unique ids", () => {
     const ids = PRICING_TIERS.map((tier) => tier.id);
 

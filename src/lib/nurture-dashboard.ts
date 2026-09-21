@@ -1,5 +1,6 @@
 import { calendarConnectionStatus } from "./calendar";
 import { readDb } from "./db";
+import type { SessionPayload } from "./session";
 import type { FollowUpChannel, LoanProgram, Urgency } from "./types";
 
 export interface NurtureDashboardRow {
@@ -65,7 +66,7 @@ function safeDisplayName(name?: string): string {
  */
 export function buildNurtureDashboard(loId?: string, predictiveByZip?: Record<string, PredictiveZipSignal>) {
   const db = readDb();
-  const officers = loId
+  const officers = loId !== undefined
     ? db.loanOfficers.filter((officer) => officer.id === loId)
     : db.loanOfficers;
   const officerIds = new Set(officers.map((officer) => officer.id));
@@ -157,7 +158,9 @@ export function buildNurtureDashboard(loId?: string, predictiveByZip?: Record<st
       ? 0
       : Math.round(rows.reduce((total, row) => total + row.score, 0) / rows.length);
   const equityReviews: EquityReviewRow[] = db.propertyEvaluations
-    .filter((evaluation) => evaluation.status === "new")
+    // Equity reviews have no officer ownership field yet. Only the admin's
+    // unscoped view may include them until a verified assignment exists.
+    .filter((evaluation) => loId === undefined && evaluation.status === "new")
     .map((evaluation) => ({
       evaluationId: evaluation.id,
       borrowerName: safeDisplayName(evaluation.name),
@@ -184,4 +187,9 @@ export function buildNurtureDashboard(loId?: string, predictiveByZip?: Record<st
     rows,
     equityReviews,
   };
+}
+
+/** The signed subject must match an officer ID; unlinked users see no borrowers. */
+export function buildNurtureDashboardForSession(session: Pick<SessionPayload, "sub" | "role">) {
+  return buildNurtureDashboard(session.role === "admin" ? undefined : session.sub);
 }

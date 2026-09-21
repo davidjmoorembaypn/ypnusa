@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { MortgageIntakeChat } from "@/components/lazy-loanpilot-assistant";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { MortgageCalculator } from "@/components/mortgage-calculator";
@@ -6,8 +7,10 @@ import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepa
 import { FloatingAssistantWidget } from "@/components/assistant/floating-assistant-widget";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { PRICING_TIERS } from "@/lib/pricing";
+import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const LIFE_EVENTS = [
   {
@@ -107,7 +110,7 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Starter $29.99/mo, Growth $99/mo, Pro $199/mo, and Elite $299/mo — every paid plan includes a 15-day free trial.",
+    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Growth $99/mo, Pro $199/mo, and Elite $299/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
   },
 ];
 
@@ -392,8 +395,8 @@ export default function Home() {
             <p className="mt-4 text-slate-600">Reserve a ZIP, deploy your AI, and own the pipeline it builds.</p>
           </div>
 
-          <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
-            {PRICING_TIERS.map((tier) => (
+          <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {PUBLIC_PRICING_TIERS.map((tier) => (
               <article
                 key={tier.id}
                 className={`flex min-h-full flex-col rounded-3xl border p-6 transition duration-200 hover:-translate-y-1 md:p-8 ${
@@ -502,7 +505,7 @@ export default function Home() {
           href="#territories"
           className="flex w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/30 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
         >
-          Claim your ZIP territory — free
+          Check ZIP availability — free
         </a>
       </div>
 

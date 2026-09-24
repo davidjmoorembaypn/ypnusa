@@ -10,6 +10,11 @@ const geistSans = Geist({
   display: "swap",
 });
 
+// Hostinger's CDN honors s-maxage and never purges on deploy; Next's default for a
+// static page is a year. ISR every 5 minutes (plus expireTime in next.config.ts)
+// caps edge staleness at ~10 minutes. Dynamic pages stay private/no-store.
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   metadataBase: new URL(APP_SITE_URL),
   title: {

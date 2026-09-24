@@ -47,6 +47,8 @@ const nextConfig: NextConfig = {
   // Don't advertise the framework on every response.
   poweredByHeader: false,
   env: buildInfo,
+  // With the root layout's revalidate = 300: s-maxage=300, stale-while-revalidate=300.
+  expireTime: 600,
   // Hostinger LVE reports 64 CPUs but caps processes far lower; cap Next's build workers so page-data collection does not hit EAGAIN.
   experimental: { cpus: 2, workerThreads: false },
   images: {

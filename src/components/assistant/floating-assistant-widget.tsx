@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AssistantChat } from "./assistant-chat";
+import { OPEN_ASSISTANT_EVENT } from "./open-assistant-button";
 
 const AUTO_OPEN_DELAY_MS = 6000;
 const DISMISSED_KEY = "ypn_assistant_widget_dismissed";
@@ -37,6 +38,15 @@ export function FloatingAssistantWidget() {
       setHasAutoOpened(true);
     }, AUTO_OPEN_DELAY_MS);
     return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const openFromCta = () => {
+      setOpen(true);
+      setHasAutoOpened(true);
+    };
+    window.addEventListener(OPEN_ASSISTANT_EVENT, openFromCta);
+    return () => window.removeEventListener(OPEN_ASSISTANT_EVENT, openFromCta);
   }, []);
 
   function close() {

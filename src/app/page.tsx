@@ -5,6 +5,7 @@ import { TerritoryClaim } from "@/components/territory-claim";
 import { MortgageCalculator } from "@/components/mortgage-calculator";
 import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepageEngine";
 import { FloatingAssistantWidget } from "@/components/assistant/floating-assistant-widget";
+import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
@@ -143,6 +144,9 @@ export default function Home() {
               >
                 Check ZIP availability — free
               </a>
+              <OpenAssistantButton className="inline-flex items-center justify-center rounded-full bg-violet-500 px-6 py-3.5 text-white shadow-xl shadow-violet-900/40 transition duration-200 hover:-translate-y-0.5 hover:bg-violet-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
+                Talk to the AI agent
+              </OpenAssistantButton>
               <a
                 href="#demo"
                 className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3.5 text-white backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
@@ -197,6 +201,40 @@ export default function Home() {
               <p className="text-[12px] text-white/60">{sub}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* AI AGENT */}
+      <section id="ai-agent" className="border-b border-white/10 bg-[#0d0b26] py-16">
+        <div className="mx-auto w-full max-w-6xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">Your AI agent</p>
+            <h2 className="mt-3 text-3xl font-semibold text-white lg:text-4xl">An assistant that actually does things</h2>
+            <p className="mt-4 text-white/75">
+              Not a script or an FAQ box. The YPN USA agent takes action in the conversation — it looks up live data,
+              records what a borrower tells it, and moves them to the next step, so you are not the first thing standing
+              between a visitor and an answer.
+            </p>
+          </div>
+          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Checks ZIP availability", "Looks up whether a territory is open or already claimed, live, while you chat."],
+              ["Answers pricing", "Pulls the current plans and what each includes instead of guessing."],
+              ["Qualifies and books", "Captures name, goals and consent, then offers open times and books the meeting."],
+              ["Hands off to a human", "Connects a person by phone when the conversation calls for one."],
+            ].map(([title, body]) => (
+              <li key={title} className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/15">
+                <p className="text-sm font-semibold text-white">{title}</p>
+                <p className="mt-2 text-[13px] leading-relaxed text-white/70">{body}</p>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8 text-center">
+            <OpenAssistantButton className="inline-flex items-center justify-center rounded-full bg-amber-400 px-7 py-3.5 text-sm font-semibold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
+              Try the agent now
+            </OpenAssistantButton>
+            <p className="mt-3 text-[12px] text-white/50">No credit card. Results vary; nothing here is a guarantee of leads or loan approval.</p>
+          </div>
         </div>
       </section>
 

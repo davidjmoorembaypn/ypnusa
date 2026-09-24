@@ -29,6 +29,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // Don't advertise the framework on every response.
   poweredByHeader: false,
+  // Hostinger LVE reports 64 CPUs but caps processes far lower; cap Next's build workers so page-data collection does not hit EAGAIN.
+  experimental: { cpus: 2, workerThreads: false },
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,

@@ -1,4 +1,4 @@
-import { MARKETING_SITE_URL } from "./site";
+import { APP_SITE_URL } from "./site";
 
 export type LocalSeoPageKind = "city" | "zip";
 
@@ -200,8 +200,9 @@ const ZIP_PROFILES: LocalSeoProfile[] = [
 
 export const LOCAL_SEO_PROFILES = [...CITY_PROFILES, ...ZIP_PROFILES];
 
+// Local pages are served from the app origin; canonicalizing to ypnus.com pointed at 404s.
 export const LOCAL_SEO_PUBLIC_ORIGIN =
-  process.env.LOCAL_SEO_PUBLIC_ORIGIN?.trim().replace(/\/$/, "") || MARKETING_SITE_URL;
+  process.env.LOCAL_SEO_PUBLIC_ORIGIN?.trim().replace(/\/$/, "") || APP_SITE_URL;
 
 export function getLocalSeoProfile(
   kind: LocalSeoPageKind,

@@ -1,4 +1,21 @@
+import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
+
+function gitCommit(): string {
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch {
+    return "unknown";
+  }
+}
+
+// Stamped at build time so /api/health shows which build is live after a deploy.
+const buildInfo = {
+  APP_BUILT_AT: new Date().toISOString(),
+  APP_COMMIT: process.env.APP_COMMIT ?? process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? gitCommit(),
+};
 
 const immutableCache = "public, max-age=31536000, immutable";
 const publicAssetCache = "public, max-age=86400, stale-while-revalidate=604800";
@@ -29,6 +46,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // Don't advertise the framework on every response.
   poweredByHeader: false,
+  env: buildInfo,
   // Hostinger LVE reports 64 CPUs but caps processes far lower; cap Next's build workers so page-data collection does not hit EAGAIN.
   experimental: { cpus: 2, workerThreads: false },
   images: {

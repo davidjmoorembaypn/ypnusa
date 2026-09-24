@@ -1,4 +1,5 @@
 import fs from "fs";
+import type { Stats } from "fs";
 import path from "path";
 import type {
   DbShape,
@@ -219,6 +220,35 @@ let memoryDb: DbShape | null = null;
 let diskWritable = true;
 let lastStorageError: string | undefined;
 
+/**
+ * Stat of the data file as of the last time this process loaded or flushed
+ * it. hydrate() compares against this on every call so it can notice a
+ * sibling process's write (Hostinger can run more than one against the same
+ * data file) without re-reading the file when nothing changed.
+ */
+let lastKnownStat: Stats | null = null;
+
+/**
+ * Nesting depth of writeDb() calls in this process. A mutator that itself
+ * calls writeDb() (see the "nested writeDb" test) must reuse the outermost
+ * call's cross-process lock instead of trying to acquire it again and
+ * deadlocking on itself.
+ */
+let writeDbDepth = 0;
+
+function statOrNull(target: string): Stats | null {
+  try {
+    return fs.statSync(/*turbopackIgnore: true*/ target);
+  } catch {
+    return null;
+  }
+}
+
+function sameStat(a: Stats | null, b: Stats | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.mtimeMs === b.mtimeMs && a.size === b.size;
+}
+
 function ensureDataDir(): boolean {
   try {
     if (!fs.existsSync(/*turbopackIgnore: true*/ dataDir())) {
@@ -247,6 +277,7 @@ function flushToDisk(db: DbShape): void {
     fs.writeFileSync(/*turbopackIgnore: true*/ tmp, JSON.stringify(db, null, 2));
     fs.renameSync(/*turbopackIgnore: true*/ tmp, target);
     lastStorageError = undefined;
+    lastKnownStat = statOrNull(target);
   } catch (error) {
     // Disk unavailable or read-only: keep serving from memory. Stop retrying
     // so we don't throw on every request.
@@ -265,21 +296,23 @@ function flushToDisk(db: DbShape): void {
   }
 }
 
-/** Hydrate the in-memory store from disk exactly once per process. */
-function hydrate(): DbShape {
-  if (memoryDb) return memoryDb;
-
+/** Loads (or reloads) the in-memory store from disk, unconditionally. */
+function loadFromDisk(): DbShape {
   let snapshotUnreadable = false;
   try {
     if (fs.existsSync(/*turbopackIgnore: true*/ dbPath())) {
       const parsed = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ dbPath(), "utf8")) as unknown;
       memoryDb = normalize(parsed);
+      lastKnownStat = statOrNull(dbPath());
       return memoryDb;
     }
   } catch (error) {
     // Corrupt/unreadable snapshot: serve from memory but DO NOT overwrite the
-    // file — preserve it for manual recovery.
+    // file — preserve it for manual recovery. Still remember its stat so we
+    // don't retry the same bad read on every call; if it's later fixed or
+    // replaced, that changes the stat and we'll pick it up then.
     snapshotUnreadable = true;
+    lastKnownStat = statOrNull(dbPath());
     lastStorageError = `Unreadable data snapshot at ${dbPath()}: ${describeFsError(error)}`;
     console.error(`[db] ${lastStorageError}`, error);
   }
@@ -287,6 +320,19 @@ function hydrate(): DbShape {
   memoryDb = emptyDb();
   if (!snapshotUnreadable) flushToDisk(memoryDb);
   return memoryDb;
+}
+
+/**
+ * Hydrate the in-memory store from disk. Once loaded, a call costs a single
+ * statSync: if the data file's mtime/size still match what we last loaded or
+ * flushed, the in-memory copy is still current and is returned as-is; if they
+ * differ, a sibling process (Hostinger can run more than one) has written
+ * since, and we reload.
+ */
+function hydrate(): DbShape {
+  if (!memoryDb) return loadFromDisk();
+  if (sameStat(statOrNull(dbPath()), lastKnownStat)) return memoryDb;
+  return loadFromDisk();
 }
 
 export function ensureDataDirExists(): void {
@@ -298,18 +344,107 @@ export function readDb(): DbShape {
   return structuredClone(hydrate());
 }
 
+const LOCK_STALE_MS = 10_000;
+const LOCK_MAX_WAIT_MS = 5_000;
+const LOCK_RETRY_MS = 25;
+
+function lockPath(): string {
+  return `${dbPath()}.lock`;
+}
+
+/**
+ * Synchronous sleep via Atomics.wait on a throwaway SharedArrayBuffer. Node
+ * (unlike a browser's UI thread) allows blocking the main thread this way;
+ * blocking is the point here — we hold no lock yet, so nothing else in this
+ * process is waiting on us.
+ */
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function tryCreateLock(path: string): boolean {
+  try {
+    fs.closeSync(fs.openSync(/*turbopackIgnore: true*/ path, "wx"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A lock file older than LOCK_STALE_MS is assumed abandoned by a process that
+ * died (or was killed) before releasing it, and is removed so a live writer
+ * doesn't wait out the full retry window for a lock nobody holds anymore.
+ */
+function breakStaleLock(path: string): void {
+  const stat = statOrNull(path);
+  if (stat && Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
+    fs.rmSync(/*turbopackIgnore: true*/ path, { force: true });
+  }
+}
+
+function releaseLock(path: string): void {
+  try {
+    fs.rmSync(/*turbopackIgnore: true*/ path, { force: true });
+  } catch (error) {
+    console.error(`[db] Unable to release write lock ${path}: ${describeFsError(error)}`, error);
+  }
+}
+
+/**
+ * Acquire an exclusive, cross-process lock on the data file before a
+ * read-modify-write, so two Node processes sharing one data file (Hostinger
+ * can run more than one) can't both flush in between each other's read and
+ * silently drop one side's write. `fs.openSync(path, "wx")` is the
+ * mutual-exclusion primitive — it fails if the lock file already exists — and
+ * a loser retries with short synchronous sleeps for up to ~5s, breaking any
+ * stale lock it finds along the way. If the lock still can't be acquired we
+ * log and proceed unlocked: losing the caller's write is worse than the rare
+ * unlocked write this falls back to.
+ */
+function acquireLock(): () => void {
+  const path = lockPath();
+  const deadline = Date.now() + LOCK_MAX_WAIT_MS;
+
+  do {
+    if (tryCreateLock(path)) return () => releaseLock(path);
+    breakStaleLock(path);
+    sleepSync(LOCK_RETRY_MS);
+  } while (Date.now() < deadline);
+
+  console.error(
+    `[db] Timed out after ${LOCK_MAX_WAIT_MS}ms waiting for write lock ${path}; proceeding without it rather than drop the write.`,
+  );
+  return () => {};
+}
+
 /**
  * Mutate the live in-memory store, then best-effort flush to disk.
  *
  * The mutator receives the process-scoped store (not a disposable clone).
  * Clone-then-replace RMW lets overlapping or nested writers drop each other's
  * updates (e.g. two demo-request reservations racing on the same ZIP).
+ *
+ * When disk is writable, the whole read-modify-write runs under an exclusive
+ * cross-process lock (acquireLock) so a sibling process on the same host
+ * can't flush in between our read and our write and get silently clobbered.
+ * `writeDbDepth` makes this reentrant: a mutator that itself calls writeDb()
+ * reuses the outermost call's lock instead of trying to acquire it twice
+ * (which would otherwise deadlock this process against itself).
  */
 export function writeDb(mutator: (db: DbShape) => void): DbShape {
-  const db = hydrate();
-  mutator(db);
-  flushToDisk(db);
-  return structuredClone(db);
+  const shouldLock = writeDbDepth === 0 && diskWritable && ensureDataDir();
+  const release = shouldLock ? acquireLock() : null;
+  writeDbDepth += 1;
+  try {
+    const db = hydrate();
+    mutator(db);
+    flushToDisk(db);
+    return structuredClone(db);
+  } finally {
+    writeDbDepth -= 1;
+    release?.();
+  }
 }
 
 export function persistSession(session: IntakeSessionRecord): void {

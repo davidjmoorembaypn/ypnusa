@@ -65,12 +65,21 @@ export function enforceRateLimit(
   });
 }
 
-/** Best-effort client identifier from proxy headers. */
+/**
+ * Best-effort client identifier from proxy headers.
+ *
+ * The left-most x-forwarded-for entry is client-controlled, so trusting it lets
+ * a caller rotate the header to dodge every limit. Proxies append the address
+ * they saw, so count in from the right: TRUSTED_PROXY_HOPS (default 1) is how
+ * many trusted proxies sit in front of the app.
+ */
 export function clientKey(request: Request): string {
+  const hops = Math.max(1, Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? "1", 10) || 1);
   const xff = request.headers.get("x-forwarded-for");
   if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
+    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
+    const picked = parts[Math.max(0, parts.length - hops)];
+    if (picked) return picked;
   }
   return request.headers.get("x-real-ip")?.trim() || "unknown";
 }

@@ -56,6 +56,15 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
       {
+        // /embed/* is intentionally iframe-embeddable on MLO sites; everything
+        // else (intake, login, dashboards) must not be framable.
+        source: "/((?!embed/).*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        ],
+      },
+      {
         source: "/assets/:path*",
         headers: [
           {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import Script from "next/script";
 import { APP_SITE_URL, MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
 import "./globals.css";
 
@@ -117,15 +118,18 @@ const jsonLd = {
       isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
       offers: [
         { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Starter", price: "29.99", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Pro", price: "99.99", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Elite", price: "299.99", priceCurrency: "USD" },
+        { "@type": "Offer", name: "Growth", price: "99", priceCurrency: "USD" },
+        { "@type": "Offer", name: "Pro", price: "199", priceCurrency: "USD" },
+        { "@type": "Offer", name: "Elite", price: "299", priceCurrency: "USD" },
       ],
       description:
         "Mortgage growth platform for licensed loan officers with exclusive ZIP territories, AI borrower intake, qualification, and nurture.",
     },
   ],
 };
+
+// GA4 stays off until NEXT_PUBLIC_GA_ID is set AND the host CSP allows googletagmanager.com / google-analytics.com.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID?.trim();
 
 export default function RootLayout({
   children,
@@ -142,6 +146,14 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {GA_ID ? (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
+            </Script>
+          </>
+        ) : null}
         {children}
       </body>
     </html>

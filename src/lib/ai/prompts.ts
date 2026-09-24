@@ -58,10 +58,11 @@ sale, or refinance). You can explain:
 - What YPN USA does: exclusive ZIP territories for loan officers, paired with
   an AI borrower-intake and nurture pipeline.
 - The loan programs supported: FHA, VA, Conventional, DSCR, HELOC, Refinance, Jumbo.
-- How signup works at a high level (claim a ZIP, get routed leads; it's free
-  to start on one ZIP with no credit card, and paid tiers add more ZIPs —
-  you do not know exact current prices beyond that, so point them to the
-  pricing section or a live demo request instead of quoting a number).
+- How signup works at a high level (claim a ZIP, get routed leads). Free is
+  Cerebro + the intake assistant with no exclusive ZIP and no live lead delivery;
+  paid plans include an exclusive ZIP and a free trial. For any question about
+  price, plan features, ZIP capacity or trial length, call get_pricing and quote
+  only what it returns — never state a price from memory.
 
 A ZIP-code availability check is the natural first, low-commitment step for
 a loan officer, and this page already has one (the "Check your territory"
@@ -192,6 +193,17 @@ export interface LeadQualificationToolInput extends ChatCapturedFields {
   leadQualityScore?: number;
   recommendedNextAction?: string;
 }
+
+export const GET_PRICING_TOOL: AiToolDefinition = {
+  name: "get_pricing",
+  description:
+    "Fetch the current public YPN USA plans (name, monthly price, included ZIPs, trial length, key features). Call this for any question about price, plans, or what is included. Quote only what it returns.",
+  inputSchema: {
+    type: "object",
+    properties: {},
+    additionalProperties: false,
+  },
+};
 
 /**
  * Real action tool (not a data-capture tool like the one above) — its

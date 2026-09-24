@@ -19,6 +19,7 @@ import {
   REQUEST_HUMAN_HANDOFF_TOOL,
   SCHEDULE_MEETING_TOOL,
   START_SIGNUP_TOOL,
+  GET_PRICING_TOOL,
 } from "./prompts";
 import type { AiGenerateRequest, AiGenerateResult, AiProvider, AiToolCall } from "./provider";
 
@@ -100,11 +101,16 @@ describe("findExplainerVideo", () => {
 });
 
 describe("toolsForMode", () => {
-  it("gives public_site video + territory + signup tools, but not lead capture or scheduling", () => {
+  it("gives public_site video + territory + signup + pricing tools, but not lead capture or scheduling", () => {
     const names = new Set(toolsForMode("public_site").map((t) => t.name));
     assert.deepEqual(
       names,
-      new Set([FIND_EXPLAINER_VIDEO_TOOL.name, CHECK_TERRITORY_AVAILABILITY_TOOL.name, START_SIGNUP_TOOL.name]),
+      new Set([
+        FIND_EXPLAINER_VIDEO_TOOL.name,
+        CHECK_TERRITORY_AVAILABILITY_TOOL.name,
+        START_SIGNUP_TOOL.name,
+        GET_PRICING_TOOL.name,
+      ]),
     );
   });
 
@@ -306,6 +312,6 @@ describe("runWithTools", () => {
       noopMerge,
     );
     assert.equal(text, "final answer, no more tools offered");
-    assert.ok(calls <= 4, `expected at most MAX_TOOL_ROUNDS + 1 calls, got ${calls}`);
+    assert.ok(calls <= 6, `expected at most MAX_TOOL_ROUNDS + 1 calls, got ${calls}`);
   });
 });

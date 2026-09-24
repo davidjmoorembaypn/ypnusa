@@ -15,6 +15,7 @@ import type {
   QualificationSummary,
 } from "@/lib/types";
 import { fetchLiveTerritory } from "@/lib/live-territory";
+import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { findExplainerVideo } from "./explainer-videos";
 import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
 import {
@@ -22,6 +23,7 @@ import {
   CAPTURE_LEAD_QUALIFICATION_TOOL,
   CHECK_TERRITORY_AVAILABILITY_TOOL,
   FIND_EXPLAINER_VIDEO_TOOL,
+  GET_PRICING_TOOL,
   REQUEST_HUMAN_HANDOFF_TOOL,
   SCHEDULE_MEETING_TOOL,
   START_SIGNUP_TOOL,
@@ -38,7 +40,7 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
     tools.push(CAPTURE_LEAD_QUALIFICATION_TOOL, SCHEDULE_MEETING_TOOL, REQUEST_HUMAN_HANDOFF_TOOL);
   }
   if (mode === "public_site") {
-    tools.push(START_SIGNUP_TOOL);
+    tools.push(START_SIGNUP_TOOL, GET_PRICING_TOOL);
   }
   if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(CHECK_TERRITORY_AVAILABILITY_TOOL);
   return tools;
@@ -112,6 +114,19 @@ async function executeActionTool(call: AiToolCall, session: ChatSessionRecord): 
         ? JSON.stringify({ title: video.title, url: video.url, description: video.description })
         : JSON.stringify({ found: false, note: "No explainer video covers this topic yet." });
     }
+    if (call.toolName === "get_pricing") {
+      return JSON.stringify({
+        plans: PUBLIC_PRICING_TIERS.map((tier) => ({
+          name: tier.name,
+          price: tier.price,
+          cadence: tier.cadence,
+          includedZips: tier.zipCapacityLabel,
+          trialDays: tier.trialDays,
+          tagline: tier.tagline,
+          features: tier.features,
+        })),
+      });
+    }
     if (call.toolName === "start_signup") {
       return JSON.stringify({ url: signupUrl(call.input) });
     }
@@ -128,7 +143,7 @@ async function executeActionTool(call: AiToolCall, session: ChatSessionRecord): 
   }
 }
 
-const MAX_TOOL_ROUNDS = 3;
+const MAX_TOOL_ROUNDS = 5;
 const ACTION_TOOL_NAMES = new Set([
   "check_territory_availability",
   "find_explainer_video",

@@ -67,16 +67,30 @@ describe("clientKey", () => {
     return new Request("http://localhost/api/demo-request", { headers });
   }
 
-  it("prefers the first hop of x-forwarded-for", () => {
+  it("uses the hop appended by the trusted proxy, not the client-supplied left-most entry", () => {
     assert.equal(
-      clientKey(requestWith({ "x-forwarded-for": " 203.0.113.7 , 10.0.0.1 " })),
+      clientKey(requestWith({ "x-forwarded-for": " 1.2.3.4 , 203.0.113.7 " })),
       "203.0.113.7",
     );
   });
 
+  it("counts TRUSTED_PROXY_HOPS in from the right", () => {
+    const prev = process.env.TRUSTED_PROXY_HOPS;
+    process.env.TRUSTED_PROXY_HOPS = "2";
+    try {
+      assert.equal(
+        clientKey(requestWith({ "x-forwarded-for": "1.2.3.4, 203.0.113.7, 10.0.0.1" })),
+        "203.0.113.7",
+      );
+    } finally {
+      if (prev === undefined) delete process.env.TRUSTED_PROXY_HOPS;
+      else process.env.TRUSTED_PROXY_HOPS = prev;
+    }
+  });
+
   it("falls back to x-real-ip when the forwarded chain is unusable", () => {
     assert.equal(
-      clientKey(requestWith({ "x-forwarded-for": " , 10.0.0.1", "x-real-ip": "198.51.100.9" })),
+      clientKey(requestWith({ "x-forwarded-for": " , ", "x-real-ip": "198.51.100.9" })),
       "198.51.100.9",
     );
     assert.equal(clientKey(requestWith({ "x-real-ip": "198.51.100.9" })), "198.51.100.9");

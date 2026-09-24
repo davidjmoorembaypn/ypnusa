@@ -4,6 +4,8 @@
 # automatically if the new build doesn't come up. Run on the server:
 #   bash hostinger-install-release.sh                    # latest release
 #   bash hostinger-install-release.sh app-build-abc1234  # a specific build
+# YPNUS_BUILD_URL overrides the source directory (it must hold app-build.tar.gz
+# and app-build.tar.gz.sha256), e.g. the deploy/app-build branch's raw URL.
 set -euo pipefail
 
 REPO="davidjmoorembaypn/ypnusa"
@@ -12,7 +14,9 @@ NODE="/opt/alt/alt-nodejs20/root/usr/bin/node"
 HEALTH_URL="https://app.ypnus.com/api/health"
 TAG="${1:-}"
 
-if [ -n "$TAG" ]; then
+if [ -n "${YPNUS_BUILD_URL:-}" ]; then
+  url="$YPNUS_BUILD_URL"
+elif [ -n "$TAG" ]; then
   url="https://github.com/$REPO/releases/download/$TAG"
 else
   url="https://github.com/$REPO/releases/latest/download"

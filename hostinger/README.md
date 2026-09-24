@@ -17,6 +17,11 @@ app is built on GitHub and only the finished bundle is installed on the server:
    back automatically unless `/api/health` reports the new `build.commit`.
 3. Confirm: `curl https://app.ypnus.com/api/health` shows `build.commit`.
 
+If GitHub Actions can't run, build locally the same way the workflow does and push
+`app-build.tar.gz` + `.sha256` to the orphan branch `deploy/app-build`, then run the
+installer with
+`YPNUS_BUILD_URL=https://raw.githubusercontent.com/davidjmoorembaypn/ypnusa/deploy/app-build`.
+
 Secrets stay in `app/.env` (outside the web root); nothing secret ships in the bundle.
 
 ## Current production shape

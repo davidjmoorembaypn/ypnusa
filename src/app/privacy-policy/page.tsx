@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "How YPN Inc. collects, uses, and protects information on app.ypnus.com and through the YPN USA platform.",
 };
 
-const LAST_UPDATED = "September 13, 2026";
+const LAST_UPDATED = "September 24, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -60,10 +60,14 @@ export default function PrivacyPolicyPage() {
       </ul>
       <h3>2.3 Information collected automatically</h3>
       <p>
-        We use a single first-party, functional session cookie to keep you signed in. We do not
-        currently use third-party advertising or cross-site tracking cookies, and this platform
-        does not sell personal information. If that changes, we will update this Policy and, where
-        required by law, obtain your consent first.
+        On app.ypnus.com we use a single first-party, functional session cookie to keep you signed
+        in. On ypnus.com we also use analytics tools &mdash; Google Analytics and Microsoft
+        Clarity &mdash; to understand how visitors use the site and improve it. Clarity may record
+        how you interact with pages (for example, clicks, scrolling, and navigation). These tools
+        set cookies and receive device and usage information such as IP address, browser type, and
+        pages viewed. We use them for analytics only, not for cross-context behavioral advertising,
+        and we do not use third-party advertising cookies. If that changes, we will update this
+        Policy and, where required by law, obtain your consent first.
       </p>
 
       <h2>3. How we use information</h2>
@@ -82,6 +86,13 @@ export default function PrivacyPolicyPage() {
         inaccurate or incomplete and are not financial, legal, or credit advice. A Subscriber (a
         licensed human loan officer) is responsible for any credit-related communication sent to a
         Borrower and for reviewing automated content before it is relied upon.
+      </p>
+      <p>
+        Chat conversations and phone calls with our AI assistants are processed by our AI service
+        provider (currently Anthropic) to generate responses, and transcripts are stored so we can
+        route your inquiry, respond, and maintain service quality. By using the chat or phone
+        assistant, you consent to this recording and processing. Please do not share sensitive
+        information such as Social Security, driver&rsquo;s license, or financial account numbers.
       </p>
 
       <h2>5. How we share information</h2>
@@ -107,11 +118,23 @@ export default function PrivacyPolicyPage() {
           Subscriber sign-up, account provisioning, and single sign-on between ypnus.com and this
           platform.
         </li>
-        <li>Hosting, infrastructure, and other service providers who process data on our behalf under contract.</li>
+        <li>
+          <strong>Anthropic</strong> &mdash; provides the AI models that generate assistant replies.
+        </li>
+        <li>
+          <strong>Google Analytics and Microsoft Clarity</strong> &mdash; analytics on ypnus.com (see
+          Section 2.3).
+        </li>
+        <li>Hosting, infrastructure, email, and other service providers who process data on our behalf under contract.</li>
         <li>Regulators, law enforcement, or other parties when required by law, subpoena, or to protect rights, safety, or property.</li>
         <li>A successor entity in connection with a merger, acquisition, or sale of assets.</li>
       </ul>
-      <p>We do not sell personal information, as that term is defined under applicable state privacy law.</p>
+      <p id="do-not-sell-or-share">
+        We do not sell personal information or share it for cross-context behavioral advertising,
+        as those terms are defined under the California Consumer Privacy Act, and we have not done
+        so in the past 12 months. We do not knowingly sell or share the personal information of
+        consumers under 16.
+      </p>
 
       <h2>6. Financial privacy (Gramm-Leach-Bliley Act)</h2>
       <p>
@@ -134,6 +157,46 @@ export default function PrivacyPolicyPage() {
         time required by applicable law. We will not discriminate against you for exercising these
         rights.
       </p>
+      <h3>7.1 California residents</h3>
+      <ul>
+        <li>
+          <strong>Your rights:</strong> to know the categories and specific pieces of personal
+          information we collect, use, and disclose; to delete it; to correct inaccurate
+          information; to opt out of any sale or sharing; and to limit the use of sensitive
+          personal information. We respond within 45 days, as allowed by law. An authorized agent
+          may submit a request on your behalf with your written permission.
+        </li>
+        <li>
+          <strong>Categories and sources:</strong> the identifiers, commercial and professional
+          information, internet activity, and inferences described in Section 2, collected from
+          you, your devices, and the Subscriber you contact, for the purposes in Section 3 and
+          disclosed to the recipients in Section 5.
+        </li>
+        <li>
+          <strong>Sensitive personal information:</strong> we do not use or disclose sensitive
+          personal information for purposes that would require offering a right to limit.
+        </li>
+        <li id="gpc">
+          <strong>Global Privacy Control:</strong> we treat a Global Privacy Control (GPC) signal
+          from your browser as a valid request to opt out of the sale or sharing of personal
+          information for that browser.
+        </li>
+        <li>
+          <strong>Do Not Track:</strong> because there is no common standard for browser
+          &ldquo;Do Not Track&rdquo; signals, we do not respond to them other than honoring GPC as
+          described above.
+        </li>
+        <li>
+          <strong>Shine the Light:</strong> we do not disclose personal information to third
+          parties for their own direct marketing purposes.
+        </li>
+        <li>
+          <strong>How to submit a request:</strong> email{" "}
+          <a href="mailto:support@ypnus.com">support@ypnus.com</a> or call{" "}
+          <a href="tel:+15595120372">(559) 512-0372</a>. We will ask for information to verify your
+          identity before acting on the request.
+        </li>
+      </ul>
 
       <h2>8. Communications preferences</h2>
       <p>

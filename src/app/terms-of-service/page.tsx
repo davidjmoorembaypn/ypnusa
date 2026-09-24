@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 import { LegalPageLayout } from "@/components/legal-page-layout";
+import { PUBLIC_PRICING_TIERS, TRIAL_DAYS } from "@/lib/pricing";
+import { CUSTOMER_PORTAL_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: "The terms that govern use of app.ypnus.com and the YPN USA platform.",
 };
 
-const LAST_UPDATED = "September 13, 2026";
+const LAST_UPDATED = "September 24, 2026";
+
+const PAID_PLAN_PRICES = PUBLIC_PRICING_TIERS.filter((tier) => tier.priceMonthlyCents > 0)
+  .map((tier) => `${tier.name} ${tier.price}/month`)
+  .join(", ");
 
 export default function TermsOfServicePage() {
   return (
@@ -50,17 +56,43 @@ export default function TermsOfServicePage() {
         <li>You are responsible for all activity that occurs under your account.</li>
       </ul>
 
-      <h2>3. Subscriptions, billing, and territory claims</h2>
+      <h2>3. Subscriptions, free trials, automatic renewal, and cancellation</h2>
       <ul>
-        <li>Paid plans are billed through our payment processor, Stripe, at the price and interval shown at the time of purchase.</li>
-        <li>Subscriptions renew automatically until cancelled; you may cancel at any time through your account or by contacting support, effective at the end of the then-current billing period.</li>
+        <li>
+          <strong>Plans and prices.</strong> Paid plans ({PAID_PLAN_PRICES}, or the price shown at
+          checkout) are billed monthly in advance through our payment processor, Stripe.
+        </li>
+        <li>
+          <strong>Free trial.</strong> Each paid plan starts with a {TRIAL_DAYS}-day free trial. We
+          collect a payment method at sign-up but do not charge it during the trial. Unless you
+          cancel before the trial ends, your subscription automatically converts to the paid plan
+          you selected and your payment method is charged the monthly price when the trial ends.
+        </li>
+        <li>
+          <strong>Automatic renewal.</strong> Your subscription renews automatically every month,
+          and your payment method is charged the then-current monthly price, until you cancel. We
+          will notify you before any price increase takes effect, and you may cancel before it
+          applies.
+        </li>
+        <li>
+          <strong>How to cancel.</strong> You can cancel online at any time, with no phone call or
+          cancellation fee, from Billing in your account (
+          <a href="/billing">app.ypnus.com/billing</a>) or through the{" "}
+          <a href={CUSTOMER_PORTAL_URL}>Stripe billing portal</a>, or by emailing{" "}
+          <a href="mailto:support@ypnus.com">support@ypnus.com</a>. Cancelling stops all future
+          charges; your access, including any territory claim, continues through the end of the
+          current billing period and then ends.
+        </li>
         <li>
           A ZIP territory is exclusive to the Subscriber who currently holds it under an active
           subscription and is subject to the Platform&rsquo;s territory rules. Territory claims
           release automatically if the associated subscription lapses, and we do not guarantee any
           specific volume, quality, or continuity of leads.
         </li>
-        <li>Fees are non-refundable except as required by law or as expressly stated at the time of purchase.</li>
+        <li>
+          <strong>Refunds.</strong> Fees already charged are non-refundable except as required by law
+          or as expressly stated at the time of purchase. You will not be charged after you cancel.
+        </li>
       </ul>
 
       <h2>4. Acceptable use</h2>

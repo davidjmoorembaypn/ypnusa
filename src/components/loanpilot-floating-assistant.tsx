@@ -6,6 +6,7 @@ import { PROGRAM_LIST, coerceLoanProgram } from "@/lib/programs";
 import { useStageTracking } from "@/lib/hooks/useStageTracking";
 import { postJson } from "@/lib/client-api";
 import { formatDateTime } from "@/lib/format";
+import { appUrl } from "@/lib/site";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 
 type Bubble = { id: string; role: "assistant" | "user" | "system"; body: string };
@@ -992,6 +993,13 @@ function InnerChrome(props: {
         {phase !== "collecting" ? (
           <p className="text-xs text-slate-500">{closedFooter}</p>
         ) : null}
+        <p className="text-[11px] leading-4 text-slate-500">
+          Chats are answered by AI and saved so we can respond. Please don&rsquo;t share sensitive
+          personal or financial details.{" "}
+          <a href={appUrl("/privacy-policy")} target="_blank" rel="noopener noreferrer" className="underline">
+            Privacy Policy
+          </a>
+        </p>
       </footer>
     </>
   );

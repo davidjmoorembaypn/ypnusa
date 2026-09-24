@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { appUrl } from "@/lib/site";
 import type { AssistantMode, ChatCapturedFields } from "@/lib/types";
 
 type BubbleRole = "user" | "assistant" | "system";
@@ -299,6 +300,21 @@ export function AssistantChat(props: {
               {busy ? "Sending…" : "Send"}
             </button>
           </form>
+
+          {mode !== "mlo_dashboard" ? (
+            <p className="text-[11px] leading-4 text-white/45">
+              Chats are answered by AI and saved so we can respond. Please don&rsquo;t share sensitive
+              personal or financial details.{" "}
+              <a
+                href={appUrl("/privacy-policy")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-white/70"
+              >
+                Privacy Policy
+              </a>
+            </p>
+          ) : null}
 
           {mode === "mlo_dashboard" && autopilot ? (
             <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">

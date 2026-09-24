@@ -1,11 +1,30 @@
 # Hostinger deploy notes — ypnus.com + app.ypnus.com
 
+## Deploy app.ypnus.com (current method)
+
+`next build` can't finish inside Hostinger's LVE (memory/thread caps), so the
+app is built on GitHub and only the finished bundle is installed on the server:
+
+1. Merge to `main`. `.github/workflows/release-build.yml` runs the tests, builds
+   the standalone bundle on Node 20, and publishes it as release
+   `app-build-<sha7>` (asset `app-build.tar.gz` + `.sha256`).
+2. On the server, run `bash scripts/hostinger-install-release.sh` (fetch it from
+   the repo's raw URL, or keep a copy in `app/hbuilds/`). It verifies the
+   checksum, installs to `hbuilds/versions/build-<ts>-<sha7>/nodejs`, carries the
+   `YPN-ENV-LOADER` preamble (persistent data dir + `app/.env` loader) into the
+   new `server.js`, keeps the previous build's hashed chunks for CDN-cached
+   HTML, switches `hbuilds/current`, recycles the LiteSpeed worker, and rolls
+   back automatically unless `/api/health` reports the new `build.commit`.
+3. Confirm: `curl https://app.ypnus.com/api/health` shows `build.commit`.
+
+Secrets stay in `app/.env` (outside the web root); nothing secret ships in the bundle.
+
 ## Current production shape
 
 | Host | Role | Stack |
 | --- | --- | --- |
 | `https://ypnus.com` | Marketing, signup, Cerebro, Rank Math SEO | WordPress on Hostinger |
-| `https://app.ypnus.com` | Territory product / ZIP inventory | Static HTML (+ WP REST for lock ledger); Next.js ready |
+| `https://app.ypnus.com` | Territory product / ZIP inventory | Next.js standalone on LiteSpeed Node (Passenger-compatible), Node 20 |
 
 ## Critical live bugs found (and fixed)
 

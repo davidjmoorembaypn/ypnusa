@@ -1,0 +1,61 @@
+name: Release build
+
+# Builds the standalone Next.js bundle off-host (Hostinger's LVE can't finish
+# `next build`) and publishes it as a GitHub release asset that
+# scripts/hostinger-install-release.sh downloads and installs on the server.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the Hostinger runtime (PassengerNodejs alt-nodejs20).
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: Assemble standalone bundle
+        run: |
+          set -euo pipefail
+          short="${GITHUB_SHA::7}"
+          out=dist/nodejs
+          mkdir -p "$out/.next"
+          cp -a .next/standalone/. "$out/"
+          cp -a .next/static "$out/.next/static"
+          if [ -d public ]; then cp -a public "$out/public"; fi
+          # Never ship local data or env files; the server supplies both.
+          rm -rf "$out/data" "$out"/.env*
+          printf '{"git_commit":"%s","built_at":"%s","node_version":"%s","built_on":"github-actions %s"}\n' \
+            "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$(node -v)" "$(ldd --version | head -1)" > "$out/DEPLOY_MANIFEST.json"
+          tar -czf app-build.tar.gz -C dist nodejs
+          sha256sum app-build.tar.gz > app-build.tar.gz.sha256
+          echo "SHORT_SHA=$short" >> "$GITHUB_ENV"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "app-build-$SHORT_SHA" app-build.tar.gz app-build.tar.gz.sha256 \
+            --target "$GITHUB_SHA" --latest \
+            --title "App build $SHORT_SHA" \
+            --notes "Standalone Next.js build of $GITHUB_SHA. Install on Hostinger with scripts/hostinger-install-release.sh."
+          # Keep the five newest app builds.
+          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+            | grep '^app-build-' | tail -n +6 \
+            | xargs -r -n1 gh release delete --cleanup-tag --yes

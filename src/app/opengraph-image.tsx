@@ -45,7 +45,7 @@ export default function OGImage() {
           Own your ZIP. Capture every borrower.
         </div>
         <div style={{ fontSize: 24, color: "rgba(255,255,255,0.78)", maxWidth: 820 }}>
-          Exclusive territories · AI intake · Free → $29.99 → $99.99 → $299.99
+          Exclusive territories · AI intake · Free → $99 → $199 → $299
         </div>
       </div>
     ),

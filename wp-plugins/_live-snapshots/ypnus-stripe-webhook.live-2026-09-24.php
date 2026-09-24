@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! defined( 'YPNUS_STRIPE_ALLOWED_TIERS' ) ) {
 	// 'growth' added for the 5-tier commercial model (free/starter/growth/pro/elite) —
 	// see app.ypnus.com's src/lib/pricing.ts for the canonical tier list and prices.
-	define( 'YPNUS_STRIPE_ALLOWED_TIERS', array( 'starter', 'growth', 'pro', 'elite' ) );
+	define( 'YPNUS_STRIPE_ALLOWED_TIERS', array( 'growth', 'pro', 'elite' ) /* starter discontinued 2026-09-18 */ );
 }
 if ( ! defined( 'YPNUS_STRIPE_SIGNATURE_TOLERANCE' ) ) {
 	define( 'YPNUS_STRIPE_SIGNATURE_TOLERANCE', 300 );
@@ -354,10 +354,17 @@ function ypnus_stripe_resolve_subscription_tier( $subscription ) {
 		}
 	}
 
-	return 1 === count( $tiers ) ? array_key_first( $tiers ) : $metadata_tier;
+	$resolved = 1 === count( $tiers ) ? array_key_first( $tiers ) : '';
+	if ( '' === $resolved && function_exists( 'ypnus_lo_act_tier_from_items' ) ) {
+		$resolved = ypnus_lo_act_tier_from_items( $items );
+	}
+	return '' !== $resolved ? $resolved : $metadata_tier;
 }
 
 function ypnus_stripe_resolve_checkout_zip( $session ) {
+	if ( function_exists( 'ypnus_lo_resolve_zip' ) ) {
+		return ypnus_lo_resolve_zip( $session );
+	}
 	$zip = isset( $session['metadata']['ypnus_zip'] )
 		? preg_replace( '/[^0-9]/', '', (string) $session['metadata']['ypnus_zip'] )
 		: '';
@@ -742,7 +749,7 @@ function ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscri
 	return ypnus_stripe_write_user_meta( $user_id, $values );
 }
 
-function ypnus_stripe_provision_user( $email, $tier, $customer_id, $subscription_id, $status, $trial_ends_at = '' ) {
+function ypnus_stripe_provision_user( $email, $tier, $customer_id, $subscription_id, $status ) {
 	$customer_user = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_customer_id', $customer_id );
 	$sub_user      = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_subscription_id', $subscription_id );
 	$email_user    = ypnus_stripe_resolve_email_user( $email );
@@ -790,7 +797,7 @@ function ypnus_stripe_provision_user( $email, $tier, $customer_id, $subscription
 		$is_new = true;
 	}
 
-	if ( ! ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscription_id, $status, $trial_ends_at ) ) {
+	if ( ! ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscription_id, $status ) ) {
 		return array(
 			'ok'    => false,
 			'error' => 'user_meta_write_failed',
@@ -809,6 +816,13 @@ function ypnus_stripe_provision_user( $email, $tier, $customer_id, $subscription
 }
 
 function ypnus_stripe_apply_lifecycle_row( $row ) {
+	if ( function_exists( 'ypnus_lo_act_on_lifecycle' ) ) {
+		try {
+			ypnus_lo_act_on_lifecycle( $row );
+		} catch ( \Throwable $e ) {
+		ypnus_stripe_log( 'lo_lifecycle_error', array( 'msg' => $e->getMessage() ) );
+		}
+	}
 	$user = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_customer_id', (string) $row->customer_id );
 	if ( ! $user ) {
 		return array(
@@ -863,7 +877,8 @@ function ypnus_stripe_process_checkout( $event, $async = false ) {
 	$trial_flag = isset( $session['metadata']['ypnus_trialing'] )
 		? strtolower( (string) $session['metadata']['ypnus_trialing'] )
 		: '';
-	$is_trial   = 'no_payment_required' === $payment_status && in_array( $trial_flag, array( '1', 'true', 'yes' ), true );
+	// Payment Link trials (card collected, first charge after the trial) arrive as no_payment_required with no custom metadata.
+	$is_trial   = 'no_payment_required' === $payment_status;
 	if ( 'paid' !== $payment_status && ! $is_trial ) {
 		return array(
 			'ok'    => false,
@@ -889,7 +904,10 @@ function ypnus_stripe_process_checkout( $event, $async = false ) {
 	}
 
 	$tier = ypnus_stripe_resolve_checkout_tier( $session );
-	if ( ! $tier ) {
+	if ( ! $tier && function_exists( 'ypnus_lo_act_tier_for_subscription' ) ) {
+		$tier = ypnus_lo_act_tier_for_subscription( $subscription_id );
+	}
+	if ( ! $tier && ! function_exists( 'ypnus_lo_act_on_checkout' ) ) {
 		return array(
 			'ok'    => false,
 			'error' => 'tier_unresolved',
@@ -919,13 +937,27 @@ function ypnus_stripe_process_checkout( $event, $async = false ) {
 	$current_status = (string) $lifecycle['row']->subscription_status;
 	$zip            = ypnus_stripe_resolve_checkout_zip( $session );
 
+	if ( function_exists( 'ypnus_lo_act_on_checkout' ) ) {
+		$lo = ypnus_lo_act_on_checkout( $session, $email, $current_tier, $customer_id, $subscription_id, $current_status, $zip );
+		if ( ! empty( $lo['action'] ) && 'not_a_paid_tier' !== $lo['action'] ) {
+			// The real account lives in wp_ypnus_lo_accounts; entitlement meta only for an already-linked WP user. Never create a parallel WP user.
+			if ( ! empty( $lo['wp_user_id'] ) && get_userdata( (int) $lo['wp_user_id'] ) ) {
+				ypnus_stripe_apply_entitlement( (int) $lo['wp_user_id'], $current_tier, $customer_id, $subscription_id, $current_status );
+			}
+			return array(
+				'ok'         => true,
+				'lo_account' => $lo['action'],
+				'territory'  => isset( $lo['territory'] ) ? $lo['territory'] : '',
+			);
+		}
+	}
+
 	$provision = ypnus_stripe_provision_user(
 		$email,
 		$current_tier,
 		$customer_id,
 		$subscription_id,
-		$current_status,
-		isset( $lifecycle['row']->trial_ends_at ) ? (string) $lifecycle['row']->trial_ends_at : ''
+		$current_status
 	);
 	if ( $provision['ok'] ) {
 		$lock                   = ypnus_stripe_lock_zip_territory( $provision['user_id'], $subscription_id, $current_tier, $zip );
@@ -978,7 +1010,11 @@ function ypnus_stripe_process_subscription( $event ) {
 			'action' => 'stale_event_ignored',
 		);
 	}
-	return ypnus_stripe_apply_lifecycle_row( $lifecycle['row'] );
+	$applied = ypnus_stripe_apply_lifecycle_row( $lifecycle['row'] );
+	if ( function_exists( 'ypnus_lo_act_on_stripe_state' ) ) {
+		ypnus_lo_act_on_stripe_state( $sub_id, $stripe_state );
+	}
+	return $applied;
 }
 
 function ypnus_stripe_process_invoice( $event, $paid ) {
@@ -1047,6 +1083,7 @@ function ypnus_stripe_process_invoice( $event, $paid ) {
 }
 
 function ypnus_stripe_process_event( $event ) {
+	$GLOBALS['ypnus_lo_act_event'] = array( 'id' => $event['id'], 'type' => $event['type'] );
 	switch ( $event['type'] ) {
 		case 'checkout.session.completed':
 			return ypnus_stripe_process_checkout( $event, false );

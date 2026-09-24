@@ -69,8 +69,8 @@ export const PRICING_TIERS: readonly PricingTier[] = [
   {
     id: "growth",
     name: "Growth",
-    price: "$99",
-    priceMonthlyCents: 9900,
+    price: "$99.99",
+    priceMonthlyCents: 9999,
     cadence: "/mo",
     tagline: "More automation, same exclusive footprint",
     features: [
@@ -91,8 +91,8 @@ export const PRICING_TIERS: readonly PricingTier[] = [
   {
     id: "pro",
     name: "Pro",
-    price: "$199",
-    priceMonthlyCents: 19900,
+    price: "$199.99",
+    priceMonthlyCents: 19999,
     cadence: "/mo",
     tagline: "For the serious loan officer",
     features: [
@@ -113,8 +113,8 @@ export const PRICING_TIERS: readonly PricingTier[] = [
   {
     id: "elite",
     name: "Elite",
-    price: "$299",
-    priceMonthlyCents: 29900,
+    price: "$299.99",
+    priceMonthlyCents: 29999,
     cadence: "/mo",
     tagline: "Maximum automation and priority support",
     features: [

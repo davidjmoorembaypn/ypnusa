@@ -12,7 +12,7 @@ import {
 describe("pricing catalog", () => {
   it("offers only current plans while preserving legacy subscription resolution", () => {
     assert.deepEqual(PUBLIC_PRICING_TIERS.map((tier) => tier.id), ["free", "growth", "pro", "elite"]);
-    assert.deepEqual(PUBLIC_PRICING_TIERS.map((tier) => tier.priceMonthlyCents), [0, 9900, 19900, 29900]);
+    assert.deepEqual(PUBLIC_PRICING_TIERS.map((tier) => tier.priceMonthlyCents), [0, 9999, 19999, 29999]);
     assert.equal(getPricingTier("starter").priceMonthlyCents, 2999);
   });
   it("exposes the five tiers in ascending price order with unique ids", () => {

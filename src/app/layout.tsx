@@ -118,9 +118,9 @@ const jsonLd = {
       isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
       offers: [
         { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Growth", price: "99", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Pro", price: "199", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Elite", price: "299", priceCurrency: "USD" },
+        { "@type": "Offer", name: "Growth", price: "99.99", priceCurrency: "USD" },
+        { "@type": "Offer", name: "Pro", price: "199.99", priceCurrency: "USD" },
+        { "@type": "Offer", name: "Elite", price: "299.99", priceCurrency: "USD" },
       ],
       description:
         "Mortgage growth platform for licensed loan officers with exclusive ZIP territories, AI borrower intake, qualification, and nurture.",

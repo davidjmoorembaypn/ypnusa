@@ -295,3 +295,21 @@ a reflexive fix:
 
 Re-verified after these fixes: `npm run lint` (0 errors), `npm test`
 (357/357), `npm run build` (clean).
+
+## 10. Production pass — 2026-09-24 (owner-approved, applied live)
+
+**App (app.ypnus.com)** — live build is whatever `/api/health` reports as `build.commit`.
+
+- Deploy: `next build` can't finish inside Hostinger's LVE, so bundles are built off-host and installed with `scripts/hostinger-install-release.sh` (checksum, `YPN-ENV-LOADER` preamble carried forward, previous chunks kept, worker recycled, auto-rollback). GitHub Actions jobs don't start on this account (billing/settings), so until that's fixed the bundle is published to the `deploy/app-build` branch and installed with `YPNUS_BUILD_URL` (see `hostinger/README.md`).
+- Hostinger's CDN honors `s-maxage` and never purges on deploy: static pages now send `s-maxage=300, stale-while-revalidate=300` (root layout `revalidate = 300`, `expireTime: 600`). Copies cached before that carry a one-year TTL — flush the CDN once in hPanel.
+- `public_html/app/.htaccess` no longer forces `X-Frame-Options: SAMEORIGIN`; the app sends DENY everywhere except `/embed/*` (MLO sites iframe the intake).
+- `/api/health` no longer exposes the server data path; JSON store is multi-process safe.
+
+**WordPress (ypnus.com)**
+
+- Stripe: new Payment Links + $99.99/$199.99/$299.99 everywhere; webhook resolves tier from the current price (portal plan switches); price map in `ypnus_stripe_tier_by_price_id`; customer-portal login link now points at the live account.
+- Compliance: TCPA checkbox on WPForms territory form, `lo-signup.html`, `/contact/`; `/signup` now stores `tcpa_consent`/`consent_at`/`consent_version`; NMLS/EHO/Consumer Access footer on static pages; `/welcome/` post-checkout page (noindex).
+- Security: WP File Manager and Auto Affiliate Links removed; `DISALLOW_FILE_EDIT`; backups moved out of `public_html` to `~/backups/`; the duplicate WordPress install at `/loans/` is locked (403; `/loans/pricing.html` 301s to `/pricing.html`; original rules in `~/backups/2026-09-24/loans/`).
+- SEO: duplicate redirects removed; redirected pages noindexed; author sitemap off (it exposed service-account usernames); sitemap crawl: 450/450 URLs resolve.
+
+**Owner-only (not doable from code):** flush the hPanel CDN once; switch WP Mail SMTP from PHP `mail` to authenticated Hostinger SMTP and send a test; Stripe Dashboard (deactivate old $99/$199/$299/Starter links, after-payment redirect to `/welcome/`, portal return URL + legal links, tax registrations); fix GitHub Actions billing; attorney review of legal copy; decide whether to delete `/loans/`.

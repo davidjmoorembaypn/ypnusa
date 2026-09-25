@@ -11,6 +11,8 @@ export function LogoutButton(props: { className?: string }) {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
     } finally {
+      // Full reload intentionally clears client state after logout.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign("/login");
     }
   }

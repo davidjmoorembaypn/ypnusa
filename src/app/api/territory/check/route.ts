@@ -2,11 +2,19 @@ import { NextResponse } from "next/server";
 import { fetchLiveTerritory } from "@/lib/live-territory";
 import { checkTerritory } from "@/lib/territory";
 import { jsonError, logApiError } from "@/lib/http";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const limited = enforceRateLimit(request, {
+    scope: "territory-check",
+    limit: 60,
+    message: "Too many ZIP checks — please slow down and try again shortly.",
+  });
+  if (limited) return limited;
+
   try {
     const { searchParams } = new URL(request.url);
     const zip = searchParams.get("zip") ?? "";

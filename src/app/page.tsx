@@ -11,7 +11,17 @@ import { SiteFooter } from "@/components/site-footer";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
 
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "YPN USA App",
+    title: "YPN USA App — Mortgage Growth Platform for Loan Officers",
+    description:
+      "Claim exclusive ZIP territories, capture borrowers with AI intake, and build an owned mortgage lead pipeline.",
+  },
+};
 
 const LIFE_EVENTS = [
   {

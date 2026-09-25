@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Home Equity Snapshot",
   description:
     "Estimate home equity, loan-to-value, and an illustrative cash-out ceiling using values you provide.",
+  alternates: { canonical: "/tools/equity" },
   robots: {
     index: true,
     follow: true,

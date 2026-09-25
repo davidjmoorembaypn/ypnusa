@@ -5,6 +5,7 @@ import { LegalPageLayout } from "@/components/legal-page-layout";
 export const metadata: Metadata = {
   title: "Licensing & Disclosures",
   description: "NMLS licensing, Equal Housing Opportunity, and fair lending disclosures for YPN Inc.",
+  alternates: { canonical: "/licensing-disclosures" },
 };
 
 const LAST_UPDATED = "September 13, 2026";

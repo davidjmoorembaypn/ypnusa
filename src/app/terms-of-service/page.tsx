@@ -4,6 +4,7 @@ import { LegalPageLayout } from "@/components/legal-page-layout";
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: "The terms that govern use of app.ypnus.com and the YPN USA platform.",
+  alternates: { canonical: "/terms-of-service" },
 };
 
 const LAST_UPDATED = "September 13, 2026";

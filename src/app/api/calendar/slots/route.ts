@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const limited = enforceRateLimit(request, {
     scope: "calendar-slots",
     limit: 60,
-    message: "Too many requests — please slow down and try again shortly.",
+    message: "Too many requests - please slow down and try again shortly.",
   });
   if (limited) return limited;
 

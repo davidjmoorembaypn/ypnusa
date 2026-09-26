@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { AnthropicProvider } from "./anthropic-provider";
+import { AnthropicProvider, type AiBackend } from "./anthropic-provider";
 import { resolveBedrockConfig } from "./bedrock-config";
 
 /**
@@ -91,6 +91,19 @@ export function resolveAnthropicApiKey(): string | null {
 }
 
 let cachedProvider: AiProvider | null | undefined;
+/** Describes the backend cachedProvider was built from, so an unchanged config keeps the same provider. */
+let cachedFingerprint = "";
+let checkedAt = 0;
+/** How often the config is re-read, so credential or model changes apply without a restart. */
+const REFRESH_MS = 30_000;
+
+function resolveBackend(): AiBackend | null {
+  // The standard Anthropic API is primary; Bedrock is used only when USE_BEDROCK=true.
+  const bedrock = resolveBedrockConfig();
+  if (bedrock) return { kind: "bedrock", config: bedrock };
+  const apiKey = resolveAnthropicApiKey();
+  return apiKey ? { kind: "anthropic", apiKey } : null;
+}
 
 /**
  * Resolves the configured AI provider, or null when none is configured.
@@ -100,26 +113,22 @@ let cachedProvider: AiProvider | null | undefined;
  * env var you introduce for it — callers never need to change.
  */
 export function getAiProvider(): AiProvider | null {
-  if (cachedProvider !== undefined) return cachedProvider;
+  const now = Date.now();
+  if (cachedProvider !== undefined && now - checkedAt < REFRESH_MS) return cachedProvider;
+  checkedAt = now;
 
-  // The standard Anthropic API is primary; Bedrock is used only when USE_BEDROCK=true.
-  const bedrock = resolveBedrockConfig();
-  if (bedrock) {
-    cachedProvider = new AnthropicProvider({ kind: "bedrock", config: bedrock });
-    return cachedProvider;
-  }
+  const backend = resolveBackend();
+  const fingerprint = backend ? JSON.stringify(backend) : "";
+  if (cachedProvider !== undefined && fingerprint === cachedFingerprint) return cachedProvider;
 
-  const apiKey = resolveAnthropicApiKey();
-  if (!apiKey) {
-    cachedProvider = null;
-    return cachedProvider;
-  }
-
-  cachedProvider = new AnthropicProvider({ kind: "anthropic", apiKey });
+  cachedFingerprint = fingerprint;
+  cachedProvider = backend ? new AnthropicProvider(backend) : null;
   return cachedProvider;
 }
 
 /** Test-only: clears the memoized provider so env var changes take effect. */
 export function resetAiProviderCache(): void {
   cachedProvider = undefined;
+  cachedFingerprint = "";
+  checkedAt = 0;
 }

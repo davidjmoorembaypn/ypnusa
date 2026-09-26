@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { AnthropicProvider } from "./anthropic-provider";
+import { resolveBedrockConfig } from "./bedrock-config";
 
 /**
  * Provider-agnostic seam for the AI assistant (src/lib/ai/chat-agent.ts).
@@ -101,13 +102,20 @@ let cachedProvider: AiProvider | null | undefined;
 export function getAiProvider(): AiProvider | null {
   if (cachedProvider !== undefined) return cachedProvider;
 
+  // The standard Anthropic API is primary; Bedrock is used only when USE_BEDROCK=true.
+  const bedrock = resolveBedrockConfig();
+  if (bedrock) {
+    cachedProvider = new AnthropicProvider({ kind: "bedrock", config: bedrock });
+    return cachedProvider;
+  }
+
   const apiKey = resolveAnthropicApiKey();
   if (!apiKey) {
     cachedProvider = null;
     return cachedProvider;
   }
 
-  cachedProvider = new AnthropicProvider(apiKey);
+  cachedProvider = new AnthropicProvider({ kind: "anthropic", apiKey });
   return cachedProvider;
 }
 

@@ -1,5 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { AnthropicBedrockMantle } from "@anthropic-ai/bedrock-sdk";
+import type { BedrockConfig } from "./bedrock-config";
 import type { AiGenerateRequest, AiGenerateResult, AiProvider, AiToolCall } from "./provider";
+
+/** Which backend serves the model: the standard Anthropic API (primary) or Amazon Bedrock. */
+export type AiBackend = { kind: "anthropic"; apiKey?: string } | { kind: "bedrock"; config: BedrockConfig };
 
 /**
  * Default model: claude-opus-5 (Anthropic's current flagship). Override with
@@ -7,17 +12,41 @@ import type { AiGenerateRequest, AiGenerateResult, AiProvider, AiToolCall } from
  * see docs/ai-assistant.md for the tradeoffs.
  */
 const DEFAULT_MODEL = "claude-opus-5";
+/** Bedrock (Mantle endpoint) model ids carry an "anthropic." prefix. */
+const DEFAULT_BEDROCK_MODEL = "anthropic.claude-opus-5";
 const DEFAULT_MAX_TOKENS = 4096;
 
 export class AnthropicProvider implements AiProvider {
-  readonly name = "anthropic";
-  private readonly client: Anthropic;
+  readonly name: string;
+  // Both clients expose the same Messages surface (tool use, cache_control, output_config).
+  private readonly client: { messages: Anthropic["messages"] };
   private readonly model: string;
 
-  constructor(apiKey?: string) {
-    // The key comes from resolveAnthropicApiKey() (env var or private server file) —
-    // never hardcode a key here or accept one over the wire from a client.
-    this.client = new Anthropic(apiKey ? { apiKey } : undefined);
+  constructor(backend: AiBackend | string = { kind: "anthropic" }) {
+    // Credentials come from resolveAnthropicApiKey() / resolveBedrockConfig() (env vars or a
+    // private server file) - never hardcode one here or accept one over the wire from a client.
+    const resolved: AiBackend = typeof backend === "string" ? { kind: "anthropic", apiKey: backend } : backend;
+    if (resolved.kind === "bedrock") {
+      const { config } = resolved;
+      this.name = "bedrock";
+      this.client = new AnthropicBedrockMantle({
+        awsRegion: config.region,
+        // An explicit Bedrock API key wins; otherwise the AWS key pair (+ optional session token);
+        // if neither is set the SDK falls back to the default AWS credential chain.
+        ...(config.apiKey ? { apiKey: config.apiKey } : {}),
+        ...(!config.apiKey && config.accessKeyId && config.secretAccessKey
+          ? {
+              awsAccessKey: config.accessKeyId,
+              awsSecretAccessKey: config.secretAccessKey,
+              awsSessionToken: config.sessionToken ?? null,
+            }
+          : {}),
+      });
+      this.model = config.model || DEFAULT_BEDROCK_MODEL;
+      return;
+    }
+    this.name = "anthropic";
+    this.client = new Anthropic(resolved.apiKey ? { apiKey: resolved.apiKey } : undefined);
     this.model = process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL;
   }
 

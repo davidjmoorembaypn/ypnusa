@@ -7,12 +7,14 @@ import path from "node:path";
  * standard Anthropic API stays the primary backend and this only applies when
  * USE_BEDROCK=true (or the private config file below sets "useBedrock": true).
  *
- * Sources, in order (first match wins per field):
+ * Sources, in order (first match wins per field). The private file is searched in
+ * several places - see bedrockConfigCandidates().
  *   1. Environment: USE_BEDROCK, AWS_REGION (or AWS_DEFAULT_REGION),
  *      AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN,
  *      AWS_BEARER_TOKEN_BEDROCK (a Bedrock API key), BEDROCK_MODEL.
  *   2. A private JSON file outside the repo and web root (default
- *      ~/.ypnus/aws-bedrock.json, override with AWS_BEDROCK_CONFIG_FILE) - for
+ *      ~/.ypnus/aws-bedrock.json, else aws-bedrock.json in the process working
+ *      directory or its parents; override with AWS_BEDROCK_CONFIG_FILE) - for
  *      shared hosting where environment variables cannot be edited safely.
  *
  * Secrets are never logged and never come from a client request.
@@ -47,17 +49,36 @@ function clean(value: unknown): string | undefined {
 
 type EnvLike = Record<string, string | undefined>;
 
-function readConfigFile(env: EnvLike): BedrockConfigFile | null {
-  // turbopackIgnore: the path is only known at runtime; without it the build's file tracer
-  // treats this read as "could be anything" and copies the whole repo into the deploy bundle.
-  const filePath =
-    clean(env.AWS_BEDROCK_CONFIG_FILE) ?? path.join(/*turbopackIgnore: true*/ os.homedir(), ".ypnus", "aws-bedrock.json");
-  try {
-    const parsed: unknown = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ filePath, "utf8"));
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as BedrockConfigFile) : null;
-  } catch {
-    return null;
+/**
+ * Where the private config file is looked for, in order. An explicit
+ * AWS_BEDROCK_CONFIG_FILE is exclusive. Otherwise: the home directory, then the
+ * process working directory and two parents of it. On Hostinger the app runs
+ * from <app>/hbuilds/versions/<id>/nodejs, so "../../" is the versions folder and
+ * "../../../../" is the app folder that survives deploys.
+ */
+export function bedrockConfigCandidates(env: EnvLike, cwd: string): string[] {
+  const explicit = clean(env.AWS_BEDROCK_CONFIG_FILE);
+  if (explicit) return [explicit];
+  return [
+    path.join(/*turbopackIgnore: true*/ os.homedir(), ".ypnus", "aws-bedrock.json"),
+    path.resolve(/*turbopackIgnore: true*/ cwd, "aws-bedrock.json"),
+    path.resolve(/*turbopackIgnore: true*/ cwd, "..", "..", "aws-bedrock.json"),
+    path.resolve(/*turbopackIgnore: true*/ cwd, "..", "..", "..", "..", "aws-bedrock.json"),
+  ];
+}
+
+function readConfigFile(env: EnvLike, cwd: string): BedrockConfigFile | null {
+  // turbopackIgnore: the paths are only known at runtime; without it the build's file tracer
+  // treats these reads as "could be anything" and copies the whole repo into the deploy bundle.
+  for (const filePath of bedrockConfigCandidates(env, cwd)) {
+    try {
+      const parsed: unknown = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ filePath, "utf8"));
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as BedrockConfigFile;
+    } catch {
+      // Missing or unreadable here: try the next location.
+    }
   }
+  return null;
 }
 
 /**
@@ -65,8 +86,8 @@ function readConfigFile(env: EnvLike): BedrockConfigFile | null {
  * null (the caller then uses the standard Anthropic API). `env` is injectable
  * for tests.
  */
-export function resolveBedrockConfig(env: EnvLike = process.env): BedrockConfig | null {
-  const file = readConfigFile(env);
+export function resolveBedrockConfig(env: EnvLike = process.env, cwd: string = process.cwd()): BedrockConfig | null {
+  const file = readConfigFile(env, cwd);
 
   const flag = clean(env.USE_BEDROCK)?.toLowerCase();
   const enabled = flag !== undefined ? flag === "true" : file?.useBedrock === true;

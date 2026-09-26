@@ -14,10 +14,10 @@ export class AnthropicProvider implements AiProvider {
   private readonly client: Anthropic;
   private readonly model: string;
 
-  constructor() {
-    // No-arg constructor resolves ANTHROPIC_API_KEY from the environment —
+  constructor(apiKey?: string) {
+    // The key comes from resolveAnthropicApiKey() (env var or private server file) —
     // never hardcode a key here or accept one over the wire from a client.
-    this.client = new Anthropic();
+    this.client = new Anthropic(apiKey ? { apiKey } : undefined);
     this.model = process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL;
   }
 

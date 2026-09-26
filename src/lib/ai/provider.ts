@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { AnthropicProvider } from "./anthropic-provider";
 
 /**
@@ -64,6 +67,25 @@ export class AiProviderNotConfiguredError extends Error {
   }
 }
 
+/**
+ * Resolves the Anthropic API key. Order: the ANTHROPIC_API_KEY env var, then a
+ * private key file (ANTHROPIC_API_KEY_FILE, default ~/.ypnus/anthropic-api-key).
+ * The file path exists because shared hosting cannot always set one env var
+ * without replacing the whole set. Keep the file outside the web root, mode 600.
+ * Never log the value.
+ */
+export function resolveAnthropicApiKey(): string | null {
+  const fromEnv = process.env.ANTHROPIC_API_KEY?.trim();
+  if (fromEnv) return fromEnv;
+  const filePath = process.env.ANTHROPIC_API_KEY_FILE?.trim() || path.join(os.homedir(), ".ypnus", "anthropic-api-key");
+  try {
+    const fromFile = fs.readFileSync(filePath, "utf8").trim();
+    return fromFile || null;
+  } catch {
+    return null;
+  }
+}
+
 let cachedProvider: AiProvider | null | undefined;
 
 /**
@@ -76,12 +98,13 @@ let cachedProvider: AiProvider | null | undefined;
 export function getAiProvider(): AiProvider | null {
   if (cachedProvider !== undefined) return cachedProvider;
 
-  if (!process.env.ANTHROPIC_API_KEY?.trim()) {
+  const apiKey = resolveAnthropicApiKey();
+  if (!apiKey) {
     cachedProvider = null;
     return cachedProvider;
   }
 
-  cachedProvider = new AnthropicProvider();
+  cachedProvider = new AnthropicProvider(apiKey);
   return cachedProvider;
 }
 

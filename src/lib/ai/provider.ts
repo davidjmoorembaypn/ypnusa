@@ -77,9 +77,12 @@ export class AiProviderNotConfiguredError extends Error {
 export function resolveAnthropicApiKey(): string | null {
   const fromEnv = process.env.ANTHROPIC_API_KEY?.trim();
   if (fromEnv) return fromEnv;
-  const filePath = process.env.ANTHROPIC_API_KEY_FILE?.trim() || path.join(os.homedir(), ".ypnus", "anthropic-api-key");
+  // turbopackIgnore: the path is only known at runtime; without it the build's file tracer
+  // treats this read as "could be anything" and copies the whole repo into the deploy bundle.
+  const filePath =
+    process.env.ANTHROPIC_API_KEY_FILE?.trim() || path.join(/*turbopackIgnore: true*/ os.homedir(), ".ypnus", "anthropic-api-key");
   try {
-    const fromFile = fs.readFileSync(filePath, "utf8").trim();
+    const fromFile = fs.readFileSync(/*turbopackIgnore: true*/ filePath, "utf8").trim();
     return fromFile || null;
   } catch {
     return null;

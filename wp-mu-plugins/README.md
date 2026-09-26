@@ -13,6 +13,8 @@ backed up outside the web root in `~/backups/2026-09-26/`).
 | `ypnus-endpoint-guard.php` | *(new)* The MLO Toolkit's agent chat / content generator / keyword scout AJAX need a signed-in account (admins only for the agent). `/create-mlo` is admins-only (it published "Verified MLO" pages for anyone). `/login` gets per-IP and per-email lockouts and returns the dashboard token. `/request-reset` is rate limited per IP and per email. |
 | `ypnus-security-hardening.php` | wp-login lockout now keys on the real visitor IP; faking `X-Forwarded-For` no longer resets it. |
 | `ypnus-seo-routing.php` | *(new)* A published page beats a same-slug category (Rank Math's stripped category base had `/blog/` and the three pillar pages serving noindexed category archives). Static app files and the nested ZIP sitemap index are dropped from the page sitemap. `/markets/zip-NNNNN/` (~30,800 templated pages, zero impressions) send `X-Robots-Tag: noindex, follow`. |
+| `ypnus-analytics.php` | *(new)* Prints the GA4 tag (G-2TGE9M58H4, the property Rank Math and the site's event code use) at the top of the homepage `<head>`. The homepage fired conversion events but no GA tag reached it. |
+| `ypnus-front-perf.php` | *(new)* Dequeues the `ypnus-persuasion` script/style handles; `ypnus-persuasion-engine.php` also prints both in the footer, so inner pages downloaded each twice. |
 
 The repo-root `ypn-ai-borrower-intake.html` is also the live copy: its final step has a required,
 unchecked-by-default contact-consent checkbox and sends `tcpa_consent` with the lead.

@@ -24,6 +24,18 @@ import type {
 
 export type LeadGoal = "buyer" | "seller" | "refinance" | "all";
 
+/**
+ * How much the autopilot may apply without a human. Mirrors the per-MLO
+ * setting in AgentOnboardingRecord.autonomy. Omitted keeps the historical
+ * behavior (low-risk, grounded changes auto-apply; everything else waits).
+ * - approval_first: nothing applies until the MLO approves it.
+ * - autonomous_with_guardrails: low and medium changes apply on their own,
+ *   including ones with no existing copy to diff against. High-risk change
+ *   types and any text touching rate/APR/approval/NMLS/license language are
+ *   ALWAYS held for a human, whatever this is set to.
+ */
+export type AutopilotAutonomy = "approval_first" | "autonomous_with_guardrails";
+
 export interface WebsiteAutopilotPlanInput {
   userId?: string;
   mloProfileId?: string;
@@ -37,6 +49,7 @@ export interface WebsiteAutopilotPlanInput {
   existingSeoTitle?: string;
   existingMetaDescription?: string;
   currentChatbotIntro?: string;
+  autonomy?: AutopilotAutonomy;
 }
 
 export interface WebsiteAutopilotPlan {
@@ -98,7 +111,16 @@ export function classifyRisk(changeType: AutopilotChangeType, afterText: string)
   return base;
 }
 
-function statusFor(risk: AutopilotRiskLevel, hasGroundingText: boolean): AutopilotChangeStatus {
+function statusFor(
+  risk: AutopilotRiskLevel,
+  hasGroundingText: boolean,
+  autonomy?: AutopilotAutonomy,
+  complianceHit = false,
+): AutopilotChangeStatus {
+  if (autonomy === "approval_first") return "needs_approval";
+  // Hard stop under every autonomy level: legal/compliance-sensitive material never self-applies.
+  if (risk === "high" || complianceHit) return "needs_approval";
+  if (autonomy === "autonomous_with_guardrails") return "auto_applied";
   if (risk !== "low") return "needs_approval";
   // Low risk but nothing concrete to diff against yet — hold for a glance
   // rather than blind-apply text with no grounding in the MLO's real copy.
@@ -114,10 +136,14 @@ interface DraftChange {
   expectedBenefit: string;
 }
 
-function buildChange(pageType: AutopilotPageType, draft: DraftChange): WebsiteAutopilotChange {
+function buildChange(
+  pageType: AutopilotPageType,
+  autonomy: AutopilotAutonomy | undefined,
+  draft: DraftChange,
+): WebsiteAutopilotChange {
   const risk = classifyRisk(draft.changeType, draft.afterText);
   const hasGrounding = Boolean(draft.beforeText && draft.beforeText.trim());
-  const status = statusFor(risk, hasGrounding);
+  const status = statusFor(risk, hasGrounding, autonomy, containsComplianceLanguage(draft.afterText));
   const now = new Date().toISOString();
   return {
     id: generateId("autopilot"),
@@ -167,7 +193,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   const changes: WebsiteAutopilotChange[] = [];
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "headline",
       title: "Strengthen headline",
       beforeText: input.currentCopy,
@@ -178,7 +204,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   );
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "cta",
       title: "Strengthen call-to-action wording",
       beforeText: input.currentCopy,
@@ -189,7 +215,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   );
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "chatbot_greeting",
       title: "Improve chatbot greeting",
       beforeText: input.currentChatbotIntro,
@@ -200,7 +226,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   );
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "lead_form_helper_text",
       title: "Improve lead form helper text",
       beforeText: input.currentCopy,
@@ -211,7 +237,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   );
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "audience_positioning",
       title: "Clarify buyer/seller/refinance positioning",
       beforeText: input.currentCopy,
@@ -222,7 +248,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   );
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "local_market_wording",
       title: "Improve local market wording",
       beforeText: input.currentCopy,
@@ -233,7 +259,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   );
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "seo_title",
       title: "Prepare SEO title improvement",
       beforeText: input.existingSeoTitle,
@@ -244,7 +270,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   );
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "seo_meta_description",
       title: "Prepare SEO meta description improvement",
       beforeText: input.existingMetaDescription,
@@ -255,7 +281,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   );
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "profile_completeness",
       title: "Improve profile completeness copy",
       beforeText: input.currentCopy,
@@ -266,7 +292,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   );
 
   changes.push(
-    buildChange(input.pageType, {
+    buildChange(input.pageType, input.autonomy, {
       changeType: "trust_copy",
       title: "Strengthen trust-building copy",
       beforeText: input.currentCopy,
@@ -279,7 +305,7 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   // Hold compliance-sensitive existing copy for review instead of rewriting it automatically.
   if (containsComplianceLanguage(input.currentCopy)) {
     changes.push(
-      buildChange(input.pageType, {
+      buildChange(input.pageType, input.autonomy, {
         changeType: "compliance_disclosure",
         title: "Review rate/guarantee/approval language",
         beforeText: input.currentCopy,

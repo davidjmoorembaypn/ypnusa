@@ -67,6 +67,18 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Cerebro launcher: only the marketing site may frame it. The DENY rule
+        // above already skips /embed/*, and this comes after it so that, per
+        // Next docs, the last matching rule wins for the same header key.
+        source: "/embed/cerebro",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors https://ypnus.com https://www.ypnus.com",
+          },
+        ],
+      },
+      {
         source: "/assets/:path*",
         headers: [
           {

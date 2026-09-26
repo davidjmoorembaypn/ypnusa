@@ -171,6 +171,74 @@ using an LLM here is natural slot-filling instead of another fixed form.
 Nothing else needs to change — `/api/assistant/chat` and the chat UI already
 handle both the configured and not-configured cases.
 
+## Amazon Bedrock (optional)
+
+The standard Anthropic API stays the primary backend. Set `USE_BEDROCK=true`
+to serve the same assistant from Amazon Bedrock instead (`src/lib/ai/bedrock-config.ts`
++ `anthropic-provider.ts`, using `@anthropic-ai/bedrock-sdk`'s Mantle client). Tool use,
+prompt caching (`cache_control`), adaptive thinking and `output_config.effort` all work
+on Bedrock; the request the provider sends is identical on both backends
+(`bedrock-config.test.ts` asserts this). Not available on Bedrock, and not used by
+the assistant: server-side web tools, the Files API, Message Batches, and `inference_geo`.
+
+**Settings** (environment variable first, then the private file below):
+
+| Variable | Meaning |
+| --- | --- |
+| `USE_BEDROCK` | `true` switches to Bedrock. `false` forces the Anthropic API even if the file says otherwise. |
+| `AWS_REGION` (or `AWS_DEFAULT_REGION`) | Required. A region where you have enabled Claude model access. |
+| `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` | A long-term IAM user key pair. Both or neither. |
+| `AWS_SESSION_TOKEN` | Only for temporary credentials. |
+| `AWS_BEARER_TOKEN_BEDROCK` | A Bedrock API key; used instead of the key pair when set. |
+| `BEDROCK_MODEL` | Bedrock model id. Default `anthropic.claude-opus-5` (Mantle ids carry the `anthropic.` prefix). `ANTHROPIC_MODEL` does not apply on Bedrock because ids differ per platform. |
+
+If neither an API key nor a key pair is given, the SDK falls back to the default
+AWS credential chain (instance role, `AWS_PROFILE`), which suits AWS-hosted deployments.
+
+### Storing long-term AWS credentials on the server (never in git)
+
+Never commit credentials, never put them in `.env.example`, and never paste them
+into chat or tickets. Use a **long-term** credential: a temporary Bedrock token or
+STS session expires (often within 12 hours) and will silently break production.
+
+1. **Create the credential.** Preferred: an IAM user used only by this app, with
+   the smallest policy that lets it invoke Claude on Bedrock (start from the AWS
+   managed policy `AmazonBedrockLimitedAccess` and narrow it to the models you use;
+   confirm the exact actions for the Mantle endpoint in the AWS Bedrock docs).
+   Alternatively a long-term Bedrock API key from the Bedrock console. Enable
+   model access for Claude in your region first. Set a budget alert in AWS Billing.
+2. **Where env vars cannot be edited safely** (Hostinger shared hosting: the API
+   replaces the whole variable set and cannot read existing values, so setting one
+   variable would delete `JWT_SECRET`), keep the settings in a private file outside
+   the repo and the web root, owned by the app's user:
+
+   ```bash
+   ssh <host>
+   mkdir -p ~/.ypnus && chmod 700 ~/.ypnus
+   umask 077
+   cat > ~/.ypnus/aws-bedrock.json   # paste the JSON below, then Ctrl+D
+   chmod 600 ~/.ypnus/aws-bedrock.json
+   ```
+
+   ```json
+   {
+     "useBedrock": true,
+     "region": "us-east-2",
+     "accessKeyId": "AKIA...",
+     "secretAccessKey": "...",
+     "model": "anthropic.claude-opus-5"
+   }
+   ```
+
+   Use `"apiKey"` instead of the key pair for a Bedrock API key. Point the app at a
+   different path with `AWS_BEDROCK_CONFIG_FILE`.
+3. **Restart the app.** The provider is chosen once per process
+   (`getAiProvider()` memoizes), so a restart is required after any credential change.
+4. **Rotate** by replacing the file's contents and restarting; delete the old key in IAM.
+   If a key is ever exposed, deactivate it in IAM immediately.
+5. **Never log the values.** `bedrock-config.ts` logs only that a setting is missing,
+   never its value; keep it that way.
+
 ## TODOs / known foundation-level gaps
 
 - **No streaming.** `AnthropicProvider.generate` uses a single

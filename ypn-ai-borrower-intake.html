@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YPN AI · Borrower Intake</title>
+  <title>AI Borrower Intake Assistant | YPN USA</title>
+  <meta name="description" content="YPN USA's AI Borrower Intake Assistant qualifies and scores mortgage borrowers 24/7, so loan officers only spend time on leads worth calling." />
+  <link rel="canonical" href="https://ypnus.com/ypn-ai-borrower-intake.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -313,6 +315,27 @@
       margin-top: 0.55rem;
       min-height: 1.2em;
     }
+    .ypn-consent {
+      display: flex;
+      gap: 0.55rem;
+      align-items: flex-start;
+      margin-top: 0.75rem;
+      font-size: 0.72rem;
+      line-height: 1.4;
+      color: var(--muted);
+      text-align: left;
+      cursor: pointer;
+    }
+    .ypn-consent input {
+      flex: 0 0 auto;
+      width: 1.05rem;
+      height: 1.05rem;
+      margin-top: 0.1rem;
+    }
+    .ypn-consent a {
+      color: inherit;
+      text-decoration: underline;
+    }
     .ypn-flag {
       margin-top: 0.65rem;
       padding: 0.55rem 0.72rem;
@@ -384,6 +407,31 @@
       .ypn-fab span.label-long { display: none; }
     }
   </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://ypnus.com/ypn-ai-borrower-intake.html#tool",
+        "name": "YPN AI Borrower Intake Assistant",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "provider": { "@id": "https://ypnus.com/#organization" },
+        "description": "Conversational AI assistant that qualifies and scores mortgage borrowers for licensed loan officers, running 24/7 on an MLO's borrower page.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock", "url": "https://ypnus.com/lo-signup.html?plan=free" }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://ypnus.com/ypn-ai-borrower-intake.html#breadcrumb",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://ypnus.com/" },
+          { "@type": "ListItem", "position": 2, "name": "AI Borrower Intake Assistant", "item": "https://ypnus.com/ypn-ai-borrower-intake.html" }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <!-- Embed: hide floating button when opened from parent iframe-only flows -->
@@ -415,7 +463,7 @@
       <div class="ypn-body">
         <div class="ypn-pane-stack" id="ypnStage"></div>
       </div>
-      <footer class="ypn-foot-note">Powered by YPN AI · Responses sent securely — add your Supabase keys to save leads.</footer>
+      <footer class="ypn-foot-note" id="ypnFootNote">Powered by YPN AI · Responses sent securely to your loan officer.</footer>
     </div>
   </div>
 
@@ -428,10 +476,13 @@
      * — EmailJS templates: expose variables matching teamParams keys (subject_line, message_html, …).
      */
     (function () {
-      /** ============ CONFIG — replace placeholders ============ **/
+      /** ============ CONFIG — loaded from WordPress API or placeholders ============ **/
       var CONFIG = {
-        SUPABASE_URL: "YOUR_SUPABASE_URL",
-        SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_KEY",
+        MODE: "wordpress",
+        LO_ID: "",
+        SUPABASE_URL: "",
+        SUPABASE_ANON_KEY: "",
+        INTAKE_ENDPOINT: "https://ypnus.com/wp-json/ypnus/v1/intake",
         EMAILJS_PUBLIC_KEY: "YOUR_EMAILJS_PUBLIC_KEY",
         EMAILJS_SERVICE_ID: "YOUR_EMAILJS_SERVICE_ID",
         EMAILJS_TEMPLATE_ID: "YOUR_EMAILJS_TEMPLATE_ID",
@@ -439,6 +490,31 @@
         TEAM_ALERT_EMAIL: "support@ypnus.com",
         CALENDLY_URL: "https://calendly.com/your-lo-team/intro-call",
       };
+
+      function parseLoId() {
+        try {
+          return new URLSearchParams(location.search).get("lo") || "";
+        } catch (_) {
+          return "";
+        }
+      }
+
+      async function loadRemoteConfig() {
+        CONFIG.LO_ID = parseLoId();
+        try {
+          var res = await fetch("https://ypnus.com/wp-json/ypnus/v1/signup-config", {
+            credentials: "same-origin",
+          });
+          if (!res.ok) return;
+          var data = await res.json();
+          CONFIG.MODE = data.mode || "wordpress";
+          if (data.supabase_url) CONFIG.SUPABASE_URL = data.supabase_url;
+          if (data.supabase_anon_key) CONFIG.SUPABASE_ANON_KEY = data.supabase_anon_key;
+          if (data.intake_endpoint) CONFIG.INTAKE_ENDPOINT = data.intake_endpoint;
+        } catch (e) {
+          console.warn("YPN intake config:", e);
+        }
+      }
 
       var state = {
         loanType: null,
@@ -454,6 +530,7 @@
         name: "",
         phone: "",
         email: "",
+        tcpaConsent: false,
       };
 
       var stepOrder = [];
@@ -473,11 +550,50 @@
       var intakeFinalized = false;
       var emailJsReady = false;
 
-      function placeholdersOk() {
+      function supabaseReady() {
         return (
+          CONFIG.MODE === "supabase" &&
+          CONFIG.SUPABASE_URL &&
+          CONFIG.SUPABASE_ANON_KEY &&
           CONFIG.SUPABASE_URL.indexOf("YOUR_") !== 0 &&
           CONFIG.SUPABASE_ANON_KEY.indexOf("YOUR_") !== 0
         );
+      }
+
+      async function persistViaWordPress(rowPayload) {
+        if (!CONFIG.INTAKE_ENDPOINT) return;
+        var body = {
+          lo_id: CONFIG.LO_ID,
+          name: rowPayload.name,
+          email: rowPayload.email,
+          phone: rowPayload.phone,
+          loan_type: rowPayload.loan_type,
+          loan_program: rowPayload.loan_program,
+          credit_score: rowPayload.credit_score,
+          income: rowPayload.income,
+          purchase_price: rowPayload.purchase_price,
+          timeline: rowPayload.timeline,
+          lead_score: rowPayload.lead_score,
+          lead_quality: rowPayload.lead_quality,
+          recommended_program: rowPayload.recommended_program,
+          source_url: rowPayload.source_url,
+          tcpa_consent: state.tcpaConsent === true,
+          payload: rowPayload.notes ? JSON.parse(rowPayload.notes) : {},
+        };
+        try {
+          var res = await fetch(CONFIG.INTAKE_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            var err = await res.json().catch(function () { return {}; });
+            console.warn("WordPress intake:", err.message || res.status);
+          }
+        } catch (e) {
+          console.warn("WordPress intake error", e);
+        }
       }
 
       function emailJsConfigured() {
@@ -876,6 +992,18 @@
           var next = document.getElementById("ypnNextFld");
           var bk = document.getElementById("ypnBackFld");
           if (bk) bk.addEventListener("click", goBackInternal);
+          var consentBox = null;
+          if (stepId === 13) {
+            var consentWrap = document.createElement("label");
+            consentWrap.className = "ypn-consent";
+            consentWrap.innerHTML =
+              '<input type="checkbox" id="ypnConsent" />' +
+              "<span>I agree that my loan officer and YPN USA may contact me about my mortgage inquiry at the phone number and email I provided, including by calls and text messages that may use automated technology or prerecorded messages. Consent is not a condition of any purchase or loan. Msg &amp; data rates may apply; reply STOP to opt out. " +
+              '<a href="https://app.ypnus.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a></span>';
+            wrap.insertBefore(consentWrap, err);
+            consentBox = document.getElementById("ypnConsent");
+            if (state.tcpaConsent) consentBox.checked = true;
+          }
           next.addEventListener("click", function () {
             var v = inp.value.trim();
             err.textContent = "";
@@ -891,6 +1019,11 @@
               err.textContent = "Enter a workable phone number (10+ digits).";
               return;
             }
+            if (consentBox && !consentBox.checked) {
+              err.textContent = "Please check the box to agree to be contacted about your inquiry.";
+              return;
+            }
+            if (consentBox) state.tcpaConsent = true;
             state[fld] = v;
             if (stepId === 13) {
               finalize();
@@ -931,6 +1064,7 @@
         state.name = "";
         state.phone = "";
         state.email = "";
+        state.tcpaConsent = false;
         currentStepIndex = 0;
         stepOrder = buildStepOrder();
       }
@@ -1126,11 +1260,7 @@
           status: "new",
         };
 
-        if (
-          placeholdersOk() &&
-          window.supabase &&
-          typeof window.supabase.createClient === "function"
-        ) {
+        if (supabaseReady() && window.supabase && typeof window.supabase.createClient === "function") {
           try {
             if (!supabaseClient) {
               supabaseClient = window.supabase.createClient(
@@ -1143,6 +1273,8 @@
           } catch (e) {
             console.warn("Supabase error", e);
           }
+        } else {
+          await persistViaWordPress(rowPayload);
         }
 
         /** EmailJS */
@@ -1284,14 +1416,14 @@
       closeBtn.addEventListener("click", closeModal);
 
       /** Optional: embed mode ?embed=1 hides FAB parent uses iframe **/
-      try {
-        if (
-          new URLSearchParams(location.search).get("embed") === "1"
-        ) {
-          fab.hidden = true;
-          openModal();
-        }
-      } catch (_) {}
+      loadRemoteConfig().then(function () {
+        try {
+          if (new URLSearchParams(location.search).get("embed") === "1") {
+            fab.hidden = true;
+            openModal();
+          }
+        } catch (_) {}
+      });
 
       /* Expose reopen for iframe parent parent.postMessage APIs if needed */
       window.YpnIntake = { open: openModal, close: closeModal };
@@ -1310,5 +1442,12 @@
 
     Or host the file at your CDN and swap the URL.
   -->
+  <script src="https://ypnus.com/wp-content/uploads/ypnus-deploy/ypnus-chatbot-loader.js" defer data-no-optimize="1"></script>
+<script src="https://ypnus.com/wp-content/uploads/ypnus-deploy/ypnus-static-conversion.js" defer data-no-optimize="1"></script>
+<footer class="compliance-footer" style="padding:2rem 1.5rem;text-align:center;font-size:.78rem;color:#5a6472;border-top:1px solid rgba(0,0,0,.08);">
+  <p>YPN USA &middot; NMLS #787257 &middot; <a href="tel:5592056940" style="color:#5a6472;">559-205-6940</a></p>
+  <p>Equal Housing Opportunity. Not a commitment to lend. You remain responsible for RESPA, TCPA, and state licensing compliance.</p>
+  <p><a href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/787257" target="_blank" rel="noopener" style="color:#5a6472;">Verify on NMLS Consumer Access</a> &middot; <a href="https://ypnus.com/privacy/" style="color:#5a6472;">Privacy Policy</a> &middot; <a href="https://ypnus.com/terms/" style="color:#5a6472;">Terms of Service</a></p>
+</footer>
 </body>
 </html>

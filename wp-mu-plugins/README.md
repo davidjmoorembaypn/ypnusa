@@ -1,4 +1,22 @@
-# WordPress mu-plugins — prepared, NOT deployed
+# WordPress mu-plugins
+
+## Deployed live copies (2026-09-26 security pass)
+
+These files are byte-identical to what is live in `wp-content/mu-plugins/` on ypnus.com as of
+2026-09-26 (deployed from this repo by commit hash, sha256-verified; the previous live files are
+backed up outside the web root in `~/backups/2026-09-26/`).
+
+| File | What it does / what changed |
+|---|---|
+| `ypnus-supabase-signup.php` | The live file, merged with this repo's reviewed fixes: visitor IP comes from `REMOTE_ADDR` (spoofed `CF-Connecting-IP`/`X-Forwarded-For` no longer bypass the `/signup` and `/intake` rate limits); `/intake` records `tcpa_consent`/`consent_at` (DB v1.1.0) and the lead email states whether calls/texts were consented. A lead without consent is still saved but flagged, never dropped. `upgrade.php` loads only when a migration runs. |
+| `ypnus-lead-auth-guard.php` | `/profile` and `/leads` need the HMAC token issued at signup. Without a token, `/profile` returns only the LO's first/last name so `go.html` can greet borrowers; `/leads` stays closed. |
+| `ypnus-endpoint-guard.php` | *(new)* The MLO Toolkit's agent chat / content generator / keyword scout AJAX need a signed-in account (admins only for the agent). `/create-mlo` is admins-only (it published "Verified MLO" pages for anyone). `/login` gets per-IP and per-email lockouts and returns the dashboard token. `/request-reset` is rate limited per IP and per email. |
+| `ypnus-security-hardening.php` | wp-login lockout now keys on the real visitor IP; faking `X-Forwarded-For` no longer resets it. |
+
+The repo-root `ypn-ai-borrower-intake.html` is also the live copy: its final step has a required,
+unchecked-by-default contact-consent checkbox and sends `tcpa_consent` with the lead.
+
+# Prepared artifacts (historical)
 
 Everything in this directory is a **prepared artifact**, written and tested from within the
 `ypnusa` app repo. **None of it has been uploaded to the live `wp-content/mu-plugins/` directory
@@ -19,7 +37,7 @@ still byte-identical to what was read.
 | `ypnus-app-sso.php` | live v1.x (5-field signature, hardcoded `role='mlo'`) | Signs the new 8-field message (adds `tier`/`subscriptionStatus`/`trialEndsAt`), resolves real role via the bridge. app.ypnus.com already accepts both signature formats, so deploy order vs. the app doesn't matter. |
 | `ypnus-brand-config.php` | live v2.2.0 | `ypn_pricing_tiers()` gains Growth, Pro/Elite prices corrected to $199/$299, `paid_stripe_trial_days` corrected 0→15, the old 14-day free-preview mechanism retired, the `<th>Growth</th>`→`<th>Pro</th>` landmine removed. |
 | `ypnus-commercial-optimize.php` | live v2.1.0 | Pricing-page CTA banner now renders from `ypn_pricing_tiers()`/`ypn_stripe_urls()` instead of its own hardcoded (and already-stale) copy of tier names/prices/Stripe links. |
-| `ypnus-supabase-signup.php` | live v1.1.0 | `/signup-config`'s `intake_page_url` now points at `https://app.ypnus.com/embed/intake` instead of the legacy static page. The legacy page is left reachable, not deleted or redirected. |
+| `ypnus-supabase-signup.php` | live v1.1.0 | `/signup-config`'s `intake_page_url` now points at `https://app.ypnus.com/embed/intake` instead of the legacy static page. The legacy page is left reachable, not deleted or redirected. *(Superseded: see the deployed copy above.)* |
 
 ## Deployment order that avoids breaking live login
 

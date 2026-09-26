@@ -329,3 +329,61 @@ describe("runWithTools", () => {
     assert.ok(calls <= 6, `expected at most MAX_TOOL_ROUNDS + 1 calls, got ${calls}`);
   });
 });
+
+describe("runWithTools reply handling", () => {
+  it("runs get_pricing and answers from its result instead of stopping on the preface", async () => {
+    const seen: string[] = [];
+    let call = 0;
+    const provider: AiProvider = {
+      name: "fake",
+      async generate(request: AiGenerateRequest): Promise<AiGenerateResult> {
+        call++;
+        if (call === 1) {
+          return { text: "I'll pull the current plans.", toolCalls: [{ toolName: "get_pricing", input: {} }], stopReason: "tool_use" };
+        }
+        seen.push(request.messages[request.messages.length - 1].content);
+        return { text: "Free is $0 and paid plans start higher.", toolCalls: [], stopReason: "end_turn" };
+      },
+    };
+    const result = await runWithTools(provider, "sys", [{ role: "user", content: "what do plans cost?" }], [], fakeSession({ mode: "public_site" }), () => {});
+    assert.equal(result.text, "Free is $0 and paid plans start higher.");
+    assert.equal(result.actionCalls.length, 1);
+    assert.match(seen[0], /get_pricing result/);
+  });
+
+  it("asks for a plain-text reply when the model only recorded lead fields", async () => {
+    let call = 0;
+    let merged = 0;
+    const provider: AiProvider = {
+      name: "fake",
+      async generate(): Promise<AiGenerateResult> {
+        call++;
+        if (call === 1) {
+          return { text: "", toolCalls: [{ toolName: "capture_lead_qualification", input: { name: "Pat" } }], stopReason: "tool_use" };
+        }
+        return { text: "Thanks Pat - what area are you looking in?", toolCalls: [], stopReason: "end_turn" };
+      },
+    };
+    const result = await runWithTools(provider, "sys", [{ role: "user", content: "I'm Pat" }], [], fakeSession({ mode: "public_site" }), () => {
+      merged++;
+    });
+    assert.equal(result.text, "Thanks Pat - what area are you looking in?");
+    assert.equal(result.captureCalls.length, 1);
+    assert.equal(merged, 1);
+    assert.equal(call, 2);
+  });
+
+  it("does not loop forever if the model keeps returning no text", async () => {
+    let call = 0;
+    const provider: AiProvider = {
+      name: "fake",
+      async generate(): Promise<AiGenerateResult> {
+        call++;
+        return { text: "", toolCalls: [{ toolName: "capture_lead_qualification", input: {} }], stopReason: "tool_use" };
+      },
+    };
+    const result = await runWithTools(provider, "sys", [{ role: "user", content: "hi" }], [], fakeSession({ mode: "public_site" }), () => {});
+    assert.equal(result.text, "");
+    assert.ok(call <= 5);
+  });
+});

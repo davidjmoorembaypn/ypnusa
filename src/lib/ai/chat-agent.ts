@@ -164,6 +164,9 @@ async function executeActionTool(
 const MAX_TOOL_ROUNDS = 5;
 const ACTION_TOOL_NAMES = new Set([
   "check_territory_availability",
+  // get_pricing was missing here, so a "what do the plans cost?" question ended the turn on the
+  // model's "let me pull that up" preface without ever running the tool.
+  "get_pricing",
   "find_explainer_video",
   "start_signup",
   "schedule_meeting",
@@ -212,6 +215,15 @@ export async function runWithTools(
 
     const actionCalls = result.toolCalls.filter((call) => ACTION_TOOL_NAMES.has(call.toolName));
     if (actionCalls.length === 0) {
+      // A tool-only turn (typically capture_lead_qualification with no text) would show the
+      // visitor nothing. Ask once for the reply in plain text instead of returning "".
+      if (!result.text.trim() && result.toolCalls.length > 0 && round < MAX_TOOL_ROUNDS - 1) {
+        messages.push({
+          role: "user",
+          content: "[note] Your tool call was recorded. Now write your reply to the visitor in plain text.",
+        });
+        continue;
+      }
       return { text: result.text, captureCalls, actionCalls: allActionCalls };
     }
     allActionCalls.push(...actionCalls);

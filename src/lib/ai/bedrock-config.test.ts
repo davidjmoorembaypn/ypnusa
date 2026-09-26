@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import { AnthropicProvider } from "./anthropic-provider";
-import { resolveBedrockConfig } from "./bedrock-config";
+import { bedrockConfigCandidates, resolveBedrockConfig } from "./bedrock-config";
 import { getAiProvider, resetAiProviderCache } from "./provider";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-bedrock-"));
@@ -59,6 +59,28 @@ describe("resolveBedrockConfig", () => {
     assert.equal(resolveBedrockConfig({ AWS_BEDROCK_CONFIG_FILE: file, USE_BEDROCK: "false" }), null);
     // Environment values win over the file per field.
     assert.equal(resolveBedrockConfig({ AWS_BEDROCK_CONFIG_FILE: file, AWS_REGION: "eu-west-1" })?.region, "eu-west-1");
+  });
+
+  it("finds the file in the working directory, two levels up, or the app folder four levels up", () => {
+    // Mirrors <app>/hbuilds/versions/<id>/nodejs on the server.
+    const app = fs.mkdtempSync(path.join(tmp, "app-"));
+    const cwd = path.join(app, "hbuilds", "versions", "v1", "nodejs");
+    fs.mkdirSync(cwd, { recursive: true });
+    const cfg = JSON.stringify({ useBedrock: true, region: "us-east-2", apiKey: "k" });
+    const noHome = {}; // no explicit file override; the home lookup finds nothing on CI machines
+    // Only the app folder has it (four levels up).
+    fs.writeFileSync(path.join(app, "aws-bedrock.json"), cfg);
+    assert.equal(resolveBedrockConfig(noHome, cwd)?.region, "us-east-2");
+    fs.rmSync(path.join(app, "aws-bedrock.json"));
+    // Two levels up (the versions folder).
+    fs.writeFileSync(path.join(app, "hbuilds", "versions", "aws-bedrock.json"), cfg);
+    assert.equal(resolveBedrockConfig(noHome, cwd)?.apiKey, "k");
+    fs.rmSync(path.join(app, "hbuilds", "versions", "aws-bedrock.json"));
+    // The working directory itself, and the first parseable file wins over a corrupt earlier one.
+    fs.writeFileSync(path.join(cwd, "aws-bedrock.json"), cfg);
+    assert.equal(resolveBedrockConfig(noHome, cwd)?.region, "us-east-2");
+    assert.equal(bedrockConfigCandidates({}, cwd).length, 4);
+    assert.deepEqual(bedrockConfigCandidates({ AWS_BEDROCK_CONFIG_FILE: "/x/y.json" }, cwd), ["/x/y.json"]);
   });
 
   it("never throws on a corrupt config file", () => {

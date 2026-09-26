@@ -125,6 +125,108 @@ describe("backend selection", () => {
   });
 });
 
+describe("model fallback on Bedrock", () => {
+  function stubClient(available: string[], calls: string[]) {
+    return {
+      messages: {
+        create: async (params: { model: string }) => {
+          calls.push(params.model);
+          if (!available.includes(params.model)) {
+            throw Object.assign(new Error(`404 The model '${params.model}' does not exist`), { status: 404 });
+          }
+          return { stop_reason: "end_turn", content: [{ type: "text", text: "hello" }] };
+        },
+      },
+    };
+  }
+
+  it("moves past unavailable models to one that works, then sticks to it", async () => {
+    mock.method(console, "log", () => {});
+    const provider = new AnthropicProvider({ kind: "bedrock", config: { region: "us-east-2", apiKey: "k" } });
+    const calls: string[] = [];
+    (provider as unknown as { client: unknown }).client = stubClient(["anthropic.claude-opus-4-8"], calls);
+    const first = await provider.generate({ system: "s", messages: [{ role: "user", content: "hi" }] });
+    assert.equal(first.text, "hello");
+    assert.deepEqual(calls, ["anthropic.claude-opus-5", "anthropic.claude-sonnet-5", "anthropic.claude-opus-4-8"]);
+
+    calls.length = 0;
+    await provider.generate({ system: "s", messages: [{ role: "user", content: "again" }] });
+    assert.deepEqual(calls, ["anthropic.claude-opus-4-8"], "later requests reuse the model that worked");
+    mock.restoreAll();
+  });
+
+  it("does not swallow non-404 errors", async () => {
+    const provider = new AnthropicProvider({ kind: "bedrock", config: { region: "us-east-2", apiKey: "k" } });
+    const calls: string[] = [];
+    (provider as unknown as { client: unknown }).client = {
+      messages: {
+        create: async (params: { model: string }) => {
+          calls.push(params.model);
+          throw Object.assign(new Error("403 forbidden"), { status: 403 });
+        },
+      },
+    };
+    await assert.rejects(provider.generate({ system: "s", messages: [{ role: "user", content: "hi" }] }), /403/);
+    assert.equal(calls.length, 1);
+  });
+
+  it("does not fall back when only one model exists (standard Anthropic API)", async () => {
+    const provider = new AnthropicProvider({ kind: "anthropic", apiKey: "sk-ant-test" });
+    const calls: string[] = [];
+    (provider as unknown as { client: unknown }).client = stubClient([], calls);
+    await assert.rejects(provider.generate({ system: "s", messages: [{ role: "user", content: "hi" }] }), /404/);
+    assert.equal(calls.length, 1);
+  });
+
+  it("returns 404 if every candidate is unavailable", async () => {
+    const provider = new AnthropicProvider({ kind: "bedrock", config: { region: "us-east-2", apiKey: "k" } });
+    const calls: string[] = [];
+    (provider as unknown as { client: unknown }).client = stubClient([], calls);
+    await assert.rejects(provider.generate({ system: "s", messages: [{ role: "user", content: "hi" }] }), /404/);
+    assert.equal(calls.length, 6);
+  });
+});
+
+describe("provider refresh without a restart", () => {
+  const saved = { ...process.env };
+  afterEach(() => {
+    for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key];
+    Object.assign(process.env, saved);
+    resetAiProviderCache();
+    mock.restoreAll();
+  });
+
+  it("re-reads the config after the refresh interval, keeps the provider if nothing changed", () => {
+    for (const key of Object.keys(process.env)) {
+      if (key === "USE_BEDROCK" || key === "ANTHROPIC_API_KEY" || key.startsWith("AWS_")) delete process.env[key];
+    }
+    process.env.ANTHROPIC_API_KEY_FILE = missingFile;
+    const file = path.join(tmp, "refresh.json");
+    process.env.AWS_BEDROCK_CONFIG_FILE = file;
+    fs.writeFileSync(file, JSON.stringify({ useBedrock: true, region: "us-east-2", apiKey: "k", model: "anthropic.claude-opus-5" }));
+    resetAiProviderCache();
+
+    let now = 1_000_000;
+    mock.method(Date, "now", () => now);
+    const first = getAiProvider();
+    assert.equal(first?.name, "bedrock");
+
+    // Within the interval: the same object, even though the file changed.
+    fs.writeFileSync(file, JSON.stringify({ useBedrock: true, region: "us-east-2", apiKey: "k", model: "anthropic.claude-sonnet-5" }));
+    now += 5_000;
+    assert.equal(getAiProvider(), first);
+
+    // After the interval: the new config is picked up.
+    now += 30_000;
+    const second = getAiProvider();
+    assert.notEqual(second, first);
+
+    // After another interval with no change: the provider is kept (no rebuild, no lost model memo).
+    now += 31_000;
+    assert.equal(getAiProvider(), second);
+  });
+});
+
 describe("request shape is identical on both backends (tool use + prompt caching)", () => {
   const tools = [
     { name: "a_tool", description: "first", inputSchema: { type: "object" as const, properties: {} } },

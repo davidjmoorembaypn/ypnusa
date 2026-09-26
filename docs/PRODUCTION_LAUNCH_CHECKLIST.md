@@ -313,3 +313,63 @@ Re-verified after these fixes: `npm run lint` (0 errors), `npm test`
 - SEO: duplicate redirects removed; redirected pages noindexed; author sitemap off (it exposed service-account usernames); sitemap crawl: 450/450 URLs resolve.
 
 **Owner-only (not doable from code):** flush the hPanel CDN once; switch WP Mail SMTP from PHP `mail` to authenticated Hostinger SMTP and send a test; Stripe Dashboard (deactivate old $99/$199/$299/Starter links, after-payment redirect to `/welcome/`, portal return URL + legal links, tax registrations); fix GitHub Actions billing; attorney review of legal copy; decide whether to delete `/loans/`.
+
+## 11. Security, SEO and analytics pass — 2026-09-26 (owner-approved, applied live)
+
+Everything below is live on ypnus.com. Repo copies are in `wp-mu-plugins/` (see its README) and were
+deployed by commit hash with sha256 checks. Previous live files and edited post content are backed up
+outside the web root in `~/backups/2026-09-26/`.
+
+**Security**
+
+- Open endpoints closed (`ypnus-endpoint-guard.php`):
+  - MLO Toolkit AJAX. Agent chat (its tools create pages and delete nav-menu items), content generator and keyword scout had logged-out access.
+  - `/create-mlo` published "Verified MLO" pages for anyone.
+  - `/login` had no brute-force limit.
+  - `/request-reset` could flood inboxes.
+- Rate limits and the wp-login lockout trusted spoofable `CF-Connecting-IP`/`X-Forwarded-For`. They now use `REMOTE_ADDR`, which is the real visitor IP on this host (verified against recorded comment IPs).
+- `/profile` and `/leads` check the signup token, an admin or the linked owner. Token-less `/profile` returns only the LO's name, so `go.html` greets borrowers again.
+- WPCode snippets:
+  - `MLO Signup` (#128) created published pages from any POST, with no auth. It was inert only because injected HTML broke it. Deactivated, together with its post type (#127) and a WebMCP demo banner (#6179), through WPCode's API so its cache is rebuilt.
+- One-off deploy scripts, a downloadable `home.php.bak-*` and an ops checklist moved out of `wp-content/uploads/ypnus-deploy/`. PHP execution in uploads was already blocked (verified: 403).
+
+**Compliance**
+
+- "Equal Housing Lender" (YPN is not a lender) replaced with "Equal Housing Opportunity" on 4 landing pages and in the MLO Toolkit disclosure.
+- The borrower intake widget (`ypn-ai-borrower-intake.html`) now has a required contact-consent checkbox.
+- `/intake` records `tcpa_consent`/`consent_at`, and lead emails state consent status. Leads without consent are flagged, never dropped.
+
+**SEO**
+
+- Rank Math's stripped category base made category archives take over same-slug pages: `/blog/` (the top page in Search Console) and three ~1,700-word pillar pages were served as noindexed archives. Pages now win (`ypnus-seo-routing.php`).
+- `/predictive-lead-gen/` was a redirect loop (Rank Math redirect #57 to a `/platform/` URL that bounced back). The redirect is now inactive.
+- About 30,800 templated `/markets/zip-NNNNN/` pages (84% identical text, some for nonexistent ZIPs, zero impressions) now send `noindex, follow`.
+- The root `.htaccess` used `Header set X-Robots-Tag`, which silently overwrote every noindex header from WordPress. It now uses `append`.
+- Sitemap: dropped two static app files, a nested sitemap index, the redirected privacy page, and the fixed redirect.
+- Headings: H1 added on `/loan-types/`; a blog post's hero heading promoted to H1.
+- Labels: 40+ unlabeled tool-page form fields labeled; the icon-only menu buttons given names.
+- Descriptions:
+  - 15 short meta descriptions expanded;
+  - the default "RM Locations Archive" title and description replaced.
+- Re-crawl of all 431 sitemap URLs:
+  - every URL returns 200;
+  - no noindex pages remain in the sitemap;
+  - no missing descriptions or H1s, except the KML file.
+
+**Data integrity**
+
+- An AI content tool had prepended identical "Overview / Key Operational Pillars" marketing HTML to 35 internal records: Rank Math schema templates, the Local SEO location, cookie definitions, Site Kit email logs, oEmbed caches and WPCode snippets. All were restored. The Rank Math shortcode-parser snippet works again.
+
+**Analytics and performance**
+
+- Analytics:
+  - The homepage fired conversion events but loaded no GA tag. `ypnus-analytics.php` now prints G-2TGE9M58H4 there.
+  - Two GA4 properties are in use: G-2TGE9M58H4 (Rank Math and the site's event code) and G-RLNE9FHL5L (Site Kit). Consolidating is the owner's call.
+- Scripts:
+  - Site Kit "Sign in with Google" and "Reader Revenue Manager" are off (third-party scripts on every post, not used).
+  - The persuasion script and stylesheet no longer download twice (`ypnus-front-perf.php`).
+
+**Owner-only (new this pass):**
+- Allow `developers.hostinger.com` in the Claude environment's network settings. That lets the CDN flush and DNS (DMARC `p=quarantine`) be done from a session.
+- Decide whether to keep both GA4 properties.
+- Turn on 2FA for WordPress admins.

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { AssistantMode, ChatCapturedFields } from "@/lib/types";
 
 type BubbleRole = "user" | "assistant" | "system";
@@ -70,13 +70,28 @@ function storageKeyFor(mode: AssistantMode): string {
   return `ypn_assistant_session_${mode}`;
 }
 
+/** Cookie-free storage only; embeds pass "session" so a session id never outlives the tab. */
+function getStore(kind: "local" | "session"): Storage {
+  return kind === "session" ? window.sessionStorage : window.localStorage;
+}
+
 export function AssistantChat(props: {
   mode: AssistantMode;
   funnelSource?: string;
   title?: string;
   placeholder?: string;
+  /** Where the resumable sessionId lives. Defaults to localStorage (existing behavior). */
+  storage?: "local" | "session";
+  /** Fill the parent's height instead of the fixed-height message list (used by the iframe embed). */
+  fill?: boolean;
+  /** Small disclosure line rendered under the input. */
+  disclosure?: ReactNode;
+  /** Replaces the default "no AI provider" developer note when the API reports providerConfigured=false. */
+  providerOfflineNotice?: ReactNode;
 }) {
   const { mode, funnelSource } = props;
+  const storageKind = props.storage ?? "local";
+  const fill = props.fill ?? false;
   const title = props.title ?? "Assistant";
   const placeholder = props.placeholder ?? "Type a message…";
 
@@ -104,12 +119,12 @@ export function AssistantChat(props: {
     if (hasHydratedRef.current) return;
     hasHydratedRef.current = true;
     try {
-      const stored = window.localStorage.getItem(storageKeyFor(mode));
+      const stored = getStore(storageKind).getItem(storageKeyFor(mode));
       if (stored) sessionIdRef.current = stored;
     } catch {
       /** noop — private browsing / disabled storage just means no resume */
     }
-  }, [mode]);
+  }, [mode, storageKind]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -123,12 +138,12 @@ export function AssistantChat(props: {
     (id: string) => {
       sessionIdRef.current = id;
       try {
-        window.localStorage.setItem(storageKeyFor(mode), id);
+        getStore(storageKind).setItem(storageKeyFor(mode), id);
       } catch {
         /** noop */
       }
     },
-    [mode],
+    [mode, storageKind],
   );
 
   function pushBubble(role: BubbleRole, body: string) {
@@ -203,7 +218,11 @@ export function AssistantChat(props: {
   const showCapturedPanel = mode === "lead_qualification";
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-4 shadow-2xl shadow-black/20 sm:p-6">
+    <div
+      className={`rounded-3xl border border-white/10 bg-white/[0.05] p-4 shadow-2xl shadow-black/20 sm:p-6 ${
+        fill ? "flex h-full min-h-0 flex-col" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-lg font-semibold text-white">{title}</h3>
         {status ? (
@@ -213,18 +232,29 @@ export function AssistantChat(props: {
         ) : null}
       </div>
 
-      {providerConfigured === false ? (
+      {providerConfigured === false && props.providerOfflineNotice ? (
+        <div
+          role="status"
+          className="mt-2 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100"
+        >
+          {props.providerOfflineNotice}
+        </div>
+      ) : null}
+
+      {providerConfigured === false && !props.providerOfflineNotice ? (
         <p className="mt-2 text-xs leading-5 text-amber-200/70">
           Running without an AI provider connected yet — replies are canned until{" "}
           <code className="text-amber-200/90">ANTHROPIC_API_KEY</code> is configured.
         </p>
       ) : null}
 
-      <div className={`mt-4 grid gap-4 ${showCapturedPanel ? "lg:grid-cols-[1.3fr_0.9fr]" : ""}`}>
-        <div className="flex min-w-0 flex-col gap-3">
+      <div className={`mt-4 grid gap-4 ${showCapturedPanel ? "lg:grid-cols-[1.3fr_0.9fr]" : ""} ${fill ? "min-h-0 flex-1 grid-rows-1" : ""}`}>
+        <div className="flex min-h-0 min-w-0 flex-col gap-3">
           <div
             ref={scrollerRef}
-            className="flex h-80 flex-col gap-3 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-4"
+            className={`flex flex-col gap-3 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-4 ${
+              fill ? "min-h-0 flex-1" : "h-80"
+            }`}
           >
             {msgs.length === 0 ? (
               <p className="m-auto max-w-xs text-center text-sm text-white/40">
@@ -299,6 +329,10 @@ export function AssistantChat(props: {
               {busy ? "Sending…" : "Send"}
             </button>
           </form>
+
+          {props.disclosure ? (
+            <p className="text-center text-[11px] leading-4 text-white/45">{props.disclosure}</p>
+          ) : null}
 
           {mode === "mlo_dashboard" && autopilot ? (
             <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">

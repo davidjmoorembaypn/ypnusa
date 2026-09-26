@@ -101,7 +101,7 @@ describe("findExplainerVideo", () => {
 });
 
 describe("toolsForMode", () => {
-  it("gives public_site video + territory + signup + pricing tools, but not lead capture or scheduling", () => {
+  it("gives public_site (Cerebro) loan-officer tools plus consumer qualification, scheduling and handoff", () => {
     const names = new Set(toolsForMode("public_site").map((t) => t.name));
     assert.deepEqual(
       names,
@@ -110,6 +110,9 @@ describe("toolsForMode", () => {
         CHECK_TERRITORY_AVAILABILITY_TOOL.name,
         START_SIGNUP_TOOL.name,
         GET_PRICING_TOOL.name,
+        CAPTURE_LEAD_QUALIFICATION_TOOL.name,
+        SCHEDULE_MEETING_TOOL.name,
+        REQUEST_HUMAN_HANDOFF_TOOL.name,
       ]),
     );
   });
@@ -128,9 +131,20 @@ describe("toolsForMode", () => {
     );
   });
 
-  it("keeps mlo_dashboard customer-facing-free: video tool only", () => {
+  it("gives mlo_dashboard the operator toolset and no customer-facing tools", () => {
     const names = new Set(toolsForMode("mlo_dashboard").map((t) => t.name));
-    assert.deepEqual(names, new Set([FIND_EXPLAINER_VIDEO_TOOL.name]));
+    assert.deepEqual(
+      names,
+      new Set([
+        FIND_EXPLAINER_VIDEO_TOOL.name,
+        "get_my_pipeline",
+        "run_website_autopilot",
+        "list_pending_website_changes",
+        "decide_website_change",
+        "draft_marketing_content",
+        "draft_landing_page",
+      ]),
+    );
   });
 });
 

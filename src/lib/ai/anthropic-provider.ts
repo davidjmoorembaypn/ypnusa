@@ -25,15 +25,18 @@ export class AnthropicProvider implements AiProvider {
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-      system: request.system,
+      // The system prompt and tool list are large and identical across turns, so mark
+      // the end of them cacheable (5-minute default TTL; cache reads are ~10x cheaper).
+      system: [{ type: "text", text: request.system, cache_control: { type: "ephemeral" } }],
       messages: request.messages.map((message) => ({
         role: message.role,
         content: message.content,
       })),
-      tools: request.tools?.map((tool) => ({
+      tools: request.tools?.map((tool, index, all) => ({
         name: tool.name,
         description: tool.description,
         input_schema: tool.inputSchema,
+        ...(index === all.length - 1 ? { cache_control: { type: "ephemeral" as const } } : {}),
       })),
       output_config: { effort: "medium" },
     });

@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { generateId } from "@/lib/id";
 import { bookAppointment, listSyncedAvailableSlots } from "@/lib/calendar";
-import { readChatSession, readDb, saveChatSession } from "@/lib/db";
+import { readAgentOnboarding, readChatSession, readDb, saveChatSession } from "@/lib/db";
 import { logCrmActivity, routeLoanOfficer } from "@/lib/crm";
 import { marketingUrl } from "@/lib/site";
 import type {
@@ -16,6 +16,7 @@ import type {
 } from "@/lib/types";
 import { fetchLiveTerritory } from "@/lib/live-territory";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
+import { executeMloTool, MLO_TOOL_NAMES, MLO_TOOLS, type MloToolContext } from "./cerebro-tools";
 import { findExplainerVideo } from "./explainer-videos";
 import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
 import {
@@ -40,8 +41,16 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
     tools.push(CAPTURE_LEAD_QUALIFICATION_TOOL, SCHEDULE_MEETING_TOOL, REQUEST_HUMAN_HANDOFF_TOOL);
   }
   if (mode === "public_site") {
-    tools.push(START_SIGNUP_TOOL, GET_PRICING_TOOL);
+    // Cerebro greets everyone: loan officers get signup/pricing, consumers get qualified in place.
+    tools.push(
+      START_SIGNUP_TOOL,
+      GET_PRICING_TOOL,
+      CAPTURE_LEAD_QUALIFICATION_TOOL,
+      SCHEDULE_MEETING_TOOL,
+      REQUEST_HUMAN_HANDOFF_TOOL,
+    );
   }
+  if (mode === "mlo_dashboard") tools.push(...MLO_TOOLS);
   if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(CHECK_TERRITORY_AVAILABILITY_TOOL);
   return tools;
 }
@@ -98,8 +107,17 @@ function resolveHandoffPhone(): string {
 }
 
 /** Runs one real-world action tool and returns a plain-text result for the model. Never throws. */
-async function executeActionTool(call: AiToolCall, session: ChatSessionRecord): Promise<string> {
+async function executeActionTool(
+  call: AiToolCall,
+  session: ChatSessionRecord,
+  ctx: MloToolContext = {},
+): Promise<string> {
   try {
+    if (MLO_TOOL_NAMES.has(call.toolName)) {
+      // Only a signed-in officer's own session may run these; a public session never can.
+      if (session.mode !== "mlo_dashboard") return JSON.stringify({ error: "not_available" });
+      return await executeMloTool(call, ctx);
+    }
     if (call.toolName === "check_territory_availability") {
       const zip = typeof call.input.zip === "string" ? call.input.zip : "";
       const result = await fetchLiveTerritory(zip);
@@ -150,6 +168,7 @@ const ACTION_TOOL_NAMES = new Set([
   "start_signup",
   "schedule_meeting",
   "request_human_handoff",
+  ...MLO_TOOL_NAMES,
 ]);
 
 /**
@@ -176,6 +195,7 @@ export async function runWithTools(
   tools: AiToolDefinition[],
   session: ChatSessionRecord,
   mergeCapture: (call: AiToolCall) => void,
+  ctx: MloToolContext = {},
 ): Promise<{ text: string; captureCalls: AiToolCall[]; actionCalls: AiToolCall[] }> {
   const messages = [...history];
   const captureCalls: AiToolCall[] = [];
@@ -198,7 +218,7 @@ export async function runWithTools(
 
     if (result.text.trim()) messages.push({ role: "assistant", content: result.text.trim() });
     const toolOutputs = await Promise.all(
-      actionCalls.map(async (call) => `[${call.toolName} result] ${await executeActionTool(call, session)}`),
+      actionCalls.map(async (call) => `[${call.toolName} result] ${await executeActionTool(call, session, ctx)}`),
     );
     messages.push({ role: "user", content: toolOutputs.join("\n") });
   }
@@ -217,6 +237,8 @@ export interface AssistantTurnInput {
   sessionId?: string;
   /** Signed-in session subject (src/lib/session.ts) — set for mlo_dashboard turns. */
   userId?: string;
+  /** Signed-in session email - lets MLO tools find the officer's own record. Never taken from the client. */
+  userEmail?: string;
   funnelSource?: string;
   userMessage: string;
 }
@@ -392,6 +414,7 @@ function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput)
     userId: input.userId,
     pageType: "profile",
     leadGoal: "all",
+    autonomy: input.userId ? readAgentOnboarding(input.userId)?.autonomy : undefined,
   });
 
   const reply = `${AUTOPILOT_OPERATOR_STATEMENT} ${plan.summaryForMlo}`;
@@ -509,6 +532,7 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
           console.error("[chat-agent] linkQualifiedLead (mid-turn) failed", error);
         }
       },
+      { userId: input.userId, userEmail: input.userEmail },
     );
 
     reply = text.trim() || "Got it — one moment.";

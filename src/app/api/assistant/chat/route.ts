@@ -69,16 +69,19 @@ export async function POST(request: Request) {
     const { mode, message, sessionId, funnelSource } = validated.body;
 
     let userId: string | undefined;
+    let userEmail: string | undefined;
     if (mode === "mlo_dashboard") {
       const session = await getSession();
       if (!session) return jsonError("Sign in to use the dashboard assistant.", 401, "UNAUTHENTICATED");
       userId = session.sub;
+      userEmail = session.email;
     }
 
     const result = await runAssistantTurn({
       mode,
       sessionId,
       userId,
+      userEmail,
       funnelSource,
       userMessage: message,
     });

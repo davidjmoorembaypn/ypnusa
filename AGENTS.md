@@ -35,3 +35,9 @@ Local demo state persists to `data/store.json`. Live ZIP availability is read fr
 - No `.env` file is required; the app runs fully without environment variables. `INTAKE_EXTERNAL_WEBHOOK_URL` is optional for Zapier-style integrations.
 - The file-based DB at `data/store.json` is auto-created on first write. It can be deleted to reset state.
 - The `package-lock.json` is the lockfile; use `npm install` (not yarn/pnpm/bun).
+
+## Deploying app.ypnus.com (any agent or tool)
+
+- The only supported path: merge to `main`, let `.github/workflows/release-build.yml` publish `app-build-<sha7>`, then run `scripts/hostinger-install-release.sh` on the server (see `hostinger/README.md`). It verifies the checksum, keeps the previous release for rollback, and rolls back automatically if `/api/health` doesn't report the new `build.commit`.
+- Never use hPanel's Node.js "Deploy"/"Rebuild", Hostinger's Node.js build API, or an uploaded archive for this app. On 2026-09-26 that replaced production with an old bundle (no California compliance pages, no `app/.env` loader) and deleted the installed releases.
+- Secrets live only in `app/.env` on the server; `hostinger/server-preamble.js` loads them and is injected into every release bundle.

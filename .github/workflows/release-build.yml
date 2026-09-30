@@ -40,6 +40,8 @@ jobs:
           if [ -d public ]; then cp -a public "$out/public"; fi
           # Never ship local data or env files; the server supplies both.
           rm -rf "$out/data" "$out"/.env*
+          # Persistent data dir + app/.env loader, so the bundle runs without a prior build to copy them from.
+          node scripts/inject-server-preamble.mjs "$out/server.js"
           printf '{"git_commit":"%s","built_at":"%s","node_version":"%s","built_on":"github-actions %s"}\n' \
             "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$(node -v)" "$(ldd --version | head -1)" > "$out/DEPLOY_MANIFEST.json"
           tar -czf app-build.tar.gz -C dist nodejs

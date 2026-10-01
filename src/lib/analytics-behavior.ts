@@ -216,7 +216,7 @@ const INTENT_LABEL: Record<VisitorIntent, string> = {
 export function resolveDynamicHeroCopy(persisted: PersistedBehavior, variant: ContentVariant): DynamicHeroCopy {
   if (variant === "conversion_first") {
     if (persisted.visitorIntent === "mlo") {
-      return { eyebrow: "Welcome back, loan officer", primaryCtaLabel: "Book a demo", primaryCtaHref: "#demo" };
+      return { eyebrow: "Welcome back, loan officer", primaryCtaLabel: "Check your ZIP", primaryCtaHref: "#territories" };
     }
     if (persisted.visitorIntent) {
       return {
@@ -227,5 +227,5 @@ export function resolveDynamicHeroCopy(persisted: PersistedBehavior, variant: Co
     }
     return { eyebrow: "Welcome back", primaryCtaLabel: "Resume pre-approval", primaryCtaHref: "#calculator" };
   }
-  return { eyebrow: "Exclusive ZIP demand · for MLOs", primaryCtaLabel: "Claim your ZIP — free", primaryCtaHref: "#territories" };
+  return { eyebrow: "Exclusive ZIP demand · for MLOs", primaryCtaLabel: "Check your ZIP — free", primaryCtaHref: "#territories" };
 }

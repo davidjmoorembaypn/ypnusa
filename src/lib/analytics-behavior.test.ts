@@ -178,11 +178,11 @@ test("resolveDynamicHeroCopy: trust_first always shows the default acquisition h
   assert.equal(copy.primaryCtaHref, "#territories");
 });
 
-test("resolveDynamicHeroCopy: conversion_first + mlo intent points at booking a demo", () => {
+test("resolveDynamicHeroCopy: conversion_first + mlo intent points at ZIP availability", () => {
   const persisted: PersistedBehavior = { state: createInitialBehaviorState(0), visitorIntent: "mlo", returningVisitor: true };
   const copy = resolveDynamicHeroCopy(persisted, "conversion_first");
-  assert.equal(copy.primaryCtaLabel, "Book a demo");
-  assert.equal(copy.primaryCtaHref, "#demo");
+  assert.equal(copy.primaryCtaLabel, "Check your ZIP");
+  assert.equal(copy.primaryCtaHref, "#territories");
 });
 
 test("resolveDynamicHeroCopy: conversion_first + buyer/refi intent points at resuming pre-approval", () => {

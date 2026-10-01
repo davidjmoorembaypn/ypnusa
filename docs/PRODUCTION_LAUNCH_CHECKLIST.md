@@ -373,3 +373,19 @@ outside the web root in `~/backups/2026-09-26/`.
 - Allow `developers.hostinger.com` in the Claude environment's network settings. That lets the CDN flush and DNS (DMARC `p=quarantine`) be done from a session.
 - Decide whether to keep both GA4 properties.
 - Turn on 2FA for WordPress admins.
+
+## 12. App restore — 2026-10-01
+
+- GitHub Actions works again now that the account billing is fixed. CI (lint, typecheck, tests, build) and Release build both pass on `main`.
+- A Hostinger Node.js deploy on 2026-09-26 05:20 UTC put an old prebuilt bundle on app.ypnus.com and deleted the installed releases. That bundle had:
+  - no California terms/privacy updates;
+  - no AI-chat notice;
+  - the old `/api/health`, which exposed the data dir;
+  - no `app/.env` loader.
+- Fix (PR #82):
+  - The server preamble now ships inside every release bundle (`hostinger/server-preamble.js`, injected by `scripts/inject-server-preamble.mjs`).
+  - `app-build-26aa271` was installed with `hostinger-install-release.sh`. `/api/health` reports `26aa271`, and the previous build is kept for rollback.
+  - `AGENTS.md` and `hostinger/README.md` forbid hPanel/API Node.js deploys for this app.
+- Hostinger's CDN still holds app pages cached from the old bundle with a one-year `s-maxage`, on at least 3 of its cache nodes. `Cache-Control: no-cache` requests don't refresh them.
+- Until the CDN is flushed, ypnus.com links to the app legal pages use `?v=20261001`. URLs with a query string bypass those copies. This covers the footer widget, chatbot settings, pages 18/1829/1835/6193, Rank Math redirects 71–73, the static funnel pages and the ARL email.
+- **Owner:** flush the CDN for app.ypnus.com (and ypnus.com) in hPanel, or allow `developers.hostinger.com` in the Claude environment's network settings so it can be done from a session.

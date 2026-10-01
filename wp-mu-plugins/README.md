@@ -58,10 +58,9 @@ still byte-identical to what was read.
 None of this requires a matching app.ypnus.com deploy first or after — the app already accepts
 both old and new SSO signature formats specifically so these two sides can ship independently.
 
-## Known gap this round does not close
+## Current Stripe checkout status
 
-**A real Stripe Payment Link for the Growth tier does not exist yet.** `ypn_stripe_urls()['growth']`
-is intentionally left as `''` — create the Payment Link in the Stripe Dashboard (`ypnus_tier=growth`
-metadata, see `wp-plugins/ypnus-stripe-webhook/README.md`) and set it via the `ypnus_stripe_urls`
-option (or a `wp-config.php` override) before Growth can actually be purchased. No file in this
-directory invents that URL.
+Growth, Pro, and Elite checkout URLs are now configured in `ypnus-brand-config.php`.
+Starter remains in the internal tier model only for legacy subscriptions and signed SSO claims;
+it is not offered to new customers. Before changing checkout configuration, verify the current
+Stripe Payment Links and webhook metadata rather than relying on older deployment notes.

@@ -122,26 +122,17 @@ regardless of how much it actually uses, so `next build` can hit that ceiling
 even though the account has "enough" RAM on paper. This can't be raised from
 SSH or any PHP-facing setting — it's an account-level LVE restriction.
 
-Fix: build outside that LVE and deploy only the built output, instead of
-letting Hostinger's Node.js Builds API run `npm run build` on your account.
+Fix: never build on Hostinger. GitHub Actions builds the bundle and
+`scripts/hostinger-install-release.sh` installs it (see "Deploy app.ypnus.com"
+at the top of this file). Do not use Hostinger's Node.js Builds API in any form
+(`deploy-next`, `deploy-prebuilt`, hPanel Deploy/Rebuild): on 2026-09-26 a
+prebuilt upload through it replaced production with an old bundle and deleted
+the installed releases. Those script commands are now disabled.
 
-```bash
-node scripts/deploy-hostinger.mjs deploy-prebuilt [domain]
-```
+More app environment variables:
 
-This builds `.next/standalone` locally (this repo already builds cleanly),
-copies `.next/static` and `public/` alongside it per Next's own standalone
-deployment docs, uploads that bundle instead of the source tree, and sets
-Hostinger's build step to a no-op so it just runs `node server.js` against
-the already-built bundle. **Not yet live-tested against Hostinger's API** —
-the exact fields their Node.js Builds endpoint expects for a "skip build,
-just run" flow aren't documented; run it once with a real
-`HOSTINGER_API_TOKEN` and adjust `build_script`/`start_script` in
-`deployPrebuilt()` if Hostinger's build phase still tries to run something
-real.
-
-If this approach doesn't pan out, the fallback is a VPS plan, where these
-process limits are configurable directly.
+| Variable | Value |
+| --- | --- |
 | `LOANPILOT_DATA_DIR` | `/tmp/ypnus-data` |
 | `SESSION_SECRET` | random 32+ byte string — signs the `ypnus_session` cookie |
 | `YPNUS_SSO_SHARED_SECRET` | random secret shared with the WordPress SSO handoff (see `docs/sso-handoff.md`) |
@@ -182,24 +173,10 @@ state. If a future need arises for app.ypnus.com to know a user's paid tier (e.g
 dashboard feature), pass `tier` / `subscription_status` through as claims on the SSO
 handoff (`docs/sso-handoff.md`) rather than re-deriving it from a second webhook.
 
-### Option A — hPanel GitHub deploy (recommended)
-1. Remove the Cloudflare redirect (above).
-2. If `app.ypnus.com` is still a static/PHP site, remove that website slot first
-   (download a backup), then **Websites → Add Website → Node.js web app**.
-3. Import `dave4079111/ypnusa`, set the env vars above, deploy branch `main`
-   (or this PR branch for a preview).
-
-### Option B — API archive deploy
-```bash
-export HOSTINGER_API_TOKEN=…   # hPanel → API
-npm run deploy:hostinger:list
-npm run deploy:hostinger:next          # defaults to app.ypnus.com
-npm run deploy:hostinger:status
-```
-
-The script uploads a source zip (no `node_modules` / `.next`), starts the Cloud
-Node.js build, and streams logs until completion. Set the env vars in hPanel
-afterward and **Restart** the Node process.
+### Retired: hPanel GitHub deploy and API archive deploy
+Both run Hostinger's Node.js Builds API, which can't finish `next build` inside
+the account's LVE limits and replaces whatever release is live. Deploy only
+through the release pipeline described at the top of this file.
 
 ### Option C — Render blueprint
 [`render.yaml`](../render.yaml) still works as a Node host; point DNS for

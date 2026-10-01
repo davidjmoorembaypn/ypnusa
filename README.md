@@ -118,16 +118,11 @@ Production shape: WordPress marketing on `ypnus.com`, this Next.js product app o
 `app.ypnus.com` as a Hostinger **Cloud Node.js web app**. Full checklist:
 [`hostinger/README.md`](./hostinger/README.md).
 
-```bash
-export HOSTINGER_API_TOKEN=…   # hPanel → API
-npm run deploy:hostinger:list
-npm run deploy:hostinger:next  # builds on app.ypnus.com
-```
-
-Or in hPanel: **Websites → Add Website → Node.js web app → Import GitHub**
-(`dave4079111/ypnusa`). Set `NEXT_PUBLIC_SITE_URL=https://app.ypnus.com` and the
-other vars from `.env.example`. Remove the Cloudflare redirect that currently
-sends `app.ypnus.com/` → `ypnus.com/` first.
+Deploys go through GitHub: merge to `main`, `.github/workflows/release-build.yml`
+publishes release `app-build-<sha7>`, then run `scripts/hostinger-install-release.sh`
+on the server. It verifies the checksum, keeps the previous release, and rolls back
+automatically if `/api/health` doesn't report the new commit. Never deploy through
+hPanel's Node.js Deploy/Rebuild or Hostinger's Node.js Builds API.
 
 ### Render
 A [`render.yaml`](./render.yaml) blueprint is included for a persistent Node host:

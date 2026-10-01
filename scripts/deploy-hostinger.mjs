@@ -8,8 +8,10 @@
  *
  * Usage:
  *   node scripts/deploy-hostinger.mjs list
- *   node scripts/deploy-hostinger.mjs deploy-next [domain]
- *   node scripts/deploy-hostinger.mjs deploy-prebuilt [domain]
+ *
+ * deploy-next / deploy-prebuilt are disabled: Hostinger's Node.js Builds API replaces the live
+ * release and deleted the installed ones on 2026-09-26. Deploy with the GitHub release pipeline
+ * and scripts/hostinger-install-release.sh instead (hostinger/README.md).
  *   node scripts/deploy-hostinger.mjs status [domain]
  *   node scripts/deploy-hostinger.mjs logs <domain> <build-uuid>
  *   node scripts/deploy-hostinger.mjs fix-htaccess [domain]
@@ -34,13 +36,6 @@ const API = "https://developers.hostinger.com";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TOKEN = process.env.HOSTINGER_API_TOKEN?.trim();
 const DEFAULT_DOMAIN = process.env.HOSTINGER_DEPLOY_DOMAIN?.trim() || "app.ypnus.com";
-
-const APP_ENV = {
-  NEXT_PUBLIC_SITE_URL: "https://app.ypnus.com",
-  NEXT_PUBLIC_MARKETING_SITE_URL: "https://ypnus.com",
-  YPNUS_WP_API_BASE: "https://ypnus.com/wp-json/ypnus/v1",
-  LOANPILOT_DATA_DIR: "/tmp/ypnus-data",
-};
 
 function die(msg, code = 1) {
   console.error(msg);
@@ -120,33 +115,6 @@ function ensureTus() {
   return tus;
 }
 
-function makeArchive() {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
-  const out = path.join("/tmp", `ypnusa-next_${stamp}.zip`);
-  const excludes = [
-    "node_modules/*",
-    ".git/*",
-    ".next/*",
-    "data/store.json",
-    "*.zip",
-    ".env",
-    ".env.*",
-    "ypn-ai-*.html",
-    "borrower-intake-widget.html",
-    "dashboard.html",
-    "core",
-    ".cursor/*",
-    "coverage/*",
-  ];
-  const args = ["-r", out, ".", ...excludes.flatMap((e) => ["-x", e])];
-  const r = spawnSync("zip", args, { cwd: ROOT, stdio: "inherit" });
-  if (r.status !== 0) die("Failed to create project archive (is zip installed?).");
-  const sizeMb = fs.statSync(out).size / (1024 * 1024);
-  if (sizeMb > 49) die(`Archive is ${sizeMb.toFixed(1)}MB; Hostinger limit is 50MB.`);
-  console.log(`Archive: ${out} (${sizeMb.toFixed(1)} MB)`);
-  return out;
-}
-
 async function uploadFile(domain, localPath, remoteName = path.basename(localPath)) {
   const client = ensureTus();
   const { username } = await resolveWebsite(domain);
@@ -192,175 +160,6 @@ async function uploadFile(domain, localPath, remoteName = path.basename(localPat
   return { creds, remoteName, username };
 }
 
-function prepareStandaloneOutput() {
-  console.log(
-    'Building locally ("output: standalone") — this runs outside Hostinger\'s LVE, ' +
-      "so it isn't subject to the RLIMIT_AS ceiling that blocks server-side builds there…",
-  );
-  const r = spawnSync("npm", ["run", "build"], { cwd: ROOT, stdio: "inherit" });
-  if (r.status !== 0) die("Local `npm run build` failed — fix the build before deploying.");
-
-  const standaloneDir = path.join(ROOT, ".next", "standalone");
-  if (!fs.existsSync(standaloneDir)) {
-    die(
-      'Build succeeded but .next/standalone is missing — confirm next.config.ts still has output: "standalone".',
-    );
-  }
-
-  // Next.js's standalone output doesn't include static assets or /public —
-  // copy them alongside server.js per Next's own deployment docs.
-  fs.cpSync(path.join(ROOT, ".next", "static"), path.join(standaloneDir, ".next", "static"), {
-    recursive: true,
-  });
-  if (fs.existsSync(path.join(ROOT, "public"))) {
-    fs.cpSync(path.join(ROOT, "public"), path.join(standaloneDir, "public"), { recursive: true });
-  }
-  return standaloneDir;
-}
-
-function makeStandaloneArchive(standaloneDir) {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
-  const out = path.join("/tmp", `ypnusa-prebuilt_${stamp}.zip`);
-  const r = spawnSync("zip", ["-r", out, "."], { cwd: standaloneDir, stdio: "inherit" });
-  if (r.status !== 0) die("Failed to create standalone archive (is zip installed?).");
-  const sizeMb = fs.statSync(out).size / (1024 * 1024);
-  if (sizeMb > 49) {
-    die(`Archive is ${sizeMb.toFixed(1)}MB; Hostinger limit is 50MB. Consider pruning node_modules.`);
-  }
-  console.log(`Standalone archive: ${out} (${sizeMb.toFixed(1)} MB)`);
-  return out;
-}
-
-/**
- * Deploys a pre-built standalone bundle instead of letting Hostinger build
- * from source. Hostinger's Node.js Builds API runs `npm run build` inside
- * the account's own LVE, which enforces an RLIMIT_AS (virtual address
- * space) ceiling that Next.js/V8's build-time memory reservations exceed on
- * shared Cloud Startup hosting (see hostinger/README.md). This repo already
- * builds cleanly outside that LVE, so building locally/in CI and uploading
- * only the `.next/standalone` output sidesteps the ceiling entirely —
- * Hostinger's build step becomes a no-op, and `server.js` just runs.
- *
- * NOT yet live-tested against Hostinger's API — the exact fields their
- * Node.js Builds endpoint expects for a "skip build, just run" flow aren't
- * documented anywhere in this repo. Run this once with a real
- * HOSTINGER_API_TOKEN and adjust `build_script`/`start_script` below if
- * Hostinger's build phase still tries to run something real.
- */
-async function deployPrebuilt(domain = DEFAULT_DOMAIN) {
-  const standaloneDir = prepareStandaloneOutput();
-
-  const { username } = await resolveWebsite(domain);
-  const archivePath = makeStandaloneArchive(standaloneDir);
-  const archiveBasename = path.basename(archivePath);
-  console.log(`Uploading prebuilt bundle ${archiveBasename} to ${domain}…`);
-  await uploadFile(domain, archivePath, archiveBasename);
-
-  console.log("Resolving build settings…");
-  const settings = await api(
-    `/api/hosting/v1/accounts/${encodeURIComponent(username)}/websites/${encodeURIComponent(domain)}/nodejs/builds/settings/from-archive?archive_path=${encodeURIComponent(archiveBasename)}`,
-  );
-  const buildData = {
-    ...settings,
-    node_version: settings?.node_version || 22,
-    // No real build to run — the archive already contains the built
-    // standalone bundle. A shell no-op still satisfies Hostinger's Node.js
-    // Builds API, which expects some build_script to execute.
-    build_script: "true",
-    start_script: settings?.start_script || "node server.js",
-    output_directory: settings?.output_directory || ".",
-    package_manager: settings?.package_manager || "npm",
-    app_type: settings?.app_type || "next",
-    source_type: "archive",
-    source_options: { archive_path: archiveBasename },
-  };
-  console.log("Triggering build (no-op — bundle is already built)…");
-  const result = await api(
-    `/api/hosting/v1/accounts/${encodeURIComponent(username)}/websites/${encodeURIComponent(domain)}/nodejs/builds`,
-    { method: "POST", body: buildData },
-  );
-  console.log(JSON.stringify(result, null, 2));
-  const uuid = result?.uuid || result?.data?.uuid;
-  if (uuid) {
-    console.log(`\nPolling build ${uuid} …`);
-    await pollBuild(username, domain, uuid);
-  }
-
-  console.log("Removing stale homepage → ypnus.com .htaccess redirect (if present)…");
-  try {
-    await fixHtaccess(domain);
-  } catch (e) {
-    console.warn("fix-htaccess skipped:", e.message || e);
-  }
-
-  await api(
-    `/api/hosting/v1/accounts/${encodeURIComponent(username)}/websites/${encodeURIComponent(domain)}/nodejs/server/restart`,
-    { method: "POST" },
-  );
-
-  console.log(
-    "\nSet these env vars in hPanel → Node.js app → Environment if not already set:\n" +
-      Object.entries(APP_ENV)
-        .map(([k, v]) => `  ${k}=${v}`)
-        .join("\n"),
-  );
-  console.log(`\nLive check: curl -sI https://${domain}/ | head`);
-}
-
-async function deployNext(domain = DEFAULT_DOMAIN) {
-  const { username } = await resolveWebsite(domain);
-  const archivePath = makeArchive();
-  const archiveBasename = path.basename(archivePath);
-  console.log(`Uploading ${archiveBasename} to ${domain}…`);
-  await uploadFile(domain, archivePath, archiveBasename);
-
-  console.log("Resolving build settings…");
-  const settings = await api(
-    `/api/hosting/v1/accounts/${encodeURIComponent(username)}/websites/${encodeURIComponent(domain)}/nodejs/builds/settings/from-archive?archive_path=${encodeURIComponent(archiveBasename)}`,
-  );
-  const buildData = {
-    ...settings,
-    node_version: settings?.node_version || 20,
-    build_script: settings?.build_script || "build",
-    output_directory: settings?.output_directory || ".next",
-    package_manager: settings?.package_manager || "npm",
-    app_type: settings?.app_type || "next",
-    source_type: "archive",
-    source_options: { archive_path: archiveBasename },
-  };
-  console.log("Triggering build…");
-  const result = await api(
-    `/api/hosting/v1/accounts/${encodeURIComponent(username)}/websites/${encodeURIComponent(domain)}/nodejs/builds`,
-    { method: "POST", body: buildData },
-  );
-  console.log(JSON.stringify(result, null, 2));
-  const uuid = result?.uuid || result?.data?.uuid;
-  if (uuid) {
-    console.log(`\nPolling build ${uuid} …`);
-    await pollBuild(username, domain, uuid);
-  }
-
-  console.log("Removing stale homepage → ypnus.com .htaccess redirect (if present)…");
-  try {
-    await fixHtaccess(domain);
-  } catch (e) {
-    console.warn("fix-htaccess skipped:", e.message || e);
-  }
-
-  await api(
-    `/api/hosting/v1/accounts/${encodeURIComponent(username)}/websites/${encodeURIComponent(domain)}/nodejs/server/restart`,
-    { method: "POST" },
-  );
-
-  console.log(
-    "\nSet these env vars in hPanel → Node.js app → Environment if not already set:\n" +
-      Object.entries(APP_ENV)
-        .map(([k, v]) => `  ${k}=${v}`)
-        .join("\n"),
-  );
-  console.log(`\nLive check: curl -sI https://${domain}/ | head`);
-}
-
 async function listBuilds(domain = DEFAULT_DOMAIN) {
   const { username } = await resolveWebsite(domain);
   const data = await api(
@@ -383,43 +182,6 @@ async function getLogs(domain, uuid, fromLine = 0) {
     console.log(JSON.stringify(data, null, 2));
   }
   return data;
-}
-
-async function pollBuild(username, domain, uuid, { timeoutMs = 14 * 60 * 1000 } = {}) {
-  const started = Date.now();
-  let prev = "";
-  while (Date.now() - started < timeoutMs) {
-    const list = await api(
-      `/api/hosting/v1/accounts/${encodeURIComponent(username)}/websites/${encodeURIComponent(domain)}/nodejs/builds?per_page=20`,
-    );
-    const items = websitesFrom(list);
-    const build = items.find((b) => b.uuid === uuid || b.id === uuid);
-    const state = build?.state || build?.status || "unknown";
-    process.stderr.write(`build state: ${state}\n`);
-
-    try {
-      const logs = await api(
-        `/api/hosting/v1/accounts/${encodeURIComponent(username)}/websites/${encodeURIComponent(domain)}/nodejs/builds/${encodeURIComponent(uuid)}/logs`,
-      );
-      const content = logs?.logs ?? logs?.content ?? logs?.data?.content ?? "";
-      if (typeof content === "string" && content && content !== prev) {
-        process.stdout.write(content.startsWith(prev) ? content.slice(prev.length) : content);
-        prev = content;
-      }
-    } catch {
-      // logs may 404 briefly while queued
-    }
-
-    if (state === "completed" || state === "success") {
-      console.log("\nBuild completed.");
-      return build;
-    }
-    if (state === "failed" || state === "error") {
-      die("\nBuild failed. Inspect logs above or run: logs <domain> <uuid>");
-    }
-    await new Promise((r) => setTimeout(r, 8000));
-  }
-  die("Timed out waiting for Hostinger build.");
 }
 
 async function fileBrowser(domain) {
@@ -471,10 +233,11 @@ switch (cmd) {
     await listWebsites(arg);
     break;
   case "deploy-next":
-    await deployNext(arg || DEFAULT_DOMAIN);
-    break;
   case "deploy-prebuilt":
-    await deployPrebuilt(arg || DEFAULT_DOMAIN);
+    die(
+      `${cmd} is disabled: Hostinger's Node.js Builds API replaces the live release (it rolled production back on 2026-09-26).\n` +
+        "Merge to main; release-build.yml publishes app-build-<sha7>; run scripts/hostinger-install-release.sh on the server.",
+    );
     break;
   case "status":
     await listBuilds(arg || DEFAULT_DOMAIN);
@@ -491,7 +254,7 @@ switch (cmd) {
     break;
   default:
     die(
-      "Usage: node scripts/deploy-hostinger.mjs <list|deploy-next|deploy-prebuilt|status|logs|fix-htaccess|dns> [args]\n" +
+      "Usage: node scripts/deploy-hostinger.mjs <list|status|logs|fix-htaccess|dns> [args]\n" +
         "Requires HOSTINGER_API_TOKEN.",
     );
 }

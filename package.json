@@ -13,7 +13,6 @@
     "test": "tsx --test $(find src -name '*.test.ts' | sort)",
     "autopilot:run": "tsx scripts/run-website-autopilot.ts",
     "deploy:hostinger:list": "node scripts/deploy-hostinger.mjs list",
-    "deploy:hostinger:next": "node scripts/deploy-hostinger.mjs deploy-next",
     "deploy:hostinger:status": "node scripts/deploy-hostinger.mjs status",
     "deploy:hostinger:fix-htaccess": "node scripts/deploy-hostinger.mjs fix-htaccess",
     "deploy:cloudflare:list": "node scripts/fix-cloudflare-redirect.mjs list"

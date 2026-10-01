@@ -18,7 +18,7 @@ without touching prompts, routing, or persistence.
   public chatbot today is the **Meow Apps / AI Engine** plugin, backed by
   **OpenAI** — unrelated to this repo and not to be duplicated by it.
 - **app.ypnus.com** (this repo) is a Node.js app on Hostinger Cloud
-  (`hostinger/README.md`, `npm run deploy:hostinger:*`). There is **no
+  (`hostinger/README.md`; deployed only as a GitHub release build). There is **no
   Vercel deployment** for this project — an old `Vercel` GitHub commit
   status may still appear on PRs from a stale/disconnected integration;
   it is not real production deployment and should not block merging or
@@ -148,9 +148,9 @@ using an LLM here is natural slot-filling instead of another fixed form.
 ## Setup (Hostinger Cloud / any Node host — no Vercel involved)
 
 1. Get a key at <https://console.anthropic.com/settings/keys>.
-2. Configure environment variables on the server (hPanel's Node.js app env
-   vars, `.env.local` for local dev, or your process manager's env config —
-   never commit a real key):
+2. Configure environment variables (production: `app/.env` on the server,
+   outside the web root, since Hostinger has no env-var screen for this app;
+   local dev: `.env.local`; never commit a real key):
    - `ANTHROPIC_API_KEY` — required to enable real replies.
    - `ANTHROPIC_MODEL` — optional, overrides the default (`claude-opus-5`),
      e.g. `claude-sonnet-5` or `claude-haiku-4-5` for lower cost/latency once
@@ -159,13 +159,14 @@ using an LLM here is natural slot-filling instead of another fixed form.
      future dedicated secret on `/api/webhooks/leads`; that route currently
      authenticates via the existing `ADMIN_TOKEN`/`CRON_SECRET` (see
      `.env.example`) instead.
-3. Run the production build with the existing package scripts
-   (`npm run build`, `npm run start`, or `npm run deploy:hostinger:next` —
-   see `hostinger/README.md`) and restart the app process so it picks up
-   the new env vars (`getAiProvider()` memoizes per-process; see
-   `resetAiProviderCache` for tests).
+3. Restart the app so it reads them; no rebuild is needed. On Hostinger,
+   re-run `scripts/hostinger-install-release.sh` (see `hostinger/README.md`);
+   locally, restart `npm run dev`/`npm run start`
+   (`getAiProvider()` memoizes per-process; see `resetAiProviderCache` for
+   tests).
 4. Confirm ypnus.com's reverse proxy / subdomain routing to app.ypnus.com is
-   intact (Hostinger/Passenger config, not anything in this repo), and check
+   intact (the Passenger lines in `public_html/app/.htaccess`, copied in
+   `hostinger/app-ypnus/.htaccess`), and check
    server logs if the assistant doesn't come up after restart.
 
 Nothing else needs to change — `/api/assistant/chat` and the chat UI already

@@ -6,15 +6,21 @@
 app is built on GitHub and only the finished bundle is installed on the server:
 
 1. Merge to `main`. `.github/workflows/release-build.yml` runs the tests, builds
-   the standalone bundle on Node 20, and publishes it as release
+   the standalone bundle on Node 20, injects `hostinger/server-preamble.js`
+   (persistent data dir + `YPN-ENV-LOADER` for `app/.env`) into its `server.js`
+   with `scripts/inject-server-preamble.mjs`, and publishes it as release
    `app-build-<sha7>` (asset `app-build.tar.gz` + `.sha256`).
 2. On the server, run `bash scripts/hostinger-install-release.sh` (fetch it from
    the repo's raw URL, or keep a copy in `app/hbuilds/`). It verifies the
-   checksum, installs to `hbuilds/versions/build-<ts>-<sha7>/nodejs`, carries the
-   `YPN-ENV-LOADER` preamble (persistent data dir + `app/.env` loader) into the
-   new `server.js`, keeps the previous build's hashed chunks for CDN-cached
-   HTML, switches `hbuilds/current`, recycles the LiteSpeed worker, and rolls
-   back automatically unless `/api/health` reports the new `build.commit`.
+   checksum, installs to `hbuilds/versions/build-<ts>-<sha7>/nodejs` (copying the
+   preamble from the live build only if a bundle lacks it), keeps the previous
+   build's hashed chunks for CDN-cached HTML, switches `hbuilds/current`,
+   recycles the LiteSpeed worker, and rolls back automatically unless
+   `/api/health` reports the new `build.commit`.
+
+Never deploy app.ypnus.com through hPanel's Node.js "Deploy"/"Rebuild" or an
+uploaded archive: on 2026-09-26 that replaced the live app with an old bundle
+(no compliance pages, no `app/.env` loader) and deleted the installed releases.
 3. Confirm: `curl https://app.ypnus.com/api/health` shows `build.commit`.
 
 If GitHub Actions can't run, build locally the same way the workflow does and push

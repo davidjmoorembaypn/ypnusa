@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "lint": "eslint",
-    "test": "tsx --test",
+    "test": "tsx --test $(find src -name '*.test.ts' | sort)",
     "autopilot:run": "tsx scripts/run-website-autopilot.ts",
     "deploy:hostinger:list": "node scripts/deploy-hostinger.mjs list",
     "deploy:hostinger:next": "node scripts/deploy-hostinger.mjs deploy-next",

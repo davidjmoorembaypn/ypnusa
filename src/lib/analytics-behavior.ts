@@ -216,7 +216,7 @@ const INTENT_LABEL: Record<VisitorIntent, string> = {
 export function resolveDynamicHeroCopy(persisted: PersistedBehavior, variant: ContentVariant): DynamicHeroCopy {
   if (variant === "conversion_first") {
     if (persisted.visitorIntent === "mlo") {
-      return { eyebrow: "Welcome back, loan officer", primaryCtaLabel: "Book a demo", primaryCtaHref: "#demo" };
+      return { eyebrow: "Welcome back, loan officer", primaryCtaLabel: "Check your ZIP", primaryCtaHref: "#territories" };
     }
     if (persisted.visitorIntent) {
       return {

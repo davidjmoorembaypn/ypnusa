@@ -4,12 +4,12 @@
  * Description: Secure WordPress -> app.ypnus.com SSO handoff.
  * Version: 2.0.0
  *
- * NOT YET DEPLOYED. This is a prepared replacement for the live 1.x version of this exact
- * file (wp-content/mu-plugins/ypnus-app-sso.php) — see wp-mu-plugins/README.md before
- * uploading it.
+ * LIVE since 2026-09-09 (2.0.0). 2026-10-02: URL-encodes every query value (a raw '+' in an
+ * email or in a trialEndsAt offset decoded to a space on the app side and broke the signature)
+ * and honors an allowlisted `app_next` request param so the app can choose its landing page.
  *
- * CHANGE FROM LIVE 1.x: the live version signs only 5 fields (email|sub|role|iat|next) and
- * always hardcodes role='mlo'. This version signs the full 8-field message
+ * CHANGE FROM 1.x: 1.x signed only 5 fields (email|sub|role|iat|next) and
+ * always hardcoded role='mlo'. This version signs the full 8-field message
  * (email|sub|role|iat|next|tier|subscriptionStatus|trialEndsAt), pulling role and
  * entitlement from the linked WordPress user's canonical meta via
  * ypnus-lo-account-bridge.php, instead of asserting nothing about either.
@@ -105,6 +105,30 @@ function ypnus_app_sso_resolve_role( $wp_user_id ) {
 }
 
 /**
+ * Validates a caller-supplied landing path. Must be a relative app path under one of the
+ * app's authenticated areas (mirrors ALLOWED_NEXT_PREFIXES in the app's login page); anything
+ * else, or anything containing the signature delimiter, falls back to /dashboard.
+ *
+ * @param mixed $raw
+ * @return string
+ */
+function ypnus_app_sso_sanitize_next( $raw ) {
+	$default = '/dashboard';
+	if ( ! is_string( $raw ) || '' === $raw ) {
+		return $default;
+	}
+	if ( 0 !== strpos( $raw, '/' ) || 0 === strpos( $raw, '//' ) || false !== strpbrk( $raw, "|\\\r\n" ) ) {
+		return $default;
+	}
+	foreach ( array( '/dashboard', '/portal', '/analytics', '/admin', '/onboarding', '/account', '/billing' ) as $prefix ) {
+		if ( $raw === $prefix || 0 === strpos( $raw, $prefix . '/' ) || 0 === strpos( $raw, $prefix . '?' ) ) {
+			return $raw;
+		}
+	}
+	return $default;
+}
+
+/**
  * Intercept the existing successful login response.
  * The existing login endpoint returns success + lo_id + email.
  */
@@ -161,7 +185,8 @@ add_filter(
 				// ypnus-lo-account-bridge.php itself.
 			}
 
-			$url = ypnus_app_sso_url( $email, $sub, $role, '/dashboard', $tier, $status, $trial_ends );
+			$next = ypnus_app_sso_sanitize_next( $request->get_param( 'app_next' ) );
+				$url  = ypnus_app_sso_url( $email, $sub, $role, $next, $tier, $status, $trial_ends );
 
 			if ( $url ) {
 				$data['sso_url']  = $url;

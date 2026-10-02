@@ -58,16 +58,15 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        // Marketing copy and prior deploy docs (hostinger/README.md,
-        // hostinger-wp-node-devops/references/ypnus.md) document
-        // app.ypnus.com/register as the CTA target, but account creation
-        // actually lives on ypnus.com (see docs/sso-handoff.md) — /login
-        // already is the single "continue to ypnus.com" gateway for both
-        // sign-in and sign-up intents. Redirect so that target 404s never
-        // happen regardless of which URL a CTA was written against.
+        // Marketing copy, Stripe success URLs and prior deploy docs point at
+        // app.ypnus.com/register, but account creation lives on ypnus.com
+        // (see docs/sso-handoff.md). Send sign-up intent straight to the MLO
+        // signup page — one hop, no /login detour. 308 (permanent: true)
+        // preserves method and lets crawlers consolidate the old URL; the
+        // incoming query string (utm_*, plan, etc.) is carried over.
         source: "/register",
-        destination: "/login",
-        permanent: false,
+        destination: "https://ypnus.com/lo-signup.html",
+        permanent: true,
       },
     ];
   },

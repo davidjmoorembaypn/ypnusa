@@ -33,7 +33,7 @@ add_action( 'generate_after_header_content', function () {
 	foreach ( $links as $label => $url ) {
 		printf( '<a class="ypn-l" href="%s">%s</a>', esc_url( $url ), esc_html( $label ) );
 	}
-	printf( '<a class="ypn-login" href="%s">Login</a>', esc_url( home_url( '/lo-dashboard.html' ) ) );
+	printf( '<a class="ypn-login" href="%s">Login</a>', esc_url( 'https://app.ypnus.com/login' ) );
 	printf( '<a class="ypn-cta" href="%s">Check My ZIP</a>', esc_url( home_url( '/check-zip.html?utm_source=inner_nav&utm_medium=header' ) ) );
 	echo '</nav>';
 } );

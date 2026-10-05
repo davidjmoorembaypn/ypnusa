@@ -82,8 +82,15 @@ export function useBehaviorTracking() {
           timestamp: now.timestamp,
         });
         if (detectExitRisk(next, { fastExitScroll: analysis.isFastExitScroll })) {
+          // 2026-10-05: exit-trap display disabled. In production this re-fired
+          // repeatedly instead of honoring exitTrapShown (reported as "a shadow
+          // over the entire homepage that won't go away"). Root cause is most
+          // likely handlePointerOut below listening on document's `pointerout`
+          // (fires on every element-boundary crossing on the whole page, not
+          // just window-exit) rather than a window-level `mouseleave`. Signal
+          // tracking (markExitTrapShown/state) is left intact; only the modal
+          // itself is suppressed until the trigger is rebuilt properly.
           next = markExitTrapShown(next);
-          setExitTrapOpen(true);
         }
         return next;
       });
@@ -94,7 +101,7 @@ export function useBehaviorTracking() {
       if (!leftTop) return;
       setState((prev) => {
         if (!detectExitRisk(prev, { pointerLeftTop: true })) return prev;
-        setExitTrapOpen(true);
+        // 2026-10-05: see comment in handleScroll above — modal display disabled.
         return markExitTrapShown(prev);
       });
     };

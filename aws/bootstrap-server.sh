@@ -19,7 +19,8 @@ max_execution_time=120
 opcache.enable=1
 opcache.memory_consumption=192
 opcache.max_accelerated_files=20000
-opcache.validate_timestamps=0
+opcache.validate_timestamps=1
+opcache.revalidate_freq=60
 PHP
 sed -i 's/^;*pm.max_children.*/pm.max_children = 20/' /etc/php/8.3/fpm/pool.d/www.conf
 

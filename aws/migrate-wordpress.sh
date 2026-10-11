@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run ON the EC2 instance after bootstrap. Two modes:
+# Run ON the EC2 instance after bootstrap (and after fetch-backup.sh for restore mode). Two modes:
 #   restore  : backup DB + wp-content present  -> exact copy of the old site
 #   rebuild  : no backup                       -> fresh WP + repo plugins; content re-imported from REST export
 set -euo pipefail

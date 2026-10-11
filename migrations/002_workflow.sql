@@ -6,7 +6,7 @@
 
 create table if not exists scheduled_follow_ups (
   id                  text primary key default gen_random_uuid()::text,
-  borrower_lead_id    text not null references borrower_leads(id),
+  borrower_lead_id    text not null references borrower_leads(id) on delete cascade,
   plan                text not null check (plan in (
                         'immediate_confirmation_email','immediate_sms_ack',
                         'day_1_educational_email','day_3_book_call_email',

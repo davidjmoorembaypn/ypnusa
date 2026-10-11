@@ -55,12 +55,21 @@ create table if not exists crm_leads (
   assigned_lo_id          text not null references loan_officers(id),
   status                  text not null default 'new',
   notes                   text[] not null default '{}',
-  qualification_snapshot  jsonb not null
+  qualification_snapshot  jsonb not null,
+
+  -- Lets borrower_leads.crm_lead_id form a composite FK back to this row,
+  -- so a borrower lead can only point at a CRM lead that actually belongs
+  -- to it (see fk_borrower_leads_crm_lead below).
+  constraint uq_crm_leads_id_borrower_lead unique (id, borrower_lead_id)
 );
 
+-- Composite FK: borrower_leads.crm_lead_id must reference a crm_leads row
+-- whose own borrower_lead_id points back at this same borrower lead. A
+-- plain FK on crm_lead_id alone would let a borrower lead be "handed off"
+-- to a CRM lead that actually belongs to a different borrower.
 alter table borrower_leads
   add constraint fk_borrower_leads_crm_lead
-  foreign key (crm_lead_id) references crm_leads(id) deferrable initially deferred;
+  foreign key (crm_lead_id, id) references crm_leads(id, borrower_lead_id) deferrable initially deferred;
 
 alter table intake_sessions
   add constraint fk_intake_sessions_crm_lead
@@ -89,7 +98,9 @@ create table if not exists appointments (
   provider              text,
   external_event_id     text,
   meeting_url           text,
-  external_booking_url  text
+  external_booking_url  text,
+
+  constraint chk_appointments_positive_duration check (end_at > start_at)
 );
 
 create table if not exists chat_sessions (
@@ -114,7 +125,9 @@ create table if not exists chat_messages (
   role        text not null check (role in ('user','assistant')),
   content     text not null,
   created_at  timestamptz not null default now(),
-  ordinal     integer not null
+  ordinal     integer not null,
+
+  constraint uq_chat_messages_session_ordinal unique (session_id, ordinal)
 );
 
 create index if not exists idx_borrower_leads_assigned_lo on borrower_leads(assigned_lo_id);

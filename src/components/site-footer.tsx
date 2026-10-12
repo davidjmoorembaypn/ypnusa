@@ -12,17 +12,11 @@ export function SiteFooter() {
             </span>
             <span className="text-sm font-semibold text-white">
               YPN<span className="text-violet-300"> USA</span>
-              <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-white/45">
-                App
-              </span>
             </span>
           </div>
           <p className="mt-4 max-w-sm text-sm">
-            Product app for exclusive ZIP demand. Marketing site and content live on{" "}
-            <a href={marketingUrl("/")} className="underline hover:text-white">
-              ypnus.com
-            </a>
-            ; this surface is{" "}
+            The mortgage growth platform for loan officers: exclusive ZIP territories, AI borrower
+            intake, and leads you own for life. Also at{" "}
             <a href={appUrl("/")} className="underline hover:text-white">
               app.ypnus.com
             </a>
@@ -64,20 +58,20 @@ export function SiteFooter() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">Product</p>
           <ul className="mt-4 space-y-2 text-sm">
+            <li><Link href="/features" className="transition hover:text-white">Features</Link></li>
             <li><Link href="/#how" className="transition hover:text-white">How it works</Link></li>
             <li><Link href="/#territories" className="transition hover:text-white">Territories</Link></li>
             <li><Link href="/#demo" className="transition hover:text-white">Live demo</Link></li>
-            <li><Link href="/#pricing" className="transition hover:text-white">Pricing</Link></li>
             <li><Link href="/analytics" className="transition hover:text-white">Analytics</Link></li>
           </ul>
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">ypnus.com</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">Resources</p>
           <ul className="mt-4 space-y-2 text-sm">
-            <li><a href={marketingUrl("/check-zip.html")} className="transition hover:text-white">ZIP demand check</a></li>
+            <li><Link href="/pricing" className="transition hover:text-white">Pricing</Link></li>
+            <li><Link href="/blog" className="transition hover:text-white">Blog</Link></li>
             <li><a href={marketingUrl("/lo-signup.html?plan=free")} className="transition hover:text-white">Free LO signup</a></li>
-            <li><a href={marketingUrl("/pricing-plans/")} className="transition hover:text-white">Pricing plans</a></li>
             <li><Link href="/embed/intake" className="transition hover:text-white">Embed the assistant</Link></li>
           </ul>
         </div>

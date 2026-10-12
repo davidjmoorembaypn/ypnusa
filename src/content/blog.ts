@@ -19,7 +19,7 @@ export const BLOG_POSTS: readonly BlogPost[] = [
     readingMinutes: 9,
     html: `<p>If you're waiting for realtors to send you business out of the goodwill of their hearts, you're going to wait a long time.</p>
 
-<p>The loan officers who consistently close the most units a month have one thing in common: they've built a <strong>structured, repeatable co-marketing system with a handful of high-producing real estate agents</strong>. Not 30 relationships you can barely maintain. Four to six partners who know exactly how you work, trust your process, and send you pre-qualified borrowers - week after week.</p>
+<p>The loan officers who consistently close the most units a month have one thing in common: they've built a <strong>structured, repeatable co-marketing system with a handful of growing real estate agents</strong>. Not 30 relationships you can barely maintain. Four to six partners who know exactly how you work, trust your process, and send you pre-qualified borrowers - week after week.</p>
 
 <p>This playbook shows you how to build that system in 2026, whether you're starting from zero or trying to get more volume out of partnerships you already have.</p>
 
@@ -29,7 +29,7 @@ export const BLOG_POSTS: readonly BlogPost[] = [
 
 <p><strong>There's no system.</strong> The realtor sends you a lead, you close it (maybe), say thank you, and then three months of silence follow before the cycle repeats. That's not a partnership - it's a one-sided favor.</p>
 
-<p>High-value realtors - the ones doing the most deals a year - don't have time to wonder if you're going to perform. They need predictability. They need to know that when they hand you a borrower, that borrower will have an exceptional experience that reflects well on the agent.</p>
+<p>The realtors worth building a system with - the ones closing a meaningful, growing number of deals a year - don't have time to wonder if you're going to perform. They need predictability. They need to know that when they hand you a borrower, that borrower will have an exceptional experience that reflects well on the agent.</p>
 
 <p>The loan officers they keep coming back to are the ones who:</p>
 <ul>
@@ -42,10 +42,10 @@ export const BLOG_POSTS: readonly BlogPost[] = [
 
 <h2>Step 1: Identify the Right Realtor Partners</h2>
 
-<p>Not every realtor is worth pursuing. A realtor doing a handful of deals a year at entry-level prices will never generate the volume you need. You want agents who:</p>
+<p>Not every realtor is worth pursuing - and neither is the market's very top producer. A realtor doing a handful of deals a year at entry-level prices won't generate the volume you need, but the busiest agents in your market usually already have a preferred lender (or two) they're loyal to, and little time to vet a new one. The sweet spot is the agent in between: closing a meaningful, growing number of deals, but not yet locked into an exclusive mortgage relationship. You want agents who:</p>
 
 <ul>
-<li>Close a meaningful number of transactions annually</li>
+<li>Close a meaningful and growing number of transactions annually</li>
 <li>Work in your target price range and loan types (if you focus on FHA and first-time buyers, find agents who work that niche)</li>
 <li>Are <strong>active on social media</strong> (more exposure for co-branded content)</li>
 <li>Don't already have an exclusive mortgage partner locked in</li>

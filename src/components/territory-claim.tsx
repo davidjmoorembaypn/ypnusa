@@ -48,10 +48,21 @@ function signupHrefFor(zip?: string, plan = "free") {
 export const ZIP_CHECKED_EVENT = "ypnus:zip-checked";
 
 /**
+ * sessionStorage key PricingCta falls back to when it mounts on a different
+ * route (e.g. /pricing) than the one TerritoryClaim ran on, so a ZIP checked
+ * on the home page still locks the territory a visitor pays for after
+ * clicking "Pricing" in the nav — a plain `?zip=` on the current page's URL
+ * doesn't survive that navigation.
+ */
+export const ZIP_STORAGE_KEY = "ypnus:checked-zip";
+
+/**
  * Reflects a confirmed ZIP into this page's own URL (no navigation/reload) so a
- * page reload or shared link carries it, and broadcasts a same-page event so
+ * page reload or shared link carries it, broadcasts a same-page event so
  * components mounted before this check — the pricing tier CTAs — can pick it up
- * immediately rather than only on their own next mount. See PricingCta.
+ * immediately rather than only on their own next mount, and persists it to
+ * sessionStorage so it also survives navigating to a different route (e.g.
+ * /pricing). See PricingCta.
  */
 function syncZipToPageUrl(zip: string | null) {
   try {
@@ -62,6 +73,12 @@ function syncZipToPageUrl(zip: string | null) {
     window.dispatchEvent(new CustomEvent(ZIP_CHECKED_EVENT, { detail: { zip } }));
   } catch {
     /** noop — purely a cross-component convenience, never blocks the check flow. */
+  }
+  try {
+    if (zip) sessionStorage.setItem(ZIP_STORAGE_KEY, zip);
+    else sessionStorage.removeItem(ZIP_STORAGE_KEY);
+  } catch {
+    /** noop — sessionStorage can be unavailable (private browsing); not critical. */
   }
 }
 

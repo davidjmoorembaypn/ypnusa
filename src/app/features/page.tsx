@@ -140,8 +140,8 @@ export default function FeaturesPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">Engage on contact</p>
               <h2 className="mt-3 text-3xl font-semibold lg:text-4xl">A live calculator borrowers can&apos;t ignore</h2>
               <p className="mt-4 text-slate-600">
-                Every YPN USA site ships with a live payment calculator that keeps borrowers engaged — and
-                hands you the intent signal the moment they start modeling a loan.
+                Every YPN USA site ships with a live payment calculator that keeps borrowers engaged
+                while they model a loan on your territory.
               </p>
             </div>
             <div className="mt-12">

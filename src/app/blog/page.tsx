@@ -12,7 +12,14 @@ export const metadata: Metadata = {
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  // Date-only ISO strings (e.g. "2026-06-01") parse as UTC midnight — format in
+  // UTC too, or a US timezone west of UTC displays the previous day.
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 export default function BlogIndexPage() {

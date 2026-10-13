@@ -65,7 +65,7 @@ const nextConfig: NextConfig = {
         // preserves method and lets crawlers consolidate the old URL; the
         // incoming query string (utm_*, plan, etc.) is carried over.
         source: "/register",
-        destination: "https://ypnus.com/lo-signup.html",
+        destination: "/signup",
         permanent: true,
       },
     ];

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { appUrl, marketingUrl } from "@/lib/site";
+import { appUrl } from "@/lib/site";
 
 export function SiteFooter() {
   return (

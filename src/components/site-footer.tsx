@@ -71,7 +71,7 @@ export function SiteFooter() {
           <ul className="mt-4 space-y-2 text-sm">
             <li><Link href="/pricing" className="transition hover:text-white">Pricing</Link></li>
             <li><Link href="/blog" className="transition hover:text-white">Blog</Link></li>
-            <li><a href={marketingUrl("/lo-signup.html?plan=free")} className="transition hover:text-white">Free LO signup</a></li>
+            <li><Link href="/signup?plan=free" className="transition hover:text-white">Free LO signup</Link></li>
             <li><Link href="/embed/intake" className="transition hover:text-white">Embed the assistant</Link></li>
           </ul>
         </div>

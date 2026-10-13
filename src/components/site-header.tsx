@@ -5,14 +5,14 @@ import { useEffect, useState } from "react";
 import { marketingUrl } from "@/lib/site";
 
 /**
- * Unified header nav (Features | Pricing | Free Tools | Log In | Get Started)
- * shared with the ypnus.com marketing site's own header — keep both in sync.
- * `internal` uses next/link; everything else is a plain <a> (anchor scroll or
- * cross-origin to the marketing site).
+ * Unified header nav (Features | Pricing | Blog | Free Tools | Log In | Get Started).
+ * ypnus.com and app.ypnus.com are the same Next.js app, so every item is an
+ * internal route.
  */
 const NAV: Array<{ href: string; label: string; internal?: boolean }> = [
-  { href: marketingUrl("/features.html"), label: "Features" },
-  { href: "#pricing", label: "Pricing" },
+  { href: "/features", label: "Features", internal: true },
+  { href: "/pricing", label: "Pricing", internal: true },
+  { href: "/blog", label: "Blog", internal: true },
   { href: "/tools/equity", label: "Free Tools", internal: true },
 ];
 
@@ -49,9 +49,6 @@ export function SiteHeader() {
           </span>
           <span className="text-sm font-semibold tracking-tight text-white">
             YPN<span className="text-violet-300"> USA</span>
-            <span className="ml-2 hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45 sm:inline">
-              App
-            </span>
           </span>
         </Link>
 

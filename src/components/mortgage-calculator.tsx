@@ -101,12 +101,12 @@ export function MortgageCalculator() {
             <span className="font-semibold text-white">{formatUsd(monthly * term * 12)}</span>
           </div>
         </div>
-        <a
-          href="#territories"
+        <Link
+          href="/#territories"
           className="mt-6 inline-flex items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
         >
           Put this tool on my MLO site
-        </a>
+        </Link>
         <Link
           href="/tools/equity"
           className="mt-3 inline-flex items-center justify-center text-sm font-semibold text-violet-100 underline decoration-white/30 underline-offset-4 hover:text-white"

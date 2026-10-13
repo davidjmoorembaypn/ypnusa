@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { checkoutUrlForTier } from "@/lib/checkout";
 import { marketingUrl } from "@/lib/site";
-import { ZIP_CHECKED_EVENT, ZIP_STORAGE_KEY } from "@/components/territory-claim";
+import { readEffectiveZip, normalizeZip, ZIP_CHECKED_EVENT } from "@/lib/zip-state";
 import type { PricingTierId } from "@/lib/pricing";
 
 function signupHrefForPlan(plan: string, zip?: string) {
@@ -17,13 +17,9 @@ function hrefFor(tierId: PricingTierId, zip?: string) {
 }
 
 /**
- * Renders a pricing tier's signup/checkout link, then progressively enhances it
- * client-side with whatever ZIP the visitor already checked in TerritoryClaim —
- * read from this page's own `?zip=` param when present (same-page, synced via
- * history.replaceState), otherwise from sessionStorage so a ZIP checked on the
- * home page still applies after navigating to /pricing — so a paid signup
- * locks the same territory they just confirmed was available, instead of
- * making them re-enter it on ypnus.com.
+ * Pricing CTA — progressively enhances the initial link with a validated ZIP
+ * (URL query wins, then sessionStorage). The link includes data attributes for
+ * analytics and opens external targets safely.
  */
 export function PricingCta({
   tierId,
@@ -34,29 +30,45 @@ export function PricingCta({
   className?: string;
   children: React.ReactNode;
 }) {
-  const [href, setHref] = useState(() => hrefFor(tierId));
+  const initialZip = typeof window !== "undefined" ? readEffectiveZip() : undefined;
+  const [href, setHref] = useState(() => hrefFor(tierId, initialZip));
+  const [zipValue, setZipValue] = useState<string | undefined>(initialZip);
 
   useEffect(() => {
-    function applyZip(zip: string | null | undefined) {
-      setHref(hrefFor(tierId, zip && /^\d{5}$/.test(zip) ? zip : undefined));
-    }
+    const applyZip = (zip: string | null | undefined) => {
+      const normalized = normalizeZip(zip);
+      setZipValue(normalized);
+      setHref(hrefFor(tierId, normalized));
+    };
 
+    // Seed from the current page / session
     try {
-      const fromUrl = new URLSearchParams(window.location.search).get("zip");
-      applyZip(fromUrl ?? sessionStorage.getItem(ZIP_STORAGE_KEY));
+      applyZip(readEffectiveZip());
     } catch {
-      /** noop — falls back to the zip-less href already rendered. */
+      // noop — the unenhanced href remains usable
     }
 
-    function onZipChecked(event: Event) {
-      applyZip((event as CustomEvent<{ zip?: string | null }>).detail?.zip);
-    }
+    const onZipChecked = (event: Event) => {
+      const zip = (event as CustomEvent<{ zip?: string | null }>).detail?.zip;
+      applyZip(zip ?? null);
+    };
+
     window.addEventListener(ZIP_CHECKED_EVENT, onZipChecked);
     return () => window.removeEventListener(ZIP_CHECKED_EVENT, onZipChecked);
   }, [tierId]);
 
+  // Use an explicit target/rel so external marketing/checkout pages open safely and
+  // referrer/analytics remain consistent for conversion tracking.
   return (
-    <a href={href} className={className}>
+    <a
+      href={href}
+      className={className}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-ypn-tier={tierId}
+      data-ypn-zip={zipValue ?? ""}
+      aria-label={`Start signup for ${tierId}${zipValue ? ` (ZIP ${zipValue})` : ""}`}
+    >
       {children}
     </a>
   );

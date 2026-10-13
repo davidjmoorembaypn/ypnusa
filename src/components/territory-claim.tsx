@@ -2,7 +2,6 @@
 
 import { useId, useState } from "react";
 import { postJson } from "@/lib/client-api";
-import { marketingUrl } from "@/lib/site";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
 import { useCTAEngine } from "@/lib/hooks/useCTAEngine";
 
@@ -36,12 +35,10 @@ const VOLUME_OPTIONS = [
   "Whole brokerage / branch",
 ];
 
-const MARKETING_SIGNUP = marketingUrl("/lo-signup.html");
-
 function signupHrefFor(zip?: string, plan = "free") {
   const params = new URLSearchParams({ plan });
   if (zip) params.set("zip", zip);
-  return `${MARKETING_SIGNUP}?${params.toString()}`;
+  return `/signup?${params.toString()}`;
 }
 
 /** Fired on `window` whenever a ZIP check resolves, so PricingCta can react live. */
@@ -438,7 +435,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           <p className="sm:col-span-2 text-[11px] text-white/50">
             Prefer the full signup?{" "}
             <a href={signupHref} className="underline hover:text-white">
-              Continue on ypnus.com
+              Continue signup
             </a>
             . No credit card required.
           </p>

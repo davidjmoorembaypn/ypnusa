@@ -50,7 +50,7 @@ function signupUrl(input: { plan?: unknown; zip?: unknown }): string {
   const plan = typeof input.plan === "string" ? input.plan : "free";
   const params = new URLSearchParams({ plan });
   if (typeof input.zip === "string" && input.zip.trim()) params.set("zip", input.zip.trim());
-  return marketingUrl(`/lo-signup.html?${params.toString()}`);
+  return `/signup?${params.toString()}`;
 }
 
 /** Runs schedule_meeting: lists open slots (no startIso) or books one (startIso given). */

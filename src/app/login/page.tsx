@@ -26,7 +26,7 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const next = resolveNext(params.next);
-  const signupHref = marketingUrl(`/lo-signup.html?plan=free&app_next=${encodeURIComponent(next)}`);
+  const signupHref = `/signup?plan=free&next=${encodeURIComponent(next)}`;
   const loginHref = marketingUrl(`/lo-dashboard.html?app_next=${encodeURIComponent(next)}`);
 
   return (

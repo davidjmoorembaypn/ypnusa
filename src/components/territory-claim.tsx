@@ -1,10 +1,11 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { postJson } from "@/lib/client-api";
 import { marketingUrl } from "@/lib/site";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
 import { useCTAEngine } from "@/lib/hooks/useCTAEngine";
+import { normalizeZip, readEffectiveZip, syncZipToPageUrl } from "@/lib/zip-state";
 
 type CheckState =
   | { status: "idle" }
@@ -44,44 +45,6 @@ function signupHrefFor(zip?: string, plan = "free") {
   return `${MARKETING_SIGNUP}?${params.toString()}`;
 }
 
-/** Fired on `window` whenever a ZIP check resolves, so PricingCta can react live. */
-export const ZIP_CHECKED_EVENT = "ypnus:zip-checked";
-
-/**
- * sessionStorage key PricingCta falls back to when it mounts on a different
- * route (e.g. /pricing) than the one TerritoryClaim ran on, so a ZIP checked
- * on the home page still locks the territory a visitor pays for after
- * clicking "Pricing" in the nav — a plain `?zip=` on the current page's URL
- * doesn't survive that navigation.
- */
-export const ZIP_STORAGE_KEY = "ypnus:checked-zip";
-
-/**
- * Reflects a confirmed ZIP into this page's own URL (no navigation/reload) so a
- * page reload or shared link carries it, broadcasts a same-page event so
- * components mounted before this check — the pricing tier CTAs — can pick it up
- * immediately rather than only on their own next mount, and persists it to
- * sessionStorage so it also survives navigating to a different route (e.g.
- * /pricing). See PricingCta.
- */
-function syncZipToPageUrl(zip: string | null) {
-  try {
-    const url = new URL(window.location.href);
-    if (zip) url.searchParams.set("zip", zip);
-    else url.searchParams.delete("zip");
-    window.history.replaceState(window.history.state, "", url);
-    window.dispatchEvent(new CustomEvent(ZIP_CHECKED_EVENT, { detail: { zip } }));
-  } catch {
-    /** noop — purely a cross-component convenience, never blocks the check flow. */
-  }
-  try {
-    if (zip) sessionStorage.setItem(ZIP_STORAGE_KEY, zip);
-    else sessionStorage.removeItem(ZIP_STORAGE_KEY);
-  } catch {
-    /** noop — sessionStorage can be unavailable (private browsing); not critical. */
-  }
-}
-
 export function TerritoryClaim({ source = "territory_section" }: { source?: string }) {
   const zipInputId = useId();
   const [zip, setZip] = useState("");
@@ -90,6 +53,11 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const [consent, setConsent] = useState(false);
   const personalization = usePersonalization();
   const cta = useCTAEngine();
+
+  useEffect(() => {
+    const seededZip = readEffectiveZip();
+    if (seededZip) setZip(seededZip);
+  }, []);
 
   const [form, setForm] = useState({
     name: "",
@@ -103,23 +71,35 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
 
   async function runCheck() {
     if (check.status === "checking") return;
-    const clean = zip.replace(/\D/g, "").slice(0, 5);
+
+    const numeric = zip.replace(/\D/g, "").slice(0, 5);
+    const clean = normalizeZip(numeric);
+
+    // Clear stale page-state while the next ZIP is being validated.
     syncZipToPageUrl(null);
-    setZip(clean);
-    if (clean.length !== 5) {
+    setZip(numeric);
+
+    if (!clean) {
       setCheck({ status: "error", message: "Enter a valid 5-digit ZIP code." });
       return;
     }
+
     setCheck({ status: "checking" });
     setSubmit({ status: "idle" });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+
     try {
       const res = await fetch(`/api/territory/check?zip=${encodeURIComponent(clean)}`, {
-        signal: AbortSignal.timeout(15_000),
+        signal: controller.signal,
       });
+
       if (!res.ok) {
         setCheck({ status: "error", message: "Couldn't check that territory — try again." });
         return;
       }
+
       const data = (await res.json()) as {
         zip: string;
         valid: boolean;
@@ -132,10 +112,12 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         demand?: { total?: number } | null;
         source?: string | null;
       };
+
       if (!data.valid) {
         setCheck({ status: "error", message: data.message });
         return;
       }
+
       setCheck({
         status: "result",
         zip: data.zip,
@@ -148,12 +130,20 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         demandTotal: data.demand?.total ?? null,
         source: data.source,
       });
-      // Never propagate an unavailable ZIP into the pricing CTAs — a visitor could
-      // otherwise pay for a territory the page just described as already claimed.
+
+      // Only persist a ZIP when it's actually available — unavailable ZIPs should
+      // not be treated as a locked territory or paid signup target.
       if (data.available) syncZipToPageUrl(data.zip);
+
       void enrichWithIntelligence(data.zip, data.available, data.demand?.total ?? undefined);
-    } catch {
-      setCheck({ status: "error", message: "Couldn't reach the territory service — try again." });
+    } catch (error) {
+      if ((error as Error)?.name === "AbortError") {
+        setCheck({ status: "error", message: "Request timed out — try again." });
+      } else {
+        setCheck({ status: "error", message: "Couldn't reach the territory service — try again." });
+      }
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -210,10 +200,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       : check.status === "result"
         ? `ZIP ${check.zip}`
         : "";
-  const signupHref =
-    check.status === "result" && check.available
-      ? signupHrefFor(check.zip)
-      : signupHrefFor();
+  const signupHref = check.status === "result" && check.available ? signupHrefFor(check.zip) : signupHrefFor();
   const resultTitle =
     check.status === "result"
       ? check.available
@@ -240,13 +227,13 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               void runCheck();
             }
           }}
-          className="w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-base font-semibold tracking-wide text-slate-900 outline-none ring-violet-300 transition placeholder:font-normal placeholder:text-slate-400 focus:ring-2"
+          className="w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-base font-semibold tracking-wide text-slate-900 outline-none ring-violet-300 transition placeholder:font-normal placeholder:text-slate-400 focus:border-violet-400 focus:ring-2"
         />
         <button
           type="button"
           onClick={() => void runCheck()}
           disabled={check.status === "checking"}
-          className="shrink-0 rounded-2xl bg-gradient-to-r from-violet-500 to-violet-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-violet-600/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
+          className="shrink-0 rounded-2xl bg-gradient-to-r from-violet-500 to-violet-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-violet-600/30 transition duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
           aria-busy={check.status === "checking"}
         >
           {check.status === "checking" ? "Checking…" : "Check availability"}
@@ -301,9 +288,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 aria-hidden
                 className={`h-2.5 w-2.5 rounded-full ${check.available ? "bg-emerald-300" : "bg-amber-300"}`}
               />
-              <span className="font-semibold">
-                {resultTitle}
-              </span>
+              <span className="font-semibold">{resultTitle}</span>
             </p>
             <p className="mt-1 text-[13px] text-white/80">{check.message}</p>
             {check.demandTotal ? (
@@ -318,7 +303,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
             ) : null}
             <a
               href={signupHref}
-              className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+              className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105"
             >
               {check.available ? "Start free with this ZIP →" : "Explore other ZIPs →"}
             </a>
@@ -427,7 +412,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           <button
             type="submit"
             disabled={submit.status === "submitting"}
-            className="sm:col-span-2 mt-1 rounded-2xl bg-amber-400 px-6 py-3 text-base font-semibold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
+            className="sm:col-span-2 mt-1 rounded-2xl bg-amber-400 px-6 py-3 text-base font-semibold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {submit.status === "submitting"
               ? "Submitting…"
@@ -453,7 +438,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           <p className="mt-2 text-sm font-semibold text-emerald-100">{submit.message}</p>
           <a
             href={signupHref}
-            className="mt-4 inline-flex rounded-full bg-amber-400 px-5 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+            className="mt-4 inline-flex rounded-full bg-amber-400 px-5 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition hover:brightness-105"
           >
             Finish free setup →
           </a>

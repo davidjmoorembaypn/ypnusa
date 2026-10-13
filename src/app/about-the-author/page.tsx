@@ -1,7 +1,7 @@
-export { default } from "./features/gmb-optimizer/page";
+export { default } from "../about/page";
 
 export const metadata = {
-  title: "Google Business Profile Optimizer | YPN USA",
-  description: "Local SEO and Google Business Profile optimization built for mortgage professionals.",
+  title: "About David J. Moore | YPN Inc.",
+  description: "Learn about David J. Moore and the leadership behind YPN Inc.",
 };
 

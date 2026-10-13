@@ -1,56 +1,35 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ZipWP | MLO Website Builder Partner",
+  title: "Marketing Expert Companion for MLOs | YPN USA",
   description:
-    "Launch a modern mortgage loan officer website with ZipWP. Flexible templates, fast setup, and partner support for growing MLOs.",
-  alternates: { canonical: "/zipwp" },
+    "Get an AI-powered marketing expert companion built for mortgage loan officers to manage positioning, campaigns, and lead follow-up.",
+  alternates: { canonical: "/features/marketing-companion" },
 };
 
-const zipwpAffiliateUrl = "https://zipwp.com/?aff=13cc9ca0";
-const zipwpAffiliateWithUtm = `${zipwpAffiliateUrl}&utm_source=ypnus&utm_medium=affiliate&utm_campaign=zipwp`;
-
-export default function ZipWpPage() {
+export default function MarketingCompanionPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-16 text-slate-900">
-      <div className="rounded-[32px] border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-sky-50 p-8 md:p-12">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-700">Partner solution</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-6xl">ZipWP for mortgage professionals</h1>
-        <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-700">
-          Build a polished, lead-ready website without starting from scratch. ZipWP helps mortgage
-          professionals launch a modern web presence that supports lead capture, brand positioning, and
-          client trust.
-        </p>
+      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-700">Feature</p>
+      <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-6xl">Marketing Expert Companion</h1>
+      <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-700">
+        Give your team a practical growth partner to sharpen positioning, improve campaign strategy, and keep lead follow-up
+        consistent across the entire borrower journey.
+      </p>
 
-        <div className="mt-8 flex flex-wrap gap-4">
-          <a
-            href={zipwpAffiliateWithUtm}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex rounded-full bg-violet-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-violet-800"
-            data-ypn-affiliate="zipwp"
-          >
-            Visit ZipWP &amp; get started →
-          </a>
-          <a href="/pricing" className="inline-flex rounded-full border border-violet-200 px-6 py-3 text-sm font-semibold text-violet-700">
-            Compare YPN plans
-          </a>
-        </div>
-      </div>
-
-      <section className="mt-12 grid gap-6 md:grid-cols-3">
+      <div className="mt-10 grid gap-6 md:grid-cols-3">
         {[
           {
-            title: "Fast launch",
-            body: "Get a clean portfolio or service site live quickly with templates tailored for mortgage and real-estate professionals.",
+            title: "Positioning",
+            body: "Refine your value proposition, local differentiation, and offer clarity across your website and lead capture funnel.",
           },
           {
-            title: "Built for trust",
-            body: "Show credentials, services, and client education in a way that positions you as a polished expert.",
+            title: "Campaign guidance",
+            body: "Use AI to structure campaigns around borrower segments, local relevance, and conversion goals instead of one-off tactics.",
           },
           {
-            title: "Lead-focused",
-            body: "Support inquiries, discoverability, and stronger conversion paths with forms, calls-to-action, and local positioning.",
+            title: "Follow-up consistency",
+            body: "Improve your lead response rhythm and nurture sequence so opportunities do not drop after the first contact.",
           },
         ].map((item) => (
           <div key={item.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -58,29 +37,19 @@ export default function ZipWpPage() {
             <p className="mt-3 text-slate-700">{item.body}</p>
           </div>
         ))}
-      </section>
+      </div>
 
-      <section className="mt-12 rounded-3xl border border-slate-200 bg-slate-50 p-8">
-        <h2 className="text-2xl font-semibold">Why YPN recommends ZipWP</h2>
-        <ul className="mt-5 list-disc space-y-2 pl-6 text-slate-700">
-          <li>Fast setup for mortgage and real-estate professionals</li>
-          <li>Professional design patterns that improve conversion confidence</li>
-          <li>Helpful for implementing a stronger digital front door while growing your lead acquisition engine</li>
-          <li>Works well as part of a broader YPN funnel and marketing stack</li>
-        </ul>
-      </section>
-
-      <section className="mt-12 rounded-3xl border border-slate-200 bg-white p-8">
-        <h2 className="text-2xl font-semibold">YPN Inc. business details</h2>
-        <ul className="mt-5 list-disc space-y-2 pl-6 text-slate-700">
-          <li>Company Name: YPN Inc. (Young Professionals Network / YPN USA)</li>
-          <li>Services: Real estate websites, AI-driven marketing, lead generation, and digital advertising</li>
-          <li>Leadership: David J. Moore (President / CEO)</li>
-          <li>Address: Four Embarcadero Center, Suite 1400, San Francisco, CA 94111</li>
-          <li>Regional presence: Reedley / Dinuba, CA</li>
-          <li>Phone: +1 559-607-3797</li>
-        </ul>
-      </section>
+      <div className="mt-10 rounded-3xl border border-violet-200 bg-violet-50 p-6 md:p-8">
+        <h2 className="text-2xl font-semibold">Built for MLOs who want more than automation</h2>
+        <p className="mt-4 text-slate-700">
+          This companion is meant to help mortgage professionals think strategically, improve message quality, and keep conversion
+          systems aligned with the real opportunity in their local market.
+        </p>
+        <a href="/pricing" className="mt-6 inline-flex rounded-full bg-violet-700 px-6 py-3 text-sm font-semibold text-white">
+          View plan options →
+        </a>
+      </div>
     </main>
   );
 }
+

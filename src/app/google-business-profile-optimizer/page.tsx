@@ -1,7 +1,7 @@
-export { default } from "./features/marketing-companion/page";
+export { default } from "../features/gmb-optimizer/page";
 
 export const metadata = {
-  title: "Marketing Expert Companion | YPN USA",
-  description: "AI-powered marketing guidance built for mortgage professionals.",
+  title: "Google Business Profile Optimizer | YPN USA",
+  description: "Local SEO and Google Business Profile optimization built for mortgage professionals.",
 };
 

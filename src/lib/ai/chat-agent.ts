@@ -3,7 +3,6 @@ import { generateId } from "@/lib/id";
 import { bookAppointment, listSyncedAvailableSlots } from "@/lib/calendar";
 import { readChatSession, readDb, saveChatSession } from "@/lib/db";
 import { logCrmActivity, routeLoanOfficer } from "@/lib/crm";
-import { marketingUrl } from "@/lib/site";
 import type {
   AssistantMode,
   BorrowerAnswers,

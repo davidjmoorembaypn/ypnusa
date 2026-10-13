@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { marketingUrl } from "@/lib/site";
 import {
   LOCAL_SEO_PROFILES,
   LOCAL_SEO_PUBLIC_ORIGIN,

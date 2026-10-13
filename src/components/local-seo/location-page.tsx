@@ -303,7 +303,7 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
   // that gets locked, same reasoning as PricingCta/checkoutUrlForTier.
   const signupParams = new URLSearchParams({ plan: "free" });
   if (profile.kind === "zip") signupParams.set("zip", profile.slug);
-  const signupHref = marketingUrl(`/lo-signup.html?${signupParams.toString()}`);
+  const signupHref = `/signup?${signupParams.toString()}`;
   const relatedProfiles = LOCAL_SEO_PROFILES.filter(
     (candidate) =>
       candidate.slug !== profile.slug &&

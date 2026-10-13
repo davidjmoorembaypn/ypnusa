@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Script from "next/script";
 import { APP_SITE_URL, MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
+import Link from "next/link";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -10,9 +11,6 @@ const geistSans = Geist({
   display: "swap",
 });
 
-// Hostinger's CDN honors s-maxage and never purges on deploy; Next's default for a
-// static page is a year. ISR every 5 minutes (plus expireTime in next.config.ts)
-// caps edge staleness at ~10 minutes. Dynamic pages stay private/no-store.
 export const revalidate = 300;
 
 export const metadata: Metadata = {
@@ -133,24 +131,13 @@ const jsonLd = {
   ],
 };
 
-// GA4 stays off until NEXT_PUBLIC_GA_ID is set AND the host CSP allows googletagmanager.com / google-analytics.com.
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID?.trim();
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         {GA_ID ? (
           <>
             <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
@@ -159,7 +146,90 @@ export default function RootLayout({
             </Script>
           </>
         ) : null}
-        {children}
+
+        <header className="border-b bg-white/60 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
+            <Link href="/" className="text-xl font-bold text-slate-900">
+              YPN USA
+            </Link>
+            <nav className="hidden gap-4 md:flex">
+              <Link href="/features" className="text-sm font-medium text-slate-700 hover:text-slate-900">
+                Features
+              </Link>
+              <Link href="/pricing" className="text-sm font-medium text-slate-700 hover:text-slate-900">
+                Pricing
+              </Link>
+              <Link href="/zipwp" className="text-sm font-medium text-slate-700 hover:text-slate-900">
+                ZipWP
+              </Link>
+              <Link href="/about" className="text-sm font-medium text-slate-700 hover:text-slate-900">
+                About
+              </Link>
+            </nav>
+            <div className="flex items-center gap-3">
+              <Link href="/login" className="rounded-md border px-3 py-2 text-sm font-medium">
+                Sign in
+              </Link>
+              <Link href="/pricing" className="rounded-md bg-violet-700 px-3 py-2 text-sm font-medium text-white">
+                Start free
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1">{children}</main>
+
+        <footer className="border-t bg-slate-50">
+          <div className="mx-auto max-w-6xl px-6 py-10">
+            <div className="grid gap-6 md:grid-cols-3">
+              <div>
+                <h3 className="text-sm font-semibold">YPN Inc.</h3>
+                <p className="mt-2 text-sm text-slate-700">Four Embarcadero Center, Suite 1400, San Francisco, CA 94111</p>
+                <p className="mt-1 text-sm text-slate-700">Phone: +1 559-607-3797</p>
+                <p className="mt-2 text-sm">
+                  <Link href="/about" className="text-violet-700 underline">
+                    About the founder
+                  </Link>
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold">Resources</h3>
+                <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                  <li>
+                    <Link href="/features" className="hover:underline">
+                      Features
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/zipwp" className="hover:underline">
+                      ZipWP (affiliate)
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/pricing" className="hover:underline">
+                      Pricing
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold">Trust & books</h3>
+                <p className="mt-2 text-sm text-slate-700">Published author — books available on Amazon.</p>
+                <div className="mt-3 flex gap-3">
+                  <img src="/images/book1.svg" alt="Book cover" className="h-12 w-8 rounded-md" />
+                  <img src="/images/book2.svg" alt="Book cover" className="h-12 w-8 rounded-md" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 text-center text-xs text-slate-500">
+              © {new Date().getFullYear()} YPN Inc. — All rights reserved. <br />
+              <Link href="/privacy-policy">Privacy</Link> · <Link href="/terms-of-service">Terms</Link>
+            </div>
+          </div>
+        </footer>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import { APP_SITE_URL, MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
 import "./globals.css";
 
@@ -162,6 +163,7 @@ export default function RootLayout({
         ) : null}
         {children}
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );

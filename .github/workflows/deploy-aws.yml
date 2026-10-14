@@ -1,0 +1,43 @@
+name: Deploy to AWS (manual)
+
+# Manual only. Deploying production requires explicit approval (see AGENTS.md).
+# One-time setup: create an IAM role trusted by GitHub OIDC for this repo, then set the
+# repository variables AWS_ROLE_ARN, AWS_REGION and ECR_REPOSITORY (see docs/AWS_MIGRATION.md).
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+        run: |
+          TAG="${GITHUB_SHA::7}"
+          docker build --build-arg APP_COMMIT="$TAG" -t "$REGISTRY/$REPOSITORY:$TAG" -t "$REGISTRY/$REPOSITORY:latest" .
+          docker push "$REGISTRY/$REPOSITORY:$TAG"
+          docker push "$REGISTRY/$REPOSITORY:latest"
+      - name: Roll the ECS service
+        run: aws ecs update-service --cluster ypnusa --service ypnusa --force-new-deployment
+      - name: Wait for stable and verify health
+        run: |
+          aws ecs wait services-stable --cluster ypnusa --services ypnusa
+          curl -fsS "https://app.ypnus.com/api/health" | grep -q "\"commit\":\"${GITHUB_SHA::7}\""

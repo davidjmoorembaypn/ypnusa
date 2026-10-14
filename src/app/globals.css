@@ -49,6 +49,66 @@ body {
   transform: translateZ(0);
 }
 
+/* Dark fintech surface system — deep slate/indigo ink with neon violet/blue edges. */
+.ypn-ink {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99, 102, 241, 0.22), transparent 60%),
+    linear-gradient(180deg, #070816 0%, #0a0c1f 50%, #070816 100%);
+}
+
+.ypn-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 40%, transparent 100%);
+}
+
+.ypn-glass {
+  background: linear-gradient(180deg, rgba(30, 33, 64, 0.72), rgba(15, 17, 38, 0.72));
+  border: 1px solid rgba(148, 163, 255, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.ypn-glow {
+  box-shadow:
+    0 0 0 1px rgba(139, 92, 246, 0.35),
+    0 0 32px -6px rgba(99, 102, 241, 0.45),
+    0 24px 60px -24px rgba(59, 130, 246, 0.35);
+}
+
+.ypn-range {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 var(--fill, 50%), rgba(148, 163, 184, 0.2) var(--fill, 50%));
+  outline: none;
+}
+.ypn-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 3px solid #7c3aed;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.25);
+  cursor: pointer;
+}
+.ypn-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 3px solid #7c3aed;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.25);
+  cursor: pointer;
+}
+.ypn-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 6px rgba(165, 180, 252, 0.55);
+}
+
 .thin-scroll {
   scrollbar-width: thin;
 }

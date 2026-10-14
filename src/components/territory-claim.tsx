@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { postJson } from "@/lib/client-api";
 import { marketingUrl } from "@/lib/site";
+import { checkoutUrlForTier } from "@/lib/checkout";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
 import { useCTAEngine } from "@/lib/hooks/useCTAEngine";
 
@@ -222,10 +223,16 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       : "";
 
   return (
-    <div className="w-full rounded-[28px] border border-white/15 bg-white/[0.06] p-6 shadow-2xl shadow-slate-950/40 backdrop-blur md:p-8">
-      <label htmlFor={zipInputId} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-200">
-        Check your territory
-      </label>
+    <div className="ypn-glass ypn-glow w-full rounded-[28px] p-6 md:p-8">
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor={zipInputId} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-200">
+          Real-time ZIP availability
+        </label>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-300">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" aria-hidden />
+          Live
+        </span>
+      </div>
       <div className="mt-3 flex flex-col gap-3 sm:flex-row">
         <input
           id={zipInputId}
@@ -255,11 +262,11 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
 
       <div aria-live="polite" role="status" className="mt-4 min-h-[172px]">
         {check.status === "idle" ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/70">
-            <p className="font-medium text-white">Instant ZIP availability</p>
-            <p className="mt-1 text-[13px]">
-              Enter a 5-digit ZIP to check availability. Free signup does not reserve a ZIP; exclusivity begins with a paid plan.
+          <div className="space-y-3">
+            <p className="text-[13px] leading-relaxed text-slate-400">
+              Enter a 5-digit ZIP to see whether the territory is open. Exclusivity begins with a paid plan.
             </p>
+            <TierAccessComparison />
           </div>
         ) : null}
 
@@ -316,12 +323,29 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 {check.totalClaimed} territories claimed nationwide
               </p>
             ) : null}
-            <a
-              href={signupHref}
-              className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-            >
-              {check.available ? "Start free with this ZIP →" : "Explore other ZIPs →"}
-            </a>
+            {check.available ? (
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <a
+                  href={checkoutUrlForTier("growth", check.zip)}
+                  className="inline-flex min-h-10 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-4 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+                >
+                  Lock exclusively · 15-day trial
+                </a>
+                <a
+                  href={signupHref}
+                  className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+                >
+                  Start free (no lock)
+                </a>
+              </div>
+            ) : (
+              <a
+                href={signupHref}
+                className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+              >
+                Explore other ZIPs
+              </a>
+            )}
             <p className="mt-2 text-[12px] text-white/70">
               Availability can change. A free account or inquiry does not lock this territory.
             </p>
@@ -460,6 +484,21 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         </div>
       ) : null}
     </div>
+  );
+}
+
+function TierAccessComparison() {
+  return (
+    <dl className="grid grid-cols-2 gap-2 text-[12px]">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+        <dt className="font-semibold text-slate-200">Free · Cerebro</dt>
+        <dd className="mt-1 leading-snug text-slate-400">AI diagnostic and intake preview. Does not reserve a ZIP.</dd>
+      </div>
+      <div className="rounded-2xl border border-indigo-400/30 bg-indigo-500/10 p-3">
+        <dt className="font-semibold text-indigo-100">Paid · from $99.99/mo</dt>
+        <dd className="mt-1 leading-snug text-indigo-100/75">Exclusive ZIP lock and live lead delivery.</dd>
+      </div>
+    </dl>
   );
 }
 

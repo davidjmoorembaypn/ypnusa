@@ -14,6 +14,12 @@ variable "domain" {
   default     = "app.ypnus.com"
 }
 
+variable "extra_domains" {
+  description = "Additional hostnames served by the same app (marketing site). Added to the certificate; point DNS at the ALB at cutover."
+  type        = list(string)
+  default     = ["ypnus.com", "www.ypnus.com"]
+}
+
 variable "route53_zone_id" {
   description = "Hosted zone ID that serves ypnus.com. Leave empty to manage DNS elsewhere (validation CNAMEs and the alias are then output, not created)."
   type        = string

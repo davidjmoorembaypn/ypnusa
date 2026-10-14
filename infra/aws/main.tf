@@ -231,8 +231,9 @@ resource "aws_iam_role" "task" {
 
 # ---------- TLS + load balancer ----------
 resource "aws_acm_certificate" "app" {
-  domain_name       = var.domain
-  validation_method = "DNS"
+  domain_name               = var.domain
+  subject_alternative_names = var.extra_domains
+  validation_method         = "DNS"
   lifecycle { create_before_destroy = true }
 }
 
@@ -379,10 +380,10 @@ resource "aws_ecs_service" "app" {
 }
 
 resource "aws_route53_record" "app" {
-  count   = var.route53_zone_id == "" ? 0 : 1
-  zone_id = var.route53_zone_id
-  name    = var.domain
-  type    = "A"
+  for_each = var.route53_zone_id == "" ? toset([]) : toset(concat([var.domain], var.extra_domains))
+  zone_id  = var.route53_zone_id
+  name     = each.value
+  type     = "A"
   alias {
     name                   = aws_lb.app.dns_name
     zone_id                = aws_lb.app.zone_id

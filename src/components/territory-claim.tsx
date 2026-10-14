@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { postJson } from "@/lib/client-api";
 import { marketingUrl } from "@/lib/site";
 import { checkoutUrlForTier } from "@/lib/checkout";
@@ -89,6 +89,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const [check, setCheck] = useState<CheckState>({ status: "idle" });
   const [submit, setSubmit] = useState<SubmitState>({ status: "idle" });
   const [consent, setConsent] = useState(false);
+  const requestIdRef = useRef(0);
+  const pendingZipRef = useRef<string | null>(null);
   const personalization = usePersonalization();
   const cta = useCTAEngine();
 
@@ -102,21 +104,25 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     message: "",
   });
 
-  async function runCheck() {
-    if (check.status === "checking") return;
-    const clean = zip.replace(/\D/g, "").slice(0, 5);
+  async function runCheck(value: string = zip) {
+    const clean = value.replace(/\D/g, "").slice(0, 5);
+    if (check.status === "checking" && clean === pendingZipRef.current) return;
     syncZipToPageUrl(null);
     setZip(clean);
     if (clean.length !== 5) {
       setCheck({ status: "error", message: "Enter a valid 5-digit ZIP code." });
       return;
     }
+    const requestId = ++requestIdRef.current;
+    pendingZipRef.current = clean;
     setCheck({ status: "checking" });
     setSubmit({ status: "idle" });
     try {
       const res = await fetch(`/api/territory/check?zip=${encodeURIComponent(clean)}`, {
         signal: AbortSignal.timeout(15_000),
       });
+      // A newer ZIP was entered while this request was in flight; drop the stale result.
+      if (requestId !== requestIdRef.current) return;
       if (!res.ok) {
         setCheck({ status: "error", message: "Couldn't check that territory — try again." });
         return;
@@ -133,6 +139,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         demand?: { total?: number } | null;
         source?: string | null;
       };
+      if (requestId !== requestIdRef.current) return;
       if (!data.valid) {
         setCheck({ status: "error", message: data.message });
         return;
@@ -154,7 +161,24 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       if (data.available) syncZipToPageUrl(data.zip);
       void enrichWithIntelligence(data.zip, data.available, data.demand?.total ?? undefined);
     } catch {
+      if (requestId !== requestIdRef.current) return;
       setCheck({ status: "error", message: "Couldn't reach the territory service — try again." });
+    }
+  }
+
+  function handleZipChange(raw: string) {
+    const clean = raw.replace(/\D/g, "").slice(0, 5);
+    setZip(clean);
+    if (clean.length === 5) {
+      if (check.status !== "result" || check.zip !== clean) void runCheck(clean);
+      return;
+    }
+    if (check.status !== "idle") {
+      requestIdRef.current++;
+      pendingZipRef.current = null;
+      syncZipToPageUrl(null);
+      setCheck({ status: "idle" });
+      setSubmit({ status: "idle" });
     }
   }
 
@@ -215,6 +239,41 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     check.status === "result" && check.available
       ? signupHrefFor(check.zip)
       : signupHrefFor();
+  const liveStatus =
+    check.status === "checking"
+      ? {
+          label: `Checking ${zip}…`,
+          pill: "border-indigo-300/40 bg-indigo-400/10 text-indigo-200",
+          dot: "animate-pulse bg-indigo-300",
+          input: "border-indigo-300",
+        }
+      : check.status === "result" && check.available
+        ? {
+            label: "Available",
+            pill: "border-emerald-300/40 bg-emerald-400/10 text-emerald-200",
+            dot: "bg-emerald-400",
+            input: "border-emerald-400",
+          }
+        : check.status === "result"
+          ? {
+              label: "Claimed · waitlist",
+              pill: "border-amber-300/40 bg-amber-400/10 text-amber-200",
+              dot: "bg-amber-400",
+              input: "border-amber-400",
+            }
+          : check.status === "error"
+            ? {
+                label: "Check failed",
+                pill: "border-rose-300/40 bg-rose-400/10 text-rose-200",
+                dot: "bg-rose-400",
+                input: "border-rose-400",
+              }
+            : {
+                label: zip.length > 0 ? `${zip.length}/5 digits` : "Live",
+                pill: "border-white/10 bg-white/5 text-slate-300",
+                dot: zip.length > 0 ? "bg-indigo-300" : "animate-pulse bg-emerald-400",
+                input: "border-white/20",
+              };
   const resultTitle =
     check.status === "result"
       ? check.available
@@ -228,9 +287,11 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         <label htmlFor={zipInputId} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-200">
           Real-time ZIP availability
         </label>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-300">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" aria-hidden />
-          Live
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${liveStatus.pill}`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${liveStatus.dot}`} aria-hidden />
+          {liveStatus.label}
         </span>
       </div>
       <div className="mt-3 flex flex-col gap-3 sm:flex-row">
@@ -239,15 +300,17 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           inputMode="numeric"
           autoComplete="postal-code"
           placeholder="Enter ZIP code (e.g. 92672)"
+          maxLength={5}
           value={zip}
-          onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
+          aria-invalid={check.status === "error"}
+          onChange={(e) => handleZipChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
               void runCheck();
             }
           }}
-          className="w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-base font-semibold tracking-wide text-slate-900 outline-none ring-violet-300 transition placeholder:font-normal placeholder:text-slate-400 focus:ring-2"
+          className={`w-full rounded-2xl border-2 bg-white px-4 py-3 text-base font-semibold tracking-wide text-slate-900 outline-none ring-violet-300 transition placeholder:font-normal placeholder:text-slate-400 focus:ring-2 ${liveStatus.input}`}
         />
         <button
           type="button"

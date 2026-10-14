@@ -32,12 +32,35 @@ export function FloatingAssistantWidget() {
       /** noop — private browsing / disabled storage just means it may reopen each load */
     }
     if (dismissed) return;
+    // On small screens the open panel covers most of the viewport, so only the launcher shows.
+    if (!window.matchMedia("(min-width: 768px)").matches) return;
 
-    const timer = window.setTimeout(() => {
+    let delayElapsed = false;
+    let done = false;
+
+    // Opening over the hero would cover the ZIP checker, and opening mid-typing steals focus context.
+    const tryOpen = () => {
+      if (done || !delayElapsed) return;
+      if (window.scrollY < window.innerHeight * 0.6) return;
+      const active = document.activeElement;
+      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) {
+        return;
+      }
+      done = true;
       setOpen(true);
       setHasAutoOpened(true);
+      window.removeEventListener("scroll", tryOpen);
+    };
+
+    const timer = window.setTimeout(() => {
+      delayElapsed = true;
+      tryOpen();
     }, AUTO_OPEN_DELAY_MS);
-    return () => window.clearTimeout(timer);
+    window.addEventListener("scroll", tryOpen, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", tryOpen);
+    };
   }, []);
 
   useEffect(() => {
@@ -63,7 +86,7 @@ export function FloatingAssistantWidget() {
     // that bar is md:hidden, so z-40/bottom-6 is fine again at the md breakpoint.
     <div className="fixed bottom-24 right-5 z-40 flex flex-col items-end gap-3 md:bottom-6 md:right-6">
       {open ? (
-        <div className="w-[calc(100vw-2.5rem)] max-w-sm">
+        <div className="thin-scroll max-h-[calc(100dvh-8rem)] w-[calc(100vw-2.5rem)] max-w-sm overflow-y-auto md:max-h-[calc(100dvh-3rem)]">
           <div className="mb-2 flex justify-end">
             <button
               type="button"

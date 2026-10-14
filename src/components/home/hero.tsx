@@ -45,7 +45,7 @@ export function Hero() {
               Start 15-day free trial
             </a>
             <OpenAssistantButton className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 bg-white/5 px-7 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300">
-              Talk to the AI agent
+              Demo your AI agent
             </OpenAssistantButton>
           </div>
 

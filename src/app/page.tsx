@@ -47,9 +47,9 @@ export default function Home() {
           <div className="mx-auto max-w-6xl">
             <SectionHeading
               id="intake-title"
-              eyebrow="AI intake simulator"
-              title="Watch a borrower go from hello to booked"
-              description="Pick a loan lane and answer like a borrower would. The agent adapts its questions, scores in real time, and books the consultation."
+              eyebrow="Live demo · Your AI intake agent"
+              title="See how your agent qualifies borrowers for you"
+              description="Step into your borrower's shoes. Pick a loan lane and answer the way a visitor to your site would. Your agent adapts its questions, scores the lead in real time, and books the consult on your calendar."
             />
             <div className="mt-14">
               <IntakeSimulator />
@@ -61,9 +61,9 @@ export default function Home() {
           <div className="mx-auto max-w-6xl">
             <SectionHeading
               id="calc-title"
-              eyebrow="Borrower tools"
-              title="Principal & interest calculator"
-              description="The same calculator ships on your MLO site, capturing borrowers the moment they start running numbers."
+              eyebrow="Included on your MLO site"
+              title="Lead-capturing tools your borrowers actually use"
+              description="This principal & interest calculator comes with your branded site. Borrowers run their numbers, and the ones who are serious go straight into your intake pipeline."
             />
             <div className="mt-14">
               <PiCalculator />

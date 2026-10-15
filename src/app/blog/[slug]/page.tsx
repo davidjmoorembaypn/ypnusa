@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BLOG_POSTS, getBlogPost } from "@/content/blog";
-import { APP_SITE_URL } from "@/lib/site";
+import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
+import { SOCIAL_IMAGE } from "@/lib/seo";
+import { APP_SITE_URL, MARKETING_SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
   return BLOG_POSTS.map((post) => ({ slug: post.slug }));
@@ -29,7 +31,10 @@ export async function generateMetadata({
       publishedTime: post.date,
       authors: [post.author],
       url: `${APP_SITE_URL}/blog/${post.slug}`,
+      siteName: "YPN USA",
+      images: [SOCIAL_IMAGE],
     },
+    twitter: { card: "summary_large_image", title: post.title, description: post.description, images: [SOCIAL_IMAGE.url] },
   };
 }
 
@@ -51,11 +56,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
     headline: post.title,
     description: post.description,
     datePublished: post.date,
+    dateModified: post.date,
     author: { "@type": "Person", name: post.author },
+    publisher: { "@id": `${MARKETING_SITE_URL}/#organization` },
+    image: `${APP_SITE_URL}/opengraph-image`,
     mainEntityOfPage: `${APP_SITE_URL}/blog/${post.slug}`,
   };
 
@@ -64,8 +72,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <SiteHeader />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <BreadcrumbSchema
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Blog", href: "/blog" },
+          { name: post.title, href: `/blog/${post.slug}` },
+        ]}
+      />
 
-      <main className="flex-1 bg-white text-slate-900">
+      <main id="main-content" className="flex-1 bg-white text-slate-900">
         <article className="mx-auto w-full max-w-3xl px-6 py-16 sm:py-20">
           <Link href="/blog" className="text-sm font-semibold text-violet-700 hover:underline">
             ← Back to the blog

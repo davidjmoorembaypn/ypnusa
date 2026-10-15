@@ -1,8 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { AssistantChat } from "./assistant-chat";
 import { OPEN_ASSISTANT_EVENT } from "./open-assistant-button";
+
+// The chat bundle is only needed once the panel opens, so keep it out of the initial page JS.
+const AssistantChat = dynamic(() => import("./assistant-chat").then((mod) => mod.AssistantChat), {
+  ssr: false,
+  loading: () => (
+    <div role="status" className="min-h-[20rem] rounded-2xl border border-white/10 bg-[#0d0b26] p-5 text-sm text-white/60">
+      Loading assistant…
+    </div>
+  ),
+});
 
 const AUTO_OPEN_DELAY_MS = 6000;
 const DISMISSED_KEY = "ypn_assistant_widget_dismissed";

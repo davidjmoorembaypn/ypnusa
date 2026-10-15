@@ -3,14 +3,15 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MortgageCalculator } from "@/components/mortgage-calculator";
+import { marketingMetadata } from "@/lib/seo";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 
-export const metadata: Metadata = {
-  title: "Features",
+export const metadata: Metadata = marketingMetadata({
+  title: "Features: AI Intake, ZIP Territories & Nurture",
   description:
-    "Everything included on YPN USA: exclusive ZIP territories, a 24/7 AI borrower intake agent, automated nurture, predictive life-event intelligence, and leads you own for life.",
-  alternates: { canonical: "/features" },
-};
+    "Exclusive ZIP territories, a 24/7 AI borrower intake agent, automated nurture and leads you own for life. See everything included in YPN USA.",
+  path: "/features",
+});
 
 const DEEP_DIVES = [
   {
@@ -74,7 +75,7 @@ export default function FeaturesPage() {
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
       <SiteHeader />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="relative isolate overflow-hidden">
           <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative z-10 mx-auto w-full max-w-4xl px-6 py-16 text-center sm:py-20">

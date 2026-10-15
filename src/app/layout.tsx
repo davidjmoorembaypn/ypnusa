@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(APP_SITE_URL),
   title: {
     default: "YPN USA App — Mortgage Growth Platform for Loan Officers",
-    template: "%s · YPN USA App",
+    template: "%s | YPN USA",
   },
   description:
     "YPN USA is the mortgage growth platform for loan officers: claim exclusive ZIP territories, capture borrowers with AI intake, and turn local demand into owned leads.",

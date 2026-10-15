@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
+import { marketingMetadata } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
@@ -12,12 +14,12 @@ import {
 } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Book a Consultation — YPN USA",
+export const metadata: Metadata = marketingMetadata({
+  title: "Book a Strategy Consultation",
   description:
     "Talk to the YPN USA team about exclusive ZIP territories, AI borrower intake, and building a mortgage lead pipeline you own. Book a consultation today.",
-  alternates: { canonical: "/consultation" },
-};
+  path: "/consultation",
+});
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -37,7 +39,8 @@ export default function ConsultationPage() {
   return (
     <>
       <SiteHeader />
-      <main className="bg-[#09081b] text-white">
+      <main id="main-content" className="bg-[#09081b] text-white">
+        <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Consultation", href: "/consultation" }]} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <div className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6 md:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">Consultation</p>

@@ -3,13 +3,14 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BLOG_POSTS } from "@/content/blog";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Blog",
+export const metadata: Metadata = marketingMetadata({
+  title: "Blog: Loan Officer Growth Guides",
   description:
     "Practical, no-fluff guidance for mortgage loan officers on building referral partnerships, growing a territory, and running a modern lending business.",
-  alternates: { canonical: "/blog" },
-};
+  path: "/blog",
+});
 
 function formatDate(iso: string) {
   // Date-only ISO strings (e.g. "2026-06-01") parse as UTC midnight — format in
@@ -29,7 +30,7 @@ export default function BlogIndexPage() {
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
       <SiteHeader />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="relative isolate overflow-hidden">
           <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative z-10 mx-auto w-full max-w-4xl px-6 py-16 text-center sm:py-20">

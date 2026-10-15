@@ -17,7 +17,7 @@ export function SiteFooter() {
           <p className="mt-4 max-w-sm text-sm">
             The mortgage growth platform for loan officers: exclusive ZIP territories, AI borrower
             intake, and leads you own for life. Also at{" "}
-            <a href={appUrl("/")} className="underline hover:text-white">
+            <a href={appUrl("/")} className="inline-block py-1 underline hover:text-white">
               app.ypnus.com
             </a>
             .
@@ -30,7 +30,7 @@ export function SiteFooter() {
               href="https://orcid.org/0009-0008-8069-8897"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-white"
+              className="inline-block py-1 underline hover:text-white"
             >
               ORCID
             </a>{" "}
@@ -39,7 +39,7 @@ export function SiteFooter() {
               href="https://www.linkedin.com/in/davidjmoorembaypninc/"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-white"
+              className="inline-block py-1 underline hover:text-white"
             >
               LinkedIn
             </a>{" "}
@@ -48,7 +48,7 @@ export function SiteFooter() {
               href="https://www.facebook.com/DavidjMooreMBA/about/"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-white"
+              className="inline-block py-1 underline hover:text-white"
             >
               Facebook
             </a>
@@ -85,16 +85,16 @@ export function SiteFooter() {
           <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
             <p>© {new Date().getFullYear()} YPN Inc. / YPN USA. All rights reserved.</p>
             <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <Link href="/privacy-policy" className="underline transition hover:text-white">
+              <Link href="/privacy-policy" className="inline-block py-2 underline transition hover:text-white">
                 Privacy Policy
               </Link>
-              <Link href="/terms-of-service" className="underline transition hover:text-white">
+              <Link href="/terms-of-service" className="inline-block py-2 underline transition hover:text-white">
                 Terms of Service
               </Link>
-              <Link href="/licensing-disclosures" className="underline transition hover:text-white">
+              <Link href="/licensing-disclosures" className="inline-block py-2 underline transition hover:text-white">
                 Licensing &amp; Disclosures
               </Link>
-              <Link href="/accessibility-statement" className="underline transition hover:text-white">
+              <Link href="/accessibility-statement" className="inline-block py-2 underline transition hover:text-white">
                 Accessibility
               </Link>
             </nav>
@@ -106,7 +106,7 @@ export function SiteFooter() {
               href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/787257"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline transition hover:text-white"
+              className="inline-block py-2 underline transition hover:text-white"
             >
               NMLS Consumer Access
             </a>

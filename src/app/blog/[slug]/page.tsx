@@ -5,8 +5,9 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BLOG_POSTS, getBlogPost } from "@/content/blog";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
-import { SOCIAL_IMAGE } from "@/lib/seo";
-import { APP_SITE_URL, MARKETING_SITE_URL } from "@/lib/site";
+import { socialImageFor } from "@/lib/seo";
+import { MARKETING_SITE_URL } from "@/lib/site";
+import { getSiteOrigin } from "@/lib/request-host";
 
 export function generateStaticParams() {
   return BLOG_POSTS.map((post) => ({ slug: post.slug }));
@@ -20,21 +21,24 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = getBlogPost(slug);
   if (!post) return {};
+  const origin = await getSiteOrigin();
+  const url = `${origin}/blog/${post.slug}`;
+  const image = socialImageFor(origin);
   return {
     title: post.title,
     description: post.description,
-    alternates: { canonical: `/blog/${post.slug}` },
+    alternates: { canonical: url },
     openGraph: {
       type: "article",
       title: post.title,
       description: post.description,
       publishedTime: post.date,
       authors: [post.author],
-      url: `${APP_SITE_URL}/blog/${post.slug}`,
+      url,
       siteName: "YPN USA",
-      images: [SOCIAL_IMAGE],
+      images: [image],
     },
-    twitter: { card: "summary_large_image", title: post.title, description: post.description, images: [SOCIAL_IMAGE.url] },
+    twitter: { card: "summary_large_image", title: post.title, description: post.description, images: [image.url] },
   };
 }
 
@@ -54,6 +58,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = getBlogPost(slug);
   if (!post) notFound();
 
+  const origin = await getSiteOrigin();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -62,9 +67,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     datePublished: post.date,
     dateModified: post.date,
     author: { "@type": "Person", name: post.author },
+    // Always the marketing-site entity id (see layout.tsx's @graph) — the canonical
+    // Organization node regardless of which host served this page.
     publisher: { "@id": `${MARKETING_SITE_URL}/#organization` },
-    image: `${APP_SITE_URL}/opengraph-image`,
-    mainEntityOfPage: `${APP_SITE_URL}/blog/${post.slug}`,
+    image: `${origin}/opengraph-image`,
+    mainEntityOfPage: `${origin}/blog/${post.slug}`,
   };
 
   return (

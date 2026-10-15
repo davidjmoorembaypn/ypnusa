@@ -6,13 +6,18 @@ import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
+import { getSiteOrigin } from "@/lib/request-host";
 
-export const metadata: Metadata = marketingMetadata({
-  title: "Pricing: Free, Growth, Pro & Elite Plans",
-  description:
-    "Start free, then lock an exclusive ZIP territory on Growth ($99.99), Pro ($199.99) or Elite ($299.99). 15-day free trial on every paid plan.",
-  path: "/pricing",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getSiteOrigin();
+  return marketingMetadata({
+    title: "Pricing: Free, Growth, Pro & Elite Plans",
+    description:
+      "Start free, then lock an exclusive ZIP territory on Growth ($99.99), Pro ($199.99) or Elite ($299.99). 15-day free trial on every paid plan.",
+    path: "/pricing",
+    origin,
+  });
+}
 
 const COMPARE_ROWS: Array<{ label: string; free: string; growth: string; pro: string; elite: string }> = [
   { label: "Cerebro AI growth diagnostic", free: "✓", growth: "✓", pro: "✓", elite: "✓" },

@@ -6,34 +6,41 @@ import { marketingMetadata } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AUTHOR_NAME, BOOK_AMAZON_URL, BOOK_COVER_TITLE, BOOK_TITLE } from "@/lib/author";
-import { APP_SITE_URL, MARKETING_SITE_URL } from "@/lib/site";
+import { MARKETING_SITE_URL } from "@/lib/site";
+import { getSiteOrigin } from "@/lib/request-host";
 
-export const metadata: Metadata = marketingMetadata({
-  title: "Top 9 Online Real Estate Leads: The Book",
-  description:
-    "A practical guide by David J. Moore, MBA to nine online real estate lead sources even the gurus overlook. Get it on Amazon, then claim your exclusive ZIP territory.",
-  path: "/book",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getSiteOrigin();
+  return marketingMetadata({
+    title: "Top 9 Online Real Estate Leads: The Book",
+    description:
+      "A practical guide by David J. Moore, MBA to nine online real estate lead sources even the gurus overlook. Get it on Amazon, then claim your exclusive ZIP territory.",
+    path: "/book",
+    origin,
+  });
+}
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Book",
-  "@id": `${MARKETING_SITE_URL}/book#book`,
-  name: BOOK_TITLE,
-  alternateName: BOOK_COVER_TITLE,
-  author: { "@id": `${MARKETING_SITE_URL}/#person-david-moore` },
-  url: `${MARKETING_SITE_URL}/book`,
-  image: `${APP_SITE_URL}/images/top-9-online-real-estate-leads-cover.jpg`,
-  inLanguage: "en",
-  sameAs: BOOK_AMAZON_URL,
-  workExample: {
+export default async function BookPage() {
+  const origin = await getSiteOrigin();
+  const jsonLd = {
+    "@context": "https://schema.org",
     "@type": "Book",
-    bookFormat: "https://schema.org/Paperback",
-    potentialAction: { "@type": "ReadAction", target: BOOK_AMAZON_URL },
-  },
-};
-
-export default function BookPage() {
+    "@id": `${origin}/book#book`,
+    name: BOOK_TITLE,
+    alternateName: BOOK_COVER_TITLE,
+    // Always the marketing-site entity id (see layout.tsx's @graph) — the
+    // canonical Person node regardless of which host served this page.
+    author: { "@id": `${MARKETING_SITE_URL}/#person-david-moore` },
+    url: `${origin}/book`,
+    image: `${origin}/images/top-9-online-real-estate-leads-cover.jpg`,
+    inLanguage: "en",
+    sameAs: BOOK_AMAZON_URL,
+    workExample: {
+      "@type": "Book",
+      bookFormat: "https://schema.org/Paperback",
+      potentialAction: { "@type": "ReadAction", target: BOOK_AMAZON_URL },
+    },
+  };
   return (
     <>
       <SiteHeader />

@@ -3,31 +3,22 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { EquitySnapshot } from "@/components/equity-snapshot";
 import { serializeJsonLd } from "@/lib/local-seo";
-import { APP_SITE_URL, MARKETING_SITE_URL } from "@/lib/site";
+import { MARKETING_SITE_URL } from "@/lib/site";
+import { getSiteOrigin } from "@/lib/request-host";
 
-export const metadata: Metadata = {
-  title: "Home Equity Snapshot",
-  description:
-    "Estimate home equity, loan-to-value, and an illustrative cash-out ceiling using values you provide.",
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "@id": `${APP_SITE_URL}/tools/equity#app`,
-  name: "YPN USA Home Equity Snapshot",
-  url: `${APP_SITE_URL}/tools/equity`,
-  applicationCategory: "FinanceApplication",
-  operatingSystem: "Web",
-  isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
-  isAccessibleForFree: true,
-  description:
-    "Free borrower tool that estimates home equity, loan-to-value, and an illustrative cash-out ceiling from values the visitor provides. Educational estimate only, not an appraisal or eligibility determination.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getSiteOrigin();
+  return {
+    title: "Home Equity Snapshot",
+    description:
+      "Estimate home equity, loan-to-value, and an illustrative cash-out ceiling using values you provide.",
+    alternates: { canonical: `${origin}/tools/equity` },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
 
 const breadcrumbItems = [
   { name: "Home", href: "/" },
@@ -35,7 +26,23 @@ const breadcrumbItems = [
   { name: "Home Equity Snapshot" },
 ];
 
-export default function EquitySnapshotPage() {
+export default async function EquitySnapshotPage() {
+  const origin = await getSiteOrigin();
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "@id": `${origin}/tools/equity#app`,
+    name: "YPN USA Home Equity Snapshot",
+    url: `${origin}/tools/equity`,
+    applicationCategory: "FinanceApplication",
+    operatingSystem: "Web",
+    // Always the marketing-site entity id (see layout.tsx's @graph) — the
+    // canonical Organization node regardless of which host served this page.
+    isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
+    isAccessibleForFree: true,
+    description:
+      "Free borrower tool that estimates home equity, loan-to-value, and an illustrative cash-out ceiling from values the visitor provides. Educational estimate only, not an appraisal or eligibility determination.",
+  };
   return (
     <main className="min-h-screen bg-[#09081b] px-4 py-10 text-white sm:px-6">
       <script

@@ -13,29 +13,36 @@ import {
   BUSINESS_PHONE_E164,
 } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
+import { getSiteOrigin } from "@/lib/request-host";
 
-export const metadata: Metadata = marketingMetadata({
-  title: "Book a Strategy Consultation",
-  description:
-    "Talk to the YPN USA team about exclusive ZIP territories, AI borrower intake, and building a mortgage lead pipeline you own. Book a consultation today.",
-  path: "/consultation",
-});
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "ContactPage",
-  "@id": `${MARKETING_SITE_URL}/consultation#page`,
-  url: `${MARKETING_SITE_URL}/consultation`,
-  name: "Book a consultation with YPN USA",
-  about: { "@id": `${MARKETING_SITE_URL}/#organization` },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getSiteOrigin();
+  return marketingMetadata({
+    title: "Book a Strategy Consultation",
+    description:
+      "Talk to the YPN USA team about exclusive ZIP territories, AI borrower intake, and building a mortgage lead pipeline you own. Book a consultation today.",
+    path: "/consultation",
+    origin,
+  });
+}
 
 const BUTTON_PRIMARY =
   "inline-flex items-center justify-center rounded-full bg-amber-400 px-7 py-3.5 text-[#09081b] shadow-xl shadow-amber-500/30 transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200";
 const BUTTON_SECONDARY =
   "inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3.5 transition hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300";
 
-export default function ConsultationPage() {
+export default async function ConsultationPage() {
+  const origin = await getSiteOrigin();
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "@id": `${origin}/consultation#page`,
+    url: `${origin}/consultation`,
+    name: "Book a consultation with YPN USA",
+    // Always the marketing-site entity id (see layout.tsx's @graph) — the
+    // canonical Organization node regardless of which host served this page.
+    about: { "@id": `${MARKETING_SITE_URL}/#organization` },
+  };
   return (
     <>
       <SiteHeader />

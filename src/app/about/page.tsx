@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { marketingMetadata } from "@/lib/seo";
+import { getSiteOrigin } from "@/lib/request-host";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import {
@@ -15,12 +16,16 @@ import {
 } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
 
-export const metadata: Metadata = marketingMetadata({
-  title: "David J. Moore, MBA: Mortgage Expert & Author",
-  description:
-    "Meet David J. Moore, MBA: nearly 30 years in mortgage lending, former top-producing loan officer at Chase Bank and Wells Fargo Home Mortgage, author, and founder of YPN USA.",
-  path: "/about",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getSiteOrigin();
+  return marketingMetadata({
+    title: "David J. Moore, MBA: Mortgage Expert & Author",
+    description:
+      "Meet David J. Moore, MBA: nearly 30 years in mortgage lending, former top-producing loan officer at Chase Bank and Wells Fargo Home Mortgage, author, and founder of YPN USA.",
+    path: "/about",
+    origin,
+  });
+}
 
 const CREDENTIALS: Array<[string, string]> = [
   ["Education", "MBA, California State University, Fresno"],
@@ -30,16 +35,18 @@ const CREDENTIALS: Array<[string, string]> = [
   ["Founder", "YPN Inc. (YPN USA) and ToInvested.com"],
 ];
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "ProfilePage",
-  "@id": `${MARKETING_SITE_URL}/about#profile`,
-  url: `${MARKETING_SITE_URL}/about`,
-  name: `${AUTHOR_NAME} — Mortgage Expert & Author`,
-  mainEntity: { "@id": `${MARKETING_SITE_URL}/#person-david-moore` },
-};
-
-export default function AboutPage() {
+export default async function AboutPage() {
+  const origin = await getSiteOrigin();
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": `${origin}/about#profile`,
+    url: `${origin}/about`,
+    name: `${AUTHOR_NAME} — Mortgage Expert & Author`,
+    // Always the marketing-site entity id (see layout.tsx's @graph) — this is
+    // the canonical Person node regardless of which host served this page.
+    mainEntity: { "@id": `${MARKETING_SITE_URL}/#person-david-moore` },
+  };
   return (
     <>
       <SiteHeader />

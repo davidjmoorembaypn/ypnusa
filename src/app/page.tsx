@@ -11,6 +11,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
+import { getSiteOrigin } from "@/lib/request-host";
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
 
 // Below the fold: split it out of the first-load bundle, and reserve its height to avoid layout shift.
@@ -19,13 +20,17 @@ const MortgageCalculator = dynamic(
   { loading: () => <div className="min-h-[28rem]" aria-hidden /> },
 );
 
-export const metadata: Metadata = marketingMetadata({
-  title: "Exclusive Mortgage Leads by ZIP for Loan Officers | YPN USA",
-  description:
-    "Claim an exclusive ZIP territory and an AI assistant that captures, qualifies and nurtures borrowers 24/7. Leads you own for life. Start free.",
-  path: "/",
-  absoluteTitle: true,
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getSiteOrigin();
+  return marketingMetadata({
+    title: "Exclusive Mortgage Leads by ZIP for Loan Officers | YPN USA",
+    description:
+      "Claim an exclusive ZIP territory and an AI assistant that captures, qualifies and nurtures borrowers 24/7. Leads you own for life. Start free.",
+    path: "/",
+    absoluteTitle: true,
+    origin,
+  });
+}
 
 const LIFE_EVENTS = [
   {

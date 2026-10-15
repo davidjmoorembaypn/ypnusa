@@ -4,14 +4,19 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MortgageCalculator } from "@/components/mortgage-calculator";
 import { marketingMetadata } from "@/lib/seo";
+import { getSiteOrigin } from "@/lib/request-host";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 
-export const metadata: Metadata = marketingMetadata({
-  title: "Features: AI Intake, ZIP Territories & Nurture",
-  description:
-    "Exclusive ZIP territories, a 24/7 AI borrower intake agent, automated nurture and leads you own for life. See everything included in YPN USA.",
-  path: "/features",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getSiteOrigin();
+  return marketingMetadata({
+    title: "Features: AI Intake, ZIP Territories & Nurture",
+    description:
+      "Exclusive ZIP territories, a 24/7 AI borrower intake agent, automated nurture and leads you own for life. See everything included in YPN USA.",
+    path: "/features",
+    origin,
+  });
+}
 
 const DEEP_DIVES = [
   {

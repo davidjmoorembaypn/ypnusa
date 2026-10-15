@@ -4,13 +4,18 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BLOG_POSTS } from "@/content/blog";
 import { marketingMetadata } from "@/lib/seo";
+import { getSiteOrigin } from "@/lib/request-host";
 
-export const metadata: Metadata = marketingMetadata({
-  title: "Blog: Loan Officer Growth Guides",
-  description:
-    "Practical, no-fluff guidance for mortgage loan officers on building referral partnerships, growing a territory, and running a modern lending business.",
-  path: "/blog",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getSiteOrigin();
+  return marketingMetadata({
+    title: "Blog: Loan Officer Growth Guides",
+    description:
+      "Practical, no-fluff guidance for mortgage loan officers on building referral partnerships, growing a territory, and running a modern lending business.",
+    path: "/blog",
+    origin,
+  });
+}
 
 function formatDate(iso: string) {
   // Date-only ISO strings (e.g. "2026-06-01") parse as UTC midnight — format in

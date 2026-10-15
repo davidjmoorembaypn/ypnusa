@@ -1,7 +1,11 @@
 import type { MetadataRoute } from "next";
-import { APP_SITE_URL } from "@/lib/site";
+import { getSiteOrigin } from "@/lib/request-host";
 
-export default function robots(): MetadataRoute.Robots {
+// Host-aware for the same reason as sitemap.ts: ypnus.com and app.ypnus.com
+// serve the same deployment, so robots.txt must self-identify as whichever
+// host actually served the request.
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const origin = await getSiteOrigin();
   return {
     rules: {
       userAgent: "*",
@@ -9,7 +13,7 @@ export default function robots(): MetadataRoute.Robots {
       // Keep product/telemetry surfaces out of the marketing crawl budget.
       disallow: ["/api/", "/analytics", "/dashboard/", "/embed/"],
     },
-    sitemap: [`${APP_SITE_URL}/sitemap.xml`, `${APP_SITE_URL}/local-seo-sitemap.xml`],
-    host: APP_SITE_URL,
+    sitemap: [`${origin}/sitemap.xml`, `${origin}/local-seo-sitemap.xml`],
+    host: origin,
   };
 }

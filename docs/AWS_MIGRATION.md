@@ -16,14 +16,40 @@ Production deploys need explicit owner approval (see `AGENTS.md`).
 The app must stay at **one task**: the JSON store has a single writer. Scaling beyond one
 task needs the Postgres migration (`migrations/001-003`) first.
 
-## Correction: where the app runs today
+## Correction: where the app runs today (verified 2026-10-15)
 
-The owner reports `app.ypnus.com` is currently served by **Vercel**, although the repo docs
-describe Hostinger. Vercel's filesystem is ephemeral, so the file-backed store (`store.json`)
-may be losing leads and territory locks between cold starts. Before anything else, open
-`https://app.ypnus.com/api/health`: `"persistent": false` or `"degraded": true` confirms it.
-If so there may be no `store.json` worth copying, and the real source of truth for lead data
-(WordPress user meta, a webhook target, another database) must be located first.
+`app.ypnus.com` was never on Vercel. Until about 2026-10-09 it ran on Hostinger (Passenger,
+behind Hostinger's CDN). It now resolves to `18.223.107.93`, an AWS host answering as
+`Apache/2.4.68 (Amazon Linux)` in front of the Next.js app. That host was set up outside this
+runbook; it is not the ECS/ALB stack in `infra/aws`.
+
+The AWS host runs build `08931f2` (2026-10-05) with `"persistent": true` and serves public
+pages, but none of the settings from Hostinger's `app/.env` reached it:
+
+| Variable | Evidence on AWS | Effect |
+| --- | --- | --- |
+| `YPNUS_SSO_SHARED_SECRET` | `/api/auth/callback` says "SSO handoff is not configured" | Sign-in from ypnus.com fails |
+| `ANTHROPIC_API_KEY` | `POST /api/tools/marketing` returns 503 | Assistant, GBP Optimizer and Social Writer are down |
+| `ADMIN_TOKEN` / `CRON_SECRET` | Hostinger's admin token gets 401 | Admin diagnostics and automation calls fail |
+| `SESSION_SECRET` | Not checkable from outside; assume missing | Sessions fall back to a key file on the host |
+
+The Hostinger install is intact and is the source for both settings and data:
+
+- Settings: `/home/u853154979/domains/ypnus.com/app/.env` (9 variables).
+- Data: `/home/u853154979/domains/ypnus.com/app/persistent-data/store.json`, last written
+  2026-10-09T10:21Z. It holds 3 loan officers, 35 sessions, 3 revenue subscriptions,
+  appointments and chat sessions. Anything written on AWS since the DNS switch exists only there.
+
+To fix it you need access to the AWS host, for example through the AWS MCP connector:
+
+1. Find the instance behind `18.223.107.93` and how it runs the app (process manager, env file).
+2. Copy the variables server to server. Never paste values into chat, PRs or commits.
+3. Merge `store.json`: Hostinger's copy plus any records created on AWS after the switch.
+4. Restart the app, then verify:
+   - `/api/auth/callback` (no params) says "Missing required SSO handoff parameters".
+   - `/api/health/sso` (with `ADMIN_TOKEN`) shows the same SSO fingerprint as WordPress: the first 8 hex chars of `sha256(YPNUS_SSO_SHARED_SECRET)`.
+   - `POST /api/tools/marketing` returns 200.
+5. Write the host's deploy path here and in `AGENTS.md`.
 
 ## Decision: WordPress is retired
 
@@ -50,7 +76,7 @@ Remaining work before ypnus.com can cut over (tracked as follow-ups, none done y
    `store.json` into the EFS `/ypnusa` directory before the first task start.
 6. Verify on the ALB DNS name: `/api/health` returns `"persistent":true,"degraded":false`.
 7. Lower the `app` record TTL to 300 a day ahead. At cutover, point `app.ypnus.com` at the ALB.
-8. Keep the current hosts (Vercel, Hostinger WordPress) running for at least 7 days as the rollback target.
+8. Keep the current hosts (the Hostinger app standby and Hostinger WordPress) running for at least 7 days as the rollback target.
 
 ## Open items that need an owner decision
 

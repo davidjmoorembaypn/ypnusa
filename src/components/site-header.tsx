@@ -12,6 +12,7 @@ import { marketingUrl } from "@/lib/site";
 const NAV: Array<{ href: string; label: string; internal?: boolean }> = [
   { href: "/features", label: "Features", internal: true },
   { href: "/pricing", label: "Pricing", internal: true },
+  { href: "/about", label: "About", internal: true },
   { href: "/blog", label: "Blog", internal: true },
   { href: "/tools/equity", label: "Free Tools", internal: true },
 ];

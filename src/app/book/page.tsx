@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
+import { marketingMetadata } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AUTHOR_NAME, BOOK_AMAZON_URL, BOOK_COVER_TITLE, BOOK_TITLE } from "@/lib/author";
 import { APP_SITE_URL, MARKETING_SITE_URL } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Top 9 Online Real Estate Leads — The Book",
+export const metadata: Metadata = marketingMetadata({
+  title: "Top 9 Online Real Estate Leads: The Book",
   description:
     "A practical guide by David J. Moore, MBA to nine online real estate lead sources even the gurus overlook. Get it on Amazon, then claim your exclusive ZIP territory.",
-  alternates: { canonical: "/book" },
-};
+  path: "/book",
+});
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -35,7 +37,8 @@ export default function BookPage() {
   return (
     <>
       <SiteHeader />
-      <main className="bg-[#09081b] text-white">
+      <main id="main-content" className="bg-[#09081b] text-white">
+        <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "The book", href: "/book" }]} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <div className="mx-auto grid w-full max-w-5xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-[260px_minmax(0,1fr)] md:items-center md:py-20">
           <Image
@@ -44,6 +47,7 @@ export default function BookPage() {
             width={264}
             height={342}
             priority
+            sizes="(min-width: 768px) 260px, 208px"
             className="mx-auto w-52 rounded-lg shadow-2xl shadow-black/50 md:w-full"
           />
           <div>

@@ -4,13 +4,15 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
+import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
+import { faqJsonLd, marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Pricing",
+export const metadata: Metadata = marketingMetadata({
+  title: "Pricing: Free, Growth, Pro & Elite Plans",
   description:
-    "YPN USA pricing: start free with the Cerebro diagnostic and AI borrower intake, then lock an exclusive ZIP territory on Growth, Pro, or Elite. 15-day free trial on every paid plan.",
-  alternates: { canonical: "/pricing" },
-};
+    "Start free, then lock an exclusive ZIP territory on Growth ($99.99), Pro ($199.99) or Elite ($299.99). 15-day free trial on every paid plan.",
+  path: "/pricing",
+});
 
 const COMPARE_ROWS: Array<{ label: string; free: string; growth: string; pro: string; elite: string }> = [
   { label: "Cerebro AI growth diagnostic", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
@@ -55,7 +57,9 @@ export default function PricingPage() {
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
       <SiteHeader />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
+        <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Pricing", href: "/pricing" }]} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(PRICING_FAQ)) }} />
         <section className="relative isolate overflow-hidden">
           <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative z-10 mx-auto w-full max-w-4xl px-6 py-16 text-center sm:py-20">
@@ -132,7 +136,7 @@ export default function PricingPage() {
                 </span>
               ))}
             </div>
-            <p className="mt-4 text-center text-xs text-slate-400">
+            <p className="mt-4 text-center text-xs text-slate-600">
               Territory availability is limited and first-come. Prices shown are launch rates.
             </p>
           </div>

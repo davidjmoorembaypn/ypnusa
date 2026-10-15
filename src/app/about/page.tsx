@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
+import { marketingMetadata } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import {
@@ -13,12 +15,12 @@ import {
 } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "David J. Moore, MBA — Mortgage Expert & Author",
+export const metadata: Metadata = marketingMetadata({
+  title: "David J. Moore, MBA: Mortgage Expert & Author",
   description:
     "Meet David J. Moore, MBA: nearly 30 years in mortgage lending, former top-producing loan officer at Chase Bank and Wells Fargo Home Mortgage, author, and founder of YPN USA.",
-  alternates: { canonical: "/about" },
-};
+  path: "/about",
+});
 
 const CREDENTIALS: Array<[string, string]> = [
   ["Education", "MBA, California State University, Fresno"],
@@ -41,7 +43,8 @@ export default function AboutPage() {
   return (
     <>
       <SiteHeader />
-      <main className="bg-[#09081b] text-white">
+      <main id="main-content" className="bg-[#09081b] text-white">
+        <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "About", href: "/about" }]} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <div className="mx-auto grid w-full max-w-5xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-[minmax(0,1fr)_260px] md:py-20">
           <div>
@@ -127,6 +130,7 @@ export default function AboutPage() {
               width={428}
               height={498}
               priority
+      sizes="(min-width: 768px) 260px, 192px"
               className="mx-auto w-48 rounded-2xl border border-white/10 object-cover md:w-full"
             />
           </div>

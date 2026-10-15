@@ -17,6 +17,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${APP_SITE_URL}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
     { url: `${APP_SITE_URL}/features`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${APP_SITE_URL}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${APP_SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${APP_SITE_URL}/book`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${APP_SITE_URL}/consultation`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${APP_SITE_URL}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     ...BLOG_POSTS.map((post) => ({
       url: `${APP_SITE_URL}/blog/${post.slug}`,

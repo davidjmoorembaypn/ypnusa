@@ -38,6 +38,7 @@ Local demo state persists to `data/store.json`. Live ZIP availability is read fr
 
 ## Deploying app.ypnus.com (any agent or tool)
 
-- The only supported path: merge to `main`, let `.github/workflows/release-build.yml` publish `app-build-<sha7>`, then run `scripts/hostinger-install-release.sh` on the server (see `hostinger/README.md`). It verifies the checksum, keeps the previous release for rollback, and rolls back automatically if `/api/health` doesn't report the new `build.commit`.
+- **Production moved to AWS (verified 2026-10-15).** `app.ypnus.com` resolves to `18.223.107.93` (Apache on Amazon Linux), not Hostinger. That host is missing its secrets, and its deploy path isn't documented yet. Read "Correction: where the app runs today" in `docs/AWS_MIGRATION.md` before deploying anything. The Hostinger steps below now only update the standby copy.
+- Hostinger (standby): merge to `main`, let `.github/workflows/release-build.yml` publish `app-build-<sha7>`, then run `scripts/hostinger-install-release.sh` on the server (see `hostinger/README.md`). It verifies the checksum, keeps the previous release for rollback, and rolls back automatically if `/api/health` doesn't report the new `build.commit`.
 - Never use hPanel's Node.js "Deploy"/"Rebuild", Hostinger's Node.js build API, or an uploaded archive for this app. On 2026-09-26 that replaced production with an old bundle (no California compliance pages, no `app/.env` loader) and deleted the installed releases.
 - Secrets live only in `app/.env` on the server; `hostinger/server-preamble.js` loads them and is injected into every release bundle.

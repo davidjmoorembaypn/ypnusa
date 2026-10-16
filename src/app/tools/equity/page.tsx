@@ -82,6 +82,28 @@ export default async function EquitySnapshotPage() {
 
         <EquitySnapshot />
 
+        <section className="mx-auto mt-14 max-w-3xl text-center">
+          <h2 className="text-2xl font-semibold">Want the AI to keep working after the snapshot?</h2>
+          <p className="mt-3 text-white/55">
+            YPN USA turns one-time estimates into an ongoing growth workflow for mortgage and real
+            estate professionals.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/#territories"
+              className="inline-flex rounded-full bg-white px-6 py-3 font-bold text-[#17152f]"
+            >
+              Check Your ZIP — Free
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex rounded-full border border-white/25 px-6 py-3 font-semibold text-white/85 hover:bg-white/10"
+            >
+              See paid plans →
+            </Link>
+          </div>
+        </section>
+
         <footer className="mt-10 border-t border-white/10 py-8 text-center text-xs leading-5 text-white/35">
           Educational estimate only. YPN USA does not perform an appraisal, determine eligibility,
           or promise proceeds through this calculator.

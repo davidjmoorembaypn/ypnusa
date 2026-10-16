@@ -11,7 +11,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       userAgent: "*",
       allow: "/",
       // Keep product/telemetry surfaces out of the marketing crawl budget.
-      disallow: ["/api/", "/analytics", "/dashboard/", "/embed/"],
+      disallow: ["/api/", "/analytics", "/dashboard/", "/embed/", "/admin/"],
     },
     sitemap: [`${origin}/sitemap.xml`, `${origin}/local-seo-sitemap.xml`],
     host: origin,

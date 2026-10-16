@@ -64,11 +64,25 @@ To fix it you need access to the AWS host, for example through the AWS MCP conne
 | TLS | certbot under `/opt/ypnusa-certbot`, renewed by `ypnusa-cert-renew.service` |
 | Other instances (us-east-2) | `ypnus-wp` `i-0bb21a74b344c56ae` t3.medium (Elastic IP `3.13.67.159`); two unnamed t3.micro `i-060df03b331c6b9e6`, `i-028eb4461c14d75f4` |
 
-Deploy path today: replace `/opt/ypnusa/releases/<sha7>` and repoint `/opt/ypnusa/current`, then `systemctl restart ypnusa`.
-Also note `ReadWritePaths` in the unit pins the release dir, so it must be updated per release.
+Deploy path today: place the build in `/opt/ypnusa/releases/<sha7>`, update `ReadWritePaths` in
+`/etc/systemd/system/ypnusa.service` (it pins the release's `.next/cache`), repoint `/opt/ypnusa/current`, then run
+`systemctl daemon-reload && systemctl restart ypnusa`. The reload is required: a restart alone keeps the old unit
+settings, so the new release path stays outside the writable allowlist.
 
-Still to do: copy the four missing variables from Hostinger `app/.env` into `/etc/ypnusa/app.env` server to server,
-merge Hostinger's `store.json` with this one (sessions/officers/subscriptions differ), restart, and run the verification list above.
+Still to do: copy the four missing variables from Hostinger `app/.env` into `/etc/ypnusa/app.env` server to server
+(never through chat, PRs or commits), merge the two `store.json` files, restart, and run the verification list above.
+
+`store.json` merge procedure (the app has a single writer, so do this with the service stopped):
+
+1. `systemctl stop ypnusa`, then copy `/var/lib/ypnusa/store.json` to `store.json.pre-merge-<timestamp>` (owner `ypnusa`, mode 0600).
+2. Start from Hostinger's copy as the base, then add records that exist only in the AWS copy.
+3. Merge each collection (`loanOfficers`, `sessions`, `revenueSubscriptions`, `analyticsEvents` and any other non-empty one) by record `id`:
+   - Same `id` in both: keep the record with the newer `updatedAt` (or `createdAt` when absent). If both changed after the 2026-10-09 DNS switch, keep AWS's and log the conflict.
+   - `id` in one copy only: keep it. Never drop or renumber records.
+   - Loan officers that match on email but have different `id`s: treat as one person, keep the AWS `id` (sessions created since the switch reference it), and rewrite references from Hostinger-only records.
+4. Check counts: each merged collection must have at least as many records as the larger input, and no duplicate `id`s.
+5. Write atomically (temp file, then `mv`), `chown ypnusa:ypnusa`, `chmod 0600`, `systemctl start ypnusa`, confirm `/api/health` reports `persistent: true, degraded: false`.
+6. Rollback: stop the service, restore the `.pre-merge-<timestamp>` file, start the service.
 
 ## Decision: WordPress is retired
 

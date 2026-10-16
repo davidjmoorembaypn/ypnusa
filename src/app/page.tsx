@@ -204,6 +204,13 @@ export default function Home() {
 
           <div className="w-full lg:max-w-md">
             <TerritoryClaim source="hero" />
+            <p className="mt-3 text-center text-xs text-white/70">
+              Checking availability is free &mdash; locking a territory requires a paid plan.{" "}
+              <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
+                Plans from $99.99/mo
+              </Link>{" "}
+              with a 15-day free trial.
+            </p>
           </div>
         </div>
       </section>
@@ -294,6 +301,15 @@ export default function Home() {
               </article>
             ))}
           </div>
+
+          <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-slate-500">
+            Scoring and qualification are informational &mdash; licensed loan officers make every lending decision.
+            See our{" "}
+            <Link href="/licensing-disclosures" className="font-medium text-violet-700 underline hover:text-violet-900">
+              licensing &amp; disclosures
+            </Link>
+            .
+          </p>
 
           {/* Steps */}
           <div className="mx-auto mt-20 max-w-2xl text-center">
@@ -399,7 +415,11 @@ export default function Home() {
             ))}
           </div>
           <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-white/45">
-            Availability, permitted use, and freshness of public-record data vary by county and plan. Users remain responsible for privacy, licensing, and outreach compliance.
+            Availability, permitted use, and freshness of public-record data vary by county and plan. Users remain responsible for privacy, licensing, and outreach compliance. Read our{" "}
+            <Link href="/licensing-disclosures" className="underline hover:text-white">
+              licensing &amp; disclosures
+            </Link>
+            .
           </p>
         </div>
       </section>

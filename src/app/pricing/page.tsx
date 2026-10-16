@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
+import { TerritoryClaim } from "@/components/territory-claim";
 import { PricingCta } from "@/components/pricing-cta";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
@@ -78,6 +79,12 @@ export default function PricingPage() {
               Run Cerebro and the AI borrower intake assistant free, no credit card. Upgrade to reserve an
               exclusive ZIP territory and turn local demand into leads you own for life.
             </p>
+            <div className="mx-auto mt-8 max-w-md text-left">
+              <TerritoryClaim source="pricing_hero" />
+              <p className="mt-3 text-center text-xs text-white/70">
+                Checking availability is free &mdash; locking a territory requires a paid plan.
+              </p>
+            </div>
           </div>
         </section>
 

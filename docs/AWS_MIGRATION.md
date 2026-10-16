@@ -16,6 +16,15 @@ Production deploys need explicit owner approval (see `AGENTS.md`).
 The app must stay at **one task**: the JSON store has a single writer. Scaling beyond one
 task needs the Postgres migration (`migrations/001-003`) first.
 
+## Deploy path (documented 2026-10-16)
+
+See `aws/README.md` for the full runbook: host details, how to get a shell
+(AWS SSM Session Manager — not blocked by the quarantine SCP below), and
+`scripts/aws-install-release.sh` to install a new release with automatic
+rollback. This section's "to fix it" steps below are now mostly done — the
+host is `i-0ad200fc61f4d39f5` (us-east-2), reachable, and now running build
+`5bd0cf5`, deployed via that script and verified against `/api/health`.
+
 ## Correction: where the app runs today (verified 2026-10-15)
 
 `app.ypnus.com` was never on Vercel. Until about 2026-10-09 it ran on Hostinger (Passenger,

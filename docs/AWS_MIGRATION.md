@@ -51,6 +51,25 @@ To fix it you need access to the AWS host, for example through the AWS MCP conne
    - `POST /api/tools/marketing` returns 200.
 5. Write the host's deploy path here and in `AGENTS.md`.
 
+### Findings: the AWS host (inspected read-only via SSM, 2026-10-16)
+
+| Item | Value |
+| --- | --- |
+| Instance | `i-0ad200fc61f4d39f5` "YPNUSA", t3.micro, us-east-2, `18.223.107.93`, Amazon Linux 2023 |
+| Reverse proxy | Apache httpd `app.ypnus.com` -> `http://127.0.0.1:3000/` (PHP-FPM and MariaDB also installed, unused by the app) |
+| App | `ypnusa.service` (user `ypnusa`), `node /opt/ypnusa/current/server.js`, `current` -> `/opt/ypnusa/releases/08931f2` |
+| Env file | `/etc/ypnusa/app.env` (root, 0600). Only `NODE_ENV`, `HOSTNAME`, `PORT`, `LOANPILOT_DATA_DIR`, `NEXT_PUBLIC_SITE_URL`, `SESSION_SECRET` are set |
+| Missing | `YPNUS_SSO_SHARED_SECRET`, `ANTHROPIC_API_KEY`, `ADMIN_TOKEN`, `CRON_SECRET` |
+| Data | `/var/lib/ypnusa/store.json` (last write 2026-10-15): 3 loan officers, 6 sessions, 3 revenue subscriptions, 16 analytics events |
+| TLS | certbot under `/opt/ypnusa-certbot`, renewed by `ypnusa-cert-renew.service` |
+| Other instances (us-east-2) | `ypnus-wp` `i-0bb21a74b344c56ae` t3.medium (Elastic IP `3.13.67.159`); two unnamed t3.micro `i-060df03b331c6b9e6`, `i-028eb4461c14d75f4` |
+
+Deploy path today: replace `/opt/ypnusa/releases/<sha7>` and repoint `/opt/ypnusa/current`, then `systemctl restart ypnusa`.
+Also note `ReadWritePaths` in the unit pins the release dir, so it must be updated per release.
+
+Still to do: copy the four missing variables from Hostinger `app/.env` into `/etc/ypnusa/app.env` server to server,
+merge Hostinger's `store.json` with this one (sessions/officers/subscriptions differ), restart, and run the verification list above.
+
 ## Decision: WordPress is retired
 
 The owner does not want to keep WordPress. ypnus.com will be served by this Next.js app.

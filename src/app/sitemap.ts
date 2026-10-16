@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { BLOG_POSTS } from "@/content/blog";
 import { PROGRAM_LIST } from "@/lib/programs";
+import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { getSiteOrigin } from "@/lib/request-host";
 
 /**
@@ -36,6 +37,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origin}/tools/social-writer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     ...PROGRAM_LIST.map((program) => ({
       url: `${origin}/mortgage-loans/${program.toLowerCase()}`,
+      lastModified: MARKETING_LAST_MODIFIED,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    // City pages only (a handful, hand-written). ZIP pages stay out on purpose: see the
+    // comment above about not flooding Google's "Not indexed" queue.
+    ...LOCAL_SEO_PROFILES.filter((profile) => profile.kind === "city").map((profile) => ({
+      url: `${origin}${getLocalSeoPath(profile)}`,
       lastModified: MARKETING_LAST_MODIFIED,
       changeFrequency: "monthly" as const,
       priority: 0.6,

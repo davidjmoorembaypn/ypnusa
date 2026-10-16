@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/track";
 import { checkoutUrlForTier } from "@/lib/checkout";
 import { marketingUrl } from "@/lib/site";
 import { ZIP_CHECKED_EVENT, ZIP_STORAGE_KEY } from "@/components/territory-claim";
@@ -56,7 +57,11 @@ export function PricingCta({
   }, [tierId]);
 
   return (
-    <a href={href} className={className}>
+    <a
+      href={href}
+      className={className}
+      onClick={() => track(tierId === "free" ? "sign_up_click" : "begin_checkout", { plan: tierId })}
+    >
       {children}
     </a>
   );

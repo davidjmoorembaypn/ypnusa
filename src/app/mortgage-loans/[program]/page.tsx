@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { TrackedLink } from "@/components/tracked-link";
+import { faqJsonLd } from "@/lib/seo";
 import { appUrl } from "@/lib/site";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
@@ -66,6 +68,10 @@ export default async function MortgageLoanProgramPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(content.faqs)) }}
+      />
       <Breadcrumbs items={breadcrumbItems} />
 
       <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
@@ -108,6 +114,48 @@ export default async function MortgageLoanProgramPage({ params }: Props) {
           </details>
         ))}
       </div>
+
+      <section className="mt-12 rounded-3xl border border-violet-400/30 bg-violet-500/10 p-6 sm:p-8">
+        <h2 className="text-xl font-semibold text-white">
+          Talk through {content.label.toLowerCase()} with a licensed loan officer
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-white/70">
+          Get a straight answer on whether this program fits your situation. A consultation is free
+          and carries no obligation.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <TrackedLink
+            href="/consultation"
+            event="generate_lead_click"
+            eventParams={{ source: "program_page", program }}
+            className="inline-flex rounded-full bg-white px-6 py-3 text-sm font-bold text-[#17152f] transition hover:bg-violet-100"
+          >
+            Book a free consultation
+          </TrackedLink>
+          <TrackedLink
+            href="/pricing"
+            event="pricing_click"
+            eventParams={{ source: "program_page", program }}
+            className="inline-flex rounded-full border border-white/25 px-6 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+          >
+            Loan officer? See plans
+          </TrackedLink>
+        </div>
+      </section>
+
+      <h2 className="mt-10 text-lg font-semibold text-white">Explore other loan programs</h2>
+      <ul className="mt-3 flex flex-wrap gap-2 text-sm">
+        {PROGRAM_LIST.filter((other) => other !== program).map((other) => (
+          <li key={other}>
+            <Link
+              href={`/mortgage-loans/${other.toLowerCase()}`}
+              className="inline-flex rounded-full border border-white/15 px-4 py-1.5 text-violet-200 transition hover:bg-white/10"
+            >
+              {PROGRAM_CONTENT[other].label}
+            </Link>
+          </li>
+        ))}
+      </ul>
 
       <p className="mt-10 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-white/40">
         Educational overview only. Nothing on this page is a rate quote, an eligibility

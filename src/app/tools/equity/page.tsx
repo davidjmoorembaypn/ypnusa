@@ -85,8 +85,9 @@ export default async function EquitySnapshotPage() {
         <section className="mx-auto mt-14 max-w-3xl text-center">
           <h2 className="text-2xl font-semibold">Want the AI to keep working after the snapshot?</h2>
           <p className="mt-3 text-white/55">
-            YPN USA turns one-time estimates into an ongoing growth workflow for mortgage and real
-            estate professionals.
+            Loan officers on paid plans get this same equity snapshot wired into their AI intake
+            assistant, so every borrower in your exclusive ZIP territory is qualified and followed up
+            automatically.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
             <Link

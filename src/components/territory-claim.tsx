@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { track } from "@/lib/track";
 import { postJson } from "@/lib/client-api";
 import { marketingUrl } from "@/lib/site";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
@@ -151,6 +152,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       // Never propagate an unavailable ZIP into the pricing CTAs — a visitor could
       // otherwise pay for a territory the page just described as already claimed.
       if (data.available) syncZipToPageUrl(data.zip);
+      track("zip_check", { zip: data.zip, available: data.available, source });
       void enrichWithIntelligence(data.zip, data.available, data.demand?.total ?? undefined);
     } catch {
       setCheck({ status: "error", message: "Couldn't reach the territory service — try again." });
@@ -196,6 +198,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         setSubmit({ status: "error", message: data?.error ?? "Something went wrong — try again." });
         return;
       }
+      track("generate_lead", { source, method: "territory_reservation" });
       setSubmit({ status: "done", message: data.message ?? "You're in — we'll be in touch shortly." });
     } catch {
       setSubmit({ status: "error", message: "Network error — try again in a moment." });

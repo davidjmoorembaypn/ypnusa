@@ -1,11 +1,13 @@
 import { AnthropicProvider } from "./anthropic-provider";
+import { OpenAiProvider } from "./openai-provider";
 
 /**
  * Provider-agnostic seam for the AI assistant (src/lib/ai/chat-agent.ts).
  *
- * Nothing outside this file (and anthropic-provider.ts) should import an SDK
- * directly — that keeps the rest of the assistant swappable to a different
- * model host later without touching prompts, routing, or persistence.
+ * Nothing outside this file (and anthropic-provider.ts / openai-provider.ts)
+ * should import an SDK directly — that keeps the rest of the assistant
+ * swappable to a different model host later without touching prompts,
+ * routing, or persistence.
  */
 
 /**
@@ -57,7 +59,7 @@ export interface AiProvider {
 
 export class AiProviderNotConfiguredError extends Error {
   constructor(
-    message = "No AI provider is configured yet. Set ANTHROPIC_API_KEY to enable the assistant — see docs/ai-assistant.md.",
+    message = "No AI provider is configured yet. Set OPENAI_API_KEY (or ANTHROPIC_API_KEY) to enable the assistant — see docs/ai-assistant.md.",
   ) {
     super(message);
     this.name = "AiProviderNotConfiguredError";
@@ -69,19 +71,34 @@ let cachedProvider: AiProvider | null | undefined;
 /**
  * Resolves the configured AI provider, or null when none is configured.
  *
- * TODO(ai-provider): to add another backend, implement AiProvider in a sibling
- * file (mirroring anthropic-provider.ts) and select it here based on whatever
- * env var you introduce for it — callers never need to change.
+ * Selection: set AI_PROVIDER to "openai" or "anthropic" to pin one
+ * explicitly. Left unset, OpenAI is preferred when OPENAI_API_KEY is
+ * present (falling back to Anthropic), so switching backends is a pure
+ * env-var change on the host — no redeploy of this file required.
+ *
+ * TODO(ai-provider): to add another backend, implement AiProvider in a
+ * sibling file (mirroring anthropic-provider.ts / openai-provider.ts) and
+ * add a branch below — callers never need to change.
  */
 export function getAiProvider(): AiProvider | null {
   if (cachedProvider !== undefined) return cachedProvider;
 
-  if (!process.env.ANTHROPIC_API_KEY?.trim()) {
+  const pinned = process.env.AI_PROVIDER?.trim().toLowerCase();
+  const hasOpenAi = Boolean(process.env.OPENAI_API_KEY?.trim());
+  const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
+
+  if (pinned === "openai" && hasOpenAi) {
+    cachedProvider = new OpenAiProvider();
+  } else if (pinned === "anthropic" && hasAnthropic) {
+    cachedProvider = new AnthropicProvider();
+  } else if (hasOpenAi) {
+    cachedProvider = new OpenAiProvider();
+  } else if (hasAnthropic) {
+    cachedProvider = new AnthropicProvider();
+  } else {
     cachedProvider = null;
-    return cachedProvider;
   }
 
-  cachedProvider = new AnthropicProvider();
   return cachedProvider;
 }
 

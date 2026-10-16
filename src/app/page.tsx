@@ -8,6 +8,7 @@ import { FloatingAssistantWidget } from "@/components/assistant/floating-assista
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { FounderTrustStrip } from "@/components/founder-trust-strip";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
@@ -225,6 +226,8 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <FounderTrustStrip />
 
       {/* AI AGENT */}
       <section id="ai-agent" className="border-b border-white/10 bg-[#0d0b26] py-16">

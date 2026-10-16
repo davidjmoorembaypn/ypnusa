@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { FounderTrustStrip } from "@/components/founder-trust-strip";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
@@ -180,6 +181,8 @@ export default function PricingPage() {
             </div>
           </div>
         </section>
+
+        <FounderTrustStrip />
 
         {/* FAQ */}
         <section className="bg-slate-50 py-16 text-slate-900 sm:py-20">

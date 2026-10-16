@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { BLOG_POSTS } from "@/content/blog";
+import { PROGRAM_LIST } from "@/lib/programs";
 import { getSiteOrigin } from "@/lib/request-host";
 
 /**
@@ -33,6 +34,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origin}/tools/equity`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/gbp-optimizer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/social-writer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
+    ...PROGRAM_LIST.map((program) => ({
+      url: `${origin}/mortgage-loans/${program.toLowerCase()}`,
+      lastModified: MARKETING_LAST_MODIFIED,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
     ...BLOG_POSTS.map((post) => ({
       url: `${origin}/blog/${post.slug}`,
       lastModified: new Date(post.date),

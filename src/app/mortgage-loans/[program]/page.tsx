@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
-import { StubNotice } from "@/components/silo/stub-notice";
 import { appUrl } from "@/lib/site";
 import { PROGRAM_LIST } from "@/lib/programs";
-import { PROGRAM_LABELS } from "../program-labels";
+import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
 import type { LoanProgram } from "@/lib/types";
 
 type Props = {
@@ -26,11 +25,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const program = getProgram(slug);
   if (!program) notFound();
 
-  const label = PROGRAM_LABELS[program];
+  const content = PROGRAM_CONTENT[program];
+  const path = `/mortgage-loans/${slug}`;
   return {
-    title: label,
-    description: `Placeholder program stub for ${label} on YPN USA. Not a rate quote or offer of credit.`,
-    robots: { index: false, follow: true },
+    title: content.label,
+    description: content.summary,
+    alternates: { canonical: appUrl(path) },
+    robots: { index: true, follow: true },
   };
 }
 
@@ -39,26 +40,24 @@ export default async function MortgageLoanProgramPage({ params }: Props) {
   const program = getProgram(slug);
   if (!program) notFound();
 
-  const label = PROGRAM_LABELS[program];
+  const content = PROGRAM_CONTENT[program];
   const path = `/mortgage-loans/${slug}`;
 
   const breadcrumbItems = [
     { name: "Home", href: "/" },
     { name: "Mortgage Loans", href: "/mortgage-loans" },
-    { name: label, href: path },
+    { name: content.label, href: path },
   ];
 
-  // Placeholder FinancialProduct schema — replace values once a licensed
-  // loan officer supplies reviewed program terms.
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "FinancialProduct",
     "@id": `${appUrl(path)}#product`,
-    name: `${label} (placeholder)`,
+    name: content.label,
     category: "MortgageLoan",
     url: appUrl(path),
     provider: { "@id": `${appUrl("/")}#organization` },
-    description: `Placeholder listing for ${label}. Program terms, rates, and eligibility are not yet published.`,
+    description: content.summary,
   };
 
   return (
@@ -70,24 +69,64 @@ export default async function MortgageLoanProgramPage({ params }: Props) {
       <Breadcrumbs items={breadcrumbItems} />
 
       <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
-        Program stub
+        Loan program
       </p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{label}</h1>
-      <StubNotice>
-        This page reserves the URL for {label.toLowerCase()} content. Nothing here is a rate,
-        eligibility claim, or offer of credit &mdash; see the licensing disclosure below before
-        publishing.
-      </StubNotice>
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{content.label}</h1>
+      <p className="mt-5 text-base leading-7 text-white/70">{content.intro}</p>
 
-      <div className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      <h2 className="mt-10 text-lg font-semibold text-white">Good fit for</h2>
+      <ul className="mt-3 space-y-1.5 text-sm text-white/70">
+        {content.idealFor.map((item) => (
+          <li key={item} className="flex gap-2">
+            <span aria-hidden className="text-violet-300">
+              &bull;
+            </span>
+            {item}
+          </li>
+        ))}
+      </ul>
+
+      <h2 className="mt-10 text-lg font-semibold text-white">Key features</h2>
+      <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+        {content.keyFeatures.map((feature) => (
+          <div key={feature.title} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <dt className="text-sm font-semibold text-white">{feature.title}</dt>
+            <dd className="mt-1.5 text-[13px] leading-5 text-white/65">{feature.body}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <h2 className="mt-10 text-lg font-semibold text-white">Common questions</h2>
+      <div className="mt-4 space-y-3">
+        {content.faqs.map((item) => (
+          <details
+            key={item.q}
+            className="group rounded-2xl border border-white/10 bg-white/5 p-4 [&_summary]:cursor-pointer"
+          >
+            <summary className="text-sm font-semibold text-white marker:content-none">{item.q}</summary>
+            <p className="mt-2 text-[13px] leading-5 text-white/65">{item.a}</p>
+          </details>
+        ))}
+      </div>
+
+      <p className="mt-10 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-white/40">
+        Educational overview only. Nothing on this page is a rate quote, an eligibility
+        determination, or a commitment to lend. See{" "}
+        <Link href="/licensing-disclosures" className="underline hover:text-white/70">
+          Licensing &amp; Disclosures
+        </Link>{" "}
+        for current licensing. Equal Housing Opportunity.
+      </p>
+
+      <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <Link href="/mortgage-loans" className="text-violet-300 underline hover:text-violet-200">
           All programs
         </Link>
         <Link href="/mortgage-loans/tools" className="text-violet-300 underline hover:text-violet-200">
           MLO portal tools
         </Link>
-        <Link href="/licensing-disclosures" className="text-violet-300 underline hover:text-violet-200">
-          Licensing &amp; disclosures
+        <Link href="/consultation" className="text-violet-300 underline hover:text-violet-200">
+          Talk to a loan officer
         </Link>
       </div>
     </div>

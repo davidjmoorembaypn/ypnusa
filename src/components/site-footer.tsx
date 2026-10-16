@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
+import { PROGRAM_LIST } from "@/lib/programs";
+import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { appUrl, marketingUrl } from "@/lib/site";
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-white/10 bg-[#09081b] text-white/70">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-12 md:grid-cols-4">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-12 md:grid-cols-5">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-violet-700 text-xs font-black text-white">
@@ -63,6 +66,26 @@ export function SiteFooter() {
             <li><Link href="/#territories" className="transition hover:text-white">Territories</Link></li>
             <li><Link href="/#demo" className="transition hover:text-white">Live demo</Link></li>
             <li><Link href="/analytics" className="transition hover:text-white">Analytics</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">Loan programs</p>
+          <ul className="mt-4 space-y-2 text-sm">
+            {PROGRAM_LIST.map((program) => (
+              <li key={program}>
+                <Link href={`/mortgage-loans/${program.toLowerCase()}`} className="transition hover:text-white">
+                  {PROGRAM_CONTENT[program].label}
+                </Link>
+              </li>
+            ))}
+            {LOCAL_SEO_PROFILES.filter((profile) => profile.kind === "city").map((profile) => (
+              <li key={profile.slug}>
+                <Link href={getLocalSeoPath(profile)} className="transition hover:text-white">
+                  Mortgage broker in {profile.city}, {profile.stateCode}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
 

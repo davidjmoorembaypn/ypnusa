@@ -235,6 +235,23 @@ describe("runWithTools", () => {
     assert.ok(sawResult, "expected the territory lookup result to be fed back");
   });
 
+  it("get_pricing is executed and its result fed back, so the model can answer in text", async () => {
+    const call: AiToolCall = { toolName: "get_pricing", input: {} };
+    let fedBack = "";
+    const provider: AiProvider = {
+      name: "fake",
+      async generate(request) {
+        if (request.messages.length === 0) return toolCallResult([call]);
+        fedBack = request.messages.map((m) => m.content).join("\n");
+        return toolCallResult([], "Plans start at $99.99/mo.");
+      },
+    };
+    const result = await runWithTools(provider, "sys", [], [GET_PRICING_TOOL], fakeSession(), noopMerge);
+    assert.match(fedBack, /\[get_pricing result\]/);
+    assert.equal(result.text, "Plans start at $99.99/mo.");
+    assert.equal(result.actionCalls[0]?.toolName, "get_pricing");
+  });
+
   it("start_signup returns a real, unguessed URL built from plan/zip", async () => {
     const call: AiToolCall = { toolName: "start_signup", input: { plan: "starter", zip: "93720" } };
     let toolResultContent = "";

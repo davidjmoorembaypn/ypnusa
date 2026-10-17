@@ -147,6 +147,7 @@ const MAX_TOOL_ROUNDS = 5;
 const ACTION_TOOL_NAMES = new Set([
   "check_territory_availability",
   "find_explainer_video",
+  "get_pricing",
   "start_signup",
   "schedule_meeting",
   "request_human_handoff",

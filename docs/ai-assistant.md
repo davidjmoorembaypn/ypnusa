@@ -173,7 +173,7 @@ picks one with no code change required:
    - `OPENAI_API_KEY` — enables the OpenAI provider.
    - `OPENAI_MODEL` — optional, overrides the default (`gpt-4.1`).
    - `GEMINI_API_KEY` — enables Google Gemini (free tier at aistudio.google.com/apikey, no billing needed).
-   - `GEMINI_MODEL` — optional, overrides the default (`gemini-2.5-flash`).
+   - `GEMINI_MODEL` — optional, overrides the default (`gemini-3.8-flash`).
    - `ANTHROPIC_API_KEY` — enables the Anthropic provider.
    - `ANTHROPIC_MODEL` — optional, overrides the default (`claude-opus-5`),
      e.g. `claude-sonnet-5` or `claude-haiku-4-5` for lower cost/latency once

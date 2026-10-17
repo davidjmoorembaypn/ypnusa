@@ -6,10 +6,10 @@ import type { AiGenerateRequest, AiGenerateResult, AiProvider, AiToolCall } from
  * account. Free-tier quotas are modest and Google may use free-tier prompts to improve
  * its products; use a billed key before sending real borrower PII at volume.
  *
- * Default model: gemini-2.5-flash (free-tier eligible, supports function calling).
+ * Default model: gemini-3.8-flash (free-tier eligible, supports function calling).
  * Override with GEMINI_MODEL when a newer Flash model is available on your key.
  */
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3.8-flash";
 const DEFAULT_MAX_TOKENS = 4096;
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 

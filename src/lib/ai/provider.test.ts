@@ -102,7 +102,7 @@ describe("GeminiProvider", () => {
     assert.equal(result.text, "Checking.");
     assert.deepEqual(result.toolCalls, [{ toolName: "get_pricing", input: { plan: "pro" } }]);
     assert.equal(result.stopReason, "tool_use");
-    assert.match(captured!.url, /gemini-2\.5-flash:generateContent$/);
+    assert.match(captured!.url, /gemini-3\.8-flash:generateContent$/);
     assert.equal((captured!.init.headers as Record<string, string>)["x-goog-api-key"], "test-key");
     const sent = JSON.parse(String(captured!.init.body));
     assert.equal(sent.contents.length, 2);

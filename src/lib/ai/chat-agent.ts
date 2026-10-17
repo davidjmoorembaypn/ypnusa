@@ -422,22 +422,21 @@ function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput)
   };
 }
 
-function describeProviderError(error: unknown): string {
-  if (error instanceof Anthropic.AuthenticationError) {
-    return "The assistant's credentials are misconfigured — an operator needs to check ANTHROPIC_API_KEY.";
+/**
+ * Never surfaces a provider's raw error text (billing balances, key problems, request ids) to a
+ * visitor. The detail is already in the server log via console.error at the call site.
+ */
+function describeProviderError(error: unknown, mode: AssistantMode): string {
+  if (mode === "mlo_dashboard") {
+    if (error instanceof Anthropic.AuthenticationError) {
+      return "The assistant's credentials are misconfigured — check the AI provider API key.";
+    }
+    return "The assistant couldn't reach its AI provider (check the key and billing balance). Please try again shortly.";
   }
   if (error instanceof Anthropic.RateLimitError) {
-    return "The assistant is getting a lot of requests right now — please try again in a moment.";
+    return "I'm getting a lot of requests right now — please try again in a moment.";
   }
-  if (error instanceof Anthropic.APIConnectionError) {
-    return "Could not reach the assistant service. Please try again.";
-  }
-  if (error instanceof Anthropic.APIError) {
-    return "The assistant hit an unexpected error. Please try again.";
-  }
-  return error instanceof Error && error.message
-    ? error.message
-    : "The assistant is temporarily unavailable. Please try again.";
+  return "Sorry, I'm having trouble connecting right now, and your message has been saved. You can book a free consultation at /consultation, or try again in a minute.";
 }
 
 /**
@@ -517,7 +516,7 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
     }
   } catch (error) {
     console.error("[chat-agent] provider.generate failed", error);
-    reply = describeProviderError(error);
+    reply = describeProviderError(error, input.mode);
   }
 
   try {

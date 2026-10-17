@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { MortgageLoansFinancialProductSchema } from "@/components/seo/silo-schema";
@@ -50,17 +51,13 @@ export default function MortgageLoansPage() {
         ))}
       </ul>
 
-      <div className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        <Link href="/mortgage-loans/tools" className="text-violet-300 underline hover:text-violet-200">
-          MLO portal tools
-        </Link>
-        <Link href="/ai-platform" className="text-violet-300 underline hover:text-violet-200">
-          AI platform
-        </Link>
+      <SiloNav silo="mortgage" currentPath="/mortgage-loans" className="mt-10" />
+
+      <p className="mt-8 text-sm">
         <Link href="/consultation" className="text-violet-300 underline hover:text-violet-200">
-          Talk to a loan officer
+          Talk to a licensed loan officer
         </Link>
-      </div>
+      </p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -71,6 +72,9 @@ export default function BlogIndexPage() {
             </div>
           </div>
         </section>
+        <div className="mx-auto w-full max-w-4xl px-6 pb-16">
+          <SiloNav silo="growth" currentPath="/blog" tone="light" />
+        </div>
       </main>
 
       <SiteFooter />

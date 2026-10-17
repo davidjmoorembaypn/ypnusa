@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
@@ -143,19 +144,7 @@ export default async function MortgageLoanProgramPage({ params }: Props) {
         </div>
       </section>
 
-      <h2 className="mt-10 text-lg font-semibold text-white">Explore other loan programs</h2>
-      <ul className="mt-3 flex flex-wrap gap-2 text-sm">
-        {PROGRAM_LIST.filter((other) => other !== program).map((other) => (
-          <li key={other}>
-            <Link
-              href={`/mortgage-loans/${other.toLowerCase()}`}
-              className="inline-flex rounded-full border border-white/15 px-4 py-1.5 text-violet-200 transition hover:bg-white/10"
-            >
-              {PROGRAM_CONTENT[other].label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <SiloNav silo="mortgage" currentPath={path} className="mt-10" />
 
       <p className="mt-10 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-white/40">
         Educational overview only. Nothing on this page is a rate quote, an eligibility

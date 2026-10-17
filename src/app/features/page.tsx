@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -155,6 +156,10 @@ export default function FeaturesPage() {
             </div>
           </div>
         </section>
+
+        <div className="mx-auto max-w-5xl px-6 pb-16">
+          <SiloNav silo="growth" currentPath="/features" />
+        </div>
 
         {/* FINAL CTA */}
         <section className="relative isolate overflow-hidden bg-[#09081b] py-20">

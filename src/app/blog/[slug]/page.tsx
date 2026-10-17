@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
@@ -111,6 +112,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             dangerouslySetInnerHTML={{ __html: post.html }}
           />
         </article>
+        <div className="mx-auto w-full max-w-3xl px-6 pb-16">
+          <SiloNav silo="growth" currentPath={`/blog/${post.slug}`} tone="light" />
+        </div>
       </main>
 
       <SiteFooter />

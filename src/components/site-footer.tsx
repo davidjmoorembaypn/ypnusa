@@ -98,7 +98,7 @@ export function SiteFooter() {
             <li><Link href="/book" className="transition hover:text-white">The book</Link></li>
             <li><Link href="/consultation" className="transition hover:text-white">Book a consultation</Link></li>
             <li><a href={marketingUrl("/lo-signup.html?plan=free")} className="transition hover:text-white">Free LO signup</a></li>
-            <li><Link href="/embed/intake" className="transition hover:text-white">Embed the assistant</Link></li>
+            <li><Link href="/embed" className="transition hover:text-white">Free embeddable tools</Link></li>
           </ul>
         </div>
       </div>

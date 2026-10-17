@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiloNav } from "@/components/silo-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -413,6 +414,10 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
             </div>
           </section>
         ) : null}
+
+        <section className="mx-auto max-w-6xl px-6 py-12">
+          <SiloNav silo="mortgage" currentPath={getLocalSeoPath(profile)} tone="light" />
+        </section>
 
         <section className="bg-[#100d2c] px-6 py-16 text-center text-white">
           <h2 className="text-3xl font-semibold">Talk through your local financing goal</h2>

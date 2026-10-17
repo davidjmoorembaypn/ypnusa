@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { EquitySnapshot } from "@/components/equity-snapshot";
@@ -22,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const breadcrumbItems = [
   { name: "Home", href: "/" },
-  { name: "Free Tools" },
+  { name: "Mortgage Loans", href: "/mortgage-loans" },
   { name: "Home Equity Snapshot" },
 ];
 
@@ -104,6 +105,8 @@ export default async function EquitySnapshotPage() {
             </Link>
           </div>
         </section>
+
+        <SiloNav silo="mortgage" currentPath="/tools/equity" className="mt-10" />
 
         <footer className="mt-10 border-t border-white/10 py-8 text-center text-xs leading-5 text-white/35">
           Educational estimate only. YPN USA does not perform an appraisal, determine eligibility,

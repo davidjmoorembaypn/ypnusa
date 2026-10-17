@@ -154,7 +154,8 @@ using an LLM here is natural slot-filling instead of another fixed form.
 Two providers are supported today — OpenAI and Anthropic. `getAiProvider()`
 picks one with no code change required:
 
-- Set `AI_PROVIDER=openai` or `AI_PROVIDER=anthropic` to pin one explicitly.
+- Set `AI_PROVIDER=openai`, `anthropic` or `gemini` to choose the primary.
+- When several keys are set, the others are automatic backups: if the primary errors (empty balance, rate limit, outage), the same request is retried on the next provider.
 - Left unset, OpenAI is preferred whenever `OPENAI_API_KEY` is present,
   falling back to Anthropic. **Switching providers is a pure env-var change
   on the host — set the new key (and `AI_PROVIDER` if you want to pin it),
@@ -171,6 +172,8 @@ picks one with no code change required:
    `app/.env` on the server; local dev: `.env.local`; never commit a real key):
    - `OPENAI_API_KEY` — enables the OpenAI provider.
    - `OPENAI_MODEL` — optional, overrides the default (`gpt-4.1`).
+   - `GEMINI_API_KEY` — enables Google Gemini (free tier at aistudio.google.com/apikey, no billing needed).
+   - `GEMINI_MODEL` — optional, overrides the default (`gemini-2.5-flash`).
    - `ANTHROPIC_API_KEY` — enables the Anthropic provider.
    - `ANTHROPIC_MODEL` — optional, overrides the default (`claude-opus-5`),
      e.g. `claude-sonnet-5` or `claude-haiku-4-5` for lower cost/latency once

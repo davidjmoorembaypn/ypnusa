@@ -63,15 +63,37 @@ To fix it you need access to the AWS host, for example through the AWS MCP conne
 ## Decision: WordPress is retired
 
 The owner does not want to keep WordPress. ypnus.com will be served by this Next.js app.
-Remaining work before ypnus.com can cut over (tracked as follow-ups, none done yet):
+**ypnus.com itself must stay live and untouched until each item below is actually done — do
+not flip DNS or disable the WordPress Stripe webhook as a side effect of this work.**
+Remaining work before ypnus.com can cut over (tracked as follow-ups):
 
 1. Export the 138 pages / 335 posts from WordPress to MDX (or the existing `src/content`) and
-   generate a 301 redirect map from every old URL, so rankings survive.
-2. Make canonical URLs, sitemap and metadata host-aware (today `NEXT_PUBLIC_SITE_URL` makes
-   everything canonical to app.ypnus.com).
-3. Replace the `/wp-json/ypnus/v1` territory and signup calls with native routes.
-4. Move the WordPress Stripe webhook and SSO claim minting into the app, and re-point Stripe.
-5. Replace WPForms and WP Mail SMTP with app routes plus an email provider.
+   generate a 301 redirect map from every old URL, so rankings survive. **Not done.**
+2. ~~Make canonical URLs, sitemap and metadata host-aware~~ — **done.** `src/lib/request-host.ts`'s
+   `getSiteOrigin()` reads the request's `Host` header and returns `ypnus.com` or
+   `app.ypnus.com` accordingly; `src/app/sitemap.ts` and every page's `generateMetadata()`
+   already use it.
+3. Replace the `/wp-json/ypnus/v1` territory and signup calls with native routes — **partially
+   done (2026-10-20).** `/api/territory/check` still prefers `ypnus.com`'s live ZIP ledger
+   first (`src/lib/live-territory.ts`) and only falls back to the local store; that preference
+   is intentionally left in place so ypnus.com stays the source of truth for now. What's new:
+   a native Stripe-fulfillment pipeline (`src/lib/fulfillment.ts`, reached via
+   `/api/webhooks/stripe`) now writes real ZIP claims into this app's own
+   `RevenueSubscriptionRecord` store as events arrive — see item 4. Once that's been observed
+   reliable for a stretch, flipping `/api/territory/check` to prefer the local ledger (and
+   retiring the WP live-fetch) is the next step — not done yet, on purpose.
+4. Move the WordPress Stripe webhook and SSO claim minting into the app, and re-point Stripe —
+   **the mirror half is done (2026-10-20), the cutover half is not.** This app verifies Stripe's
+   signature directly now (`/api/webhooks/stripe`, `STRIPE_WEBHOOK_SECRET`) and applies
+   `checkout.session.completed` / `customer.subscription.created|updated|deleted` through
+   `src/lib/fulfillment.ts` — tier resolved from each event's `metadata.ypnus_tier` (every live
+   Payment Link/price already sets this) with `STRIPE_PRICE_ID_*`/`STRIPE_PRODUCT_ID_*` as
+   fallback. A **second, additive** Stripe webhook endpoint was created pointing at
+   `https://app.ypnus.com/api/webhooks/stripe` for exactly these event types —
+   WordPress's existing endpoint (`https://ypnus.com/wp-json/ypnus/v1/stripe-webhook`) is
+   untouched and still the only one the signed SSO claim (actual feature-gating) reads from.
+   Not done: making this app's copy the system of record, or minting the SSO claim itself.
+5. Replace WPForms and WP Mail SMTP with app routes plus an email provider. **Not done.**
 
 ## Order of operations (each step is reversible until DNS cutover)
 

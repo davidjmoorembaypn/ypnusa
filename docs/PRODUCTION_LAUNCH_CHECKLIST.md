@@ -29,25 +29,37 @@ exist and it's easy to assume the wrong one is "the" pipeline:
   — already receives Stripe events directly, resolves tier, writes WordPress
   user meta, and is what actually feeds the signed SSO claim. If this is
   live and configured, entitlements already work end-to-end.
-- **This app's `/api/webhooks/fulfill`** (added this session, PR #52) — an
-  AWS Lambda forwards verified Stripe events here. It's fully correct and
-  tested (payment-status verification, per-subscription keying, event
-  ordering), but it only updates `RevenueSubscriptionRecord`, which feeds
-  **this app's own revenue-dashboard summary only** — it does **not** touch
-  the SSO claim or gate any MLO feature.
+- **This app's own fulfillment pipeline** — the shared core (`src/lib/fulfillment.ts`)
+  is correct and tested (payment-status verification, per-subscription keying,
+  event ordering) and can be reached two ways:
+  - `/api/webhooks/stripe` — this app verifies Stripe's signature directly
+    (`STRIPE_WEBHOOK_SECRET`), no forwarder needed. This is the one actually
+    in use (2026-10-20): a second, additive Stripe webhook endpoint was
+    created pointing here alongside WordPress's existing one — see
+    `docs/AWS_MIGRATION.md`'s "Stripe dependency replacement" section.
+  - `/api/webhooks/fulfill` — same core logic, reached via an internal
+    secret instead of a Stripe signature, for a trusted forwarder (e.g. an
+    AWS Lambda) if one is ever built. None exists today; this route is kept
+    for that future and for its existing tests.
+  Either way, this only updates `RevenueSubscriptionRecord`, which feeds
+  **this app's own ZIP-claim ledger (`src/lib/territory.ts`) and
+  revenue-dashboard summary** — it does **not** touch the SSO claim or gate
+  any MLO feature. WordPress's own Stripe webhook remains the system of
+  record for the signed SSO claim until that's explicitly decided otherwise.
 
-Before relying on `/api/webhooks/fulfill` for anything user-facing, confirm
-with whoever owns the WordPress side whether that plugin's pipeline is the
-system of record (likely, given it's already built) or whether the Lambda is
-meant to replace it (a larger integration than what exists today).
-
-Required if using `/api/webhooks/fulfill`:
+Required for `/api/webhooks/stripe` (the one in use):
 
 | Env var | Purpose |
 | --- | --- |
-| `LAMBDA_FULFILLMENT_SECRET` | Shared secret the Lambda sends as `x-internal-secret` |
-| `STRIPE_PRICE_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Maps a Stripe price to a paid tier |
-| `STRIPE_PRODUCT_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Fallback mapping by product instead of price |
+| `STRIPE_WEBHOOK_SECRET` | The `whsec_...` signing secret for this app's own Stripe webhook endpoint |
+| `STRIPE_PRICE_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Fallback tier mapping by price, used only when Stripe metadata (`ypnus_tier` — already set on every live Payment Link/price) is absent |
+| `STRIPE_PRODUCT_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Same fallback, by product |
+
+Required instead for `/api/webhooks/fulfill` (unused unless a forwarder is built):
+
+| Env var | Purpose |
+| --- | --- |
+| `LAMBDA_FULFILLMENT_SECRET` | Shared secret the forwarder sends as `x-internal-secret` |
 
 ## 3. Legal pages — resolved (PR #65)
 

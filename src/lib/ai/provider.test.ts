@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import { GeminiProvider } from "./gemini-provider";
 import { FailoverAiProvider, getAiProvider, resetAiProviderCache, type AiProvider } from "./provider";
 
-const KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "AI_PROVIDER"] as const;
+const KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "AI_PROVIDER", "GEMINI_RETRY_DELAY_MS", "GEMINI_FALLBACK_MODEL"] as const;
 const saved: Record<string, string | undefined> = {};
 
 beforeEach(() => {
@@ -111,8 +111,55 @@ describe("GeminiProvider", () => {
     assert.equal("additionalProperties" in sent.tools[0].functionDeclarations[0].parameters, false);
   });
 
+  it("retries a 503 on the primary model, then succeeds", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+    process.env.GEMINI_RETRY_DELAY_MS = "0";
+    const urls: string[] = [];
+    let call = 0;
+    mock.method(globalThis, "fetch", async (url: string) => {
+      urls.push(url);
+      call++;
+      return call === 1
+        ? new Response("busy", { status: 503 })
+        : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "ok" }] } }] }), { status: 200 });
+    });
+    const result = await new GeminiProvider().generate({ system: "s", messages: [{ role: "user", content: "hi" }] });
+    assert.equal(result.text, "ok");
+    assert.equal(urls.length, 2);
+    assert.match(urls[0], /gemini-3\.8-flash:/);
+    assert.match(urls[1], /gemini-3\.8-flash:/);
+  });
+
+  it("falls to the second model when the primary stays overloaded", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+    process.env.GEMINI_RETRY_DELAY_MS = "0";
+    const urls: string[] = [];
+    mock.method(globalThis, "fetch", async (url: string) => {
+      urls.push(url);
+      return urls.length < 3
+        ? new Response("busy", { status: 503 })
+        : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "ok" }] } }] }), { status: 200 });
+    });
+    const result = await new GeminiProvider().generate({ system: "s", messages: [{ role: "user", content: "hi" }] });
+    assert.equal(result.text, "ok");
+    assert.match(urls[2], /gemini-3-flash-preview:/);
+  });
+
+  it("does not retry a non-transient error", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+    process.env.GEMINI_RETRY_DELAY_MS = "0";
+    let calls = 0;
+    mock.method(globalThis, "fetch", async () => {
+      calls++;
+      return new Response("nope", { status: 403 });
+    });
+    await assert.rejects(new GeminiProvider().generate({ system: "s", messages: [{ role: "user", content: "hi" }] }), /403/);
+    assert.equal(calls, 1);
+  });
+
   it("throws a status-only error without leaking the response body", async () => {
     process.env.GEMINI_API_KEY = "test-key";
+    process.env.GEMINI_RETRY_DELAY_MS = "0";
     mock.method(globalThis, "fetch", async () => new Response("secret quota details", { status: 429 }));
     await assert.rejects(
       new GeminiProvider().generate({ system: "s", messages: [{ role: "user", content: "hi" }] }),

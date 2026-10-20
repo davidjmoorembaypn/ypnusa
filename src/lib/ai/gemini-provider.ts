@@ -11,6 +11,9 @@ import type { AiGenerateRequest, AiGenerateResult, AiProvider, AiToolCall } from
  */
 const DEFAULT_MODEL = "gemini-3.8-flash";
 const DEFAULT_MAX_TOKENS = 4096;
+/** Second model tried when the primary is overloaded. Override with GEMINI_FALLBACK_MODEL. */
+const DEFAULT_FALLBACK_MODEL = "gemini-3-flash-preview";
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 type GeminiPart = { text?: string; functionCall?: { name: string; args?: Record<string, unknown> } };
@@ -67,16 +70,31 @@ export class GeminiProvider implements AiProvider {
       ];
     }
 
-    const response = await fetch(`${ENDPOINT}/${encodeURIComponent(this.model)}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(60_000),
-    });
-    if (!response.ok) {
+    // Google returns 503 ("high demand") and 429 in bursts. Retry the primary model once, then try a
+    // second model, before giving up so the caller can fail over to another provider.
+    const fallbackModel = process.env.GEMINI_FALLBACK_MODEL?.trim() || DEFAULT_FALLBACK_MODEL;
+    const attempts = [this.model, this.model];
+    if (fallbackModel !== this.model) attempts.push(fallbackModel);
+    const retryDelayMs = Number(process.env.GEMINI_RETRY_DELAY_MS ?? 600);
+
+    let response: Response | undefined;
+    let lastStatus = 0;
+    for (let i = 0; i < attempts.length; i++) {
+      response = await fetch(`${ENDPOINT}/${encodeURIComponent(attempts[i])}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (response.ok) break;
+      lastStatus = response.status;
       // Status only: the response body can echo request details, so keep it out of the message.
-      throw new Error(`Gemini request failed (${response.status}).`);
+      if (!RETRYABLE_STATUS.has(lastStatus) || i === attempts.length - 1) {
+        throw new Error(`Gemini request failed (${lastStatus}).`);
+      }
+      if (retryDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, retryDelayMs * (i + 1)));
     }
+    if (!response?.ok) throw new Error(`Gemini request failed (${lastStatus}).`);
 
     const data = (await response.json()) as {
       candidates?: { content?: { parts?: GeminiPart[] }; finishReason?: string }[];

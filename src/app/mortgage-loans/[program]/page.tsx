@@ -146,10 +146,10 @@ export default async function MortgageLoanProgramPage({ params }: Props) {
 
       <SiloNav silo="mortgage" currentPath={path} className="mt-10" />
 
-      <p className="mt-10 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-white/40">
+      <p className="mt-10 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-white/65">
         Educational overview only. Nothing on this page is a rate quote, an eligibility
         determination, or a commitment to lend. See{" "}
-        <Link href="/licensing-disclosures" className="underline hover:text-white/70">
+        <Link href="/licensing-disclosures" className="underline hover:text-white">
           Licensing &amp; Disclosures
         </Link>{" "}
         for current licensing. Equal Housing Opportunity.

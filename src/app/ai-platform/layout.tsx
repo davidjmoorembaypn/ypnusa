@@ -12,7 +12,7 @@ export default function AiPlatformLayout({ children }: { children: ReactNode }) 
   return (
     <>
       <SiteHeader />
-      <main className="min-h-screen bg-[#09081b] text-white">{children}</main>
+      <main id="main-content" className="min-h-screen bg-[#09081b] text-white">{children}</main>
       <div className="border-t border-white/10 bg-[#050414] px-6 py-6 text-center text-[11px] leading-5 text-white/40">
         <p className="mx-auto max-w-3xl">
           AI assistant output is informational only, not financial or legal advice, and is not a

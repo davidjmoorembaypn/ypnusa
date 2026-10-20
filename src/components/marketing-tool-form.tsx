@@ -37,7 +37,7 @@ export function MarketingToolForm({ tool }: { tool: Tool }) {
       {tool === "gbp" ? <label className="mt-4 block text-sm text-white/70">Current profile notes<textarea name="currentProfile" maxLength={1800} rows={5} className={inputClass} placeholder="Paste your current description, categories, services, or profile notes." /></label> :
       <><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm text-white/70">Audience<input name="audience" maxLength={300} className={inputClass} placeholder="First-time buyers, Realtors..." /></label><label className="text-sm text-white/70">Platform<input name="platform" maxLength={80} className={inputClass} placeholder="Instagram, LinkedIn..." /></label></div><label className="mt-4 block text-sm text-white/70">Topic or offer<textarea name="topic" maxLength={300} rows={3} className={inputClass} placeholder="What should this campaign talk about?" /></label></>}
       <button disabled={busy} className="mt-5 w-full rounded-xl bg-violet-500 px-5 py-3.5 font-bold text-white transition hover:bg-violet-400 disabled:opacity-60">{busy ? "Generating…" : tool === "gbp" ? "Run GBP Optimizer" : "Write My Social Campaign"}</button>
-      <p className="mt-3 text-xs leading-5 text-white/40">AI-generated draft. Review facts, licensing, advertising and compliance requirements before publishing.</p>
+      <p className="mt-3 text-xs leading-5 text-white/65">AI-generated draft. Review facts, licensing, advertising and compliance requirements before publishing.</p>
     </form>
     <section aria-live="polite" className="min-h-[28rem] rounded-3xl border border-white/10 bg-black/20 p-5 sm:p-7">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">Your output</p>

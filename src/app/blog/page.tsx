@@ -3,7 +3,7 @@ import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { BLOG_POSTS } from "@/content/blog";
+import { ALL_BLOG_POSTS } from "@/content/blog-all";
 import { marketingMetadata } from "@/lib/seo";
 import { getSiteOrigin } from "@/lib/request-host";
 
@@ -30,7 +30,7 @@ function formatDate(iso: string) {
 }
 
 export default function BlogIndexPage() {
-  const posts = [...BLOG_POSTS].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const posts = [...ALL_BLOG_POSTS].sort((a, b) => (a.date < b.date ? 1 : -1));
 
   return (
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">

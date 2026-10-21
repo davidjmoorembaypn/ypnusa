@@ -1,8 +1,19 @@
 import type { MetadataRoute } from "next";
-import { BLOG_POSTS } from "@/content/blog";
+import { ALL_BLOG_POSTS } from "@/content/blog-all";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { getSiteOrigin } from "@/lib/request-host";
+import {
+  WP_TOP_PAGES,
+  WP_MARKET_PAGES,
+  WP_LOAN_TYPE_PAGES,
+  WP_VS_PAGES,
+  WP_PLATFORM_PAGES,
+  WP_FEATURES_SUBPAGES,
+  WP_MLO_MARKETING_PAGES,
+  WP_TERRITORY_PAGES,
+  type WpImportedPage,
+} from "@/content/wp-import";
 
 /**
  * Intentionally small sitemap for the product app.
@@ -19,6 +30,15 @@ import { getSiteOrigin } from "@/lib/request-host";
 // Same rule for marketing pages: a lastmod that changes on every request is ignored by crawlers.
 const MARKETING_LAST_MODIFIED = new Date("2026-10-15T00:00:00.000Z");
 const LEGAL_PAGES_LAST_MODIFIED = new Date("2026-09-13T00:00:00.000Z");
+
+function wpPageEntries(origin: string, sectionPath: string, pages: readonly WpImportedPage[]) {
+  return pages.map((page) => ({
+    url: `${origin}${sectionPath}/${page.slug}`,
+    lastModified: new Date(page.modified),
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = await getSiteOrigin();
@@ -49,12 +69,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
-    ...BLOG_POSTS.map((post) => ({
+    ...ALL_BLOG_POSTS.map((post) => ({
       url: `${origin}/blog/${post.slug}`,
       lastModified: new Date(post.date),
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
+    // Migrated from ypnus.com's WordPress (docs/AWS_MIGRATION.md item 1) — real,
+    // unique landing-page content, not the programmatic city/ZIP pages the
+    // warning above is about.
+    ...wpPageEntries(origin, "", WP_TOP_PAGES),
+    ...wpPageEntries(origin, "/markets", WP_MARKET_PAGES),
+    ...wpPageEntries(origin, "/loan-types", WP_LOAN_TYPE_PAGES),
+    ...wpPageEntries(origin, "/vs", WP_VS_PAGES),
+    ...wpPageEntries(origin, "/platform", WP_PLATFORM_PAGES),
+    ...wpPageEntries(origin, "/features", WP_FEATURES_SUBPAGES),
+    ...wpPageEntries(origin, "/mlo-marketing", WP_MLO_MARKETING_PAGES),
+    ...wpPageEntries(origin, "/territory", WP_TERRITORY_PAGES),
     { url: `${origin}/privacy-policy`, lastModified: LEGAL_PAGES_LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },
     { url: `${origin}/terms-of-service`, lastModified: LEGAL_PAGES_LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },
     { url: `${origin}/licensing-disclosures`, lastModified: LEGAL_PAGES_LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },

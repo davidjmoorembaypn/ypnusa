@@ -4,14 +4,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { BLOG_POSTS, getBlogPost } from "@/content/blog";
+import { ALL_BLOG_POSTS, getAnyBlogPost } from "@/content/blog-all";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { socialImageFor } from "@/lib/seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { getSiteOrigin } from "@/lib/request-host";
 
 export function generateStaticParams() {
-  return BLOG_POSTS.map((post) => ({ slug: post.slug }));
+  return ALL_BLOG_POSTS.map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({
@@ -20,7 +20,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = getBlogPost(slug);
+  const post = getAnyBlogPost(slug);
   if (!post) return {};
   const origin = await getSiteOrigin();
   const url = `${origin}/blog/${post.slug}`;
@@ -56,7 +56,7 @@ function formatDate(iso: string) {
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = getBlogPost(slug);
+  const post = getAnyBlogPost(slug);
   if (!post) notFound();
 
   const origin = await getSiteOrigin();

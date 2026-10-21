@@ -1,5 +1,9 @@
 import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
+// Imported by relative path, not the "@/" alias: next.config.ts runs outside the
+// app's webpack/TS path-alias resolution, so "@/content/wp-import" (which itself
+// imports "@/content/blog") would fail to resolve here.
+import wpRedirects from "./src/content/wp-import/redirects.json";
 
 function gitCommit(): string {
   try {
@@ -68,6 +72,15 @@ const nextConfig: NextConfig = {
         destination: "https://ypnus.com/lo-signup.html",
         permanent: true,
       },
+      // Migrated from ypnus.com's WordPress (docs/AWS_MIGRATION.md item 1): duplicate
+      // post URLs redirecting to their canonical post, plus the handful of page slugs
+      // remapped or dropped in favor of an existing native page. See
+      // src/content/wp-import/index.ts for how this map is generated.
+      ...Object.entries(wpRedirects as Record<string, string>).map(([source, destination]) => ({
+        source,
+        destination,
+        permanent: true,
+      })),
     ];
   },
   async headers() {

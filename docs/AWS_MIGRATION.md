@@ -68,7 +68,14 @@ not flip DNS or disable the WordPress Stripe webhook as a side effect of this wo
 Remaining work before ypnus.com can cut over (tracked as follow-ups):
 
 1. Export the 138 pages / 335 posts from WordPress to MDX (or the existing `src/content`) and
-   generate a 301 redirect map from every old URL, so rankings survive. **Not done.**
+   generate a 301 redirect map from every old URL, so rankings survive. **Done (2026-10-21),
+   deployed to app.ypnus.com (build `2d5650f`).** `src/content/wp-import/` holds the exported
+   content (171 canonical posts after deduping 328 accidental duplicate-title republishes, 134
+   pages bucketed by section) and a 330-entry redirect map, wired into `next.config.ts`. Native
+   pages at colliding paths (`/about`, `/features`, `/blog`) were kept as-is; WordPress's content
+   there was dropped. Still open: images/internal links in the migrated HTML point at absolute
+   `ypnus.com` URLs rather than being rehosted, and there's been no editorial read-through of the
+   migrated content, just a structural/build verification.
 2. ~~Make canonical URLs, sitemap and metadata host-aware~~ — **done.** `src/lib/request-host.ts`'s
    `getSiteOrigin()` reads the request's `Host` header and returns `ypnus.com` or
    `app.ypnus.com` accordingly; `src/app/sitemap.ts` and every page's `generateMetadata()`

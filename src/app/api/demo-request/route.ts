@@ -7,6 +7,7 @@ import { isValidZip, normalizeZip } from "@/lib/territory";
 import { fetchLiveTerritory } from "@/lib/live-territory";
 import type { DemoRequestRecord } from "@/lib/types";
 import { isValidEmail, optionalText } from "@/lib/validation";
+import { escapeHtml, notifyOwnerOfLead } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -108,6 +109,26 @@ async function handlePost(request: Request) {
         zip: record.zip,
         territoryAvailable: territory?.available ?? null,
       },
+    });
+
+    // Not awaited: this replaces what WordPress's WP Mail SMTP plugin did for
+    // WPForms submissions, and must never delay or fail the visitor's response —
+    // notifyOwnerOfLead() already degrades to a logged no-op without
+    // RESEND_API_KEY configured or if Resend itself errors.
+    void notifyOwnerOfLead({
+      kind: "demo_request",
+      replyTo: record.workEmail,
+      summaryHtml: `
+        <h2>New demo request</h2>
+        <p><strong>${escapeHtml(record.name)}</strong> (${escapeHtml(record.company)})</p>
+        <p>Email: ${escapeHtml(record.workEmail)}</p>
+        ${record.phone ? `<p>Phone: ${escapeHtml(record.phone)}</p>` : ""}
+        ${record.zip ? `<p>ZIP: ${escapeHtml(record.zip)} — ${territory?.available ? "available" : territory ? "already claimed" : "not checked"}</p>` : ""}
+        ${record.role ? `<p>Role: ${escapeHtml(record.role)}</p>` : ""}
+        ${record.monthlyLeadVolume ? `<p>Team size: ${escapeHtml(record.monthlyLeadVolume)}</p>` : ""}
+        ${record.message ? `<p>Message: ${escapeHtml(record.message)}</p>` : ""}
+        <p>Source: ${escapeHtml(record.source ?? "marketing_site")}</p>
+      `,
     });
 
     return jsonOk({

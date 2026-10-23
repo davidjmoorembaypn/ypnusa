@@ -108,7 +108,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               [&_a]:text-violet-700 [&_a]:font-semibold [&_a]:underline [&_a:hover]:text-violet-900
               [&_strong]:font-semibold [&_strong]:text-slate-900
               [&_blockquote]:border-l-4 [&_blockquote]:border-violet-200 [&_blockquote]:bg-violet-50 [&_blockquote]:px-5 [&_blockquote]:py-3 [&_blockquote]:rounded-r-xl [&_blockquote]:italic
-              [&_.btn-primary]:not-italic [&_.btn-primary]:mt-2 [&_.btn-primary]:inline-flex [&_.btn-primary]:rounded-full [&_.btn-primary]:bg-amber-400 [&_.btn-primary]:px-6 [&_.btn-primary]:py-3 [&_.btn-primary]:text-sm [&_.btn-primary]:font-semibold [&_.btn-primary]:text-[#09081b] [&_.btn-primary]:no-underline"
+              [&_.btn-primary]:not-italic [&_.btn-primary]:mt-2 [&_.btn-primary]:inline-flex [&_.btn-primary]:rounded-full [&_.btn-primary]:bg-amber-400 [&_.btn-primary]:px-6 [&_.btn-primary]:py-3 [&_.btn-primary]:text-sm [&_.btn-primary]:font-semibold [&_.btn-primary]:text-[#09081b] [&_.btn-primary]:no-underline
+              [&_figure]:my-8 [&_figure]:mx-0
+              [&_img]:w-full [&_img]:h-auto [&_img]:rounded-2xl [&_img]:shadow-sm
+              [&_figcaption]:mt-2 [&_figcaption]:text-center [&_figcaption]:text-xs [&_figcaption]:text-slate-500
+              [&_table]:w-full [&_table]:my-8 [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-xl [&_table]:border [&_table]:border-slate-200 [&_table]:text-sm
+              [&_thead]:bg-slate-50
+              [&_th]:border [&_th]:border-slate-200 [&_th]:px-4 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-semibold [&_th]:text-slate-900
+              [&_td]:border [&_td]:border-slate-200 [&_td]:px-4 [&_td]:py-2.5 [&_td]:align-top [&_td]:text-slate-700
+              [&_[style]]:![font-size:inherit] [&_[style]]:![color:inherit] [&_[style]]:![background:transparent]"
             dangerouslySetInnerHTML={{ __html: post.html }}
           />
         </article>

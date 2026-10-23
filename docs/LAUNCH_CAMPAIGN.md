@@ -1,50 +1,49 @@
-# Launch kit — first 3 paying customers (DRAFTS: nothing here has been sent or published)
+# Launch kit — APPROVED by the owner on 2026-10-23 (owner sends these personally; nothing is sent by Claude)
 
-Facts used (all from `src/lib/pricing.ts`; re-check before sending): Growth $99.99/mo, Pro $199.99/mo,
-Elite $299.99/mo, each with 1 included exclusive ZIP and a 15-day trial; a free plan exists; the ZIP checker
-is free. Do not add claims about lead volume, results or other customers.
+Approved verbatim: three messages (email list, LinkedIn, Facebook). Facts checked against `src/lib/pricing.ts` and the live
+pricing page: Growth $99.99/mo, 15-day trial that now REQUIRES a card (Stripe links updated 2026-10-23), cancel online anytime,
+free plan available. Style rule from the owner: always write "zip code" (never "ZIP") in message copy.
+Do not add claims about lead volume, results, income, or other customers.
 
-## Tracked links (UTM tags make GA4 separate your audience from other traffic)
+Destination (all three): https://ypnus.com/check-zip.html (WordPress page, verified live; fires GA event `check_zip_page_view`).
 
-| Audience / channel | Link |
-| --- | --- |
-| Email list | `https://app.ypnus.com/pricing?utm_source=email&utm_medium=owner_list&utm_campaign=first3` |
-| LinkedIn post / DM | `https://app.ypnus.com/pricing?utm_source=linkedin&utm_medium=social&utm_campaign=first3` |
-| Text / WhatsApp | `https://app.ypnus.com/pricing?utm_source=sms&utm_medium=direct&utm_campaign=first3` |
-| Check-a-ZIP (best opener) | `https://app.ypnus.com/?utm_source=<channel>&utm_medium=<medium>&utm_campaign=first3#territories` |
+## 1. Email to the owner's list
+Subject: Is your zip code still open?
 
-## Message 1 — email (existing list)
+Hi {first name},
 
-Subject: Is your ZIP code still open?
+I built YPN USA so a loan officer can have a zip code's borrower inquiries to themselves, with an AI assistant that answers and qualifies borrowers around the clock.
 
-Hi {first_name},
+You can check whether your zip code is available in about 10 seconds, free:
+https://ypnus.com/check-zip.html?utm_source=email&utm_medium=owner_list&utm_campaign=first3
 
-I built YPN USA so a loan officer can own one ZIP code's borrower leads exclusively — no shared lead pools.
-One loan officer per ZIP; an AI assistant captures and qualifies borrowers in it 24/7.
+There's a free plan. Paid plans start at $99.99 a month and begin with a 15-day trial. The trial needs a card, and you can cancel any time online before it ends. If your zip code is taken, I'll say so honestly.
 
-You can check whether your ZIP is still available in about 10 seconds, free:
-{zip_check_link}
+Questions? Just reply to this email and I'll answer personally.
 
-Plans start at $99.99/month with a 15-day trial, and one ZIP is included. If your ZIP is taken, I'll tell you
-straight and point you to the nearest open one.
+David J. Moore, MBA
+NMLS #787257 · support@ypnus.com · (559) 512-0372
+YPN Inc., 247 N L Street, Dinuba, CA 93618
+(Include an unsubscribe link in the email tool. Send only to people who opted in or have a real relationship with the owner.)
 
-— David J. Moore, MBA (NMLS 787257)
-Reply to this email with any question and I'll answer personally.
+## 2. LinkedIn post
+Most lead vendors sell the same borrower inquiry to several loan officers. I built the opposite: one YPN loan officer per zip code, plus an AI assistant that answers and qualifies borrowers in that area around the clock.
 
-## Message 2 — LinkedIn post
+Want to know if your zip code is open? Check it free, takes about 10 seconds:
+https://ypnus.com/check-zip.html?utm_source=linkedin&utm_medium=social&utm_campaign=first3
 
-Most lead vendors sell the same borrower to five loan officers. I built the opposite: one loan officer per ZIP
-code, with an AI assistant that captures and qualifies borrowers in that ZIP around the clock.
-Check whether your ZIP is open (free, 10 seconds): {linkedin_link}
+There's a free plan. Paid plans start with a 15-day trial (card required, cancel online anytime).
+David J. Moore, MBA · NMLS #787257
 
-## Message 3 — short DM / text
+## 3. Facebook post
+Loan officers: is your zip code still open? I built YPN USA so one loan officer can have a zip code's borrower inquiries to themselves, with an AI assistant working around the clock. Check your zip code free (about 10 seconds): https://ypnus.com/check-zip.html?utm_source=facebook&utm_medium=social&utm_campaign=first3
 
-Hi {first_name} — quick one. YPN USA gives one loan officer exclusive rights to a ZIP's borrower leads.
-Want me to check if yours is open? {sms_link}
+Free plan available. Paid plans start with a 15-day trial (card required, cancel anytime). NMLS #787257
 
-## Before sending anything
+## Known copy inconsistency to fix (not in these messages)
+check-zip.html's meta description says "then claim exclusive territory free", but the pricing page says a zip code is locked only
+when a paid plan starts. Reconcile the WordPress page copy (needs owner approval to edit the live site).
 
-1. Confirm the release with the new checkout links is live (see docs/CLAUDE_HANDOFF.md).
-2. Only message people who have opted in or have an existing relationship; include your real unsubscribe/contact
-   details and NMLS number. Follow CAN-SPAM and TCPA rules for email and text.
-3. Send nothing until you approve the exact text and list.
+## Measuring (nothing is a conversion until Stripe shows a succeeded live payment from a new customer)
+UTM tags: utm_source = email | linkedin | facebook, utm_campaign = first3. Visits: GA4. Trials started: Stripe Subscriptions
+(status Trialing, card on file). Paid: first successful invoice ~15 days after a trial starts.

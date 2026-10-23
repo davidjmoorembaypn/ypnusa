@@ -6,6 +6,7 @@ import type {
 } from "./types";
 import type { PersonalizationSummary } from "./personalization/personalizationEngine";
 import { OUTBOUND_TIMEOUT_MS } from "./outbound";
+import { escapeHtml, sendEmail } from "./email";
 
 export interface OutreachContext {
   lead: BorrowerLeadRecord;
@@ -14,8 +15,20 @@ export interface OutreachContext {
   personalization?: PersonalizationSummary;
 }
 
+/**
+ * No delivery provider is configured. In production this must never be treated
+ * as a successful send: the follow-up stays pending and is retried once a
+ * provider (Resend, SendGrid, Twilio or OUTREACH_WEBHOOK_URL) is configured.
+ */
+export class OutreachNotConfiguredError extends Error {
+  constructor(channel: string) {
+    super(`No ${channel} outreach provider is configured.`);
+    this.name = "OutreachNotConfiguredError";
+  }
+}
+
 export interface OutreachDeliveryResult {
-  provider: "twilio" | "sendgrid" | "webhook" | "demo";
+  provider: "twilio" | "sendgrid" | "resend" | "webhook" | "demo";
   messageId?: string;
 }
 
@@ -141,6 +154,20 @@ async function deliverTwilio(
   return { provider: "twilio", messageId: await responseMessageId(response) };
 }
 
+async function deliverResend(
+  job: ScheduledFollowUpRecord,
+  subject: string,
+  body: string,
+): Promise<OutreachDeliveryResult> {
+  const result = await sendEmail({
+    to: job.recipient,
+    subject,
+    html: `<p>${escapeHtml(body).replace(/\n/g, "<br>")}</p>`,
+  });
+  if (!result.sent) throw new Error(`Resend delivery failed: ${result.reason ?? "unknown error"}`);
+  return { provider: "resend", messageId: `resend_${job.id}` };
+}
+
 async function deliverSendGrid(
   job: ScheduledFollowUpRecord,
   subject: string,
@@ -189,7 +216,14 @@ export async function deliverOutreach(
     if (apiKey && fromEmail) {
       return deliverSendGrid(job, subject, body, apiKey, fromEmail);
     }
+    if (process.env.RESEND_API_KEY?.trim()) {
+      return deliverResend(job, subject, body);
+    }
   }
 
+  // Never report a send that did not happen in production.
+  if (process.env.NODE_ENV === "production") {
+    throw new OutreachNotConfiguredError(job.channel === "sms" ? "SMS" : "email");
+  }
   return { provider: "demo", messageId: `demo_${job.id}` };
 }

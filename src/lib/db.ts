@@ -7,6 +7,7 @@ import type {
   AgentOnboardingRecord,
   AnalyticsEventRecord,
   AutopilotRunRecord,
+  PaymentConversionRecord,
   BorrowerLeadRecord,
   ChatSessionRecord,
   CrmLeadRecord,
@@ -160,6 +161,7 @@ const emptyDb = (): DbShape => ({
   chatSessions: [],
   websiteAutopilotChanges: [],
   autopilotRuns: [],
+  paymentConversions: [],
   agentOnboarding: [],
 });
 
@@ -211,6 +213,7 @@ function normalize(snapshot: unknown): DbShape {
     })),
     websiteAutopilotChanges: arrayOrEmpty<WebsiteAutopilotChange>(parsed.websiteAutopilotChanges),
     autopilotRuns: arrayOrEmpty<AutopilotRunRecord>(parsed.autopilotRuns),
+    paymentConversions: arrayOrEmpty<PaymentConversionRecord>(parsed.paymentConversions),
     agentOnboarding: arrayOrEmpty<AgentOnboardingRecord>(parsed.agentOnboarding),
   };
 }
@@ -263,18 +266,51 @@ function ensureDataDir(): boolean {
   }
 }
 
+/** How often the previous good snapshot is refreshed as `store.json.bak`. */
+const BACKUP_MIN_INTERVAL_MS = 60_000;
+let lastBackupAt = 0;
+
+/**
+ * Keeps one rolling copy of the last good snapshot next to the live file so a
+ * bad write or a corrupted file can be recovered from (see loadFromDisk).
+ * Throttled so a burst of small writes does not copy the file every time.
+ * Best effort only: a failed copy must never block the real write.
+ */
+function rotateLastGoodSnapshot(target: string): void {
+  const now = Date.now();
+  if (now - lastBackupAt < BACKUP_MIN_INTERVAL_MS) return;
+  try {
+    if (!fs.existsSync(/*turbopackIgnore: true*/ target)) return;
+    const bak = `${target}.bak`;
+    const bakTmp = `${bak}.${process.pid}.tmp`;
+    fs.copyFileSync(/*turbopackIgnore: true*/ target, bakTmp);
+    fs.renameSync(/*turbopackIgnore: true*/ bakTmp, bak);
+    lastBackupAt = now;
+  } catch (error) {
+    console.warn(`[db] Unable to refresh ${target}.bak: ${describeFsError(error)}`);
+  }
+}
+
 function flushToDisk(db: DbShape): void {
   if (!diskWritable) return;
   if (!ensureDataDir()) {
     diskWritable = false;
     return;
   }
-  // Write to a temp file and rename so a crash mid-write can't truncate the
-  // snapshot (rename is atomic on the same filesystem).
+  // Write to a temp file, fsync it, then rename so a crash or power loss
+  // mid-write can't truncate or lose the snapshot (rename is atomic on the
+  // same filesystem; fsync makes the new bytes durable before the swap).
   const target = dbPath();
   const tmp = `${target}.${process.pid}.tmp`;
   try {
-    fs.writeFileSync(/*turbopackIgnore: true*/ tmp, JSON.stringify(db, null, 2));
+    const fd = fs.openSync(/*turbopackIgnore: true*/ tmp, "w");
+    try {
+      fs.writeSync(fd, JSON.stringify(db, null, 2));
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+    rotateLastGoodSnapshot(target);
     fs.renameSync(/*turbopackIgnore: true*/ tmp, target);
     lastStorageError = undefined;
     lastKnownStat = statOrNull(target);
@@ -296,25 +332,54 @@ function flushToDisk(db: DbShape): void {
   }
 }
 
-/** Loads (or reloads) the in-memory store from disk, unconditionally. */
+/** Reads and validates one snapshot file. Throws if it is missing, unreadable or not valid JSON. */
+function readSnapshot(file: string): DbShape {
+  return normalize(JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8")) as unknown);
+}
+
+/**
+ * Loads (or reloads) the in-memory store from disk, unconditionally.
+ *
+ * A snapshot that exists but cannot be parsed is never overwritten: it is moved
+ * aside to `store.json.corrupt-<timestamp>` for manual recovery, and the store
+ * is restored from the rolling `store.json.bak` when that is still valid.
+ * Plain I/O errors (e.g. permissions) leave the file untouched and serve from
+ * memory so the next write cannot clobber data we simply failed to read.
+ */
 function loadFromDisk(): DbShape {
   let snapshotUnreadable = false;
-  try {
-    if (fs.existsSync(/*turbopackIgnore: true*/ dbPath())) {
-      const parsed = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ dbPath(), "utf8")) as unknown;
-      memoryDb = normalize(parsed);
-      lastKnownStat = statOrNull(dbPath());
+  const file = dbPath();
+  if (fs.existsSync(/*turbopackIgnore: true*/ file)) {
+    try {
+      memoryDb = readSnapshot(file);
+      lastKnownStat = statOrNull(file);
       return memoryDb;
+    } catch (error) {
+      lastStorageError = `Unreadable data snapshot at ${file}: ${describeFsError(error)}`;
+      console.error(`[db] ${lastStorageError}`, error);
+      const isCorrupt = error instanceof SyntaxError;
+      if (isCorrupt && diskWritable) {
+        const quarantine = `${file}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+        try {
+          fs.renameSync(/*turbopackIgnore: true*/ file, quarantine);
+          console.error(`[db] Corrupt snapshot preserved as ${quarantine}.`);
+          try {
+            memoryDb = readSnapshot(`${file}.bak`);
+            console.error(`[db] Restored the store from ${file}.bak (last good snapshot).`);
+            flushToDisk(memoryDb);
+            return memoryDb;
+          } catch {
+            console.error(`[db] No valid ${file}.bak to restore from; starting from an empty store.`);
+          }
+        } catch (renameError) {
+          console.error(`[db] Unable to quarantine the corrupt snapshot: ${describeFsError(renameError)}`);
+          snapshotUnreadable = true;
+        }
+      } else {
+        snapshotUnreadable = true;
+      }
+      lastKnownStat = statOrNull(file);
     }
-  } catch (error) {
-    // Corrupt/unreadable snapshot: serve from memory but DO NOT overwrite the
-    // file — preserve it for manual recovery. Still remember its stat so we
-    // don't retry the same bad read on every call; if it's later fixed or
-    // replaced, that changes the stat and we'll pick it up then.
-    snapshotUnreadable = true;
-    lastKnownStat = statOrNull(dbPath());
-    lastStorageError = `Unreadable data snapshot at ${dbPath()}: ${describeFsError(error)}`;
-    console.error(`[db] ${lastStorageError}`, error);
   }
 
   memoryDb = emptyDb();
@@ -678,4 +743,21 @@ export function storageMode(): { persistent: boolean; dir: string; error?: strin
     dir: dataDir(),
     error: lastStorageError,
   };
+}
+
+/**
+ * Appends a verified payment unless this invoice or Stripe event was already
+ * recorded. Atomic inside writeDb, so a redelivered webhook can never double count.
+ */
+export function recordPaymentConversion(record: PaymentConversionRecord): { recorded: boolean; reason?: string } {
+  let outcome: { recorded: boolean; reason?: string } = { recorded: false };
+  writeDb((db) => {
+    if (db.paymentConversions.some((item) => item.id === record.id || item.eventId === record.eventId)) {
+      outcome = { recorded: false, reason: "Payment already recorded (duplicate delivery)." };
+      return;
+    }
+    db.paymentConversions.push(record);
+    outcome = { recorded: true };
+  });
+  return outcome;
 }

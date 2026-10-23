@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { MortgageIntakeChat } from "@/components/lazy-loanpilot-assistant";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepageEngine";
+import { HeroVideo } from "@/components/homepage/HeroVideo";
 import { FloatingAssistantWidget } from "@/components/assistant/floating-assistant-widget";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 import { SiteHeader } from "@/components/site-header";
@@ -145,6 +146,7 @@ export default function Home() {
 
       {/* HERO */}
       <section className="relative isolate overflow-hidden">
+        <HeroVideo />
         <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
         <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:py-24">
           <div className="max-w-xl">

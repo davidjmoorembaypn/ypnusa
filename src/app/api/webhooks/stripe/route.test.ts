@@ -115,6 +115,13 @@ describe("Direct Stripe webhook — /api/webhooks/stripe route", async () => {
     assert.equal(body.applied, false);
   });
 
+  await it("returns 500 (so Stripe retries) when applying the event hits an unexpected error", async () => {
+    const res = await POST(
+      signedRequest({ id: "evt_boom", object: "event", type: "checkout.session.completed", created: 4_000, data: { object: null } }),
+    );
+    assert.equal(res.status, 500);
+  });
+
   after(() => {
     fs.rmSync(dataDir, { recursive: true, force: true });
   });

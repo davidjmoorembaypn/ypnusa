@@ -8,7 +8,8 @@
 # Uses the real Let's Encrypt certificate if one exists, otherwise generates a
 # short-lived self-signed placeholder so the whole route table can be tested with
 #   curl -k --resolve ypnus.com:443:127.0.0.1 https://ypnus.com/...
-# before DNS moves. Validates with `apachectl configtest` and restores the previous
+# before DNS moves. It also pins ypnus.com to the WordPress origin in /etc/hosts so the
+# origin's TLS certificate (chain AND hostname) is fully verified. Validates with `apachectl configtest` and restores the previous
 # config automatically if validation fails. app.ypnus.com is never touched.
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "run as root (sudo)" >&2; exit 2; }
@@ -45,7 +46,16 @@ fi
 backup=""
 if [ -f "$CONF" ]; then backup="$CONF.prev-$(date -u +%Y%m%dT%H%M%SZ)"; cp -p "$CONF" "$backup"; fi
 
-sed -e "s#@WP_ORIGIN_IP@#$ORIGIN_IP#g" -e "s#@CERT_FULLCHAIN@#$FULLCHAIN#g" -e "s#@CERT_PRIVKEY@#$PRIVKEY#g" \
+# Pin the name ypnus.com to the WordPress origin on THIS host so Apache can connect by name and
+# fully verify the origin's certificate. (Remove the marked line when WordPress is retired.)
+HOSTS_MARK="# ypnusa-wp-origin"
+cp -p /etc/hosts "/etc/hosts.prev-$(date -u +%Y%m%dT%H%M%SZ)"
+grep -v "$HOSTS_MARK" /etc/hosts > /etc/hosts.new || true
+echo "$ORIGIN_IP ypnus.com www.ypnus.com $HOSTS_MARK" >> /etc/hosts.new
+cat /etc/hosts.new > /etc/hosts && rm -f /etc/hosts.new
+getent hosts ypnus.com | grep -q "^$ORIGIN_IP " || { echo "ERROR: /etc/hosts pin did not take effect" >&2; exit 1; }
+
+sed -e "s#@WP_ORIGIN_HOST@#ypnus.com#g" -e "s#@CERT_FULLCHAIN@#$FULLCHAIN#g" -e "s#@CERT_PRIVKEY@#$PRIVKEY#g" \
   "$SRC/zz-ypnus-com.conf.tmpl" > "$CONF"
 
 if ! apachectl configtest 2>&1; then

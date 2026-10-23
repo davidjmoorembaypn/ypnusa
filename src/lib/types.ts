@@ -158,7 +158,7 @@ export interface ScheduledFollowUpRecord {
   createdAt: string;
   sentAt?: string;
   attemptCount?: number;
-  deliveryProvider?: "twilio" | "sendgrid" | "webhook" | "demo";
+  deliveryProvider?: "twilio" | "sendgrid" | "resend" | "webhook" | "demo";
   providerMessageId?: string;
   lastError?: string;
 }
@@ -444,6 +444,19 @@ export interface AgentOnboardingRecord {
   updatedAt: string;
 }
 
+/** One verified live Stripe payment (an `invoice.paid` for a subscription). The invoice id is the dedupe key. */
+export interface PaymentConversionRecord {
+  id: string;
+  eventId: string;
+  recordedAt: string;
+  paidAt: string;
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  amountPaidCents: number;
+  currency: string;
+  billingReason?: string;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -459,5 +472,6 @@ export interface DbShape {
   chatSessions: ChatSessionRecord[];
   websiteAutopilotChanges: WebsiteAutopilotChange[];
   autopilotRuns: AutopilotRunRecord[];
+  paymentConversions: PaymentConversionRecord[];
   agentOnboarding: AgentOnboardingRecord[];
 }

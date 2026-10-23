@@ -1,3 +1,4 @@
+import { recordInvoicePaid } from "@/lib/conversions";
 import { applyFulfillmentEvent } from "@/lib/fulfillment";
 import { jsonError, jsonOk, logApiError } from "@/lib/http";
 import { mapStripeEventToFulfillmentPayload, verifyStripeWebhookEvent } from "@/lib/stripe-webhook";
@@ -16,10 +17,12 @@ export const dynamic = "force-dynamic";
  * webhook, which remains the live production entitlement system until that's
  * explicitly decided otherwise. Nothing here disables or replaces it.
  *
- * Always acks with 200 once the signature verifies, even for an event type
- * this app ignores or a business-logic rejection (e.g. unrecognized price) —
- * only a bad/missing signature gets a non-200, so Stripe doesn't retry-storm
- * on cases that will never succeed.
+ * Acks with 200 once the signature verifies, even for an event type this app
+ * ignores or a business-logic rejection (e.g. unrecognized price) — those will
+ * never succeed on retry. An unexpected internal failure (e.g. the store could
+ * not be written) returns 500 instead, so Stripe redelivers the event rather
+ * than the fulfillment being silently lost. Redelivery is safe: applying the
+ * same event twice is a no-op (see isStaleOrDuplicateEvent in fulfillment.ts).
  */
 export async function POST(request: Request) {
   let rawBody: string;
@@ -39,6 +42,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (event.type === "invoice.paid") {
+      const outcome = recordInvoicePaid(event);
+      return jsonOk({ applied: outcome.recorded, reason: outcome.reason });
+    }
     const payload = mapStripeEventToFulfillmentPayload(event);
     if (!payload) {
       return jsonOk({ applied: false, reason: `Event type ${event.type} is not acted on.` });
@@ -65,8 +72,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     logApiError("/api/webhooks/stripe", error);
-    // Still ack — an unexpected error here should not spin Stripe into endless
-    // retries against a route that logs and can be fixed forward.
-    return jsonOk({ applied: false, reason: "Internal error while applying the event." });
+    // Do NOT ack: let Stripe retry (with backoff) so a transient failure cannot drop a payment.
+    return jsonError("Internal error while applying the event.", 500, "FULFILLMENT_FAILED");
   }
 }

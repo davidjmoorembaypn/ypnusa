@@ -1,0 +1,13 @@
+[Unit]
+Description=YPN USA data store backup
+After=ypnusa.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ypnusa-backup scheduled
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/backups/ypnusa
+ReadOnlyPaths=/var/lib/ypnusa /etc/ypnusa

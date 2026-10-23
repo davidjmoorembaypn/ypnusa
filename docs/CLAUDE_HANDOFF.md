@@ -4,6 +4,20 @@ Written 2026-10-23. No secrets or customer data in this file.
 Branch `claude/sleepy-cray-ehu9r8`, code commit `fd52c74` (on top of `main` `41bb240`). Nothing merged, deployed, or changed in
 production, DNS, Stripe or WordPress. The server still runs build `8a64872`.
 
+
+## UPDATE 2026-10-23 — Stripe change made (owner-approved, verified)
+The owner approved: "require a card on the 3 stripe links". Done and read back from Stripe (live): the Growth, Pro and Elite
+Payment Links used by ypnus.com/pricing.html now have `payment_method_collection: always` (was `if_required`, i.e. NO card at
+trial signup). IDs: `plink_1UJ3V9BuaeDJIFLwyKgLnn5T` (growth), `plink_1UJ3VBBuaeDJIFLwnJyHsO2a` (pro),
+`plink_1UJ3VCBuaeDJIFLwMowhffxL` (elite). URLs, 15-day trial, `ypnus_tier` metadata unchanged. Undo = set the same field back to
+`if_required`. Older duplicate tier links (plink_1UDlW*/1UDlU*) were NOT changed and are not used by the pricing page.
+Evidence it was needed: lo-signup.html is a free no-card signup (never touches Stripe); both historical trial subscriptions ended
+`paused` / `trial_end_without_payment_method`.
+Expectation: a trial started today is first charged 15 days later, so verified payments cannot appear before ~15 days after the
+first real signups. Still 0 of 3 verified conversions. Steps 4(a)/5 in the approval list above are no longer needed for the
+existing site; step 4(b) (native webhook endpoint) is still needed for `/api/revenue/conversions` to see payments.
+Growth outreach drafts (PR #110 tool) are prepared but NOT approved or sent; recommended to send only after this fix (now done).
+
 ## Objective status: 0 of 3 verified paid conversions
 Stripe (live, read-only check): the account has had **2 subscriptions ever, both `paused`** (card-less trial ended with no
 payment method). **No live payment has ever succeeded for a YPN USA subscription.** Nothing here may be reported as a

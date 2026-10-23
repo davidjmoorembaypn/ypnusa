@@ -18,6 +18,16 @@ first real signups. Still 0 of 3 verified conversions. Steps 4(a)/5 in the appro
 existing site; step 4(b) (native webhook endpoint) is still needed for `/api/revenue/conversions` to see payments.
 Growth outreach drafts (PR #110 tool) are prepared but NOT approved or sent; recommended to send only after this fix (now done).
 
+## UPDATE 2026-10-23 — Growth Copilot v1 (owner said "go")
+New logged-in page `/dashboard/growth` (card added to `/dashboard`): (1) a weekly plan of up to 3 actions built only from the
+officer's own real data (`src/lib/growth/weekly-plan.ts`; seed/demo subscriptions excluded), and (2) a compliance screen for
+posts, emails and texts (`src/lib/growth/compliance.ts`: guaranteed-approval, superlative-rate, fair-housing, trigger-term,
+NMLS/Equal Housing, CAN-SPAM unsubscribe, TCPA STOP, SSN pattern). It is a screen, not legal advice, and it never posts, emails or
+texts anything. Verified: 23 new tests (437/437 total pass), lint + tsc clean, production build OK, page smoke-tested (login
+redirect when logged out; renders when logged in). NOT deployed; rides on PR #109 with everything else.
+Next slices (not started): AI-written drafts in the officer's voice that run through the compliance screen, an approval queue,
+and a results panel (visits -> leads -> trials -> paid) fed by `/api/revenue/conversions`.
+
 ## Objective status: 0 of 3 verified paid conversions
 Stripe (live, read-only check): the account has had **2 subscriptions ever, both `paused`** (card-less trial ended with no
 payment method). **No live payment has ever succeeded for a YPN USA subscription.** Nothing here may be reported as a

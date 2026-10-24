@@ -1,0 +1,17 @@
+{
+  "name": "ypnus-edge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ypnus.com edge platform: WordPress 301 redirects, OpenRTB ad service, AWS infrastructure",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "build:template": "node scripts/build-template.mjs",
+    "package": "node scripts/package.mjs",
+    "kvs:seed": "node scripts/kvs-seed.mjs",
+    "test:browser": "node test/browser/cls.mjs"
+  }
+}

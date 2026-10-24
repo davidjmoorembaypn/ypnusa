@@ -1,0 +1,326 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  ypnus.com web tier on AWS Fargate: the Next.js app (output: standalone) behind an ALB that only
+  accepts CloudFront traffic. Single task by design: the app's data store (store.json) is one file
+  on EFS with a single writer. Move the store to DynamoDB before raising DesiredCount.
+
+Parameters:
+  ImageUri:
+    Type: String
+    Description: ECR image URI (arm64) built from the repo Dockerfile, e.g. 123456789012.dkr.ecr.us-east-2.amazonaws.com/ypnusa:abc1234
+  CloudFrontPrefixListId:
+    Type: String
+    AllowedPattern: "^pl-[0-9a-f]+$"
+    Description: ID of the AWS-managed prefix list com.amazonaws.global.cloudfront.origin-facing in this region (EC2 console -> Managed prefix lists).
+  OriginVerifyToken:
+    Type: String
+    NoEcho: true
+    MinLength: 20
+    Description: Value of the edge stack's OriginVerifySecret token. The ALB rejects requests without it.
+  AppSecretArn:
+    Type: String
+    Description: Secrets Manager secret (JSON) holding the keys listed under Secrets in the task definition.
+  SiteUrl:
+    Type: String
+    Default: https://ypnus.com
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: Optional ACM certificate in this region for an HTTPS ALB listener. Empty = HTTP listener restricted to CloudFront.
+  DesiredCount:
+    Type: Number
+    Default: 1
+    MinValue: 0
+    MaxValue: 1
+    Description: Keep at 1 while the data store is a single file.
+
+Conditions:
+  UseHttps: !Not [!Equals [!Ref CertificateArn, ""]]
+
+Resources:
+  # ------------------------------------------------------------------ network (no NAT: tasks get public IPs, locked by security groups)
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.40.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{ Key: Name, Value: !Sub "${AWS::StackName}-vpc" }]
+
+  Igw:
+    Type: AWS::EC2::InternetGateway
+
+  IgwAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: { VpcId: !Ref Vpc, InternetGatewayId: !Ref Igw }
+
+  PublicRoutes:
+    Type: AWS::EC2::RouteTable
+    Properties: { VpcId: !Ref Vpc }
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IgwAttach
+    Properties: { RouteTableId: !Ref PublicRoutes, DestinationCidrBlock: 0.0.0.0/0, GatewayId: !Ref Igw }
+
+  SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.40.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+
+  SubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.40.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+
+  SubnetARoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref SubnetA, RouteTableId: !Ref PublicRoutes }
+
+  SubnetBRoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref SubnetB, RouteTableId: !Ref PublicRoutes }
+
+  AlbSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ALB - CloudFront origin-facing addresses only
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !If [UseHttps, 443, 80]
+          ToPort: !If [UseHttps, 443, 80]
+          SourcePrefixListId: !Ref CloudFrontPrefixListId
+
+  TaskSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Fargate tasks - only the ALB may connect
+      VpcId: !Ref Vpc
+
+  AlbToTask:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref TaskSg
+      IpProtocol: tcp
+      FromPort: 3000
+      ToPort: 3000
+      SourceSecurityGroupId: !Ref AlbSg
+
+  EfsSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EFS - only Fargate tasks
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 2049, ToPort: 2049, SourceSecurityGroupId: !Ref TaskSg }
+
+  # ------------------------------------------------------------------ storage for store.json
+  DataFs:
+    Type: AWS::EFS::FileSystem
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Encrypted: true
+      PerformanceMode: generalPurpose
+      BackupPolicy: { Status: ENABLED }
+      FileSystemTags: [{ Key: Name, Value: !Sub "${AWS::StackName}-data" }]
+
+  MountA:
+    Type: AWS::EFS::MountTarget
+    Properties: { FileSystemId: !Ref DataFs, SubnetId: !Ref SubnetA, SecurityGroups: [!Ref EfsSg] }
+
+  MountB:
+    Type: AWS::EFS::MountTarget
+    Properties: { FileSystemId: !Ref DataFs, SubnetId: !Ref SubnetB, SecurityGroups: [!Ref EfsSg] }
+
+  DataAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref DataFs
+      PosixUser: { Uid: "1001", Gid: "1001" }
+      RootDirectory:
+        Path: /ypnusa
+        CreationInfo: { OwnerUid: "1001", OwnerGid: "1001", Permissions: "750" }
+
+  # ------------------------------------------------------------------ load balancer
+  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Scheme: internet-facing
+      Subnets: [!Ref SubnetA, !Ref SubnetB]
+      SecurityGroups: [!Ref AlbSg]
+      LoadBalancerAttributes:
+        - { Key: idle_timeout.timeout_seconds, Value: "60" }
+        - { Key: routing.http.drop_invalid_header_fields.enabled, Value: "true" }
+        - { Key: deletion_protection.enabled, Value: "true" }
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref Vpc
+      TargetType: ip
+      Protocol: HTTP
+      Port: 3000
+      HealthCheckPath: /api/health
+      HealthCheckIntervalSeconds: 15
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher: { HttpCode: "200" }
+      TargetGroupAttributes:
+        - { Key: deregistration_delay.timeout_seconds, Value: "20" }
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref Alb
+      Port: !If [UseHttps, 443, 80]
+      Protocol: !If [UseHttps, HTTPS, HTTP]
+      SslPolicy: !If [UseHttps, ELBSecurityPolicy-TLS13-1-2-2021-06, !Ref AWS::NoValue]
+      Certificates: !If [UseHttps, [{ CertificateArn: !Ref CertificateArn }], !Ref AWS::NoValue]
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig: { StatusCode: "403", ContentType: text/plain, MessageBody: forbidden }
+
+  ForwardFromCloudFront:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref Listener
+      Priority: 1
+      Conditions:
+        - Field: http-header
+          HttpHeaderConfig: { HttpHeaderName: X-Origin-Verify, Values: [!Ref OriginVerifyToken] }
+      Actions:
+        - { Type: forward, TargetGroupArn: !Ref TargetGroup }
+
+  # ------------------------------------------------------------------ ECS
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterSettings: [{ Name: containerInsights, Value: enabled }]
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${AWS::StackName}"
+      RetentionInDays: 30
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{ Effect: Allow, Principal: { Service: ecs-tasks.amazonaws.com }, Action: sts:AssumeRole }]
+      ManagedPolicyArns: [!Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
+      Policies:
+        - PolicyName: read-app-secret
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: [{ Effect: Allow, Action: secretsmanager:GetSecretValue, Resource: !Ref AppSecretArn }]
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{ Effect: Allow, Principal: { Service: ecs-tasks.amazonaws.com }, Action: sts:AssumeRole }]
+      Policies:
+        - PolicyName: efs-data
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [elasticfilesystem:ClientMount, elasticfilesystem:ClientWrite]
+                Resource: !GetAtt DataFs.Arn
+                Condition: { StringEquals: { "elasticfilesystem:AccessPointArn": !GetAtt DataAccessPoint.Arn } }
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${AWS::StackName}-web"
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "512"
+      Memory: "1024"
+      RuntimePlatform: { CpuArchitecture: ARM64, OperatingSystemFamily: LINUX }
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      Volumes:
+        - Name: data
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref DataFs
+            TransitEncryption: ENABLED
+            AuthorizationConfig: { AccessPointId: !Ref DataAccessPoint, IAM: ENABLED }
+      ContainerDefinitions:
+        - Name: web
+          Image: !Ref ImageUri
+          Essential: true
+          PortMappings: [{ ContainerPort: 3000, Protocol: tcp }]
+          ReadonlyRootFilesystem: false
+          User: "1001"
+          MountPoints: [{ SourceVolume: data, ContainerPath: /data, ReadOnly: false }]
+          Environment:
+            - { Name: NODE_ENV, Value: production }
+            - { Name: PORT, Value: "3000" }
+            - { Name: HOSTNAME, Value: 0.0.0.0 }
+            - { Name: LOANPILOT_DATA_DIR, Value: /data }
+            - { Name: NEXT_PUBLIC_SITE_URL, Value: !Ref SiteUrl }
+          Secrets:
+            # Copy the production values from /etc/ypnusa/app.env into the secret. Add more keys here as needed.
+            - { Name: STRIPE_WEBHOOK_SECRET, ValueFrom: !Sub "${AppSecretArn}:STRIPE_WEBHOOK_SECRET::" }
+            - { Name: CRON_SECRET, ValueFrom: !Sub "${AppSecretArn}:CRON_SECRET::" }
+            - { Name: RESEND_API_KEY, ValueFrom: !Sub "${AppSecretArn}:RESEND_API_KEY::" }
+          HealthCheck:
+            Command: [CMD-SHELL, "node -e \"fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: web
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: [Listener, ForwardFromCloudFront, MountA, MountB]
+    Properties:
+      Cluster: !Ref Cluster
+      LaunchType: FARGATE
+      DesiredCount: !Ref DesiredCount
+      TaskDefinition: !Ref TaskDefinition
+      EnableExecuteCommand: false
+      HealthCheckGracePeriodSeconds: 60
+      # One writer to store.json: never run old and new tasks together. Brief downtime on deploy,
+      # automatic rollback if the new task never becomes healthy.
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 100
+        DeploymentCircuitBreaker: { Enable: true, Rollback: true }
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: [!Ref SubnetA, !Ref SubnetB]
+          SecurityGroups: [!Ref TaskSg]
+      LoadBalancers:
+        - { ContainerName: web, ContainerPort: 3000, TargetGroupArn: !Ref TargetGroup }
+
+Outputs:
+  AlbDnsName:
+    Description: Use as WebOriginDomain in the edge stack.
+    Value: !GetAtt Alb.DNSName
+  ClusterName:
+    Value: !Ref Cluster
+  ServiceName:
+    Value: !GetAtt Service.Name
+  DataFileSystemId:
+    Value: !Ref DataFs

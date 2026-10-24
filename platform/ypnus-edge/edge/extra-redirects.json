@@ -1,0 +1,9 @@
+{
+  "_note": "Business decisions on top of the automatic rules. Review before loading into the KeyValueStore.",
+  "redirects": {
+    "/lo-signup.html": "/pricing",
+    "/check-zip.html": "/check-zip",
+    "/pricing.html": "/pricing",
+    "/onboarding.html": "/onboarding"
+  }
+}

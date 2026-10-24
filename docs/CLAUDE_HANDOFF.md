@@ -5,6 +5,19 @@ Branch `claude/sleepy-cray-ehu9r8`, code commit `fd52c74` (on top of `main` `41b
 production, DNS, Stripe or WordPress. The server still runs build `8a64872`.
 
 
+## UPDATE 2026-10-24 — Production state and a correction
+- **Production is up**: `GET /api/health` returned `ok: true`, `storage.persistent: true`, `degraded: false`, build `6e6d016`
+  (built 2026-10-23T19:04Z). `6e6d016` already contains the merged PR #109 code (conversions endpoint, `aws/ops`). Someone
+  other than this session deployed it; who and how is unknown. Main has since moved on (#111 AI provider merge, #112
+  next 16.4.3 + zod security upgrade, #113 results panel) and those are **not deployed**.
+- **Correction:** step 4(b) below ("create a webhook endpoint for app.ypnus.com/api/webhooks/stripe") is **not needed and
+  must not be repeated**. Live Stripe already has an enabled endpoint `we_1UT1JfBuaeDJIFLwjI9tXOrT` for that URL (created
+  2026-10-21; events: checkout.session.completed, invoice.paid, customer.subscription.created/updated/deleted). The
+  earlier handoff text saw only the older, disabled endpoints. Still unverified: that `STRIPE_WEBHOOK_SECRET` on the server
+  matches that endpoint's signing secret (check Stripe Dashboard -> Developers -> Webhooks -> Recent deliveries for 2xx).
+- Still unknown: whether the backup/follow-up timers (`aws/ops/install-ops.sh`) are installed on the server.
+- Verified paid conversions remain **0 of 3** (read-only Stripe check, 2026-10-24).
+
 ## UPDATE 2026-10-23 — Stripe change made (owner-approved, verified)
 The owner approved: "require a card on the 3 stripe links". Done and read back from Stripe (live): the Growth, Pro and Elite
 Payment Links used by ypnus.com/pricing.html now have `payment_method_collection: always` (was `if_required`, i.e. NO card at

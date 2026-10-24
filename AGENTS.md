@@ -31,7 +31,14 @@ Local demo state persists to `data/store.json`. Live ZIP availability is read fr
 
 ### Key caveats
 
-- The project uses **Next.js 16.2.6** with React 19 and Tailwind CSS 4. Consult `node_modules/next/dist/docs/` for API guidance rather than relying on training-data assumptions.
+- The project uses **Next.js 16.3.8** with React 19 and Tailwind CSS 4. Consult `node_modules/next/dist/docs/` for API guidance rather than relying on training-data assumptions.
 - No `.env` file is required; the app runs fully without environment variables. `INTAKE_EXTERNAL_WEBHOOK_URL` is optional for Zapier-style integrations.
 - The file-based DB at `data/store.json` is auto-created on first write. It can be deleted to reset state.
 - The `package-lock.json` is the lockfile; use `npm install` (not yarn/pnpm/bun).
+
+## Deploying app.ypnus.com (any agent or tool)
+
+- **Production moved to AWS (verified 2026-10-15; deploy path documented 2026-10-16).** `app.ypnus.com` resolves to `18.223.107.93` (Apache on Amazon Linux), not Hostinger. **See `aws/README.md` for the host details, how to get a shell (SSM Session Manager — no SSH key, and not blocked by the org's quarantine SCP), and how to run `scripts/aws-install-release.sh` to deploy a new release.** Also read "Correction: where the app runs today" in `docs/AWS_MIGRATION.md` for migration history. The Hostinger steps below now only update the standby copy.
+- Hostinger (standby): merge to `main`, let `.github/workflows/release-build.yml` publish `app-build-<sha7>`, then run `scripts/hostinger-install-release.sh` on the server (see `hostinger/README.md`). It verifies the checksum, keeps the previous release for rollback, and rolls back automatically if `/api/health` doesn't report the new `build.commit`.
+- Never use hPanel's Node.js "Deploy"/"Rebuild", Hostinger's Node.js build API, or an uploaded archive for this app. On 2026-09-26 that replaced production with an old bundle (no California compliance pages, no `app/.env` loader) and deleted the installed releases.
+- Secrets live only in `app/.env` on the server; `hostinger/server-preamble.js` loads them and is injected into every release bundle.

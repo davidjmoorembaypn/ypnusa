@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { resolveEntitlement } from "@/lib/entitlements";
 import { PUBLIC_PRICING_TIERS, TRIAL_DAYS } from "@/lib/pricing";
-import { marketingUrl } from "@/lib/site";
+import { CUSTOMER_PORTAL_URL, marketingUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Billing",
@@ -11,15 +11,9 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-/** Stripe-hosted Customer Portal login link (set STRIPE_CUSTOMER_PORTAL_URL); upgrade/downgrade/cancel all happen there. */
-function portalUrl(): string | null {
-  return process.env.STRIPE_CUSTOMER_PORTAL_URL?.trim() || null;
-}
-
 export default async function BillingPage() {
   const session = await requireSession("/billing");
   const entitlement = resolveEntitlement(session);
-  const portal = portalUrl();
   const isPaid = entitlement.tier !== "free";
 
   return (
@@ -27,8 +21,9 @@ export default async function BillingPage() {
       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-700">Billing</p>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight">Plan and billing</h1>
       <p className="mt-3 text-sm leading-6 text-slate-600">
-        Paid plans include a {TRIAL_DAYS}-day free trial and renew monthly until cancelled. You can change or cancel
-        online at any time from the billing portal.
+        Paid plans include a {TRIAL_DAYS}-day free trial, then renew automatically every month at the plan price
+        until you cancel. Cancel online anytime from the billing portal, with no calls or fees; access continues
+        through the end of the current billing period.
       </p>
 
       <ul className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -56,9 +51,12 @@ export default async function BillingPage() {
       </ul>
 
       <div className="mt-8 flex flex-wrap gap-3 text-sm font-semibold">
-        {portal && isPaid ? (
-          <a href={portal} className="rounded-full bg-violet-700 px-5 py-3 text-white transition hover:bg-violet-800">
-            Open billing portal
+        {isPaid ? (
+          <a
+            href={CUSTOMER_PORTAL_URL}
+            className="rounded-full bg-violet-700 px-5 py-3 text-white transition hover:bg-violet-800"
+          >
+            Manage or cancel subscription
           </a>
         ) : (
           <a

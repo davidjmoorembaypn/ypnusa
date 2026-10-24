@@ -1,16 +1,22 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { MortgageIntakeChat } from "@/components/lazy-loanpilot-assistant";
 import { TerritoryClaim } from "@/components/territory-claim";
-import { MortgageCalculator } from "@/components/mortgage-calculator";
 import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepageEngine";
+import { HeroVideo } from "@/components/homepage/HeroVideo";
 import { FloatingAssistantWidget } from "@/components/assistant/floating-assistant-widget";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { FounderTrustStrip } from "@/components/founder-trust-strip";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
+import { faqJsonLd, marketingMetadata } from "@/lib/seo";
+import { getSiteOrigin } from "@/lib/request-host";
+import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
 
+<<<<<<< HEAD
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
@@ -22,6 +28,25 @@ export const metadata: Metadata = {
       "Claim exclusive ZIP territories, capture borrowers with AI intake, and build an owned mortgage lead pipeline.",
   },
 };
+=======
+// Below the fold: split it out of the first-load bundle, and reserve its height to avoid layout shift.
+const MortgageCalculator = dynamic(
+  () => import("@/components/mortgage-calculator").then((mod) => mod.MortgageCalculator),
+  { loading: () => <div className="min-h-[28rem]" aria-hidden /> },
+);
+
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getSiteOrigin();
+  return marketingMetadata({
+    title: "Exclusive Mortgage Leads by ZIP for Loan Officers | YPN USA",
+    description:
+      "Claim an exclusive ZIP territory and an AI assistant that captures, qualifies and nurtures borrowers 24/7. Leads you own for life. Start free.",
+    path: "/",
+    absoluteTitle: true,
+    origin,
+  });
+}
+>>>>>>> origin/main
 
 const LIFE_EVENTS = [
   {
@@ -121,7 +146,7 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Growth $99.99/mo, Pro $199.99/mo, and Elite $299.99/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
+    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Growth $99.99/mo, Pro $199.99/mo, and Elite $299.99/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
   },
 ];
 
@@ -130,8 +155,12 @@ export default function Home() {
     <div className="flex min-h-full flex-col overflow-x-clip bg-[#09081b] pb-24 text-white md:pb-0">
       <SiteHeader />
 
+      <main id="main-content">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(FAQ)) }} />
+
       {/* HERO */}
       <section className="relative isolate overflow-hidden">
+        <HeroVideo />
         <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
         <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:py-24">
           <div className="max-w-xl">
@@ -154,7 +183,7 @@ export default function Home() {
               >
                 Check ZIP availability — free
               </a>
-              <OpenAssistantButton className="inline-flex items-center justify-center rounded-full bg-violet-500 px-6 py-3.5 text-white shadow-xl shadow-violet-900/40 transition duration-200 hover:-translate-y-0.5 hover:bg-violet-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
+              <OpenAssistantButton className="inline-flex items-center justify-center rounded-full bg-violet-600 px-6 py-3.5 text-white shadow-xl shadow-violet-900/40 transition duration-200 hover:-translate-y-0.5 hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
                 Talk to the AI agent
               </OpenAssistantButton>
               <a
@@ -192,6 +221,13 @@ export default function Home() {
 
           <div className="w-full lg:max-w-md">
             <TerritoryClaim source="hero" />
+            <p className="mt-3 text-center text-xs text-white/70">
+              Checking availability is free &mdash; locking a territory requires a paid plan.{" "}
+              <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
+                Plans from $99.99/mo
+              </Link>{" "}
+              with a 15-day free trial.
+            </p>
           </div>
         </div>
       </section>
@@ -213,6 +249,8 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <FounderTrustStrip />
 
       {/* AI AGENT */}
       <section id="ai-agent" className="border-b border-white/10 bg-[#0d0b26] py-16">
@@ -282,6 +320,15 @@ export default function Home() {
               </article>
             ))}
           </div>
+
+          <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-slate-500">
+            Scoring and qualification are informational &mdash; licensed loan officers make every lending decision.
+            See our{" "}
+            <Link href="/licensing-disclosures" className="font-medium text-violet-700 underline hover:text-violet-900">
+              licensing &amp; disclosures
+            </Link>
+            .
+          </p>
 
           {/* Steps */}
           <div className="mx-auto mt-20 max-w-2xl text-center">
@@ -387,7 +434,11 @@ export default function Home() {
             ))}
           </div>
           <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-white/45">
-            Availability, permitted use, and freshness of public-record data vary by county and plan. Users remain responsible for privacy, licensing, and outreach compliance.
+            Availability, permitted use, and freshness of public-record data vary by county and plan. Users remain responsible for privacy, licensing, and outreach compliance. Read our{" "}
+            <Link href="/licensing-disclosures" className="underline hover:text-white">
+              licensing &amp; disclosures
+            </Link>
+            .
           </p>
         </div>
       </section>
@@ -407,7 +458,7 @@ export default function Home() {
             <MortgageIntakeChat brand="ypn" variant="embed" funnelSource="homepage_live_demo" />
           </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Programs supported:</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Programs supported:</span>
             {PROGRAMS.map((p) => (
               <span key={p} className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
                 {p}
@@ -501,9 +552,36 @@ export default function Home() {
               </span>
             ))}
           </div>
-          <p className="mt-4 text-center text-xs text-slate-400">
+          <p className="mt-4 text-center text-xs text-slate-600">
             Territory availability is limited and first-come. Prices shown are launch rates.
           </p>
+        </div>
+      </section>
+
+      {/* FOUNDER TRUST */}
+      <section className="border-y border-white/10 bg-[#0b0a20] py-14">
+        <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-6 px-6 text-center md:flex-row md:text-left">
+          <div className="flex-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">Built by a loan officer</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white lg:text-3xl">
+              Founded by {AUTHOR_NAME}, with nearly 30 years in mortgage
+            </h2>
+            <p className="mt-3 text-white/75">
+              Former top-producing loan officer at Chase Bank and Wells Fargo Home Mortgage, Amazon-published author
+              and nationwide speaker. NMLS #{NMLS_ID} · California DRE #{CA_DRE_ID}.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-3 text-sm font-semibold">
+            <Link
+              href="/consultation"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-7 py-3 text-[#09081b] shadow-lg shadow-amber-500/30 transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+            >
+              Talk to the founder
+            </Link>
+            <Link href="/about" className="inline-flex min-h-[44px] items-center justify-center text-violet-200 underline underline-offset-4 hover:text-white">
+              About David
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -544,6 +622,7 @@ export default function Home() {
           </p>
         </div>
       </section>
+      </main>
 
       <SiteFooter />
 

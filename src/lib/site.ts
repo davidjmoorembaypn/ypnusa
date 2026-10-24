@@ -14,6 +14,11 @@ export const APP_SITE_URL =
 export const WP_API_BASE =
   process.env.YPNUS_WP_API_BASE?.trim() || `${MARKETING_SITE_URL}/wp-json/ypnus/v1`;
 
+/** Stripe customer-portal login (a public link) where Subscribers manage or cancel online. */
+export const CUSTOMER_PORTAL_URL =
+  process.env.STRIPE_CUSTOMER_PORTAL_URL?.trim() ||
+  "https://billing.stripe.com/p/login/7sYcN41NEc3L7i96GG3AY00";
+
 export function marketingUrl(path = "/"): string {
   if (!path || path === "/") return MARKETING_SITE_URL;
   return `${MARKETING_SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;

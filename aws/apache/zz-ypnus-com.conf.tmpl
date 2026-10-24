@@ -1,0 +1,83 @@
+# ypnus.com + www.ypnus.com "front door" on the AWS host.
+# Rendered by aws/apache/install-front-door.sh (never edit the rendered copy by hand).
+#
+# Routing rule: WordPress keeps ONLY what the Next.js app cannot do yet (sign-in/SSO
+# hand-off, signup + checkout pages, the Stripe webhook, the live ZIP ledger, media
+# uploads). Everything else is served by the Next.js app on 127.0.0.1:3000.
+# Nothing here changes app.ypnus.com's own virtual host (ypnusa.conf).
+#
+# Named zz-* so it loads AFTER ypnusa.conf: the first-loaded vhost is Apache's
+# default for unknown hostnames, and that must stay app.ypnus.com's.
+
+# ---- port 80: ACME challenges + redirect to HTTPS --------------------------------
+<VirtualHost *:80>
+    ServerName ypnus.com
+    ServerAlias www.ypnus.com
+
+    Alias /.well-known/acme-challenge/ /var/www/letsencrypt/.well-known/acme-challenge/
+    <Directory "/var/www/letsencrypt/.well-known/acme-challenge/">
+        Require all granted
+    </Directory>
+
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+    RewriteRule ^/?(.*)$ https://ypnus.com/$1 [R=301,L]
+</VirtualHost>
+
+# ---- port 443: www -> apex ---------------------------------------------------------
+<VirtualHost *:443>
+    ServerName www.ypnus.com
+    SSLEngine on
+    SSLCertificateFile    @CERT_FULLCHAIN@
+    SSLCertificateKeyFile @CERT_PRIVKEY@
+    Redirect permanent / https://ypnus.com/
+</VirtualHost>
+
+# ---- port 443: the site -------------------------------------------------------------
+<VirtualHost *:443>
+    ServerName ypnus.com
+    SSLEngine on
+    SSLCertificateFile    @CERT_FULLCHAIN@
+    SSLCertificateKeyFile @CERT_PRIVKEY@
+
+    ProxyPreserveHost On
+    ProxyTimeout 60
+    AllowEncodedSlashes NoDecode
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "443"
+
+    # Old WordPress sitemap URLs (already submitted to Google) -> the app's sitemap.
+    RewriteEngine On
+    RewriteRule ^/(sitemap_index|wp-sitemap)\.xml$ /sitemap.xml [R=301,L]
+
+    # --- Routed to the retained WordPress origin ---
+    # The origin is addressed by the NAME ypnus.com, which install-front-door.sh pins to the
+    # origin IP in /etc/hosts (marker: ypnusa-wp-origin). Full TLS verification stays ON:
+    # certificate chain, expiry AND hostname, so the origin cannot be impersonated.
+    SSLProxyEngine On
+    SSLProxyVerify require
+    SSLProxyVerifyDepth 3
+    SSLProxyCACertificateFile /etc/pki/tls/certs/ca-bundle.crt
+    SSLProxyCheckPeerName on
+    SSLProxyCheckPeerCN on
+    SSLProxyCheckPeerExpire on
+
+    ProxyPass        /wp-json/    https://@WP_ORIGIN_HOST@/wp-json/    nocanon
+    ProxyPassReverse /wp-json/    https://@WP_ORIGIN_HOST@/wp-json/
+    ProxyPass        /wp-admin/   https://@WP_ORIGIN_HOST@/wp-admin/
+    ProxyPassReverse /wp-admin/   https://@WP_ORIGIN_HOST@/wp-admin/
+    ProxyPass        /wp-content/ https://@WP_ORIGIN_HOST@/wp-content/
+    ProxyPassReverse /wp-content/ https://@WP_ORIGIN_HOST@/wp-content/
+    ProxyPass        /wp-includes/ https://@WP_ORIGIN_HOST@/wp-includes/
+    ProxyPassReverse /wp-includes/ https://@WP_ORIGIN_HOST@/wp-includes/
+    ProxyPass        /wp-login.php https://@WP_ORIGIN_HOST@/wp-login.php
+    ProxyPassReverse /wp-login.php https://@WP_ORIGIN_HOST@/wp-login.php
+    ProxyPassMatch   "^/((lo-[A-Za-z0-9_-]+|check-zip|pricing|onboarding|ypn-ai-borrower-intake|predictive-intelligence)\.html)$" "https://@WP_ORIGIN_HOST@/$1"
+
+    # --- Everything else: the Next.js app ---
+    ProxyPass        / http://127.0.0.1:3000/
+    ProxyPassReverse / http://127.0.0.1:3000/
+
+    ErrorLog  /var/log/httpd/ypnus-com-error.log
+    CustomLog /var/log/httpd/ypnus-com-access.log combined
+</VirtualHost>

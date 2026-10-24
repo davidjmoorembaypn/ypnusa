@@ -1,7 +1,7 @@
 import { appendAnalytics, persistFollowUpsBatch, readDb, writeDb } from "./db";
 import { automationDailyLimitFor, resolveOfficerEntitlement } from "./entitlements";
 import { generateId } from "./id";
-import { deliverOutreach } from "./outreach";
+import { deliverOutreach, OutreachNotConfiguredError } from "./outreach";
 import { buildZipContext } from "./agents/zipContext";
 import { buildCountyEvents } from "./agents/countyEvents";
 import { scoreLead, type Lead } from "./agents/predictiveAgent";
@@ -240,6 +240,19 @@ export async function processDueFollowUps(options?: {
       processed += 1;
       events.push(`${job.plan}:${job.channel}:${delivery.provider}`);
     } catch (error) {
+      if (error instanceof OutreachNotConfiguredError) {
+        // Not the lead's fault and not a failed attempt: hold the job until a provider exists.
+        writeDb((db) => {
+          const current = db.followUps.find((item) => item.id === jobId);
+          if (!current) return;
+          current.status = "pending";
+          current.attemptCount = Math.max(0, (current.attemptCount ?? 1) - 1);
+          current.scheduledAt = new Date(Date.now() + 60 * 60_000).toISOString();
+          current.lastError = error.message;
+        });
+        events.push(`${job.plan}:${job.channel}:provider_not_configured`);
+        continue;
+      }
       const message = error instanceof Error ? error.message : "Unknown outreach delivery failure.";
       writeDb((db) => {
         const current = db.followUps.find((item) => item.id === jobId);

@@ -1,22 +1,76 @@
-# app.ypnus.com — Next.js (Passenger) + legacy territory PHP routes.
-# After each Node.js deploy, Hostinger regenerates Passenger lines at the bottom.
-# Do NOT redirect the homepage to ypnus.com — that breaks the product app.
+# YPN USA App — Hostinger Production .htaccess
+# Next.js product app (Passenger lines at the bottom) + legacy territory redirects. Never redirect the homepage to ypnus.com.
 
-<IfModule mod_rewrite.c>
-  RewriteEngine On
+# Force HTTPS (SSL active — enabled 2026-07-20)
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # Force HTTPS
-  RewriteCond %{HTTPS} off
-  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# BEGIN YPNUS-LEGACY-TERRITORY-REDIRECTS (added 2026-08-16)
+# The old territory.php programmatic SEO pages (territories/states/cities/zips) were
+# retired 2026-08-09 when app.ypnus.com became the Next.js product app. Those ~70k
+# URLs were previously indexed and received real crawler traffic; without a redirect
+# they hard-404 and burn that SEO equity. Send them to the app homepage, which now
+# hosts the live ZIP-territory-checker feature (closest working equivalent).
+RewriteRule ^territories/?$ https://app.ypnus.com/ [R=301,L]
+RewriteRule ^states/[a-zA-Z]{2}/?$ https://app.ypnus.com/ [R=301,L]
+RewriteRule ^cities/[a-zA-Z]{2}/[a-z0-9-]+/?$ https://app.ypnus.com/ [R=301,L]
+RewriteRule ^zips/[0-9]{5}/?$ https://app.ypnus.com/ [R=301,L]
+# END YPNUS-LEGACY-TERRITORY-REDIRECTS
 
-  # Homepage is served by the Next.js Node app (Passenger). Never bounce to marketing.
+# Homepage served by Next.js Node app (Passenger) — do not redirect to ypnus.com.
 
-  # Legacy programmatic SEO territory pages (territory.php) when present.
-  RewriteRule ^territories/?$ territory.php?view=hub [L,QSA]
-  RewriteRule ^states/([a-zA-Z]{2})/?$ territory.php?view=state&state=$1 [L,QSA]
-  RewriteRule ^cities/([a-zA-Z]{2})/([a-z0-9-]+)/?$ territory.php?view=city&state=$1&city=$2 [L,QSA]
-  RewriteRule ^zips/([0-9]{5})/?$ territory.php?view=zip&zip=$1 [L,QSA]
-  RewriteRule ^feed\.xml$ territory.php?view=feed [L]
+# Programmatic SEO territory pages (territory.php engine) — legacy, unreachable now that
+# the YPNUS-LEGACY-TERRITORY-REDIRECTS block above catches these patterns first with an
+# external 301. Left in place (dead code) rather than removed, to keep this change minimal.
+RewriteRule ^territories/?$ territory.php?view=hub [L,QSA]
+RewriteRule ^states/([a-zA-Z]{2})/?$ territory.php?view=state&state=$1 [L,QSA]
+RewriteRule ^cities/([a-zA-Z]{2})/([a-z0-9-]+)/?$ territory.php?view=city&state=$1&city=$2 [L,QSA]
+RewriteRule ^zips/([0-9]{5})/?$ territory.php?view=zip&zip=$1 [L,QSA]
+RewriteRule ^feed\.xml$ territory.php?view=feed [L]
+
+# Serve gzipped sitemaps with correct headers
+<FilesMatch "sitemap-[0-9]+\.xml\.gz$">
+    Header set Content-Type "application/xml"
+    Header set Content-Encoding "gzip"
+</FilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    # X-Frame-Options comes from the Next.js app (DENY everywhere except /embed/*, which MLO sites iframe).
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://ypnus.com https://chromeuxreport.googleapis.com; frame-src 'self' https://www.youtube-nocookie.com https://www.google.com;"
+</IfModule>
+
+# Protect data & config
+RedirectMatch 403 ^/data/
+RedirectMatch 403 ^/api/config\.php$
+RedirectMatch 403 ^/api/db\.php$
+
+# Deny access to hidden files
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes
+
+# Core Web Vitals: long cache for static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 30 days"
+</IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|webp|jpg|jpeg|png|svg|woff2)$">
+        Header set Cache-Control "public, max-age=604800, immutable"
+    </FilesMatch>
 </IfModule>
 
 # BEGIN YPNUS-NOINDEX-PROGRAMMATIC
@@ -27,3 +81,12 @@ SetEnvIf Request_URI "^/(app/)?(zips|cities)/" YPNUS_NOINDEX=1
 Header set X-Robots-Tag "noindex, follow" env=YPNUS_NOINDEX
 </IfModule>
 # END YPNUS-NOINDEX-PROGRAMMATIC
+PassengerAppRoot /home/u853154979/domains/ypnus.com/app/hbuilds/current/nodejs
+PassengerAppType node
+PassengerNodejs /opt/alt/alt-nodejs20/root/bin/node
+PassengerStartupFile server.js
+PassengerBaseURI /
+PassengerRestartDir /home/u853154979/domains/ypnus.com/app/hbuilds/current/nodejs/tmp
+SetEnv NODE_OPTIONS "--require /home/u853154979/domains/ypnus.com/app/hbuilds/config/preload-timestamp.js"
+SetEnv LSNODE_CONSOLE_LOG console.log
+SetEnv TOKIO_WORKER_THREADS 2

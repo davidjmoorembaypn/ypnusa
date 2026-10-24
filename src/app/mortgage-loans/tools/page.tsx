@@ -55,6 +55,11 @@ export default function MloPortalToolsPage() {
         Stub layout for the tools directory linked from every mortgage-loans program page.
         Authenticated tools route through the existing loan-officer dashboard.
       </p>
+      <p className="mt-4 max-w-2xl text-sm leading-7 text-white/70">
+        A solo loan officer grows through three levers: a Google Business Profile that gets found, social content
+        that stays consistent, and a borrower tool that starts conversations. These free tools cover each one, so
+        you own your growth engine instead of renting it.
+      </p>
       <StubNotice>Layout and links only &mdash; tool descriptions are placeholders.</StubNotice>
 
       <ul className="mt-10 grid gap-4 sm:grid-cols-2">

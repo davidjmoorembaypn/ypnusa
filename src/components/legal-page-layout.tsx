@@ -16,7 +16,7 @@ export function LegalPageLayout({
   return (
     <>
       <SiteHeader />
-      <main className="bg-[#09081b] text-white">
+      <main id="main-content" className="bg-[#09081b] text-white">
         <div className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">Legal</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>

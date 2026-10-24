@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+.next
+data
+.env*
+!.env.example
+legacy
+wp-plugins
+wp-mu-plugins
+hostinger
+docs
+*.md

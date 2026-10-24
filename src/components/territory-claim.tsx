@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { track } from "@/lib/track";
 import { postJson } from "@/lib/client-api";
 import { marketingUrl } from "@/lib/site";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
@@ -48,10 +49,21 @@ function signupHrefFor(zip?: string, plan = "free") {
 export const ZIP_CHECKED_EVENT = "ypnus:zip-checked";
 
 /**
+ * sessionStorage key PricingCta falls back to when it mounts on a different
+ * route (e.g. /pricing) than the one TerritoryClaim ran on, so a ZIP checked
+ * on the home page still locks the territory a visitor pays for after
+ * clicking "Pricing" in the nav — a plain `?zip=` on the current page's URL
+ * doesn't survive that navigation.
+ */
+export const ZIP_STORAGE_KEY = "ypnus:checked-zip";
+
+/**
  * Reflects a confirmed ZIP into this page's own URL (no navigation/reload) so a
- * page reload or shared link carries it, and broadcasts a same-page event so
+ * page reload or shared link carries it, broadcasts a same-page event so
  * components mounted before this check — the pricing tier CTAs — can pick it up
- * immediately rather than only on their own next mount. See PricingCta.
+ * immediately rather than only on their own next mount, and persists it to
+ * sessionStorage so it also survives navigating to a different route (e.g.
+ * /pricing). See PricingCta.
  */
 function syncZipToPageUrl(zip: string | null) {
   try {
@@ -62,6 +74,12 @@ function syncZipToPageUrl(zip: string | null) {
     window.dispatchEvent(new CustomEvent(ZIP_CHECKED_EVENT, { detail: { zip } }));
   } catch {
     /** noop — purely a cross-component convenience, never blocks the check flow. */
+  }
+  try {
+    if (zip) sessionStorage.setItem(ZIP_STORAGE_KEY, zip);
+    else sessionStorage.removeItem(ZIP_STORAGE_KEY);
+  } catch {
+    /** noop — sessionStorage can be unavailable (private browsing); not critical. */
   }
 }
 
@@ -134,6 +152,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       // Never propagate an unavailable ZIP into the pricing CTAs — a visitor could
       // otherwise pay for a territory the page just described as already claimed.
       if (data.available) syncZipToPageUrl(data.zip);
+      track("zip_check", { zip: data.zip, available: data.available, source });
       void enrichWithIntelligence(data.zip, data.available, data.demand?.total ?? undefined);
     } catch {
       setCheck({ status: "error", message: "Couldn't reach the territory service — try again." });
@@ -179,6 +198,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         setSubmit({ status: "error", message: data?.error ?? "Something went wrong — try again." });
         return;
       }
+      track("generate_lead", { source, method: "territory_reservation" });
       setSubmit({ status: "done", message: data.message ?? "You're in — we'll be in touch shortly." });
     } catch {
       setSubmit({ status: "error", message: "Network error — try again in a moment." });

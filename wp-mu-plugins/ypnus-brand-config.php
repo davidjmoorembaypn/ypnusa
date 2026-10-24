@@ -4,14 +4,11 @@
  * Description: Single source of truth for brand, pricing, and SEO constants.
  * Version: 2.3.0
  *
- * NOT YET DEPLOYED. This is a prepared replacement for the live 2.2.0 version of this exact
- * file (wp-content/mu-plugins/ypnus-brand-config.php) — see wp-mu-plugins/README.md.
+ * DEPLOYED (mu-plugins load automatically; there is no staging step for this file).
  *
- * CHANGES FROM LIVE 2.2.0, per the canonical five-tier commercial model (matches
- * app.ypnus.com's src/lib/pricing.ts exactly):
- *   - ypn_pricing_tiers() gains 'growth' ($99) between starter and pro.
- *   - Pro corrected from $99.99 -> $199. Elite corrected from $299.99 -> $299 (whole dollars,
- *     matching the app-side canonical prices).
+ * 2026-09-24: final live pricing set per owner instruction -- Growth $99.99/mo, Pro
+ * $199.99/mo, Elite $299.99/mo (see ypn_pricing_tiers() / ypn_stripe_urls() below). This
+ * supersedes the whole-dollar amounts briefly used after the earlier five-tier migration.
  *   - ypn_trial_config()'s paid_stripe_trial_days corrected from 0 -> 15. The old
  *     "14-day free-account Pro feature preview" mechanism (pro_preview_days /
  *     pro_preview_features) is retired — free is Cerebro-only now, not a temporary taste of
@@ -74,18 +71,18 @@ function ypn_pricing_tiers(): array {
 		),
 		'growth'  => array(
 			'label'   => 'Growth',
-			'amount'  => '99',
-			'display' => '$99',
+			'amount'  => '99.99',
+			'display' => '$99.99',
 		),
 		'pro'     => array(
 			'label'   => 'Pro',
-			'amount'  => '199',
-			'display' => '$199',
+			'amount'  => '199.99',
+			'display' => '$199.99',
 		),
 		'elite'   => array(
 			'label'   => 'Elite',
-			'amount'  => '299',
-			'display' => '$299',
+			'amount'  => '299.99',
+			'display' => '$299.99',
 		),
 	);
 }
@@ -97,15 +94,11 @@ function ypn_pricing_tiers(): array {
  */
 function ypn_stripe_urls(): array {
 	$defaults = array(
-		'starter'        => 'https://buy.stripe.com/dRmaEZ9e9fWG9qs9T133W00',
-		// NOT SET. Create a Growth Payment Link in the Stripe Dashboard (metadata
-		// ypnus_tier=growth, see wp-plugins/ypnus-stripe-webhook/README.md) and set its URL
-		// here or via the ypnus_stripe_urls option — never invent one.
-		'growth'         => '',
-		'pro'            => 'https://buy.stripe.com/6oU7sN61X6m66egaX533W01',
-		'elite'          => 'https://buy.stripe.com/cNicN7fCx11MbyAd5d33W02',
+		'growth'         => 'https://buy.stripe.com/14A6oG4ZQ3xf31T5CC3AY0I',
+		'pro'            => 'https://buy.stripe.com/4gM3cu8c2aZHcCt3uu3AY0J',
+		'elite'          => 'https://buy.stripe.com/dRmcN43VM9VDeKBfdc3AY0K',
 		'dfy'            => 'https://buy.stripe.com/cNifZj0HDfWG7ik4yH33W03',
-		'billing_portal' => 'https://billing.stripe.com/p/login/7sY00j33jgBO1UZ8282Fa00',
+		'billing_portal' => 'https://billing.stripe.com/p/login/7sYcN41NEc3L7i96GG3AY00',
 	);
 	$custom = get_option( 'ypnus_stripe_urls', array() );
 	if ( ! is_array( $custom ) ) {
@@ -120,11 +113,12 @@ function ypn_stripe_urls(): array {
  * @return array<string, string>
  */
 function ypn_stripe_annual_urls(): array {
+	$monthly  = ypn_stripe_urls();
 	$defaults = array(
-		'starter' => '',
-		'growth'  => '',
-		'pro'     => '',
-		'elite'   => '',
+		'starter' => $monthly['starter'] ?? '',
+		'growth'  => $monthly['growth'] ?? '',
+		'pro'     => $monthly['pro'] ?? '',
+		'elite'   => $monthly['elite'] ?? '',
 	);
 	$custom = get_option( 'ypnus_stripe_annual_urls', array() );
 	if ( ! is_array( $custom ) ) {
@@ -224,7 +218,7 @@ function ypn_payment_plans(): array {
 				'amount'        => round( $amount * 12 * 0.85, 2 ),
 				'monthly_equiv' => '$' . number_format( round( $amount * 0.85, 2 ), 2 ) . '/mo',
 				'discount_pct'  => 15,
-				'stripe'        => $annual[ $tier ] ?? '',
+				'stripe'        => $annual[ $tier ] ?? ( $monthly[ $tier ] ?? '' ),
 				'paypal'        => $paypal['urls'][ $tier ] ?? '',
 			),
 		);
@@ -277,17 +271,15 @@ function ypn_pricing_seo(): array {
 	$tiers = ypn_pricing_tiers();
 	return array(
 		'title'       => sprintf(
-			'%s Pricing — Starter %s/mo, Growth %s/mo, Pro %s/mo, Elite %s/mo',
+			'%s Pricing — Growth %s/mo, Pro %s/mo, Elite %s/mo',
 			YPN_BRAND,
-			$tiers['starter']['display'],
 			$tiers['growth']['display'],
 			$tiers['pro']['display'],
 			$tiers['elite']['display']
 		),
 		'description' => sprintf(
-			'%s pricing for loan officers. Free Cerebro diagnostic, then Starter %s/mo, Growth %s/mo, Pro %s/mo, or Elite %s/mo — 15-day trial on every paid plan, 1 exclusive ZIP included.',
+			'%s pricing for loan officers. Free Cerebro diagnostic, then Growth %s/mo, Pro %s/mo, or Elite %s/mo — 15-day trial on every paid plan, 1 exclusive ZIP included.',
 			YPN_BRAND,
-			$tiers['starter']['display'],
 			$tiers['growth']['display'],
 			$tiers['pro']['display'],
 			$tiers['elite']['display']

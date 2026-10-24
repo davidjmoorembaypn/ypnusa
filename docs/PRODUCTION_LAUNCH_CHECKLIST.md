@@ -29,25 +29,37 @@ exist and it's easy to assume the wrong one is "the" pipeline:
   — already receives Stripe events directly, resolves tier, writes WordPress
   user meta, and is what actually feeds the signed SSO claim. If this is
   live and configured, entitlements already work end-to-end.
-- **This app's `/api/webhooks/fulfill`** (added this session, PR #52) — an
-  AWS Lambda forwards verified Stripe events here. It's fully correct and
-  tested (payment-status verification, per-subscription keying, event
-  ordering), but it only updates `RevenueSubscriptionRecord`, which feeds
-  **this app's own revenue-dashboard summary only** — it does **not** touch
-  the SSO claim or gate any MLO feature.
+- **This app's own fulfillment pipeline** — the shared core (`src/lib/fulfillment.ts`)
+  is correct and tested (payment-status verification, per-subscription keying,
+  event ordering) and can be reached two ways:
+  - `/api/webhooks/stripe` — this app verifies Stripe's signature directly
+    (`STRIPE_WEBHOOK_SECRET`), no forwarder needed. This is the one actually
+    in use (2026-10-20): a second, additive Stripe webhook endpoint was
+    created pointing here alongside WordPress's existing one — see
+    `docs/AWS_MIGRATION.md`'s "Stripe dependency replacement" section.
+  - `/api/webhooks/fulfill` — same core logic, reached via an internal
+    secret instead of a Stripe signature, for a trusted forwarder (e.g. an
+    AWS Lambda) if one is ever built. None exists today; this route is kept
+    for that future and for its existing tests.
+  Either way, this only updates `RevenueSubscriptionRecord`, which feeds
+  **this app's own ZIP-claim ledger (`src/lib/territory.ts`) and
+  revenue-dashboard summary** — it does **not** touch the SSO claim or gate
+  any MLO feature. WordPress's own Stripe webhook remains the system of
+  record for the signed SSO claim until that's explicitly decided otherwise.
 
-Before relying on `/api/webhooks/fulfill` for anything user-facing, confirm
-with whoever owns the WordPress side whether that plugin's pipeline is the
-system of record (likely, given it's already built) or whether the Lambda is
-meant to replace it (a larger integration than what exists today).
-
-Required if using `/api/webhooks/fulfill`:
+Required for `/api/webhooks/stripe` (the one in use):
 
 | Env var | Purpose |
 | --- | --- |
-| `LAMBDA_FULFILLMENT_SECRET` | Shared secret the Lambda sends as `x-internal-secret` |
-| `STRIPE_PRICE_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Maps a Stripe price to a paid tier |
-| `STRIPE_PRODUCT_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Fallback mapping by product instead of price |
+| `STRIPE_WEBHOOK_SECRET` | The `whsec_...` signing secret for this app's own Stripe webhook endpoint |
+| `STRIPE_PRICE_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Fallback tier mapping by price, used only when Stripe metadata (`ypnus_tier` — already set on every live Payment Link/price) is absent |
+| `STRIPE_PRODUCT_ID_STARTER` / `_GROWTH` / `_PRO` / `_ELITE` | Same fallback, by product |
+
+Required instead for `/api/webhooks/fulfill` (unused unless a forwarder is built):
+
+| Env var | Purpose |
+| --- | --- |
+| `LAMBDA_FULFILLMENT_SECRET` | Shared secret the forwarder sends as `x-internal-secret` |
 
 ## 3. Legal pages — resolved (PR #65)
 
@@ -295,3 +307,99 @@ a reflexive fix:
 
 Re-verified after these fixes: `npm run lint` (0 errors), `npm test`
 (357/357), `npm run build` (clean).
+
+## 10. Production pass — 2026-09-24 (owner-approved, applied live)
+
+**App (app.ypnus.com)** — live build is whatever `/api/health` reports as `build.commit`.
+
+- Deploy: `next build` can't finish inside Hostinger's LVE, so bundles are built off-host and installed with `scripts/hostinger-install-release.sh` (checksum, `YPN-ENV-LOADER` preamble carried forward, previous chunks kept, worker recycled, auto-rollback). GitHub Actions jobs don't start on this account (billing/settings), so until that's fixed the bundle is published to the `deploy/app-build` branch and installed with `YPNUS_BUILD_URL` (see `hostinger/README.md`).
+- Hostinger's CDN honors `s-maxage` and never purges on deploy: static pages now send `s-maxage=300, stale-while-revalidate=300` (root layout `revalidate = 300`, `expireTime: 600`). Copies cached before that carry a one-year TTL — flush the CDN once in hPanel.
+- `public_html/app/.htaccess` no longer forces `X-Frame-Options: SAMEORIGIN`; the app sends DENY everywhere except `/embed/*` (MLO sites iframe the intake).
+- `/api/health` no longer exposes the server data path; JSON store is multi-process safe.
+
+**WordPress (ypnus.com)**
+
+- Stripe: new Payment Links + $99.99/$199.99/$299.99 everywhere; webhook resolves tier from the current price (portal plan switches); price map in `ypnus_stripe_tier_by_price_id`; customer-portal login link now points at the live account.
+- Compliance: TCPA checkbox on WPForms territory form, `lo-signup.html`, `/contact/`; `/signup` now stores `tcpa_consent`/`consent_at`/`consent_version`; NMLS/EHO/Consumer Access footer on static pages; `/welcome/` post-checkout page (noindex).
+- Security: WP File Manager and Auto Affiliate Links removed; `DISALLOW_FILE_EDIT`; backups moved out of `public_html` to `~/backups/`; the duplicate WordPress install at `/loans/` is locked (403; `/loans/pricing.html` 301s to `/pricing.html`; original rules in `~/backups/2026-09-24/loans/`).
+- SEO: duplicate redirects removed; redirected pages noindexed; author sitemap off (it exposed service-account usernames); sitemap crawl: 450/450 URLs resolve.
+
+**Owner-only (not doable from code):** flush the hPanel CDN once; switch WP Mail SMTP from PHP `mail` to authenticated Hostinger SMTP and send a test; Stripe Dashboard (deactivate old $99/$199/$299/Starter links, after-payment redirect to `/welcome/`, portal return URL + legal links, tax registrations); fix GitHub Actions billing; attorney review of legal copy; decide whether to delete `/loans/`.
+
+## 11. Security, SEO and analytics pass — 2026-09-26 (owner-approved, applied live)
+
+Everything below is live on ypnus.com. Repo copies are in `wp-mu-plugins/` (see its README) and were
+deployed by commit hash with sha256 checks. Previous live files and edited post content are backed up
+outside the web root in `~/backups/2026-09-26/`.
+
+**Security**
+
+- Open endpoints closed (`ypnus-endpoint-guard.php`):
+  - MLO Toolkit AJAX. Agent chat (its tools create pages and delete nav-menu items), content generator and keyword scout had logged-out access.
+  - `/create-mlo` published "Verified MLO" pages for anyone.
+  - `/login` had no brute-force limit.
+  - `/request-reset` could flood inboxes.
+- Rate limits and the wp-login lockout trusted spoofable `CF-Connecting-IP`/`X-Forwarded-For`. They now use `REMOTE_ADDR`, which is the real visitor IP on this host (verified against recorded comment IPs).
+- `/profile` and `/leads` check the signup token, an admin or the linked owner. Token-less `/profile` returns only the LO's name, so `go.html` greets borrowers again.
+- WPCode snippets:
+  - `MLO Signup` (#128) created published pages from any POST, with no auth. It was inert only because injected HTML broke it. Deactivated, together with its post type (#127) and a WebMCP demo banner (#6179), through WPCode's API so its cache is rebuilt.
+- One-off deploy scripts, a downloadable `home.php.bak-*` and an ops checklist moved out of `wp-content/uploads/ypnus-deploy/`. PHP execution in uploads was already blocked (verified: 403).
+
+**Compliance**
+
+- "Equal Housing Lender" (YPN is not a lender) replaced with "Equal Housing Opportunity" on 4 landing pages and in the MLO Toolkit disclosure.
+- The borrower intake widget (`ypn-ai-borrower-intake.html`) now has a required contact-consent checkbox.
+- `/intake` records `tcpa_consent`/`consent_at`, and lead emails state consent status. Leads without consent are flagged, never dropped.
+
+**SEO**
+
+- Rank Math's stripped category base made category archives take over same-slug pages: `/blog/` (the top page in Search Console) and three ~1,700-word pillar pages were served as noindexed archives. Pages now win (`ypnus-seo-routing.php`).
+- `/predictive-lead-gen/` was a redirect loop (Rank Math redirect #57 to a `/platform/` URL that bounced back). The redirect is now inactive.
+- About 30,800 templated `/markets/zip-NNNNN/` pages (84% identical text, some for nonexistent ZIPs, zero impressions) now send `noindex, follow`.
+- The root `.htaccess` used `Header set X-Robots-Tag`, which silently overwrote every noindex header from WordPress. It now uses `append`.
+- Sitemap: dropped two static app files, a nested sitemap index, the redirected privacy page, and the fixed redirect.
+- Headings: H1 added on `/loan-types/`; a blog post's hero heading promoted to H1.
+- Labels: 40+ unlabeled tool-page form fields labeled; the icon-only menu buttons given names.
+- Descriptions:
+  - 15 short meta descriptions expanded;
+  - the default "RM Locations Archive" title and description replaced.
+- Re-crawl of all 431 sitemap URLs:
+  - every URL returns 200;
+  - no noindex pages remain in the sitemap;
+  - no missing descriptions or H1s, except the KML file.
+
+**Data integrity**
+
+- An AI content tool had prepended identical "Overview / Key Operational Pillars" marketing HTML to 35 internal records: Rank Math schema templates, the Local SEO location, cookie definitions, Site Kit email logs, oEmbed caches and WPCode snippets. All were restored. The Rank Math shortcode-parser snippet works again.
+
+**Analytics and performance**
+
+- Analytics:
+  - The homepage fired conversion events but loaded no GA tag. `ypnus-analytics.php` now prints G-2TGE9M58H4 there.
+  - Two GA4 properties are in use: G-2TGE9M58H4 (Rank Math and the site's event code) and G-RLNE9FHL5L (Site Kit). Consolidating is the owner's call.
+- Scripts:
+  - Site Kit "Sign in with Google" and "Reader Revenue Manager" are off (third-party scripts on every post, not used).
+  - The persuasion script and stylesheet no longer download twice (`ypnus-front-perf.php`).
+
+**Owner-only (new this pass):**
+- Allow `developers.hostinger.com` in the Claude environment's network settings. That lets the CDN flush and DNS (DMARC `p=quarantine`) be done from a session.
+- Decide whether to keep both GA4 properties.
+- Turn on 2FA for WordPress admins.
+
+## 12. App restore — 2026-10-01
+
+- GitHub Actions works again now that the account billing is fixed. CI (lint, typecheck, tests, build) and Release build both pass on `main`.
+- A Hostinger Node.js deploy on 2026-09-26 05:20 UTC put an old prebuilt bundle on app.ypnus.com and deleted the installed releases. That bundle had:
+  - no California terms/privacy updates;
+  - no AI-chat notice;
+  - the old `/api/health`, which exposed the data dir;
+  - no `app/.env` loader.
+- Fix (PR #82):
+  - The server preamble now ships inside every release bundle (`hostinger/server-preamble.js`, injected by `scripts/inject-server-preamble.mjs`).
+  - `app-build-26aa271` was installed with `hostinger-install-release.sh`. `/api/health` reports `26aa271`, and the previous build is kept for rollback.
+  - `AGENTS.md` and `hostinger/README.md` forbid hPanel/API Node.js deploys for this app.
+- Hostinger's CDN still holds app pages cached from the old bundle with a one-year `s-maxage`, on at least 3 of its cache nodes. `Cache-Control: no-cache` requests don't refresh them.
+- Until the CDN is flushed, ypnus.com links to the app legal pages use `?v=20261001`. URLs with a query string bypass those copies. This covers the footer widget, chatbot settings, pages 18/1829/1835/6193, Rank Math redirects 71–73, the static funnel pages and the ARL email.
+- **Owner:** flush the CDN for app.ypnus.com (and ypnus.com) in hPanel, or allow `developers.hostinger.com` in the Claude environment's network settings so it can be done from a session.
+- The `Content-Security-Policy` in app.ypnus.com's `.htaccess` replaces the app's own and had no `frame-src`, so browsers blocked the optional overview video on `/onboarding` (`youtube-nocookie.com`). Added `frame-src 'self' https://www.youtube-nocookie.com https://www.google.com` live (backup: `/home/u853154979/backups/2026-10-01/app-docroot.htaccess.before-csp-frame-src`).
+- `hostinger/app-ypnus/.htaccess` is now a byte-for-byte copy of the live file. The stale static `index.html` and `robots.txt` beside it were removed: uploading them would hide the app's own `/` and `/robots.txt`, and the old `.htaccess` copy had no Passenger lines.

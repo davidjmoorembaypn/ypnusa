@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'YPNUS_SIGNUP_DB_VERSION', '1.2.0' ); // added password_hash
+define( 'YPNUS_SIGNUP_DB_VERSION', '1.1.0' ); // bumped 2026-08-19: added zip_of_interest
 define( 'YPNUS_INTAKE_DB_VERSION', '1.1.0' ); // added tcpa_consent / consent_at
 
 /**
@@ -123,23 +123,27 @@ function ypnus_intake_client_ip() {
 	return $remote_addr;
 }
 
-/** Authorize private LO data to the linked account owner or an administrator. */
+/**
+ * Private LO data (/profile, /leads): the dashboard token issued at signup (HMAC of lo_id, see
+ * ypnus-lead-auth-guard.php), an administrator, or the linked WordPress account owner.
+ */
 function ypnus_private_lo_data_permission( WP_REST_Request $request ) {
-	if ( ! is_user_logged_in() ) {
-		return new WP_Error( 'rest_forbidden', 'Authentication is required.', array( 'status' => 401 ) );
+	$lo_id = (string) $request->get_param( 'lo_id' );
+	$token = (string) $request->get_param( 'token' );
+	if ( '' !== $lo_id && '' !== $token && hash_equals( hash_hmac( 'sha256', $lo_id, wp_salt( 'auth' ) ), $token ) ) {
+		return true;
 	}
 	if ( current_user_can( 'manage_options' ) ) {
 		return true;
 	}
-	$lo_id = sanitize_text_field( (string) $request->get_param( 'lo_id' ) );
-	if ( '' === $lo_id ) {
-		return new WP_Error( 'rest_forbidden', 'You are not authorized to access this account.', array( 'status' => 403 ) );
+	if ( ! is_user_logged_in() ) {
+		return new WP_Error( 'rest_forbidden', 'Authentication is required.', array( 'status' => 401 ) );
 	}
 	global $wpdb;
-	$owner_id = $wpdb->get_var(
+	$owner_id = '' === $lo_id ? null : $wpdb->get_var(
 		$wpdb->prepare(
 			'SELECT wp_user_id FROM ' . ypnus_signup_table_name() . ' WHERE lo_id = %s AND wp_user_id IS NOT NULL LIMIT 1',
-			$lo_id
+			sanitize_text_field( $lo_id )
 		)
 	);
 	if ( ! $owner_id || (int) $owner_id !== get_current_user_id() ) {
@@ -167,9 +171,9 @@ add_action(
 	static function () {
 		global $wpdb;
 		$charset = $wpdb->get_charset_collate();
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 		if ( get_option( 'ypnus_signup_db_version' ) !== YPNUS_SIGNUP_DB_VERSION ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			$table = ypnus_signup_table_name();
 			$sql   = "CREATE TABLE {$table} (
 				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -183,6 +187,9 @@ add_action(
 				password_hash varchar(255) NOT NULL DEFAULT '',
 				status varchar(20) NOT NULL DEFAULT 'trial',
 				source varchar(40) NOT NULL DEFAULT 'lo-signup',
+				tcpa_consent tinyint(1) NOT NULL DEFAULT 0,
+				consent_at datetime NULL DEFAULT NULL,
+				consent_version varchar(40) NULL DEFAULT NULL,
 				created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				PRIMARY KEY  (id),
 				UNIQUE KEY lo_id (lo_id),
@@ -194,6 +201,7 @@ add_action(
 		}
 
 		if ( get_option( 'ypnus_intake_db_version' ) !== YPNUS_INTAKE_DB_VERSION ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			$table = ypnus_intake_table_name();
 			$sql   = "CREATE TABLE {$table} (
 				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -462,6 +470,10 @@ add_action(
 						}
 					}
 
+					// TCPA evidence: lo-signup.html sends tcpa_consent only when the (unchecked-by-default) box is ticked.
+					$tcpa_raw     = $request->get_param( 'tcpa_consent' );
+					$tcpa_consent = true === $tcpa_raw || in_array( strtolower( (string) $tcpa_raw ), array( '1', 'true', 'yes', 'on' ), true );
+
 					$inserted = $wpdb->insert(
 						$table,
 						array(
@@ -472,11 +484,14 @@ add_action(
 							'email'      => $email,
 							'phone'      => $phone,
 							'zip_of_interest' => $zip_of_interest,
+							'tcpa_consent'    => $tcpa_consent ? 1 : 0,
+							'consent_at'      => $tcpa_consent ? current_time( 'mysql', true ) : null,
+							'consent_version' => $tcpa_consent ? 'tcpa-2026-09-24' : null,
 							'password_hash' => password_hash( $password, PASSWORD_DEFAULT ),
 							'status'     => 'trial',
 							'source'     => $settings['configured'] ? 'supabase' : 'wordpress',
 						),
-						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s' )
 					);
 
 					if ( ! $inserted ) {
@@ -611,15 +626,6 @@ add_action(
 						return new WP_Error( 'missing_fields', 'Name, email, and phone are required.', array( 'status' => 400 ) );
 					}
 
-					$tcpa_consent = filter_var( $request->get_param( 'tcpa_consent' ), FILTER_VALIDATE_BOOLEAN );
-					if ( ! $tcpa_consent ) {
-						return new WP_Error(
-							'consent_required',
-							'Contact consent (tcpa_consent) is required before submitting this lead.',
-							array( 'status' => 400 )
-						);
-					}
-
 					$lead_score    = max( 0, min( 100, (int) $request->get_param( 'lead_score' ) ) );
 					$lead_quality  = sanitize_text_field( (string) $request->get_param( 'lead_quality' ) );
 					$loan_type     = sanitize_text_field( (string) $request->get_param( 'loan_type' ) );
@@ -636,6 +642,10 @@ add_action(
 					if ( $lead_quality === '' ) {
 						$lead_quality = $lead_score >= 70 ? 'Hot' : ( $lead_score >= 40 ? 'Warm' : 'Cool' );
 					}
+
+					// TCPA evidence: the borrower widget sends tcpa_consent only after its unchecked-by-default box is ticked.
+					// A lead without it is still saved (never silently lost) but flagged so it is not autodialed or texted.
+					$tcpa_consent = filter_var( $request->get_param( 'tcpa_consent' ), FILTER_VALIDATE_BOOLEAN );
 
 					global $wpdb;
 					$inserted = $wpdb->insert(
@@ -657,8 +667,8 @@ add_action(
 							'payload'              => $payload,
 							'source_url'           => $source_url,
 							'status'               => 'new',
-							'tcpa_consent'         => 1,
-							'consent_at'           => current_time( 'mysql' ),
+							'tcpa_consent'         => $tcpa_consent ? 1 : 0,
+							'consent_at'           => $tcpa_consent ? current_time( 'mysql', true ) : null,
 						),
 						array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
 					);
@@ -670,7 +680,7 @@ add_action(
 					wp_mail(
 						get_option( 'admin_email' ),
 						'New YPNUS borrower lead: ' . $name,
-						"LO ID: {$lo_id}\nName: {$name}\nEmail: {$email}\nPhone: {$phone}\nScore: {$lead_score} ({$lead_quality})\nLoan: {$loan_type} / {$loan_program}"
+						"LO ID: {$lo_id}\nName: {$name}\nEmail: {$email}\nPhone: {$phone}\nScore: {$lead_score} ({$lead_quality})\nLoan: {$loan_type} / {$loan_program}\nContact consent (calls/texts): " . ( $tcpa_consent ? 'YES, recorded ' . current_time( 'mysql', true ) . ' UTC' : 'NOT GIVEN. Do not autodial, prerecord, or text this borrower.' )
 					);
 
 					return rest_ensure_response(

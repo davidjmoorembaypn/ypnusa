@@ -10,11 +10,16 @@ const geistSans = Geist({
   display: "swap",
 });
 
+// Hostinger's CDN honors s-maxage and never purges on deploy; Next's default for a
+// static page is a year. ISR every 5 minutes (plus expireTime in next.config.ts)
+// caps edge staleness at ~10 minutes. Dynamic pages stay private/no-store.
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   metadataBase: new URL(APP_SITE_URL),
   title: {
     default: "YPN USA App — Mortgage Growth Platform for Loan Officers",
-    template: "%s · YPN USA App",
+    template: "%s | YPN USA",
   },
   description:
     "YPN USA is the mortgage growth platform for loan officers: claim exclusive ZIP territories, capture borrowers with AI intake, and turn local demand into owned leads.",

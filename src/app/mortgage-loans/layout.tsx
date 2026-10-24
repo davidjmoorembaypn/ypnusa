@@ -12,7 +12,7 @@ export default function MortgageLoansLayout({ children }: { children: ReactNode 
   return (
     <>
       <SiteHeader />
-      <main className="min-h-screen bg-[#09081b] text-white">{children}</main>
+      <main id="main-content" className="min-h-screen bg-[#09081b] text-white">{children}</main>
       <MloComplianceFooter />
       <SiteFooter />
     </>

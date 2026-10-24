@@ -45,6 +45,11 @@ const SECTIONS = [
     description: "Rule-based lead scoring across census and county life-event signals.",
   },
   {
+    href: "/dashboard/growth",
+    title: "Growth Copilot",
+    description: "Your three best actions this week, plus a compliance check for your posts and emails.",
+  },
+  {
     href: "/dashboard/intelligence",
     title: "Content Generators",
     description: "Marketing copy, GMB posts, and website page specs.",

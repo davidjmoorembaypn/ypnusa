@@ -1,19 +1,52 @@
 # Hostinger deploy notes — ypnus.com + app.ypnus.com
 
+## Deploy app.ypnus.com (current method)
+
+`next build` can't finish inside Hostinger's LVE (memory/thread caps), so the
+app is built on GitHub and only the finished bundle is installed on the server:
+
+1. Merge to `main`. `.github/workflows/release-build.yml` runs the tests, builds
+   the standalone bundle on Node 20, injects `hostinger/server-preamble.js`
+   (persistent data dir + `YPN-ENV-LOADER` for `app/.env`) into its `server.js`
+   with `scripts/inject-server-preamble.mjs`, and publishes it as release
+   `app-build-<sha7>` (asset `app-build.tar.gz` + `.sha256`).
+2. On the server, run `bash scripts/hostinger-install-release.sh` (fetch it from
+   the repo's raw URL, or keep a copy in `app/hbuilds/`). It verifies the
+   checksum, installs to `hbuilds/versions/build-<ts>-<sha7>/nodejs` (copying the
+   preamble from the live build only if a bundle lacks it), keeps the previous
+   build's hashed chunks for CDN-cached HTML, switches `hbuilds/current`,
+   recycles the LiteSpeed worker, and rolls back automatically unless
+   `/api/health` reports the new `build.commit`.
+3. Confirm: `curl https://app.ypnus.com/api/health` shows `build.commit`.
+
+Never deploy app.ypnus.com through hPanel's Node.js "Deploy"/"Rebuild",
+Hostinger's Node.js Builds API, or an uploaded archive: on 2026-09-26 that
+replaced the live app with an old bundle (no compliance pages, no `app/.env`
+loader) and deleted the installed releases.
+
+If GitHub Actions can't run, build locally the same way the workflow does and push
+`app-build.tar.gz` + `.sha256` to the orphan branch `deploy/app-build`, then run the
+installer with
+`YPNUS_BUILD_URL=https://raw.githubusercontent.com/davidjmoorembaypn/ypnusa/deploy/app-build`.
+
+Secrets stay in `app/.env` (outside the web root); nothing secret ships in the bundle.
+After editing `app/.env`, re-run the installer: it restarts the worker, which reads
+the file at startup.
+
 ## Current production shape
 
 | Host | Role | Stack |
 | --- | --- | --- |
 | `https://ypnus.com` | Marketing, signup, Cerebro, Rank Math SEO | WordPress on Hostinger |
-| `https://app.ypnus.com` | Territory product / ZIP inventory | Static HTML (+ WP REST for lock ledger); Next.js ready |
+| `https://app.ypnus.com` | Territory product / ZIP inventory | Next.js standalone on LiteSpeed Node (Passenger-compatible), Node 20 |
 
 ## Critical live bugs found (and fixed)
 
 1. **`app.ypnus.com/` 301 → `ypnus.com/`**  
    Cause was an `.htaccess` rule (`RewriteRule ^$ https://ypnus.com/`) in the app
    document root — not Cloudflare alone. Removed by
-   `node scripts/deploy-hostinger.mjs fix-htaccess`. Redeploys can regenerate a
-   stale copy; the deploy script strips that rule automatically.
+   `node scripts/deploy-hostinger.mjs fix-htaccess`, which strips only that rule
+   if it ever reappears.
 
 2. **~70k URLs in `app.ypnus.com/sitemap.xml`**  
    Giant programmatic city/ZIP inventory. Matches the GSC “Not indexed” spike on the brand.
@@ -21,25 +54,22 @@
 3. **WordPress `page-sitemap.xml` includes media URLs**  
    Attachment/image URLs are leaking into the page sitemap via Rank Math — waste crawl budget.
 
-## Restore app homepage (do this first)
+## app.ypnus.com document root
 
-1. **Cloudflare** → `ypnus.com` zone → Rules → Redirect Rules / Page Rules:  
-   delete any rule that sends `app.ypnus.com` → `ypnus.com`.  
-   Or run (with `CLOUDFLARE_API_TOKEN`):
-   ```bash
-   node scripts/fix-cloudflare-redirect.mjs list
-   node scripts/fix-cloudflare-redirect.mjs delete
-   ```
-2. Upload the contents of `hostinger/app-ypnus/` into the **app.ypnus.com document root**:
-   - `index.html` — working ZIP checker against `ypnus.com/wp-json/ypnus/v1/zip-check/{zip}`
-   - `.htaccess` — keep the app homepage local
-   - `robots.txt` — lean crawl guidance
-3. Verify:
-   ```bash
-   curl -sI https://app.ypnus.com/ | head -5   # expect 200, not 301 to ypnus.com
-   curl -s https://ypnus.com/wp-json/ypnus/v1/zip-check/90210 | head -c 200
-   curl -sI https://app.ypnus.com/zips/90210/ | head -5
-   ```
+`/home/u853154979/domains/ypnus.com/public_html/app/` holds only `.htaccess`, and
+`hostinger/app-ypnus/.htaccess` is a byte-for-byte copy of it (2026-10-01). Edit the
+live file in place and keep the copy in sync:
+
+- Its last lines (`PassengerAppRoot …/hbuilds/current/nodejs` and the rest) start the
+  Node app. The installer only switches the `current` symlink, so they never change;
+  a file without them takes the app offline.
+- Its `Content-Security-Policy` replaces the app's own. A new third-party script,
+  frame or API origin has to be added there first. GA4 on the app would need
+  `https://*.googletagmanager.com` in `script-src`, `https://*.google-analytics.com
+  https://*.analytics.google.com https://*.googletagmanager.com` in `connect-src`,
+  and `NEXT_PUBLIC_GA_ID` at build time.
+- Never put an `index.html` or `robots.txt` in that folder: LiteSpeed would serve
+  it instead of the app's own `/` and `/robots.txt`.
 
 ## WordPress SEO hygiene (ypnus.com)
 
@@ -68,20 +98,22 @@ documented in `wp-plugins/ypnus-stripe-webhook/README.md`.
 ## Next.js app on Hostinger Cloud (Node.js web app)
 
 This repo is the **product app** for `https://app.ypnus.com` on a Hostinger
-**Cloud** plan (Node.js web apps). WordPress stays on `ypnus.com` for marketing/SEO.
+**Cloud** plan. WordPress stays on `ypnus.com` for marketing/SEO. Paths below are
+under `/home/u853154979/domains/ypnus.com/`.
 
 | Setting | Value |
 | --- | --- |
-| Plan | Hostinger Cloud (Startup / Professional / Enterprise) |
-| Application type | `next` (auto-detected) |
-| Node.js | 22 |
-| Build script | `build` |
-| Start script | `start` (`next start -H 0.0.0.0 -p $PORT`) |
-| Output directory | `.next` |
-| `output` in `next.config.ts` | `standalone` |
-| `NEXT_PUBLIC_SITE_URL` | `https://app.ypnus.com` |
-| `NEXT_PUBLIC_MARKETING_SITE_URL` | `https://ypnus.com` |
-| `YPNUS_WP_API_BASE` | `https://ypnus.com/wp-json/ypnus/v1` |
+| Runtime | LiteSpeed Node via the Passenger lines in `public_html/app/.htaccess`; Node 20 (`/opt/alt/alt-nodejs20`) |
+| App root | `app/hbuilds/current/nodejs` (the symlink the installer switches) |
+| Startup file | `server.js` from the `output: "standalone"` build |
+| Persistent data | `app/persistent-data` (`LOANPILOT_DATA_DIR`, set by the preamble) |
+| Secrets | `app/.env`, loaded at startup by the preamble |
+| `NEXT_PUBLIC_SITE_URL` | `https://app.ypnus.com` (code default) |
+| `NEXT_PUBLIC_MARKETING_SITE_URL` | `https://ypnus.com` (code default) |
+| `YPNUS_WP_API_BASE` | `https://ypnus.com/wp-json/ypnus/v1` (code default) |
+
+`NEXT_PUBLIC_*` values are baked in when GitHub Actions builds the bundle, so
+`app/.env` can't change them; set them in `release-build.yml` if one ever has to.
 
 ### If `npm run build` fails on Hostinger with an out-of-memory / RLIMIT_AS error
 
@@ -92,27 +124,18 @@ regardless of how much it actually uses, so `next build` can hit that ceiling
 even though the account has "enough" RAM on paper. This can't be raised from
 SSH or any PHP-facing setting — it's an account-level LVE restriction.
 
-Fix: build outside that LVE and deploy only the built output, instead of
-letting Hostinger's Node.js Builds API run `npm run build` on your account.
+Fix: never build on Hostinger. GitHub Actions builds the bundle and
+`scripts/hostinger-install-release.sh` installs it (see "Deploy app.ypnus.com"
+at the top of this file). Do not use Hostinger's Node.js Builds API in any form
+(`deploy-next`, `deploy-prebuilt`, hPanel Deploy/Rebuild): on 2026-09-26 a
+prebuilt upload through it replaced production with an old bundle and deleted
+the installed releases. Those script commands are now disabled.
 
-```bash
-node scripts/deploy-hostinger.mjs deploy-prebuilt [domain]
-```
+Runtime variables in `app/.env`:
 
-This builds `.next/standalone` locally (this repo already builds cleanly),
-copies `.next/static` and `public/` alongside it per Next's own standalone
-deployment docs, uploads that bundle instead of the source tree, and sets
-Hostinger's build step to a no-op so it just runs `node server.js` against
-the already-built bundle. **Not yet live-tested against Hostinger's API** —
-the exact fields their Node.js Builds endpoint expects for a "skip build,
-just run" flow aren't documented; run it once with a real
-`HOSTINGER_API_TOKEN` and adjust `build_script`/`start_script` in
-`deployPrebuilt()` if Hostinger's build phase still tries to run something
-real.
-
-If this approach doesn't pan out, the fallback is a VPS plan, where these
-process limits are configurable directly.
-| `LOANPILOT_DATA_DIR` | `/tmp/ypnus-data` |
+| Variable | Value |
+| --- | --- |
+| `LOANPILOT_DATA_DIR` | leave out: the preamble sets `app/persistent-data` before `app/.env` loads, so a value here is ignored |
 | `SESSION_SECRET` | random 32+ byte string — signs the `ypnus_session` cookie |
 | `YPNUS_SSO_SHARED_SECRET` | random secret shared with the WordPress SSO handoff (see `docs/sso-handoff.md`) |
 | `ADMIN_TOKEN` / `CRON_SECRET` | optional bearer secrets for machine-only endpoints (`/api/webhooks/leads`, `/api/automation/process`); `/api/analytics/summary` and `/api/revenue/summary` also accept either one **or** a valid `ypnus_session` cookie |
@@ -152,25 +175,8 @@ state. If a future need arises for app.ypnus.com to know a user's paid tier (e.g
 dashboard feature), pass `tier` / `subscription_status` through as claims on the SSO
 handoff (`docs/sso-handoff.md`) rather than re-deriving it from a second webhook.
 
-### Option A — hPanel GitHub deploy (recommended)
-1. Remove the Cloudflare redirect (above).
-2. If `app.ypnus.com` is still a static/PHP site, remove that website slot first
-   (download a backup), then **Websites → Add Website → Node.js web app**.
-3. Import `dave4079111/ypnusa`, set the env vars above, deploy branch `main`
-   (or this PR branch for a preview).
+## Not in use: Render blueprint
 
-### Option B — API archive deploy
-```bash
-export HOSTINGER_API_TOKEN=…   # hPanel → API
-npm run deploy:hostinger:list
-npm run deploy:hostinger:next          # defaults to app.ypnus.com
-npm run deploy:hostinger:status
-```
-
-The script uploads a source zip (no `node_modules` / `.next`), starts the Cloud
-Node.js build, and streams logs until completion. Set the env vars in hPanel
-afterward and **Restart** the Node process.
-
-### Option C — Render blueprint
-[`render.yaml`](../render.yaml) still works as a Node host; point DNS for
-`app.ypnus.com` at the Render service after the Cloudflare redirect is gone.
+[`render.yaml`](../render.yaml) describes a Render.com service for this app.
+Production is Hostinger: moving `app.ypnus.com` is a DNS change for the owner to
+approve, and the blueprint's `/tmp` data dir doesn't keep leads across restarts.

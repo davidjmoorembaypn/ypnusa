@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { SiloNav } from "@/components/silo-nav";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { marketingUrl } from "@/lib/site";
 import {
   LOCAL_SEO_PROFILES,
   LOCAL_SEO_PUBLIC_ORIGIN,
@@ -291,6 +294,17 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
         url: canonicalUrl,
         about: `${profile.city}, ${profile.stateCode} mortgage information`,
       };
+  const breadcrumbItems = [
+    { name: "Home", href: "/" },
+    { name: "MLO Local SEO & ZIP Code Territory Claims", href: "/#territories" },
+    { name: profile.kind === "city" ? `${profile.city}, ${profile.stateCode}` : profile.slug },
+  ];
+  // This page already knows the visitor's ZIP (when profile.kind is "zip") —
+  // carry it into signup so the territory they're reading about is the one
+  // that gets locked, same reasoning as PricingCta/checkoutUrlForTier.
+  const signupParams = new URLSearchParams({ plan: "free" });
+  if (profile.kind === "zip") signupParams.set("zip", profile.slug);
+  const signupHref = marketingUrl(`/lo-signup.html?${signupParams.toString()}`);
   const relatedProfiles = LOCAL_SEO_PROFILES.filter(
     (candidate) =>
       candidate.slug !== profile.slug &&
@@ -309,6 +323,7 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
         <section className="relative isolate overflow-hidden bg-[#09081b] text-white">
           <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative mx-auto max-w-6xl px-6 py-16 lg:py-24">
+            <Breadcrumbs items={breadcrumbItems} className="mb-6" />
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300">
               {profile.city}, {profile.stateCode} · {profile.county}
             </p>
@@ -400,6 +415,10 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
           </section>
         ) : null}
 
+        <section className="mx-auto max-w-6xl px-6 py-12">
+          <SiloNav silo="mortgage" currentPath={getLocalSeoPath(profile)} tone="light" />
+        </section>
+
         <section className="bg-[#100d2c] px-6 py-16 text-center text-white">
           <h2 className="text-3xl font-semibold">Talk through your local financing goal</h2>
           <p className="mx-auto mt-3 max-w-2xl text-white/70">
@@ -407,7 +426,7 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
             current availability and provide information for your specific scenario.
           </p>
           <a
-            href="https://ypnus.com/lo-signup.html"
+            href={signupHref}
             className="mt-7 inline-flex rounded-full bg-amber-400 px-7 py-3 font-semibold text-[#09081b]"
           >
             Get local mortgage guidance

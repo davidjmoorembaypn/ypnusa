@@ -46,6 +46,12 @@ export default async function LoginPage({
       <a href={signupHref} className="mt-3 inline-flex items-center justify-center rounded-full border border-violet-200 px-5 py-3 text-sm font-semibold text-violet-700 hover:bg-violet-50">
         Create a free account
       </a>
+      <p className="mt-5 text-center text-sm leading-6 text-slate-600">
+        New here?{" "}
+        <a href={signupHref} className="font-medium text-violet-700 underline">
+          Create your free account
+        </a>
+      </p>
       <p className="mt-5 text-sm leading-6 text-slate-600">
         Trouble accessing your account? <a href="mailto:support@ypnus.com" className="font-medium text-violet-700 underline">Contact support</a>.
       </p>

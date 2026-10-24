@@ -1,4 +1,25 @@
+import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
+// Imported by relative path, not the "@/" alias: next.config.ts runs outside the
+// app's webpack/TS path-alias resolution, so "@/content/wp-import" (which itself
+// imports "@/content/blog") would fail to resolve here.
+import wpRedirects from "./src/content/wp-import/redirects.json";
+
+function gitCommit(): string {
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch {
+    return "unknown";
+  }
+}
+
+// Stamped at build time so /api/health shows which build is live after a deploy.
+const buildInfo = {
+  APP_BUILT_AT: new Date().toISOString(),
+  APP_COMMIT: process.env.APP_COMMIT ?? process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? gitCommit(),
+};
 
 const immutableCache = "public, max-age=31536000, immutable";
 const publicAssetCache = "public, max-age=86400, stale-while-revalidate=604800";
@@ -29,6 +50,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // Don't advertise the framework on every response.
   poweredByHeader: false,
+  env: buildInfo,
+  // With the root layout's revalidate = 300: s-maxage=300, stale-while-revalidate=300.
+  expireTime: 600,
   // Hostinger LVE reports 64 CPUs but caps processes far lower; cap Next's build workers so page-data collection does not hit EAGAIN.
   experimental: { cpus: 2, workerThreads: false },
   images: {
@@ -38,17 +62,25 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        // Marketing copy and prior deploy docs (hostinger/README.md,
-        // hostinger-wp-node-devops/references/ypnus.md) document
-        // app.ypnus.com/register as the CTA target, but account creation
-        // actually lives on ypnus.com (see docs/sso-handoff.md) — /login
-        // already is the single "continue to ypnus.com" gateway for both
-        // sign-in and sign-up intents. Redirect so that target 404s never
-        // happen regardless of which URL a CTA was written against.
+        // Marketing copy, Stripe success URLs and prior deploy docs point at
+        // app.ypnus.com/register, but account creation lives on ypnus.com
+        // (see docs/sso-handoff.md). Send sign-up intent straight to the MLO
+        // signup page — one hop, no /login detour. 308 (permanent: true)
+        // preserves method and lets crawlers consolidate the old URL; the
+        // incoming query string (utm_*, plan, etc.) is carried over.
         source: "/register",
-        destination: "/login",
-        permanent: false,
+        destination: "https://ypnus.com/lo-signup.html",
+        permanent: true,
       },
+      // Migrated from ypnus.com's WordPress (docs/AWS_MIGRATION.md item 1): duplicate
+      // post URLs redirecting to their canonical post, plus the handful of page slugs
+      // remapped or dropped in favor of an existing native page. See
+      // src/content/wp-import/index.ts for how this map is generated.
+      ...Object.entries(wpRedirects as Record<string, string>).map(([source, destination]) => ({
+        source,
+        destination,
+        permanent: true,
+      })),
     ];
   },
   async headers() {

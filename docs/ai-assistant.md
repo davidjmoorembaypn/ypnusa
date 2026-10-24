@@ -18,7 +18,7 @@ without touching prompts, routing, or persistence.
   public chatbot today is the **Meow Apps / AI Engine** plugin, backed by
   **OpenAI** — unrelated to this repo and not to be duplicated by it.
 - **app.ypnus.com** (this repo) is a Node.js app on Hostinger Cloud
-  (`hostinger/README.md`, `npm run deploy:hostinger:*`). There is **no
+  (`hostinger/README.md`; deployed only as a GitHub release build). There is **no
   Vercel deployment** for this project — an old `Vercel` GitHub commit
   status may still appear on PRs from a stale/disconnected integration;
   it is not real production deployment and should not block merging or
@@ -47,8 +47,12 @@ without touching prompts, routing, or persistence.
 ```
 src/lib/ai/
   provider.ts             AiProvider interface + getAiProvider() — the only
-                           seam other code should import from.
+                           seam other code should import from. Picks between
+                           providers based on AI_PROVIDER / which API key is
+                           set — see Setup below.
   anthropic-provider.ts    @anthropic-ai/sdk-backed implementation.
+  openai-provider.ts       openai-sdk-backed implementation (Chat Completions
+                           API, function-calling tools).
   prompts.ts               Reusable system prompts per mode + the
                             capture_lead_qualification tool definition.
   chat-agent.ts            Orchestration: loads/creates the session, calls
@@ -57,10 +61,10 @@ src/lib/ai/
 src/app/api/assistant/chat/route.ts   POST { mode, message, sessionId? }
 ```
 
-Nothing outside `provider.ts` / `anthropic-provider.ts` imports the Anthropic
-SDK directly. To add another backend: implement `AiProvider` in a sibling
-file and select it in `getAiProvider()` based on whatever env var you
-introduce for it — `chat-agent.ts` and the route don't change.
+Nothing outside `provider.ts` / `anthropic-provider.ts` / `openai-provider.ts`
+imports a model-host SDK directly. To add another backend: implement
+`AiProvider` in a sibling file and add a branch in `getAiProvider()` —
+`chat-agent.ts` and the route don't change.
 
 ### Persistence
 
@@ -145,31 +149,53 @@ and pre-approval for buyers, property/payoff status for sellers, rate/balance
 and goal for refinance) rather than a rigid scripted flow, since the point of
 using an LLM here is natural slot-filling instead of another fixed form.
 
-## Setup (Hostinger Cloud / any Node host — no Vercel involved)
+## Setup (Hostinger Cloud, the AWS production host, or any Node host)
 
-1. Get a key at <https://console.anthropic.com/settings/keys>.
-2. Configure environment variables on the server (hPanel's Node.js app env
-   vars, `.env.local` for local dev, or your process manager's env config —
-   never commit a real key):
-   - `ANTHROPIC_API_KEY` — required to enable real replies.
+Two providers are supported today — OpenAI and Anthropic. `getAiProvider()`
+picks one with no code change required:
+
+- Set `AI_PROVIDER=openai`, `anthropic` or `gemini` to choose the primary.
+- When several keys are set, the others are automatic backups: if the primary errors (empty balance, rate limit, outage), the same request is retried on the next provider.
+- Left unset, OpenAI is preferred whenever `OPENAI_API_KEY` is present,
+  falling back to Anthropic. **Switching providers is a pure env-var change
+  on the host — set the new key (and `AI_PROVIDER` if you want to pin it),
+  restart the app, done.** No redeploy needed.
+
+1. Get a key: OpenAI at <https://platform.openai.com/api-keys>, Anthropic at
+   <https://console.anthropic.com/settings/keys>. Make sure the account
+   behind the key has billing/credits enabled — a key that exists but has no
+   credit balance fails every request with an API error (the chat route
+   currently surfaces this as a generic "unexpected error" to the visitor;
+   check server logs / the raw API response for the real cause).
+2. Configure environment variables (production on the AWS host: `/etc/ypnusa/app.env`,
+   root-only, loaded by systemd — see `aws/README.md`; Hostinger standby:
+   `app/.env` on the server; local dev: `.env.local`; never commit a real key):
+   - `OPENAI_API_KEY` — enables the OpenAI provider.
+   - `OPENAI_MODEL` — optional, overrides the default (`gpt-4.1`).
+   - `GEMINI_API_KEY` — enables Google Gemini (free tier at aistudio.google.com/apikey, no billing needed).
+   - `GEMINI_MODEL` — optional, overrides the default (`gemini-3.8-flash`).
+   - `ANTHROPIC_API_KEY` — enables the Anthropic provider.
    - `ANTHROPIC_MODEL` — optional, overrides the default (`claude-opus-5`),
      e.g. `claude-sonnet-5` or `claude-haiku-4-5` for lower cost/latency once
      you've measured quality is acceptable.
+   - `AI_PROVIDER` — optional, `openai` or `anthropic` to pin the choice.
    - `YPNUS_LEAD_WEBHOOK_SECRET` — **not yet wired up.** Reserved for a
      future dedicated secret on `/api/webhooks/leads`; that route currently
      authenticates via the existing `ADMIN_TOKEN`/`CRON_SECRET` (see
      `.env.example`) instead.
-3. Run the production build with the existing package scripts
-   (`npm run build`, `npm run start`, or `npm run deploy:hostinger:next` —
-   see `hostinger/README.md`) and restart the app process so it picks up
-   the new env vars (`getAiProvider()` memoizes per-process; see
-   `resetAiProviderCache` for tests).
+3. Restart the app so it reads them; no rebuild is needed. On the AWS host,
+   `systemctl restart ypnusa` (via SSM); on Hostinger, re-run
+   `scripts/hostinger-install-release.sh` (see `hostinger/README.md`);
+   locally, restart `npm run dev`/`npm run start`
+   (`getAiProvider()` memoizes per-process; see `resetAiProviderCache` for
+   tests).
 4. Confirm ypnus.com's reverse proxy / subdomain routing to app.ypnus.com is
-   intact (Hostinger/Passenger config, not anything in this repo), and check
-   server logs if the assistant doesn't come up after restart.
+   intact, and check server logs if the assistant doesn't come up after
+   restart.
 
-Nothing else needs to change — `/api/assistant/chat` and the chat UI already
-handle both the configured and not-configured cases.
+Nothing else needs to change — `/api/assistant/chat`, `/api/tools/marketing`,
+and the chat UI already handle both the configured and not-configured cases
+for whichever provider is active.
 
 ## Amazon Bedrock (optional)
 

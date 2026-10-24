@@ -2,7 +2,7 @@
 /**
  * Plugin Name: YPNUS Stripe Webhook
  * Description: Verifies Stripe webhooks and reconciles YPNUS WordPress account entitlements.
- * Version: 2.1.0
+ * Version: 2.1.1
  * Author: YPN USA
  */
 
@@ -334,12 +334,11 @@ function ypnus_stripe_resolve_checkout_tier( $session ) {
 }
 
 function ypnus_stripe_resolve_subscription_tier( $subscription ) {
+	// The current price wins over metadata: a plan switch in the customer portal
+	// changes the price but keeps the metadata copied from the original Payment Link.
 	$metadata_tier = isset( $subscription['metadata']['ypnus_tier'] )
 		? ypnus_stripe_allowed_tier( $subscription['metadata']['ypnus_tier'] )
 		: '';
-	if ( $metadata_tier ) {
-		return $metadata_tier;
-	}
 
 	$price_map = ypnus_stripe_price_map();
 	$tiers     = array();
@@ -355,7 +354,7 @@ function ypnus_stripe_resolve_subscription_tier( $subscription ) {
 		}
 	}
 
-	return 1 === count( $tiers ) ? array_key_first( $tiers ) : '';
+	return 1 === count( $tiers ) ? array_key_first( $tiers ) : $metadata_tier;
 }
 
 function ypnus_stripe_resolve_checkout_zip( $session ) {

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/track";
 import { checkoutUrlForTier } from "@/lib/checkout";
 import { marketingUrl } from "@/lib/site";
-import { ZIP_CHECKED_EVENT } from "@/components/territory-claim";
+import { ZIP_CHECKED_EVENT, ZIP_STORAGE_KEY } from "@/components/territory-claim";
 import type { PricingTierId } from "@/lib/pricing";
 
 function signupHrefForPlan(plan: string, zip?: string) {
@@ -18,9 +19,11 @@ function hrefFor(tierId: PricingTierId, zip?: string) {
 
 /**
  * Renders a pricing tier's signup/checkout link, then progressively enhances it
- * client-side with whatever ZIP the visitor already checked in TerritoryClaim
- * (synced into the URL's `?zip=` param via history.replaceState) — so a paid
- * signup locks the same territory they just confirmed was available, instead of
+ * client-side with whatever ZIP the visitor already checked in TerritoryClaim —
+ * read from this page's own `?zip=` param when present (same-page, synced via
+ * history.replaceState), otherwise from sessionStorage so a ZIP checked on the
+ * home page still applies after navigating to /pricing — so a paid signup
+ * locks the same territory they just confirmed was available, instead of
  * making them re-enter it on ypnus.com.
  */
 export function PricingCta({
@@ -40,7 +43,8 @@ export function PricingCta({
     }
 
     try {
-      applyZip(new URLSearchParams(window.location.search).get("zip"));
+      const fromUrl = new URLSearchParams(window.location.search).get("zip");
+      applyZip(fromUrl ?? sessionStorage.getItem(ZIP_STORAGE_KEY));
     } catch {
       /** noop — falls back to the zip-less href already rendered. */
     }
@@ -53,7 +57,11 @@ export function PricingCta({
   }, [tierId]);
 
   return (
-    <a href={href} className={className}>
+    <a
+      href={href}
+      className={className}
+      onClick={() => track(tierId === "free" ? "sign_up_click" : "begin_checkout", { plan: tierId })}
+    >
       {children}
     </a>
   );

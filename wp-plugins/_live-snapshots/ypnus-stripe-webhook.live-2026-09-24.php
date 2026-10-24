@@ -1,0 +1,1213 @@
+<?php
+/**
+ * Plugin Name: YPNUS Stripe Webhook
+ * Description: Verifies Stripe webhooks and reconciles YPNUS WordPress account entitlements.
+ * Version: 2.1.1
+ * Author: YPN USA
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+if ( ! defined( 'YPNUS_STRIPE_ALLOWED_TIERS' ) ) {
+	// 'growth' added for the 5-tier commercial model (free/starter/growth/pro/elite) —
+	// see app.ypnus.com's src/lib/pricing.ts for the canonical tier list and prices.
+	define( 'YPNUS_STRIPE_ALLOWED_TIERS', array( 'growth', 'pro', 'elite' ) /* starter discontinued 2026-09-18 */ );
+}
+if ( ! defined( 'YPNUS_STRIPE_SIGNATURE_TOLERANCE' ) ) {
+	define( 'YPNUS_STRIPE_SIGNATURE_TOLERANCE', 300 );
+}
+if ( ! defined( 'YPNUS_STRIPE_EVENT_STALE_SECONDS' ) ) {
+	define( 'YPNUS_STRIPE_EVENT_STALE_SECONDS', 600 );
+}
+if ( ! defined( 'YPNUS_STRIPE_EVENT_RETENTION_DAYS' ) ) {
+	define( 'YPNUS_STRIPE_EVENT_RETENTION_DAYS', 31 );
+}
+
+register_activation_hook( __FILE__, 'ypnus_stripe_activate' );
+register_deactivation_hook( __FILE__, 'ypnus_stripe_deactivate' );
+add_action( 'ypnus_stripe_cleanup', 'ypnus_stripe_cleanup_events' );
+add_action( 'rest_api_init', 'ypnus_stripe_register_route' );
+add_action( 'init', 'ypnus_stripe_maybe_upgrade_territory_table' );
+add_action( 'init', 'ypnus_stripe_maybe_upgrade_lifecycle_table' );
+
+function ypnus_stripe_events_table() {
+	global $wpdb;
+	return $wpdb->prefix . 'ypnus_stripe_events';
+}
+
+function ypnus_stripe_lifecycle_table() {
+	global $wpdb;
+	return $wpdb->prefix . 'ypnus_stripe_lifecycle';
+}
+
+function ypnus_stripe_territory_table() {
+	global $wpdb;
+	return $wpdb->prefix . 'ypnus_territory_locks';
+}
+
+function ypnus_stripe_activate() {
+	global $wpdb;
+
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	$charset_collate = $wpdb->get_charset_collate();
+	$events_table    = ypnus_stripe_events_table();
+	$lifecycle_table = ypnus_stripe_lifecycle_table();
+
+	dbDelta(
+		"CREATE TABLE {$events_table} (
+			event_id VARCHAR(255) NOT NULL,
+			event_type VARCHAR(100) NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'processing',
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			last_error TEXT NULL,
+			PRIMARY KEY  (event_id),
+			KEY status_updated (status, updated_at)
+		) {$charset_collate};"
+	);
+
+	dbDelta(
+		"CREATE TABLE {$lifecycle_table} (
+			subscription_id VARCHAR(255) NOT NULL,
+			customer_id VARCHAR(255) NOT NULL,
+			tier VARCHAR(20) NOT NULL DEFAULT '',
+			subscription_status VARCHAR(30) NOT NULL,
+			trial_ends_at VARCHAR(32) NOT NULL DEFAULT '',
+			last_event_created BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			last_event_priority SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+			last_event_id VARCHAR(255) NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (subscription_id),
+			KEY customer_id (customer_id)
+		) {$charset_collate};"
+	);
+
+	ypnus_stripe_create_territory_table();
+
+	if ( ! wp_next_scheduled( 'ypnus_stripe_cleanup' ) ) {
+		wp_schedule_event( time(), 'daily', 'ypnus_stripe_cleanup' );
+	}
+}
+
+/**
+ * Adds trial_ends_at to the lifecycle table for sites where the plugin was already
+ * active before this column existed. Same versioned-init-hook pattern as the
+ * territory table upgrade below — register_activation_hook doesn't re-fire on update.
+ */
+function ypnus_stripe_maybe_upgrade_lifecycle_table() {
+	if ( get_option( 'ypnus_stripe_lifecycle_trial_col_v1' ) ) {
+		return;
+	}
+	global $wpdb;
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	$charset_collate = $wpdb->get_charset_collate();
+	$table           = ypnus_stripe_lifecycle_table();
+	dbDelta(
+		"CREATE TABLE {$table} (
+			subscription_id VARCHAR(255) NOT NULL,
+			customer_id VARCHAR(255) NOT NULL,
+			tier VARCHAR(20) NOT NULL DEFAULT '',
+			subscription_status VARCHAR(30) NOT NULL,
+			trial_ends_at VARCHAR(32) NOT NULL DEFAULT '',
+			last_event_created BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			last_event_priority SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+			last_event_id VARCHAR(255) NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (subscription_id),
+			KEY customer_id (customer_id)
+		) {$charset_collate};"
+	);
+	update_option( 'ypnus_stripe_lifecycle_trial_col_v1', 1, false );
+}
+
+function ypnus_stripe_deactivate() {
+	wp_clear_scheduled_hook( 'ypnus_stripe_cleanup' );
+}
+
+/**
+ * Creates the ZIP territory lock table. Called from activation for fresh
+ * installs, and from an 'init' upgrade guard for sites where the plugin was
+ * already active before this table existed (register_activation_hook does
+ * not re-fire on plugin update).
+ */
+function ypnus_stripe_create_territory_table() {
+	global $wpdb;
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	$charset_collate = $wpdb->get_charset_collate();
+	$territory_table = ypnus_stripe_territory_table();
+
+	dbDelta(
+		"CREATE TABLE {$territory_table} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			zip_code VARCHAR(10) NOT NULL,
+			user_id BIGINT UNSIGNED NOT NULL,
+			stripe_subscription_id VARCHAR(255) NOT NULL,
+			tier VARCHAR(20) NOT NULL,
+			locked_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY zip_code (zip_code),
+			KEY user_id (user_id)
+		) {$charset_collate};"
+	);
+}
+
+function ypnus_stripe_maybe_upgrade_territory_table() {
+	if ( get_option( 'ypnus_stripe_territory_table_v1' ) ) {
+		return;
+	}
+	ypnus_stripe_create_territory_table();
+	update_option( 'ypnus_stripe_territory_table_v1', 1, false );
+}
+
+function ypnus_stripe_cleanup_events() {
+	global $wpdb;
+
+	$events_table = ypnus_stripe_events_table();
+	$completed    = gmdate( 'Y-m-d H:i:s', time() - ( YPNUS_STRIPE_EVENT_RETENTION_DAYS * DAY_IN_SECONDS ) );
+	$abandoned    = gmdate( 'Y-m-d H:i:s', time() - ( 2 * YPNUS_STRIPE_EVENT_RETENTION_DAYS * DAY_IN_SECONDS ) );
+
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$events_table}
+			WHERE (status = 'completed' AND updated_at < %s)
+			   OR (status = 'processing' AND updated_at < %s)",
+			$completed,
+			$abandoned
+		)
+	);
+}
+
+function ypnus_stripe_register_route() {
+	register_rest_route(
+		'ypnus/v1',
+		'/stripe-webhook',
+		array(
+			'methods'             => 'POST',
+			'callback'            => 'ypnus_stripe_webhook_handler',
+			'permission_callback' => '__return_true',
+		)
+	);
+	register_rest_route(
+		'ypnus/v1',
+		'/territory-status',
+		array(
+			'methods'             => 'GET',
+			'callback'            => 'ypnus_stripe_territory_status_handler',
+			'permission_callback' => '__return_true',
+		)
+	);
+}
+
+function ypnus_stripe_territory_status_handler( WP_REST_Request $request ) {
+	$zip = preg_replace( '/[^0-9]/', '', (string) $request->get_param( 'zip' ) );
+	if ( 5 !== strlen( $zip ) ) {
+		return ypnus_stripe_response( array( 'error' => 'invalid_zip' ), 400 );
+	}
+	return ypnus_stripe_response(
+		array(
+			'zip'       => $zip,
+			'available' => ! ypnus_stripe_territory_row( $zip ),
+		)
+	);
+}
+
+function ypnus_stripe_response( $body, $status = 200 ) {
+	return new WP_REST_Response( $body, $status );
+}
+
+function ypnus_stripe_webhook_secrets() {
+	$secrets = array();
+
+	if ( defined( 'YPNUS_STRIPE_WEBHOOK_SECRET' ) && is_string( YPNUS_STRIPE_WEBHOOK_SECRET ) ) {
+		$secrets[] = trim( YPNUS_STRIPE_WEBHOOK_SECRET );
+	}
+	if ( defined( 'YPNUS_STRIPE_WEBHOOK_SECRETS' ) && is_array( YPNUS_STRIPE_WEBHOOK_SECRETS ) ) {
+		foreach ( YPNUS_STRIPE_WEBHOOK_SECRETS as $secret ) {
+			if ( is_string( $secret ) ) {
+				$secrets[] = trim( $secret );
+			}
+		}
+	}
+
+	return array_values( array_unique( array_filter( $secrets ) ) );
+}
+
+function ypnus_stripe_parse_signature_header( $header ) {
+	$timestamp  = null;
+	$signatures = array();
+
+	foreach ( explode( ',', (string) $header ) as $piece ) {
+		$pair = explode( '=', trim( $piece ), 2 );
+		if ( 2 !== count( $pair ) ) {
+			continue;
+		}
+		$key   = trim( $pair[0] );
+		$value = trim( $pair[1] );
+		if ( 't' === $key ) {
+			$timestamp = $value;
+		} elseif ( 'v1' === $key && '' !== $value ) {
+			$signatures[] = $value;
+		}
+	}
+
+	if ( ! is_string( $timestamp ) || ! ctype_digit( $timestamp ) || empty( $signatures ) ) {
+		return array(
+			'ok'    => false,
+			'error' => 'malformed_signature',
+		);
+	}
+
+	return array(
+		'ok'         => true,
+		'timestamp'  => (int) $timestamp,
+		'signatures' => $signatures,
+	);
+}
+
+function ypnus_stripe_verify_signature( $payload, $header, $secrets, $now = null ) {
+	$parsed = ypnus_stripe_parse_signature_header( $header );
+	if ( ! $parsed['ok'] ) {
+		return $parsed;
+	}
+
+	$now = null === $now ? time() : (int) $now;
+	if ( abs( $now - $parsed['timestamp'] ) > YPNUS_STRIPE_SIGNATURE_TOLERANCE ) {
+		return array(
+			'ok'    => false,
+			'error' => 'stale_signature',
+		);
+	}
+
+	$signed_payload = $parsed['timestamp'] . '.' . $payload;
+	foreach ( $secrets as $secret ) {
+		$expected = hash_hmac( 'sha256', $signed_payload, $secret );
+		foreach ( $parsed['signatures'] as $candidate ) {
+			if ( hash_equals( $expected, $candidate ) ) {
+				return array(
+					'ok'        => true,
+					'timestamp' => $parsed['timestamp'],
+				);
+			}
+		}
+	}
+
+	return array(
+		'ok'    => false,
+		'error' => 'invalid_signature',
+	);
+}
+
+function ypnus_stripe_allowed_tier( $tier ) {
+	$tier = is_string( $tier ) ? strtolower( trim( $tier ) ) : '';
+	return in_array( $tier, YPNUS_STRIPE_ALLOWED_TIERS, true ) ? $tier : '';
+}
+
+function ypnus_stripe_payment_link_map() {
+	if ( defined( 'YPNUS_STRIPE_PAYMENT_LINK_TIERS' ) && is_array( YPNUS_STRIPE_PAYMENT_LINK_TIERS ) ) {
+		return YPNUS_STRIPE_PAYMENT_LINK_TIERS;
+	}
+	$stored = get_option( 'ypnus_stripe_tier_by_payment_link', array() );
+	return is_array( $stored ) ? $stored : array();
+}
+
+function ypnus_stripe_price_map() {
+	if ( defined( 'YPNUS_STRIPE_PRICE_TIERS' ) && is_array( YPNUS_STRIPE_PRICE_TIERS ) ) {
+		return YPNUS_STRIPE_PRICE_TIERS;
+	}
+	$stored = get_option( 'ypnus_stripe_tier_by_price_id', array() );
+	return is_array( $stored ) ? $stored : array();
+}
+
+function ypnus_stripe_resolve_checkout_tier( $session ) {
+	$metadata_tier = isset( $session['metadata']['ypnus_tier'] )
+		? ypnus_stripe_allowed_tier( $session['metadata']['ypnus_tier'] )
+		: '';
+	if ( $metadata_tier ) {
+		return $metadata_tier;
+	}
+
+	$payment_link = isset( $session['payment_link'] ) ? sanitize_text_field( $session['payment_link'] ) : '';
+	$link_map     = ypnus_stripe_payment_link_map();
+	return isset( $link_map[ $payment_link ] ) ? ypnus_stripe_allowed_tier( $link_map[ $payment_link ] ) : '';
+}
+
+function ypnus_stripe_resolve_subscription_tier( $subscription ) {
+	// The current price wins over metadata: a plan switch in the customer portal
+	// changes the price but keeps the metadata copied from the original Payment Link.
+	$metadata_tier = isset( $subscription['metadata']['ypnus_tier'] )
+		? ypnus_stripe_allowed_tier( $subscription['metadata']['ypnus_tier'] )
+		: '';
+
+	$price_map = ypnus_stripe_price_map();
+	$tiers     = array();
+	$items     = isset( $subscription['items']['data'] ) && is_array( $subscription['items']['data'] )
+		? $subscription['items']['data']
+		: array();
+
+	foreach ( $items as $item ) {
+		$price_id = isset( $item['price']['id'] ) ? sanitize_text_field( $item['price']['id'] ) : '';
+		$tier     = isset( $price_map[ $price_id ] ) ? ypnus_stripe_allowed_tier( $price_map[ $price_id ] ) : '';
+		if ( $tier ) {
+			$tiers[ $tier ] = true;
+		}
+	}
+
+	$resolved = 1 === count( $tiers ) ? array_key_first( $tiers ) : '';
+	if ( '' === $resolved && function_exists( 'ypnus_lo_act_tier_from_items' ) ) {
+		$resolved = ypnus_lo_act_tier_from_items( $items );
+	}
+	return '' !== $resolved ? $resolved : $metadata_tier;
+}
+
+function ypnus_stripe_resolve_checkout_zip( $session ) {
+	if ( function_exists( 'ypnus_lo_resolve_zip' ) ) {
+		return ypnus_lo_resolve_zip( $session );
+	}
+	$zip = isset( $session['metadata']['ypnus_zip'] )
+		? preg_replace( '/[^0-9]/', '', (string) $session['metadata']['ypnus_zip'] )
+		: '';
+	if ( '' === $zip && isset( $session['client_reference_id'] ) ) {
+		$zip = preg_replace( '/[^0-9]/', '', (string) $session['client_reference_id'] );
+	}
+	return 5 === strlen( $zip ) ? $zip : '';
+}
+
+function ypnus_stripe_territory_row( $zip ) {
+	global $wpdb;
+	$table = ypnus_stripe_territory_table();
+	return $wpdb->get_row( $wpdb->prepare( "SELECT user_id FROM {$table} WHERE zip_code = %s", $zip ) );
+}
+
+/**
+ * Claims a ZIP territory for a paying user. Idempotent under webhook
+ * retries: re-claiming a ZIP already held by the same user is a no-op.
+ * The UNIQUE key on zip_code is the actual lock — first INSERT to land
+ * wins the race, the loser gets 0 affected rows rather than an error.
+ */
+function ypnus_stripe_lock_zip_territory( $user_id, $subscription_id, $tier, $zip ) {
+	if ( '' === $zip ) {
+		return array( 'action' => 'skipped_no_zip' );
+	}
+
+	$existing = ypnus_stripe_territory_row( $zip );
+	if ( $existing ) {
+		if ( (int) $existing->user_id === (int) $user_id ) {
+			return array( 'action' => 'already_locked' );
+		}
+		return ypnus_stripe_flag_territory_conflict( $user_id, $subscription_id, $zip, (int) $existing->user_id );
+	}
+
+	global $wpdb;
+	$table    = ypnus_stripe_territory_table();
+	$inserted = $wpdb->query(
+		$wpdb->prepare(
+			"INSERT IGNORE INTO {$table} (zip_code, user_id, stripe_subscription_id, tier, locked_at) VALUES (%s, %d, %s, %s, %s)",
+			$zip,
+			$user_id,
+			$subscription_id,
+			$tier,
+			current_time( 'mysql', true )
+		)
+	);
+	if ( $inserted > 0 ) {
+		update_user_meta( $user_id, 'ypnus_locked_zip', $zip );
+		ypnus_stripe_log( 'territory_locked', array( 'user_id' => $user_id, 'zip' => $zip, 'tier' => $tier ) );
+		return array( 'action' => 'locked' );
+	}
+
+	$holder = ypnus_stripe_territory_row( $zip );
+	return ypnus_stripe_flag_territory_conflict( $user_id, $subscription_id, $zip, $holder ? (int) $holder->user_id : null );
+}
+
+/**
+ * Payment has already moved via Stripe by the time a conflict is detected,
+ * so this is never auto-resolved - flag it for manual refund/reassignment
+ * the same way an account_mapping_conflict is flagged.
+ */
+function ypnus_stripe_flag_territory_conflict( $user_id, $subscription_id, $zip, $held_by_user_id ) {
+	update_user_meta( $user_id, 'ypnus_territory_conflict', $zip );
+	ypnus_stripe_log(
+		'territory_conflict',
+		array(
+			'user_id'         => $user_id,
+			'zip'             => $zip,
+			'held_by_user_id' => $held_by_user_id,
+			'subscription_id' => $subscription_id,
+		)
+	);
+	return array( 'action' => 'territory_conflict' );
+}
+
+function ypnus_stripe_claim_event( $wpdb, $event_id, $event_type, $now = null ) {
+	$table = $wpdb->prefix . 'ypnus_stripe_events';
+	$now   = $now ? $now : current_time( 'mysql', true );
+
+	$inserted = $wpdb->query(
+		$wpdb->prepare(
+			"INSERT IGNORE INTO {$table}
+			(event_id, event_type, status, created_at, updated_at)
+			VALUES (%s, %s, 'processing', %s, %s)",
+			$event_id,
+			$event_type,
+			$now,
+			$now
+		)
+	);
+	if ( false === $inserted ) {
+		return 'retry';
+	}
+	if ( 1 === $inserted ) {
+		return 'claimed';
+	}
+
+	$row = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT status, updated_at FROM {$table} WHERE event_id = %s",
+			$event_id
+		)
+	);
+	if ( ! $row ) {
+		return 'retry';
+	}
+	if ( 'completed' === $row->status ) {
+		return 'duplicate';
+	}
+
+	$updated_at = strtotime( $row->updated_at . ' UTC' );
+	if ( false === $updated_at ) {
+		return 'retry';
+	}
+	$stale_cutoff = time() - YPNUS_STRIPE_EVENT_STALE_SECONDS;
+	if ( $updated_at <= $stale_cutoff ) {
+		$cutoff    = gmdate( 'Y-m-d H:i:s', $stale_cutoff );
+		$reclaimed = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table}
+				SET event_type = %s, status = 'processing', updated_at = %s, last_error = NULL
+				WHERE event_id = %s AND status = 'processing' AND updated_at <= %s",
+				$event_type,
+				$now,
+				$event_id,
+				$cutoff
+			)
+		);
+		if ( false === $reclaimed ) {
+			return 'retry';
+		}
+		if ( $reclaimed > 0 ) {
+			return 'claimed';
+		}
+	}
+
+	return 'in_progress';
+}
+
+function ypnus_stripe_release_event( $event_id ) {
+	global $wpdb;
+	return false !== $wpdb->delete( ypnus_stripe_events_table(), array( 'event_id' => $event_id ), array( '%s' ) );
+}
+
+function ypnus_stripe_complete_event( $event_id ) {
+	global $wpdb;
+	$updated = $wpdb->update(
+		ypnus_stripe_events_table(),
+		array(
+			'status'     => 'completed',
+			'updated_at' => current_time( 'mysql', true ),
+			'last_error' => null,
+		),
+		array( 'event_id' => $event_id ),
+		array( '%s', '%s', '%s' ),
+		array( '%s' )
+	);
+	return false !== $updated && $updated > 0;
+}
+
+function ypnus_stripe_lifecycle_priority( $status, $source ) {
+	if ( 'canceled' === $status ) {
+		return 100;
+	}
+	if ( 'past_due' === $status ) {
+		return 80;
+	}
+	if ( 'subscription' === $source ) {
+		return 60;
+	}
+	if ( 'invoice_paid' === $source ) {
+		return 40;
+	}
+	return 20;
+}
+
+function ypnus_stripe_record_lifecycle( $state ) {
+	global $wpdb;
+	$table         = ypnus_stripe_lifecycle_table();
+	$now           = current_time( 'mysql', true );
+	$trial_ends_at = isset( $state['trial_ends_at'] ) ? (string) $state['trial_ends_at'] : '';
+
+	$inserted = $wpdb->query(
+		$wpdb->prepare(
+			"INSERT IGNORE INTO {$table}
+			(subscription_id, customer_id, tier, subscription_status, trial_ends_at, last_event_created,
+			 last_event_priority, last_event_id, updated_at)
+			VALUES (%s, %s, %s, %s, %s, %d, %d, %s, %s)",
+			$state['subscription_id'],
+			$state['customer_id'],
+			$state['tier'],
+			$state['status'],
+			$trial_ends_at,
+			$state['event_created'],
+			$state['priority'],
+			$state['event_id'],
+			$now
+		)
+	);
+	if ( false === $inserted ) {
+		return array( 'status' => 'retry' );
+	}
+
+	if ( 0 === $inserted ) {
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table}
+				SET customer_id = %s,
+					tier = IF(%s <> '', %s, tier),
+					subscription_status = %s,
+					trial_ends_at = IF(%s <> '', %s, IF(%s <> 'trialing', '', trial_ends_at)),
+					last_event_created = %d,
+					last_event_priority = %d,
+					last_event_id = %s,
+					updated_at = %s
+				WHERE subscription_id = %s
+				  AND (
+					last_event_created < %d
+					OR (last_event_created = %d AND last_event_priority < %d)
+				  )",
+				$state['customer_id'],
+				$state['tier'],
+				$state['tier'],
+				$state['status'],
+				$trial_ends_at,
+				$trial_ends_at,
+				$state['status'],
+				$state['event_created'],
+				$state['priority'],
+				$state['event_id'],
+				$now,
+				$state['subscription_id'],
+				$state['event_created'],
+				$state['event_created'],
+				$state['priority']
+			)
+		);
+		if ( false === $updated ) {
+			return array( 'status' => 'retry' );
+		}
+	}
+
+	$row = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT * FROM {$table} WHERE subscription_id = %s",
+			$state['subscription_id']
+		)
+	);
+	if ( ! $row ) {
+		return array( 'status' => 'retry' );
+	}
+
+	return array(
+		'status' => $row->last_event_id === $state['event_id'] ? 'current' : 'stale',
+		'row'    => $row,
+	);
+}
+
+function ypnus_stripe_subscription_state( $stripe_status ) {
+	switch ( $stripe_status ) {
+		case 'active':
+			return 'active';
+		case 'trialing':
+			return 'trialing';
+		case 'canceled':
+		case 'incomplete_expired':
+			return 'canceled';
+		case 'past_due':
+		case 'unpaid':
+		case 'incomplete':
+		case 'paused':
+			return 'past_due';
+		default:
+			return '';
+	}
+}
+
+function ypnus_stripe_extract_invoice_subscription_id( $invoice ) {
+	if ( ! empty( $invoice['parent']['subscription_details']['subscription'] ) ) {
+		return sanitize_text_field( $invoice['parent']['subscription_details']['subscription'] );
+	}
+	if ( ! empty( $invoice['subscription'] ) ) {
+		return sanitize_text_field( $invoice['subscription'] );
+	}
+	return '';
+}
+
+function ypnus_stripe_find_user_by_meta( $key, $value ) {
+	if ( '' === $value ) {
+		return null;
+	}
+	$users = get_users(
+		array(
+			'meta_key'   => $key,
+			'meta_value' => $value,
+			'number'     => 1,
+		)
+	);
+	return empty( $users ) ? null : $users[0];
+}
+
+function ypnus_stripe_unique_username( $email ) {
+	$local = strstr( $email, '@', true );
+	$local = sanitize_user( false === $local ? 'ypnususer' : $local, true );
+	$local = $local ? substr( $local, 0, 38 ) : 'ypnususer';
+	$base  = $local . '-' . substr( hash( 'sha256', strtolower( $email ) ), 0, 12 );
+	$name  = substr( $base, 0, 60 );
+	$index = 1;
+
+	while ( username_exists( $name ) ) {
+		$suffix = '-' . $index;
+		$name   = substr( $base, 0, 60 - strlen( $suffix ) ) . $suffix;
+		++$index;
+	}
+	return $name;
+}
+
+function ypnus_stripe_write_user_meta( $user_id, $values ) {
+	foreach ( $values as $key => $value ) {
+		update_user_meta( $user_id, $key, $value );
+		if ( (string) get_user_meta( $user_id, $key, true ) !== (string) $value ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Resolves a Stripe subscription's trial end as an ISO 8601 string, or '' if the
+ * subscription isn't trialing / carries no trial_end. Stripe sends trial_end as a
+ * unix timestamp on the subscription object (present on both the subscription
+ * resource itself and, for a trialing checkout, on session.subscription when
+ * expanded — but the webhook payload for checkout.session.completed does not
+ * expand it, so trial length there is asserted via metadata elsewhere and the
+ * authoritative trial_end is picked up on the very next customer.subscription.*
+ * event, which always carries the full subscription object).
+ */
+function ypnus_stripe_resolve_trial_ends_at( $subscription ) {
+	if ( ! is_array( $subscription ) || empty( $subscription['trial_end'] ) || ! is_numeric( $subscription['trial_end'] ) ) {
+		return '';
+	}
+	return gmdate( 'c', (int) $subscription['trial_end'] );
+}
+
+/**
+ * If the LO-account identity bridge (ypnus-lo-account-bridge.php) is active, prefer
+ * the WordPress user it has already linked to this email over a fresh email lookup —
+ * that mapping is the canonical identity link an MLO actually logs in through.
+ * Falls back to plain get_user_by('email', ...) when the bridge isn't deployed, so
+ * this file works standalone exactly as it does today.
+ */
+function ypnus_stripe_resolve_email_user( $email ) {
+	if ( function_exists( 'ypnus_lo_account_wp_user_id' ) ) {
+		$linked_id = ypnus_lo_account_wp_user_id( $email );
+		if ( $linked_id ) {
+			$linked_user = get_user_by( 'id', $linked_id );
+			if ( $linked_user ) {
+				return $linked_user;
+			}
+		}
+	}
+	return get_user_by( 'email', $email );
+}
+
+function ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscription_id, $status, $trial_ends_at = '' ) {
+	$tier = ypnus_stripe_allowed_tier( $tier );
+	if ( ! $tier ) {
+		return false;
+	}
+	$has_access = in_array( $status, array( 'active', 'trialing' ), true ) ? '1' : '0';
+	$values = array(
+		'ypnus_tier'                   => $tier,
+		'ypnus_stripe_customer_id'     => $customer_id,
+		'ypnus_stripe_subscription_id' => $subscription_id,
+		'ypnus_subscription_status'    => $status,
+		'ypnus_paid_access'             => $has_access,
+		// Empty string (not deleted) once the subscription leaves 'trialing' — same
+		// "empty means no claim asserted" convention app.ypnus.com's SSO handoff and
+		// entitlements.ts already use, so this reads cleanly as "no trial" downstream.
+		'ypnus_trial_ends_at'          => 'trialing' === $status ? $trial_ends_at : '',
+	);
+	return ypnus_stripe_write_user_meta( $user_id, $values );
+}
+
+function ypnus_stripe_provision_user( $email, $tier, $customer_id, $subscription_id, $status ) {
+	$customer_user = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_customer_id', $customer_id );
+	$sub_user      = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_subscription_id', $subscription_id );
+	$email_user    = ypnus_stripe_resolve_email_user( $email );
+
+	$known_ids = array();
+	foreach ( array( $customer_user, $sub_user, $email_user ) as $candidate ) {
+		if ( $candidate ) {
+			$known_ids[ (int) $candidate->ID ] = true;
+		}
+	}
+	if ( count( $known_ids ) > 1 ) {
+		return array(
+			'ok'    => false,
+			'error' => 'account_mapping_conflict',
+		);
+	}
+
+	$user   = $customer_user ? $customer_user : ( $sub_user ? $sub_user : $email_user );
+	$is_new = false;
+	if ( $user ) {
+		$stored_customer = (string) get_user_meta( $user->ID, 'ypnus_stripe_customer_id', true );
+		$stored_sub      = (string) get_user_meta( $user->ID, 'ypnus_stripe_subscription_id', true );
+		if ( ( $stored_customer && $stored_customer !== $customer_id ) || ( $stored_sub && $stored_sub !== $subscription_id ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'account_mapping_conflict',
+			);
+		}
+		$user_id = (int) $user->ID;
+	} else {
+		$user_id = wp_insert_user(
+			array(
+				'user_login' => ypnus_stripe_unique_username( $email ),
+				'user_email' => $email,
+				'user_pass'  => wp_generate_password( 24 ),
+				'role'       => 'subscriber',
+			)
+		);
+		if ( is_wp_error( $user_id ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'user_create_failed',
+			);
+		}
+		$is_new = true;
+	}
+
+	if ( ! ypnus_stripe_apply_entitlement( $user_id, $tier, $customer_id, $subscription_id, $status ) ) {
+		return array(
+			'ok'    => false,
+			'error' => 'user_meta_write_failed',
+		);
+	}
+
+	if ( $is_new && ! get_user_meta( $user_id, 'ypnus_welcome_sent', true ) ) {
+		wp_new_user_notification( $user_id, null, 'user' );
+		update_user_meta( $user_id, 'ypnus_welcome_sent', '1' );
+	}
+
+	return array(
+		'ok'      => true,
+		'user_id' => $user_id,
+	);
+}
+
+function ypnus_stripe_apply_lifecycle_row( $row ) {
+	if ( function_exists( 'ypnus_lo_act_on_lifecycle' ) ) {
+		try {
+			ypnus_lo_act_on_lifecycle( $row );
+		} catch ( \Throwable $e ) {
+		ypnus_stripe_log( 'lo_lifecycle_error', array( 'msg' => $e->getMessage() ) );
+		}
+	}
+	$user = ypnus_stripe_find_user_by_meta( 'ypnus_stripe_customer_id', (string) $row->customer_id );
+	if ( ! $user ) {
+		return array(
+			'ok'      => true,
+			'pending' => true,
+		);
+	}
+
+	$stored_sub = (string) get_user_meta( $user->ID, 'ypnus_stripe_subscription_id', true );
+	if ( $stored_sub && $stored_sub !== (string) $row->subscription_id ) {
+		return array(
+			'ok'      => true,
+			'ignored' => true,
+		);
+	}
+
+	$tier = ypnus_stripe_allowed_tier( $row->tier );
+	if ( ! $tier ) {
+		$tier = ypnus_stripe_allowed_tier( get_user_meta( $user->ID, 'ypnus_tier', true ) );
+	}
+	if ( ! $tier ) {
+		return array(
+			'ok'    => false,
+			'error' => 'tier_unresolved',
+		);
+	}
+
+	$applied = ypnus_stripe_apply_entitlement(
+		$user->ID,
+		$tier,
+		(string) $row->customer_id,
+		(string) $row->subscription_id,
+		(string) $row->subscription_status,
+		isset( $row->trial_ends_at ) ? (string) $row->trial_ends_at : ''
+	);
+	return $applied ? array( 'ok' => true ) : array( 'ok' => false, 'error' => 'user_meta_write_failed' );
+}
+
+function ypnus_stripe_process_checkout( $event, $async = false ) {
+	$session = isset( $event['data']['object'] ) && is_array( $event['data']['object'] )
+		? $event['data']['object']
+		: array();
+
+	$payment_status = isset( $session['payment_status'] ) ? sanitize_text_field( $session['payment_status'] ) : '';
+	if ( ! $async && 'unpaid' === $payment_status ) {
+		return array(
+			'ok'     => true,
+			'action' => 'awaiting_async_payment',
+		);
+	}
+
+	$trial_flag = isset( $session['metadata']['ypnus_trialing'] )
+		? strtolower( (string) $session['metadata']['ypnus_trialing'] )
+		: '';
+	// Payment Link trials (card collected, first charge after the trial) arrive as no_payment_required with no custom metadata.
+	$is_trial   = 'no_payment_required' === $payment_status;
+	if ( 'paid' !== $payment_status && ! $is_trial ) {
+		return array(
+			'ok'    => false,
+			'error' => 'payment_not_verified',
+		);
+	}
+
+	$mode            = isset( $session['mode'] ) ? sanitize_text_field( $session['mode'] ) : '';
+	$customer_id     = isset( $session['customer'] ) ? sanitize_text_field( $session['customer'] ) : '';
+	$subscription_id = isset( $session['subscription'] ) ? sanitize_text_field( $session['subscription'] ) : '';
+	$email           = '';
+	if ( ! empty( $session['customer_details']['email'] ) ) {
+		$email = sanitize_email( $session['customer_details']['email'] );
+	} elseif ( ! empty( $session['customer_email'] ) ) {
+		$email = sanitize_email( $session['customer_email'] );
+	}
+
+	if ( 'subscription' !== $mode || ! $customer_id || ! $subscription_id || ! $email || ! is_email( $email ) ) {
+		return array(
+			'ok'    => false,
+			'error' => 'invalid_checkout_session',
+		);
+	}
+
+	$tier = ypnus_stripe_resolve_checkout_tier( $session );
+	if ( ! $tier && function_exists( 'ypnus_lo_act_tier_for_subscription' ) ) {
+		$tier = ypnus_lo_act_tier_for_subscription( $subscription_id );
+	}
+	if ( ! $tier && ! function_exists( 'ypnus_lo_act_on_checkout' ) ) {
+		return array(
+			'ok'    => false,
+			'error' => 'tier_unresolved',
+		);
+	}
+
+	$status    = $is_trial ? 'trialing' : 'active';
+	$lifecycle = ypnus_stripe_record_lifecycle(
+		array(
+			'subscription_id' => $subscription_id,
+			'customer_id'     => $customer_id,
+			'tier'            => $tier,
+			'status'          => $status,
+			'event_created'   => (int) $event['created'],
+			'priority'        => ypnus_stripe_lifecycle_priority( $status, 'checkout' ),
+			'event_id'        => $event['id'],
+		)
+	);
+	if ( 'retry' === $lifecycle['status'] ) {
+		return array(
+			'ok'    => false,
+			'error' => 'lifecycle_write_failed',
+		);
+	}
+
+	$current_tier   = ypnus_stripe_allowed_tier( $lifecycle['row']->tier ) ?: $tier;
+	$current_status = (string) $lifecycle['row']->subscription_status;
+	$zip            = ypnus_stripe_resolve_checkout_zip( $session );
+
+	if ( function_exists( 'ypnus_lo_act_on_checkout' ) ) {
+		$lo = ypnus_lo_act_on_checkout( $session, $email, $current_tier, $customer_id, $subscription_id, $current_status, $zip );
+		if ( ! empty( $lo['action'] ) && 'not_a_paid_tier' !== $lo['action'] ) {
+			// The real account lives in wp_ypnus_lo_accounts; entitlement meta only for an already-linked WP user. Never create a parallel WP user.
+			if ( ! empty( $lo['wp_user_id'] ) && get_userdata( (int) $lo['wp_user_id'] ) ) {
+				ypnus_stripe_apply_entitlement( (int) $lo['wp_user_id'], $current_tier, $customer_id, $subscription_id, $current_status );
+			}
+			return array(
+				'ok'         => true,
+				'lo_account' => $lo['action'],
+				'territory'  => isset( $lo['territory'] ) ? $lo['territory'] : '',
+			);
+		}
+	}
+
+	$provision = ypnus_stripe_provision_user(
+		$email,
+		$current_tier,
+		$customer_id,
+		$subscription_id,
+		$current_status
+	);
+	if ( $provision['ok'] ) {
+		$lock                   = ypnus_stripe_lock_zip_territory( $provision['user_id'], $subscription_id, $current_tier, $zip );
+		$provision['territory'] = $lock['action'];
+	}
+	return $provision;
+}
+
+function ypnus_stripe_process_subscription( $event ) {
+	$subscription = isset( $event['data']['object'] ) && is_array( $event['data']['object'] )
+		? $event['data']['object']
+		: array();
+	$customer_id  = isset( $subscription['customer'] ) ? sanitize_text_field( $subscription['customer'] ) : '';
+	$sub_id       = isset( $subscription['id'] ) ? sanitize_text_field( $subscription['id'] ) : '';
+	$stripe_state = 'customer.subscription.deleted' === $event['type']
+		? 'canceled'
+		: ( isset( $subscription['status'] ) ? sanitize_text_field( $subscription['status'] ) : '' );
+	$status        = ypnus_stripe_subscription_state( $stripe_state );
+	$tier          = ypnus_stripe_resolve_subscription_tier( $subscription );
+	$trial_ends_at = ypnus_stripe_resolve_trial_ends_at( $subscription );
+
+	if ( ! $customer_id || ! $sub_id || ! $status ) {
+		return array(
+			'ok'    => false,
+			'error' => 'invalid_subscription_event',
+		);
+	}
+
+	$lifecycle = ypnus_stripe_record_lifecycle(
+		array(
+			'subscription_id' => $sub_id,
+			'customer_id'     => $customer_id,
+			'tier'            => $tier,
+			'status'          => $status,
+			'trial_ends_at'   => $trial_ends_at,
+			'event_created'   => (int) $event['created'],
+			'priority'        => ypnus_stripe_lifecycle_priority( $status, 'subscription' ),
+			'event_id'        => $event['id'],
+		)
+	);
+	if ( 'retry' === $lifecycle['status'] ) {
+		return array(
+			'ok'    => false,
+			'error' => 'lifecycle_write_failed',
+		);
+	}
+	if ( 'stale' === $lifecycle['status'] ) {
+		return array(
+			'ok'     => true,
+			'action' => 'stale_event_ignored',
+		);
+	}
+	$applied = ypnus_stripe_apply_lifecycle_row( $lifecycle['row'] );
+	if ( function_exists( 'ypnus_lo_act_on_stripe_state' ) ) {
+		ypnus_lo_act_on_stripe_state( $sub_id, $stripe_state );
+	}
+	return $applied;
+}
+
+function ypnus_stripe_process_invoice( $event, $paid ) {
+	$invoice = isset( $event['data']['object'] ) && is_array( $event['data']['object'] )
+		? $event['data']['object']
+		: array();
+
+	$customer_id = isset( $invoice['customer'] ) ? sanitize_text_field( $invoice['customer'] ) : '';
+	$sub_id      = ypnus_stripe_extract_invoice_subscription_id( $invoice );
+	if ( ! $customer_id || ! $sub_id ) {
+		return array(
+			'ok'     => true,
+			'action' => 'unrelated_invoice_ignored',
+		);
+	}
+
+	global $wpdb;
+	$table   = ypnus_stripe_lifecycle_table();
+	$current = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT * FROM {$table} WHERE subscription_id = %s",
+			$sub_id
+		)
+	);
+	if ( $current && 'canceled' === $current->subscription_status ) {
+		return array(
+			'ok'     => true,
+			'action' => 'invoice_ignored_for_canceled_subscription',
+		);
+	}
+	if ( $paid && ( ! $current || 'past_due' !== $current->subscription_status ) ) {
+		return array(
+			'ok'     => true,
+			'action' => 'invoice_paid_no_recovery_needed',
+		);
+	}
+
+	$tier   = $current ? ypnus_stripe_allowed_tier( $current->tier ) : '';
+	$status = $paid ? 'active' : 'past_due';
+	$source = $paid ? 'invoice_paid' : 'invoice_failed';
+
+	$lifecycle = ypnus_stripe_record_lifecycle(
+		array(
+			'subscription_id' => $sub_id,
+			'customer_id'     => $customer_id,
+			'tier'            => $tier,
+			'status'          => $status,
+			'event_created'   => (int) $event['created'],
+			'priority'        => ypnus_stripe_lifecycle_priority( $status, $source ),
+			'event_id'        => $event['id'],
+		)
+	);
+	if ( 'retry' === $lifecycle['status'] ) {
+		return array(
+			'ok'    => false,
+			'error' => 'lifecycle_write_failed',
+		);
+	}
+	if ( 'stale' === $lifecycle['status'] ) {
+		return array(
+			'ok'     => true,
+			'action' => 'stale_event_ignored',
+		);
+	}
+	return ypnus_stripe_apply_lifecycle_row( $lifecycle['row'] );
+}
+
+function ypnus_stripe_process_event( $event ) {
+	$GLOBALS['ypnus_lo_act_event'] = array( 'id' => $event['id'], 'type' => $event['type'] );
+	switch ( $event['type'] ) {
+		case 'checkout.session.completed':
+			return ypnus_stripe_process_checkout( $event, false );
+		case 'checkout.session.async_payment_succeeded':
+			return ypnus_stripe_process_checkout( $event, true );
+		case 'checkout.session.async_payment_failed':
+			return array(
+				'ok'     => true,
+				'action' => 'async_payment_failed',
+			);
+		case 'customer.subscription.created':
+			// Captures trial_end from the very first subscription event — checkout.session.completed's
+			// payload doesn't expand it, so a trialing checkout has no trial_ends_at until this (or the
+			// next .updated) event arrives. Requires this event type to be selected in the Stripe
+			// Dashboard's webhook config — see README's "Required Stripe events".
+		case 'customer.subscription.updated':
+		case 'customer.subscription.deleted':
+			return ypnus_stripe_process_subscription( $event );
+		case 'invoice.payment_failed':
+			return ypnus_stripe_process_invoice( $event, false );
+		case 'invoice.paid':
+			return ypnus_stripe_process_invoice( $event, true );
+		default:
+			return array(
+				'ok'     => true,
+				'action' => 'event_ignored',
+			);
+	}
+}
+
+function ypnus_stripe_log( $event, $data = array() ) {
+	$log = get_option( 'ypnus_stripe_webhook_log', array() );
+	$log = is_array( $log ) ? $log : array();
+	array_unshift(
+		$log,
+		array(
+			'time'  => current_time( 'mysql', true ),
+			'event' => sanitize_key( $event ),
+			'data'  => $data,
+		)
+	);
+	update_option( 'ypnus_stripe_webhook_log', array_slice( $log, 0, 100 ), false );
+}
+
+function ypnus_stripe_webhook_handler( WP_REST_Request $request ) {
+	$secrets = ypnus_stripe_webhook_secrets();
+	if ( empty( $secrets ) ) {
+		return ypnus_stripe_response( array( 'error' => 'webhook_not_configured' ), 503 );
+	}
+
+	$payload   = $request->get_body();
+	$signature = $request->get_header( 'stripe_signature' );
+	if ( ! is_string( $payload ) || '' === $payload ) {
+		return ypnus_stripe_response( array( 'error' => 'empty_payload' ), 400 );
+	}
+
+	$verified = ypnus_stripe_verify_signature( $payload, $signature, $secrets );
+	if ( ! $verified['ok'] ) {
+		ypnus_stripe_log( $verified['error'] );
+		return ypnus_stripe_response( array( 'error' => $verified['error'] ), 400 );
+	}
+
+	$event = json_decode( $payload, true );
+	if (
+		! is_array( $event )
+		|| empty( $event['id'] )
+		|| empty( $event['type'] )
+		|| ! isset( $event['created'] )
+		|| ! is_numeric( $event['created'] )
+	) {
+		return ypnus_stripe_response( array( 'error' => 'invalid_event' ), 400 );
+	}
+
+	$event_id   = sanitize_text_field( $event['id'] );
+	$event_type = sanitize_text_field( $event['type'] );
+	global $wpdb;
+	$claim = ypnus_stripe_claim_event( $wpdb, $event_id, $event_type );
+
+	if ( 'duplicate' === $claim ) {
+		return ypnus_stripe_response(
+			array(
+				'received'  => true,
+				'duplicate' => true,
+			)
+		);
+	}
+	if ( 'claimed' !== $claim ) {
+		ypnus_stripe_log( 'event_claim_failed', array( 'event_id' => $event_id, 'claim' => $claim ) );
+		return ypnus_stripe_response( array( 'error' => 'event_claim_failed' ), 500 );
+	}
+
+	try {
+		$result = ypnus_stripe_process_event( $event );
+	} catch ( Throwable $error ) {
+		ypnus_stripe_release_event( $event_id );
+		ypnus_stripe_log( 'processing_exception', array( 'event_id' => $event_id ) );
+		return ypnus_stripe_response( array( 'error' => 'processing_exception' ), 500 );
+	}
+
+	if ( empty( $result['ok'] ) ) {
+		ypnus_stripe_release_event( $event_id );
+		ypnus_stripe_log(
+			'processing_failed',
+			array(
+				'event_id' => $event_id,
+				'reason'   => isset( $result['error'] ) ? $result['error'] : 'unknown',
+			)
+		);
+		return ypnus_stripe_response(
+			array( 'error' => isset( $result['error'] ) ? $result['error'] : 'processing_failed' ),
+			500
+		);
+	}
+
+	if ( ! ypnus_stripe_complete_event( $event_id ) ) {
+		ypnus_stripe_release_event( $event_id );
+		ypnus_stripe_log( 'completion_write_failed', array( 'event_id' => $event_id ) );
+		return ypnus_stripe_response( array( 'error' => 'completion_write_failed' ), 500 );
+	}
+
+	return ypnus_stripe_response(
+		array(
+			'received' => true,
+			'action'   => isset( $result['action'] ) ? $result['action'] : 'processed',
+		)
+	);
+}

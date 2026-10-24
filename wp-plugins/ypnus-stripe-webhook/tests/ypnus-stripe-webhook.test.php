@@ -289,6 +289,26 @@ assert_same(
 	),
 	'resolves subscription tier from a configured price ID'
 );
+assert_same(
+	'elite',
+	ypnus_stripe_resolve_subscription_tier(
+		array(
+			'metadata' => array( 'ypnus_tier' => 'growth' ),
+			'items'    => array( 'data' => array( array( 'price' => array( 'id' => 'price_elite' ) ) ) ),
+		)
+	),
+	'a portal plan switch (new price, stale link metadata) resolves to the new price tier'
+);
+assert_same(
+	'growth',
+	ypnus_stripe_resolve_subscription_tier(
+		array(
+			'metadata' => array( 'ypnus_tier' => 'growth' ),
+			'items'    => array( 'data' => array( array( 'price' => array( 'id' => 'price_unmapped' ) ) ) ),
+		)
+	),
+	'falls back to metadata when the price is not mapped'
+);
 
 $wpdb                = new FakeWpdb();
 $wpdb->query_results = array( 1 );

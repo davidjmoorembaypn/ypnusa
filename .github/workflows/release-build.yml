@@ -1,0 +1,75 @@
+name: Release build
+
+# Builds the standalone Next.js bundle off-host (Hostinger's LVE can't finish
+# `next build`) and publishes it as a GitHub release asset that
+# scripts/hostinger-install-release.sh downloads and installs on the server.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the Hostinger runtime (PassengerNodejs alt-nodejs20).
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build
+        env:
+          # Public GA4 measurement ID (not a secret). Next.js inlines NEXT_PUBLIC_* at build time, so it must be
+          # set here, not in /etc/ypnusa/app.env. The host CSP must also allow googletagmanager.com and
+          # google-analytics.com, or the tag silently never loads.
+          NEXT_PUBLIC_GA_ID: G-2TGE9M58H4
+          # Direct-to-Stripe checkout links, one per paid tier. Set as repository VARIABLES (Settings > Secrets and
+          # variables > Actions > Variables) once the card-required Payment Links exist. Empty = unchanged behavior
+          # (CTAs route through ypnus.com/lo-signup.html), so this is inert until then.
+          NEXT_PUBLIC_STRIPE_PAYMENT_LINK_GROWTH: ${{ vars.STRIPE_PAYMENT_LINK_GROWTH }}
+          NEXT_PUBLIC_STRIPE_PAYMENT_LINK_PRO: ${{ vars.STRIPE_PAYMENT_LINK_PRO }}
+          NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ELITE: ${{ vars.STRIPE_PAYMENT_LINK_ELITE }}
+        run: npm run build
+
+      - name: Assemble standalone bundle
+        run: |
+          set -euo pipefail
+          short="${GITHUB_SHA::7}"
+          out=dist/nodejs
+          mkdir -p "$out/.next"
+          cp -a .next/standalone/. "$out/"
+          cp -a .next/static "$out/.next/static"
+          if [ -d public ]; then cp -a public "$out/public"; fi
+          # Never ship local data or env files; the server supplies both.
+          rm -rf "$out/data" "$out"/.env*
+          # Persistent data dir + app/.env loader, so the bundle runs without a prior build to copy them from.
+          node scripts/inject-server-preamble.mjs "$out/server.js"
+          printf '{"git_commit":"%s","built_at":"%s","node_version":"%s","built_on":"github-actions %s"}\n' \
+            "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$(node -v)" "$(ldd --version | head -1)" > "$out/DEPLOY_MANIFEST.json"
+          tar -czf app-build.tar.gz -C dist nodejs
+          sha256sum app-build.tar.gz > app-build.tar.gz.sha256
+          echo "SHORT_SHA=$short" >> "$GITHUB_ENV"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "app-build-$SHORT_SHA" app-build.tar.gz app-build.tar.gz.sha256 \
+            --target "$GITHUB_SHA" --latest \
+            --title "App build $SHORT_SHA" \
+            --notes "Standalone Next.js build of $GITHUB_SHA. Install on Hostinger with scripts/hostinger-install-release.sh."
+          # Keep the five newest app builds.
+          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+            | grep '^app-build-' | tail -n +6 \
+            | xargs -r -n1 gh release delete --cleanup-tag --yes

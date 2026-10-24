@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ description }}">
+  <link rel="canonical" href="{{ canonical }}">
+  {% if noindex %}<meta name="robots" content="noindex">{% endif %}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="YPN USA">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ description }}">
+  <meta property="og:url" content="{{ canonical }}">
+  <meta name="theme-color" content="#0b3d91">
+  <link rel="stylesheet" href="/static/site.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Organization","name":"YPN USA","url":"{{ site_url }}"}
+  </script>
+  {% block head %}{% endblock %}
+  {% if ga_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}"></script>
+  <script src="/static/ga.js" data-ga-id="{{ ga_id }}"></script>
+  {% endif %}
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="/">YPN USA</a>
+    <nav aria-label="Main">
+      <a href="/pricing">Pricing</a>
+      <a href="/check-zip">Check your zip code</a>
+    </nav>
+  </header>
+  <main id="main">{% block content %}{% endblock %}</main>
+  <footer class="site-footer">
+    <p>YPN USA is software for licensed loan officers. It does not make credit decisions or promise
+       loan approval, rates or lead volume. Zip code exclusivity is confirmed at checkout and is
+       subject to availability.</p>
+    {% if nmls_disclosure %}<p>{{ nmls_disclosure }}</p>{% endif %}
+    <p>&copy; YPN USA &middot; <a href="/pricing">Pricing</a> &middot; <a href="/check-zip">Check your zip code</a></p>
+  </footer>
+</body>
+</html>

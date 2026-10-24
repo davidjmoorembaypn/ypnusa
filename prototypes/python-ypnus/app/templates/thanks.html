@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <h1>Thanks, we received your request</h1>
+  <p class="lead">Next step for the {{ chosen.name }} plan:</p>
+</section>
+<section class="card">
+  {% if chosen.paid and chosen.checkout_url %}
+    <p>Start your {{ trial_days }}-day trial. A card is required, and you are not charged until the trial ends.</p>
+    <a class="button" href="{{ chosen.checkout_url }}" rel="noopener">Continue to secure checkout</a>
+  {% elif chosen.paid %}
+    <p>Checkout is not connected in this prototype. In production this button opens the Stripe
+       Payment Link for the plan.</p>
+  {% else %}
+    <p>The free plan lets you try the AI intake assistant. Live lead delivery starts on a paid plan.</p>
+  {% endif %}
+  <p><a href="/pricing">Back to pricing</a></p>
+</section>
+{% endblock %}

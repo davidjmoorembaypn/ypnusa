@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { track } from "@/lib/track";
 
 interface Demand {
   window_days?: number;
@@ -34,6 +35,10 @@ export function ZipDemandCheck() {
   const [zip, setZip] = useState("");
   const [state, setState] = useState<State>({ kind: "idle" });
 
+  useEffect(() => {
+    track("check_zip_page_view");
+  }, []);
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const clean = zip.trim();
@@ -49,6 +54,7 @@ export function ZipDemandCheck() {
         setState({ kind: "error", message: data.error ?? "We could not check that zip code. Please try again." });
         return;
       }
+      track("check_zip_result", { available: Boolean(data.available) });
       setState({ kind: "result", data });
     } catch {
       setState({ kind: "error", message: "We could not check that zip code. Please try again." });

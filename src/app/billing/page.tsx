@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { resolveEntitlement } from "@/lib/entitlements";
 import { PUBLIC_PRICING_TIERS, TRIAL_DAYS } from "@/lib/pricing";
-import { CUSTOMER_PORTAL_URL, marketingUrl } from "@/lib/site";
+import { CUSTOMER_PORTAL_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Billing",
@@ -59,12 +59,12 @@ export default async function BillingPage() {
             Manage or cancel subscription
           </a>
         ) : (
-          <a
-            href={marketingUrl("/pricing.html")}
+          <Link
+            href="/pricing"
             className="rounded-full bg-violet-700 px-5 py-3 text-white transition hover:bg-violet-800"
           >
             {isPaid ? "View plans" : `Start ${TRIAL_DAYS}-day trial`}
-          </a>
+          </Link>
         )}
         <Link
           href="/account"

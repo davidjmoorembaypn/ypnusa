@@ -41,7 +41,6 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    url: APP_SITE_URL,
     siteName: "YPN USA App",
     title: "YPN USA App — Mortgage Growth Platform for Loan Officers",
     description:

@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
     "How YPN Inc. collects, uses, and protects information on app.ypnus.com and through the YPN USA platform.",
+  alternates: { canonical: "/privacy-policy" },
 };
 
 const LAST_UPDATED = "September 24, 2026";

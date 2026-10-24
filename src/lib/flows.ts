@@ -132,6 +132,7 @@ export const programPrefaces: Record<LoanProgram, FlowStepDescriptor[]> = {
   JUMBO: [],
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function composeFlow(_loan: LoanProgram): FlowStepDescriptor[] {
   return [...baseFlow];
 }
@@ -183,6 +184,7 @@ export function summarizeFlowProgress(loan: LoanProgram, answers: BorrowerAnswer
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function greetingForProgram(_program: LoanProgram): string {
   return `Hi there, I’m the YPN USA intake assistant. I’ll ask a few quick questions so we can understand what you’re looking for.`;
 }

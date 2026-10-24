@@ -16,19 +16,6 @@ import { faqJsonLd, marketingMetadata } from "@/lib/seo";
 import { getSiteOrigin } from "@/lib/request-host";
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
 
-<<<<<<< HEAD
-export const metadata: Metadata = {
-  alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    url: "/",
-    siteName: "YPN USA App",
-    title: "YPN USA App — Mortgage Growth Platform for Loan Officers",
-    description:
-      "Claim exclusive ZIP territories, capture borrowers with AI intake, and build an owned mortgage lead pipeline.",
-  },
-};
-=======
 // Below the fold: split it out of the first-load bundle, and reserve its height to avoid layout shift.
 const MortgageCalculator = dynamic(
   () => import("@/components/mortgage-calculator").then((mod) => mod.MortgageCalculator),
@@ -46,7 +33,6 @@ export async function generateMetadata(): Promise<Metadata> {
     origin,
   });
 }
->>>>>>> origin/main
 
 const LIFE_EVENTS = [
   {

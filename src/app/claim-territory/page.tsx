@@ -68,6 +68,11 @@ export default function ClaimTerritoryPage() {
             </ol>
           </div>
           <p className="mt-8 text-white/85">
+            Haven&rsquo;t seen the numbers for your zip code yet?{" "}
+            <Link href="/check-zip" className="font-semibold text-amber-300 underline underline-offset-4">
+              Check your 60-day demand report free
+            </Link>
+            <br />
             Ready to lock your zip code today?{" "}
             <Link href="/pricing" className="font-semibold text-amber-300 underline underline-offset-4">
               See plans &amp; pricing

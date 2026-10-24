@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { RealEstateLeadsServiceSchema } from "@/components/seo/silo-schema";
 import { StubNotice } from "@/components/silo/stub-notice";
-import { marketingUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Real Estate Lead Generation",
@@ -45,13 +44,13 @@ export default function RealEstateLeadsPage() {
           </Link>
         </li>
         <li>
-          <a
-            href={marketingUrl("/check-zip.html")}
+          <Link
+            href="/check-zip"
             className="block rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:bg-white/10"
           >
             <p className="text-sm font-semibold text-white">ZIP demand check</p>
             <p className="mt-1 text-xs text-white/50">Live territory-availability tool &rarr;</p>
-          </a>
+          </Link>
         </li>
       </ul>
 

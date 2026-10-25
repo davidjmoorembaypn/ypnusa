@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <h1>Check your zip code</h1>
+  <p class="lead">See whether your zip code still has an exclusive slot, then request a plan.</p>
+</section>
+
+<form class="inline" action="/check-zip" method="get">
+  <label for="zip">Zip code</label>
+  <input id="zip" name="zip" inputmode="numeric" pattern="\d{5}" maxlength="5" value="{{ zip }}" required>
+  <input type="hidden" name="plan" value="{{ selected_plan }}">
+  <button type="submit">Check</button>
+</form>
+
+{% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+
+{% if result %}
+<p class="result {{ 'ok' if result.available else 'taken' }}" role="status">
+  <strong>{{ result.zip }}:</strong> {{ result.message }}
+</p>
+{% endif %}
+
+{% if result and result.available %}
+<section class="card">
+  <h2>Request your zip code</h2>
+  <form action="/lead" method="post">
+    <input type="hidden" name="zip_code" value="{{ result.zip }}">
+    <p class="hp" aria-hidden="true"><label>Leave blank <input name="website" tabindex="-1" autocomplete="off"></label></p>
+    <label for="name">Full name</label>
+    <input id="name" name="name" autocomplete="name" required maxlength="120">
+    <label for="email">Work email</label>
+    <input id="email" name="email" type="email" autocomplete="email" required>
+    <label for="nmls">NMLS number (optional)</label>
+    <input id="nmls" name="nmls" inputmode="numeric" maxlength="9">
+    <label for="plan">Plan</label>
+    <select id="plan" name="plan">
+      {% for p in plans %}<option value="{{ p.id }}" {% if p.id == selected_plan %}selected{% endif %}>{{ p.name }} ({{ p.price }}{{ p.cadence if p.paid else '' }})</option>{% endfor %}
+    </select>
+    <button type="submit">Send request</button>
+    <p class="fine">We use your details to contact you about your plan. Paid plans need a card to start the {{ trial_days }}-day trial.</p>
+  </form>
+</section>
+{% elif not result %}
+<p class="fine">Enter a five digit zip code to see its status.</p>
+{% endif %}
+{% endblock %}

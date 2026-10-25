@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block head %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"YPN USA",
+ "applicationCategory":"BusinessApplication","operatingSystem":"Web",
+ "offers":{"@type":"Offer","price":"99.99","priceCurrency":"USD"}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+ {"@type":"Question","name":"What does exclusive zip code mean?","acceptedAnswer":{"@type":"Answer","text":"Only one YPN USA loan officer holds a given zip code at a time. Availability is confirmed when you start a plan."}},
+ {"@type":"Question","name":"Do I need a card for the trial?","acceptedAnswer":{"@type":"Answer","text":"Yes. Paid plans include a {{ trial_days }}-day trial and require a card to start. The free plan needs no card."}},
+ {"@type":"Question","name":"Does YPN USA guarantee leads or approvals?","acceptedAnswer":{"@type":"Answer","text":"No. YPN USA provides software. It does not guarantee lead volume, loan approval or rates."}}]}
+</script>
+{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Own your zip code. Let AI handle borrower intake.</h1>
+  <p class="lead">One loan officer per zip code. An AI intake assistant qualifies borrowers and
+     follows up for you, so you spend your time on conversations that matter.</p>
+  <form class="inline" action="/check-zip" method="get">
+    <label for="zip-hero">Zip code</label>
+    <input id="zip-hero" name="zip" inputmode="numeric" pattern="\d{5}" maxlength="5"
+           placeholder="e.g. 90210" required>
+    <button type="submit">Check my zip code</button>
+  </form>
+  <p class="fine">Checking is free. Locking a zip code needs a paid plan, from {{ starting_price }}/mo.</p>
+</section>
+
+<section class="grid3" aria-labelledby="how">
+  <h2 id="how" class="full">How it works</h2>
+  <article><h3>1. Check</h3><p>See whether your zip code still has an open exclusive slot.</p></article>
+  <article><h3>2. Start a trial</h3><p>Pick a plan. Paid plans include a {{ trial_days }}-day trial and need a card to start.</p></article>
+  <article><h3>3. Follow up faster</h3><p>The AI assistant collects borrower details and queues follow-up for you to review.</p></article>
+</section>
+
+<section class="cta">
+  <h2>See plans and what each includes</h2>
+  <a class="button" href="/pricing">View pricing</a>
+</section>
+{% endblock %}

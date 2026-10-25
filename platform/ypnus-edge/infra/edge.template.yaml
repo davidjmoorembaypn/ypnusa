@@ -1,0 +1,508 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  ypnus.com edge platform: CloudFront CDN, WordPress 301 redirect function (KeyValueStore),
+  OpenRTB ad service (Lambda + HTTP API), DynamoDB content/state tables, media bucket, WAF.
+  MUST be deployed in us-east-1 (CloudFront, WAF and CloudFront Functions live there).
+  Does not touch DNS: the cutover is a separate, manual step (see docs/MIGRATION.md).
+
+Parameters:
+  DomainName:
+    Type: String
+    Default: ypnus.com
+    Description: Apex domain. www is added automatically and redirected to the apex.
+  CertificateArn:
+    Type: String
+    AllowedPattern: "^arn:aws:acm:us-east-1:[0-9]{12}:certificate/.+$"
+    Description: ACM certificate in us-east-1 covering the apex and www.
+  WebOriginDomain:
+    Type: String
+    Description: Domain of the Fargate ALB (output of web-fargate.template.yaml) or another origin serving the Next.js app.
+  WebOriginProtocol:
+    Type: String
+    Default: https-only
+    AllowedValues: [https-only, http-only]
+    Description: Use https-only with an ALB certificate. http-only is acceptable only when the ALB accepts CloudFront traffic exclusively (prefix list + secret header).
+  LegacyWpOriginDomain:
+    Type: String
+    Default: ""
+    Description: Optional. Keep WordPress reachable for /wp-json/* (the ZIP availability ledger) until it is migrated. Leave empty when WordPress is retired.
+  CodeBucket:
+    Type: String
+    Description: S3 bucket holding the ads Lambda zip (npm run package).
+  CodeKey:
+    Type: String
+    Default: ypnus-edge/ads.zip
+  DspEndpointsJson:
+    Type: String
+    NoEcho: true
+    Default: "[]"
+    Description: 'JSON array of DSPs: [{"id":"x","url":"https://...","bearer":"...","noticeDomains":["dsp.example"]}]. Empty array = house ads only.'
+  AlarmEmail:
+    Type: String
+    Default: ""
+    Description: Optional email for alarms.
+  PriceClass:
+    Type: String
+    Default: PriceClass_100
+    AllowedValues: [PriceClass_100, PriceClass_200, PriceClass_All]
+
+Conditions:
+  HasLegacyWp: !Not [!Equals [!Ref LegacyWpOriginDomain, ""]]
+  HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
+
+Resources:
+  # ------------------------------------------------------------------ secrets
+  OriginVerifySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Shared header value so the API and ALB only accept traffic that came through CloudFront.
+      GenerateSecretString:
+        SecretStringTemplate: "{}"
+        GenerateStringKey: token
+        PasswordLength: 40
+        ExcludePunctuation: true
+
+  AdHmacSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Signs impression-beacon tokens and hashes first-party user ids.
+      GenerateSecretString:
+        SecretStringTemplate: "{}"
+        GenerateStringKey: token
+        PasswordLength: 48
+        ExcludePunctuation: true
+
+  # ------------------------------------------------------------------ data
+  ContentTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      DeletionProtectionEnabled: true
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+        - { AttributeName: gsi1pk, AttributeType: S }
+        - { AttributeName: gsi1sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: gsi1
+          KeySchema:
+            - { AttributeName: gsi1pk, KeyType: HASH }
+            - { AttributeName: gsi1sk, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+      PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+      SSESpecification: { SSEEnabled: true }
+
+  EdgeStateTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+      TimeToLiveSpecification: { AttributeName: ttl, Enabled: true }
+      SSESpecification: { SSEEnabled: true }
+
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      OwnershipControls: { Rules: [{ ObjectOwnership: BucketOwnerEnforced }] }
+      PublicAccessBlockConfiguration:
+        { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
+      BucketEncryption:
+        ServerSideEncryptionConfiguration: [{ ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 } }]
+      VersioningConfiguration: { Status: Enabled }
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-versions
+            Status: Enabled
+            NoncurrentVersionExpiration: { NoncurrentDays: 90 }
+
+  MediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MediaBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub "${MediaBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource: [!GetAtt MediaBucket.Arn, !Sub "${MediaBucket.Arn}/*"]
+            Condition: { Bool: { "aws:SecureTransport": "false" } }
+
+  MediaOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-media-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ------------------------------------------------------------------ redirects (edge)
+  RedirectStore:
+    Type: AWS::CloudFront::KeyValueStore
+    Properties:
+      Name: !Sub "${AWS::StackName}-redirects"
+      Comment: Exact legacy WordPress URL -> new path mappings (npm run kvs:seed).
+
+  RedirectFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "${AWS::StackName}-wp-redirects"
+      AutoPublish: true
+      FunctionConfig:
+        Comment: WordPress permalink and legacy URL 301 rules
+        Runtime: cloudfront-js-2.0
+        KeyValueStoreAssociations:
+          - KeyValueStoreARN: !GetAtt RedirectStore.Arn
+      FunctionCode: |
+          __REDIRECT_FUNCTION_CODE__
+
+  # ------------------------------------------------------------------ ads service
+  AdsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-ads"
+      RetentionInDays: 30
+
+  AdsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - { Effect: Allow, Principal: { Service: lambda.amazonaws.com }, Action: sts:AssumeRole }
+      Policies:
+        - PolicyName: ads
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !GetAtt AdsLogGroup.Arn
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem]
+                Resource: !GetAtt EdgeStateTable.Arn
+
+  AdsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-ads"
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: src/lambda/ads.handler
+      MemorySize: 512
+      Timeout: 3
+      Role: !GetAtt AdsRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref CodeKey }
+      LoggingConfig: { LogGroup: !Ref AdsLogGroup }
+      Environment:
+        Variables:
+          SITE_DOMAIN: !Ref DomainName
+          STATE_TABLE: !Ref EdgeStateTable
+          DSP_ENDPOINTS: !Ref DspEndpointsJson
+          OPENRTB_TMAX_MS: "130"
+          AD_HMAC_SECRET: !Sub "{{resolve:secretsmanager:${AdHmacSecret}:SecretString:token}}"
+          ORIGIN_VERIFY: !Sub "{{resolve:secretsmanager:${OriginVerifySecret}:SecretString:token}}"
+
+  HttpApiAccessLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${AWS::StackName}-ads"
+      RetentionInDays: 14
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-ads"
+      ProtocolType: HTTP
+
+  HttpApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt AdsFunction.Arn
+      PayloadFormatVersion: "2.0"
+      TimeoutInMillis: 2500
+
+  AdsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: "POST /api/ads"
+      Target: !Sub "integrations/${HttpApiIntegration}"
+
+  AdsEventRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: "POST /api/ads/event"
+      Target: !Sub "integrations/${HttpApiIntegration}"
+
+  HttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: $default
+      AutoDeploy: true
+      DefaultRouteSettings: { ThrottlingBurstLimit: 200, ThrottlingRateLimit: 100 }
+      AccessLogSettings:
+        DestinationArn: !GetAtt HttpApiAccessLogs.Arn
+        Format: '{"requestId":"$context.requestId","status":"$context.status","path":"$context.path","latencyMs":"$context.responseLatency","integrationMs":"$context.integrationLatency"}'
+
+  AdsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AdsFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/POST/api/ads*"
+
+  # ------------------------------------------------------------------ CDN policies
+  AdsOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: !Sub "${AWS::StackName}-ads-origin-request"
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers: [CloudFront-Viewer-Country, CloudFront-Viewer-Address, User-Agent, Accept-Language, Sec-GPC, Referer]
+        CookiesConfig: { CookieBehavior: whitelist, Cookies: [ypn_uid] }
+        QueryStringsConfig: { QueryStringBehavior: none }
+
+  SecurityHeaders:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub "${AWS::StackName}-security-headers"
+        SecurityHeadersConfig:
+          StrictTransportSecurity: { AccessControlMaxAgeSec: 31536000, IncludeSubdomains: true, Override: true }
+          ContentTypeOptions: { Override: true }
+          FrameOptions: { FrameOption: SAMEORIGIN, Override: true }
+          ReferrerPolicy: { ReferrerPolicy: strict-origin-when-cross-origin, Override: true }
+
+  # ------------------------------------------------------------------ WAF
+  WebAcl:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: !Sub "${AWS::StackName}-waf"
+      Scope: CLOUDFRONT
+      DefaultAction: { Allow: {} }
+      VisibilityConfig: { CloudWatchMetricsEnabled: true, MetricName: !Sub "${AWS::StackName}-waf", SampledRequestsEnabled: true }
+      Rules:
+        - Name: ads-rate-limit
+          Priority: 0
+          Action: { Block: {} }
+          VisibilityConfig: { CloudWatchMetricsEnabled: true, MetricName: ads-rate-limit, SampledRequestsEnabled: true }
+          Statement:
+            RateBasedStatement:
+              Limit: 600
+              AggregateKeyType: IP
+              ScopeDownStatement:
+                ByteMatchStatement:
+                  SearchString: /api/ads
+                  FieldToMatch: { UriPath: {} }
+                  PositionalConstraint: STARTS_WITH
+                  TextTransformations: [{ Priority: 0, Type: NONE }]
+        - Name: common-rules
+          Priority: 10
+          OverrideAction: { None: {} }
+          VisibilityConfig: { CloudWatchMetricsEnabled: true, MetricName: common-rules, SampledRequestsEnabled: true }
+          Statement:
+            ManagedRuleGroupStatement: { VendorName: AWS, Name: AWSManagedRulesCommonRuleSet }
+        - Name: known-bad-inputs
+          Priority: 20
+          OverrideAction: { None: {} }
+          VisibilityConfig: { CloudWatchMetricsEnabled: true, MetricName: known-bad-inputs, SampledRequestsEnabled: true }
+          Statement:
+            ManagedRuleGroupStatement: { VendorName: AWS, Name: AWSManagedRulesKnownBadInputsRuleSet }
+
+  # ------------------------------------------------------------------ distribution
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "${DomainName} edge"
+        Aliases: [!Ref DomainName, !Sub "www.${DomainName}"]
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: !Ref PriceClass
+        WebACLId: !GetAtt WebAcl.Arn
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          - Id: web
+            DomainName: !Ref WebOriginDomain
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: !Ref WebOriginProtocol
+              OriginSSLProtocols: [TLSv1.2]
+              OriginReadTimeout: 30
+            OriginCustomHeaders:
+              - HeaderName: X-Origin-Verify
+                HeaderValue: !Sub "{{resolve:secretsmanager:${OriginVerifySecret}:SecretString:token}}"
+          - Id: ads-api
+            DomainName: !Sub "${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+              OriginReadTimeout: 5
+              OriginKeepaliveTimeout: 30
+            OriginCustomHeaders:
+              - HeaderName: X-Origin-Verify
+                HeaderValue: !Sub "{{resolve:secretsmanager:${OriginVerifySecret}:SecretString:token}}"
+          - Id: media
+            DomainName: !GetAtt MediaBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt MediaOac.Id
+            S3OriginConfig: { OriginAccessIdentity: "" }
+          - !If
+            - HasLegacyWp
+            - Id: legacy-wp
+              DomainName: !Ref LegacyWpOriginDomain
+              CustomOriginConfig:
+                OriginProtocolPolicy: https-only
+                OriginSSLProtocols: [TLSv1.2]
+            - !Ref AWS::NoValue
+        DefaultCacheBehavior:
+          TargetOriginId: web
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+          CachePolicyId: 4cc15a8a-d715-48a4-82b8-cc0b614638fe # Managed-UseOriginCacheControlHeaders-QueryStrings
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3 # Managed-AllViewer
+          ResponseHeadersPolicyId: !Ref SecurityHeaders
+          Compress: true
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt RedirectFunction.FunctionARN
+        CacheBehaviors:
+          - PathPattern: /api/ads*
+            TargetOriginId: ads-api
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # Managed-CachingDisabled
+            OriginRequestPolicyId: !Ref AdsOriginRequestPolicy
+            Compress: false
+          - PathPattern: /media/*
+            TargetOriginId: media
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # Managed-CachingOptimized
+            ResponseHeadersPolicyId: !Ref SecurityHeaders
+            Compress: true
+          - PathPattern: /assets/*
+            TargetOriginId: media
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            ResponseHeadersPolicyId: !Ref SecurityHeaders
+            Compress: true
+          - !If
+            - HasLegacyWp
+            - PathPattern: /wp-json/*
+              TargetOriginId: legacy-wp
+              ViewerProtocolPolicy: https-only
+              AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+              CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+              OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac # Managed-AllViewerExceptHostHeader
+            - !Ref AWS::NoValue
+
+  # ------------------------------------------------------------------ monitoring
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+
+  AlarmSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlarmEmail
+    Properties:
+      TopicArn: !Ref AlarmTopic
+      Protocol: email
+      Endpoint: !Ref AlarmEmail
+
+  AdsErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Ads Lambda is throwing errors (visitors still get house ads, but revenue is lost).
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !Ref AdsFunction }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  AdsLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: p95 ad decision time above 400ms. The DSP window is 150ms, so something else is slow.
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions: [{ Name: FunctionName, Value: !Ref AdsFunction }]
+      ExtendedStatistic: p95
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 400
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  Cdn5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: More than 2% of CloudFront responses are 5xx.
+      Namespace: AWS/CloudFront
+      MetricName: 5xxErrorRate
+      Dimensions:
+        - { Name: DistributionId, Value: !Ref Distribution }
+        - { Name: Region, Value: Global }
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 2
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+Outputs:
+  DistributionId:
+    Value: !Ref Distribution
+  DistributionDomainName:
+    Description: Point DNS here only at cutover (CNAME/ALIAS for the apex and www).
+    Value: !GetAtt Distribution.DomainName
+  RedirectStoreArn:
+    Description: Load redirects with `aws cloudfront-keyvaluestore update-keys`.
+    Value: !GetAtt RedirectStore.Arn
+  MediaBucketName:
+    Value: !Ref MediaBucket
+  ContentTableName:
+    Value: !Ref ContentTable
+  EdgeStateTableName:
+    Value: !Ref EdgeStateTable
+  OriginVerifySecretArn:
+    Description: Give this value to the ALB listener rule in web-fargate.template.yaml.
+    Value: !Ref OriginVerifySecret

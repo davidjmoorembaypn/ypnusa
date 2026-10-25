@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <h1>Pricing for loan officers</h1>
+  <p class="lead">Every paid plan includes one exclusive zip code and a {{ trial_days }}-day trial.
+     A card is required to start a trial. You can cancel before the trial ends.</p>
+</section>
+<section class="grid4" aria-label="Plans">
+  {% for plan in plans %}
+  <article class="plan{% if plan.highlight %} highlight{% endif %}">
+    {% if plan.highlight %}<p class="badge">Most popular</p>{% endif %}
+    <h2>{{ plan.name }}</h2>
+    <p class="price">{{ plan.price }}<span>{{ plan.cadence }}</span></p>
+    <p>{{ plan.tagline }}</p>
+    <ul>{% for f in plan.features %}<li>{{ f }}</li>{% endfor %}</ul>
+    {% if not plan.paid %}
+      <a class="button secondary" href="/check-zip?plan=free">Start free</a>
+    {% elif plan.checkout_url %}
+      <a class="button" href="{{ plan.checkout_url }}" rel="noopener">Start {{ trial_days }}-day trial</a>
+    {% else %}
+      <a class="button" href="/check-zip?plan={{ plan.id }}">Check zip code first</a>
+    {% endif %}
+  </article>
+  {% endfor %}
+</section>
+<p class="fine center">Additional zip codes are separate add-ons, subject to availability. Prices in USD.</p>
+{% endblock %}

@@ -147,7 +147,7 @@ export default function Home() {
       {/* HERO */}
       <section className="relative isolate overflow-hidden">
         <HeroVideo />
-        <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
+        <div className="ypn-hero-scrim pointer-events-none absolute inset-0" aria-hidden />
         <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:py-24">
           <div className="max-w-xl">
             <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">

@@ -49,6 +49,11 @@ body {
   transform: translateZ(0);
 }
 
+/* The hero sits over real footage: keep every overlay stop translucent. */
+.ypn-hero-scrim {
+  background: linear-gradient(100deg, rgba(9, 8, 27, .84) 0%, rgba(9, 8, 27, .65) 42%, rgba(9, 8, 27, .28) 100%);
+}
+
 .thin-scroll {
   scrollbar-width: thin;
 }

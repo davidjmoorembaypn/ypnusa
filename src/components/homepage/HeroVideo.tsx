@@ -41,7 +41,7 @@ export function HeroVideo() {
   return (
     <video
       ref={ref}
-      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40"
+      className="pointer-events-none absolute inset-0 h-full w-full object-cover"
       muted
       loop
       playsInline

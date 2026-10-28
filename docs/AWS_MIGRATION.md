@@ -60,6 +60,39 @@ To fix it you need access to the AWS host, for example through the AWS MCP conne
    - `POST /api/tools/marketing` returns 200.
 5. Write the host's deploy path here and in `AGENTS.md`.
 
+### Findings: the AWS host (inspected read-only via SSM, 2026-10-16)
+
+| Item | Value |
+| --- | --- |
+| Instance | `i-0ad200fc61f4d39f5` "YPNUSA", t3.micro, us-east-2, `18.223.107.93`, Amazon Linux 2023 |
+| Reverse proxy | Apache httpd `app.ypnus.com` -> `http://127.0.0.1:3000/` (PHP-FPM and MariaDB also installed, unused by the app) |
+| App | `ypnusa.service` (user `ypnusa`), `node /opt/ypnusa/current/server.js`, `current` -> `/opt/ypnusa/releases/08931f2` |
+| Env file | `/etc/ypnusa/app.env` (root, 0600). Only `NODE_ENV`, `HOSTNAME`, `PORT`, `LOANPILOT_DATA_DIR`, `NEXT_PUBLIC_SITE_URL`, `SESSION_SECRET` are set |
+| Missing | `YPNUS_SSO_SHARED_SECRET`, `ANTHROPIC_API_KEY`, `ADMIN_TOKEN`, `CRON_SECRET` |
+| Data | `/var/lib/ypnusa/store.json` (last write 2026-10-15): 3 loan officers, 6 sessions, 3 revenue subscriptions, 16 analytics events |
+| TLS | certbot under `/opt/ypnusa-certbot`, renewed by `ypnusa-cert-renew.service` |
+| Other instances (us-east-2) | `ypnus-wp` `i-0bb21a74b344c56ae` t3.medium (Elastic IP `3.13.67.159`); two unnamed t3.micro `i-060df03b331c6b9e6`, `i-028eb4461c14d75f4` |
+
+Deploy path today: place the build in `/opt/ypnusa/releases/<sha7>`, update `ReadWritePaths` in
+`/etc/systemd/system/ypnusa.service` (it pins the release's `.next/cache`), repoint `/opt/ypnusa/current`, then run
+`systemctl daemon-reload && systemctl restart ypnusa`. The reload is required: a restart alone keeps the old unit
+settings, so the new release path stays outside the writable allowlist.
+
+Still to do: copy the four missing variables from Hostinger `app/.env` into `/etc/ypnusa/app.env` server to server
+(never through chat, PRs or commits), merge the two `store.json` files, restart, and run the verification list above.
+
+`store.json` merge procedure (the app has a single writer, so do this with the service stopped):
+
+1. `systemctl stop ypnusa`, then copy `/var/lib/ypnusa/store.json` to `store.json.pre-merge-<timestamp>` (owner `ypnusa`, mode 0600).
+2. Start from Hostinger's copy as the base, then add records that exist only in the AWS copy.
+3. Merge each collection (`loanOfficers`, `sessions`, `revenueSubscriptions`, `analyticsEvents` and any other non-empty one) by record `id`:
+   - Same `id` in both: keep the record with the newer `updatedAt` (or `createdAt` when absent). If both changed after the 2026-10-09 DNS switch, keep AWS's and log the conflict.
+   - `id` in one copy only: keep it. Never drop or renumber records.
+   - Loan officers that match on email but have different `id`s: treat as one person, keep the AWS `id` (sessions created since the switch reference it), and rewrite references from Hostinger-only records.
+4. Check counts: each merged collection must have at least as many records as the larger input, and no duplicate `id`s.
+5. Write atomically (temp file, then `mv`), `chown ypnusa:ypnusa`, `chmod 0600`, `systemctl start ypnusa`, confirm `/api/health` reports `persistent: true, degraded: false`.
+6. Rollback: stop the service, restore the `.pre-merge-<timestamp>` file, start the service.
+
 ## Decision: WordPress is retired
 
 The owner does not want to keep WordPress. ypnus.com will be served by this Next.js app.

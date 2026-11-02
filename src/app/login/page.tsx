@@ -1,6 +1,12 @@
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { DevLoginForm } from "@/components/dev-login-form";
 import { marketingUrl } from "@/lib/site";
+import { EmailLoginForm } from "@/components/email-login-form";
+import { nativePlatformEnabled, nativeAuthOrigin, safeAccountNext } from "@/lib/native-platform";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -25,6 +31,18 @@ export default async function LoginPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
+  if (nativePlatformEnabled()) {
+    const origin = nativeAuthOrigin();
+    const headerList = await headers();
+    const host = (headerList.get("x-forwarded-host") ?? headerList.get("host") ?? "").split(",")[0].trim().toLowerCase();
+    if (origin && host !== new URL(origin).host) redirect(`${origin}/login?next=${encodeURIComponent(safeAccountNext(params.next))}`);
+    return <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16 text-slate-900">
+      <h1 className="text-3xl font-semibold">Your YPN USA workspace</h1>
+      <p className="mt-4 text-sm text-slate-600">Sign in or create your free account with a secure email link.</p>
+      <EmailLoginForm next={safeAccountNext(params.next)} />
+      <a className="mt-4 text-sm underline" href="mailto:support@ypnus.com">Contact support</a>
+    </main>;
+  }
   const next = resolveNext(params.next);
   const signupHref = marketingUrl(`/lo-signup.html?plan=free&app_next=${encodeURIComponent(next)}`);
   const loginHref = marketingUrl(`/lo-dashboard.html?app_next=${encodeURIComponent(next)}`);

@@ -1,4 +1,5 @@
 import fs from "fs";
+import { nativePlatformEnabled } from "./native-platform";
 import type { Stats } from "fs";
 import path from "path";
 import type {
@@ -187,6 +188,8 @@ function normalize(snapshot: unknown): DbShape {
   );
 
   return {
+    nativeAccounts: arrayOrEmpty<NonNullable<DbShape["nativeAccounts"]>[number]>(parsed.nativeAccounts),
+    loginChallenges: arrayOrEmpty<NonNullable<DbShape["loginChallenges"]>[number]>(parsed.loginChallenges),
     loanOfficers: loanOfficers.length > 0 ? loanOfficers : defaultLoanOfficers,
     sessions: sessions.map((session) => ({
       ...session,
@@ -497,14 +500,20 @@ function acquireLock(): () => void {
  * reuses the outermost call's lock instead of trying to acquire it twice
  * (which would otherwise deadlock this process against itself).
  */
-export function writeDb(mutator: (db: DbShape) => void): DbShape {
+export function writeDb(mutator: (db: DbShape) => void, options: { requirePersistent?: boolean } = {}): DbShape {
   const shouldLock = writeDbDepth === 0 && diskWritable && ensureDataDir();
   const release = shouldLock ? acquireLock() : null;
   writeDbDepth += 1;
   try {
     const db = hydrate();
+    if (options.requirePersistent && (!diskWritable || !shouldLock)) throw new Error("Persistent storage is unavailable.");
+    const previous = options.requirePersistent ? structuredClone(db) : null;
     mutator(db);
     flushToDisk(db);
+    if (options.requirePersistent && !diskWritable) {
+      memoryDb = previous;
+      throw new Error("Persistent storage is unavailable.");
+    }
     return structuredClone(db);
   } finally {
     writeDbDepth -= 1;
@@ -606,7 +615,7 @@ export function saveRevenueSubscription(subscription: RevenueSubscriptionRecord)
     const idx = db.revenueSubscriptions.findIndex((s) => s.id === subscription.id);
     if (idx >= 0) db.revenueSubscriptions[idx] = subscription;
     else db.revenueSubscriptions.push(subscription);
-  });
+  }, { requirePersistent: true });
 }
 
 /**
@@ -633,7 +642,8 @@ export function saveRevenueSubscriptionWithZipClaim(
         (s) =>
           s.id !== subscription.id &&
           s.stripeCustomerId !== subscription.stripeCustomerId &&
-          (s.status === "active" || s.status === "trialing") &&
+          s.status === "active" &&
+          (!nativePlatformEnabled() || (s.source === "stripe_webhook" && s.stripeLivemode === true && s.paymentConfirmed === true)) &&
           s.claimedZips.includes(zip),
       );
     const zipClaimed = zip !== null && !zipConflict && !subscription.claimedZips.includes(zip);
@@ -652,7 +662,7 @@ export function saveRevenueSubscriptionWithZipClaim(
     else db.revenueSubscriptions.push(record);
 
     result = { record, zipClaimed, zipConflict };
-  });
+  }, { requirePersistent: true });
   return result;
 }
 
@@ -758,6 +768,6 @@ export function recordPaymentConversion(record: PaymentConversionRecord): { reco
     }
     db.paymentConversions.push(record);
     outcome = { recorded: true };
-  });
+  }, { requirePersistent: true });
   return outcome;
 }

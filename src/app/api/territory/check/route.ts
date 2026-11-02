@@ -3,6 +3,8 @@ import { fetchLiveTerritory } from "@/lib/live-territory";
 import { checkTerritory } from "@/lib/territory";
 import { jsonError, logApiError } from "@/lib/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { nativePlatformEnabled } from "@/lib/native-platform";
+import { checkNativeTerritory } from "@/lib/native-territory";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +20,10 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const zip = searchParams.get("zip") ?? "";
+    if (nativePlatformEnabled()) {
+      const result = checkNativeTerritory(zip);
+      return result ? NextResponse.json({ ...result, source: "native_ledger", signupUrl: "/register" }, { headers: { "Cache-Control": "no-store" } }) : jsonError("ZIP availability is being verified. Please try again later.", 503, "TERRITORY_UNAVAILABLE", { headers: { "Cache-Control": "no-store", "Retry-After": "30" } });
+    }
 
     // Prefer the live ypnus.com lock ledger so app.ypnus.com matches production.
     const live = await fetchLiveTerritory(zip);

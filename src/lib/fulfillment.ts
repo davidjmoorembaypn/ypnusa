@@ -63,16 +63,18 @@ function isStripeSubscriptionStatus(value: unknown): value is StripeSubscription
 
 /**
  * Maps a Stripe subscription.status to this app's own status field.
- * past_due/incomplete still hold an active entitlement (Stripe keeps retrying
- * the card) — only a terminal state downgrades to cancelled.
+ * Only an active subscription grants paid capability. Failed or incomplete
+ * payment must not be treated as paid access.
  */
 function mapSubscriptionStatus(status: StripeSubscriptionStatus): RevenueSubscriptionRecord["status"] {
   if (status === "trialing") return "trialing";
-  if (status === "active" || status === "past_due" || status === "incomplete") return "active";
+  if (status === "active") return "active";
   return "cancelled";
 }
 
 export interface FulfillmentPayload {
+  livemode?: unknown;
+  trialEndsAt?: unknown;
   userId?: unknown;
   customerEmail?: unknown;
   stripeCustomerId?: unknown;
@@ -233,6 +235,8 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
           lastStripeEventId: eventId,
           lastStripeEventCreatedAt: eventCreatedAt,
         };
+    record.stripeLivemode = typeof payload.livemode === "boolean" ? payload.livemode : existing?.stripeLivemode;
+    record.trialEndsAt = typeof payload.trialEndsAt === "string" ? payload.trialEndsAt : existing?.trialEndsAt;
     saveRevenueSubscription(record);
     return { ok: true, applied: true, created: !existing, subscriptionId: record.id, tier: record.tier, status: record.status };
   }
@@ -270,13 +274,14 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
   const userId = optionalText(payload.userId, 200);
   const now = new Date().toISOString();
   const requestedZip = normalizeZip(payload.zip);
-  const zipToClaim = isValidZip(requestedZip) ? requestedZip : null;
+  const paid = payload.paymentStatus === "paid";
+  const zipToClaim = paid && isValidZip(requestedZip) ? requestedZip : null;
 
   const record: RevenueSubscriptionRecord = existing
     ? {
         ...existing,
         tier,
-        status: "active",
+        status: paid ? "active" : "trialing",
         stripeCustomerId,
         ownerEmail: customerEmail ?? existing.ownerEmail,
         ownerLoId: userId ?? existing.ownerLoId,
@@ -288,7 +293,7 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         createdAt: now,
         startedAt: now,
         tier,
-        status: "active",
+        status: paid ? "active" : "trialing",
         source: "stripe_webhook",
         stripeCustomerId,
         stripeSubscriptionId,
@@ -298,6 +303,9 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         lastStripeEventId: eventId,
         lastStripeEventCreatedAt: eventCreatedAt,
       };
+  record.stripeLivemode = typeof payload.livemode === "boolean" ? payload.livemode : existing?.stripeLivemode;
+  record.paymentConfirmed = paid || existing?.paymentConfirmed === true;
+  record.requestedZip = isValidZip(requestedZip) ? requestedZip : existing?.requestedZip;
   const { zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(record, zipToClaim);
   if (zipConflict) {
     logApiError(

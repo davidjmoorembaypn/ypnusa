@@ -90,7 +90,7 @@ export function automationDailyLimitFor(entitlement: Entitlement): number {
 
 /** Paid lead delivery (full contact details, CRM sync, active routing) requires any paid, active tier. */
 export function canReceivePaidLeadDelivery(entitlement: Entitlement): boolean {
-  return isPaidEntitlement(entitlement);
+  return isPaidEntitlement(entitlement) && entitlement.status === "active";
 }
 
 /**

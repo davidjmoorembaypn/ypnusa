@@ -46,6 +46,7 @@ export function mapStripeEventToFulfillmentPayload(event: Stripe.Event): Fulfill
       }
       return {
         stripeCustomerId: session.customer,
+        livemode: event.livemode,
         stripeSubscriptionId: session.subscription,
         zip: session.client_reference_id ?? undefined,
         eventType: "checkout.session.completed",
@@ -63,6 +64,8 @@ export function mapStripeEventToFulfillmentPayload(event: Stripe.Event): Fulfill
       const firstItem = subscription.items.data[0];
       return {
         stripeCustomerId: customerId,
+        livemode: event.livemode,
+        trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : undefined,
         stripeSubscriptionId: subscription.id,
         eventType: event.type,
         subscriptionStatus: subscription.status,

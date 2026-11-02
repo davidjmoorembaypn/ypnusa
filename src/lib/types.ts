@@ -243,6 +243,10 @@ export interface PropertyEvaluationRecord {
 }
 
 export interface RevenueSubscriptionRecord {
+  stripeLivemode?: boolean;
+  paymentConfirmed?: boolean;
+  trialEndsAt?: string;
+  requestedZip?: string;
   id: string;
   createdAt: string;
   startedAt: string;
@@ -458,6 +462,8 @@ export interface PaymentConversionRecord {
 }
 
 export interface DbShape {
+  nativeAccounts?: Array<{ id: string; email: string; createdAt: string }>;
+  loginChallenges?: Array<{ tokenHash: string; browserHash: string; email: string; next: string; expiresAt: number }>;
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
   borrowerLeads: BorrowerLeadRecord[];

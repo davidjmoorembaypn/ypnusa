@@ -1,4 +1,5 @@
 import { recordInvoicePaid } from "@/lib/conversions";
+import { reconcilePaidZipClaims } from "@/lib/native-billing";
 import { applyFulfillmentEvent } from "@/lib/fulfillment";
 import { jsonError, jsonOk, logApiError } from "@/lib/http";
 import { mapStripeEventToFulfillmentPayload, verifyStripeWebhookEvent } from "@/lib/stripe-webhook";
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
   try {
     if (event.type === "invoice.paid") {
       const outcome = recordInvoicePaid(event);
+      reconcilePaidZipClaims();
       return jsonOk({ applied: outcome.recorded, reason: outcome.reason });
     }
     const payload = mapStripeEventToFulfillmentPayload(event);
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
     if (!result.applied) {
       return jsonOk({ applied: false, reason: result.reason });
     }
+    reconcilePaidZipClaims();
     return jsonOk({
       applied: true,
       subscriptionId: result.subscriptionId,

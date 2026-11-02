@@ -21,18 +21,16 @@ import type { PricingTierId } from "@/lib/pricing";
  * Dashboard) — this module only ever reads it from the environment, never
  * constructs or guesses one.
  */
-const PAYMENT_LINK_ENV_VARS: Record<Exclude<PricingTierId, "free">, string> = {
-  starter: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_STARTER",
-  growth: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_GROWTH",
-  pro: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_PRO",
-  elite: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ELITE",
-};
-
 function configuredPaymentLink(tier: PricingTierId): string | null {
-  if (tier === "free") return null;
-  const envVar = PAYMENT_LINK_ENV_VARS[tier];
-  const value = process.env[envVar]?.trim();
-  return value || null;
+  // Next.js only inlines literal NEXT_PUBLIC env references in browser bundles.
+  const links = {
+    free: undefined,
+    starter: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_STARTER,
+    growth: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_GROWTH,
+    pro: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_PRO,
+    elite: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ELITE,
+  };
+  return links[tier]?.trim() || null;
 }
 
 /**

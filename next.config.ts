@@ -61,17 +61,6 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      {
-        // Marketing copy, Stripe success URLs and prior deploy docs point at
-        // app.ypnus.com/register, but account creation lives on ypnus.com
-        // (see docs/sso-handoff.md). Send sign-up intent straight to the MLO
-        // signup page — one hop, no /login detour. 308 (permanent: true)
-        // preserves method and lets crawlers consolidate the old URL; the
-        // incoming query string (utm_*, plan, etc.) is carried over.
-        source: "/register",
-        destination: "https://ypnus.com/lo-signup.html",
-        permanent: true,
-      },
       // Migrated from ypnus.com's WordPress (docs/AWS_MIGRATION.md item 1): duplicate
       // post URLs redirecting to their canonical post, plus the handful of page slugs
       // remapped or dropped in favor of an existing native page. See

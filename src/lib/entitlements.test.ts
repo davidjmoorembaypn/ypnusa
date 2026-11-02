@@ -85,12 +85,15 @@ describe("ZIP capacity", () => {
 });
 
 describe("canReceivePaidLeadDelivery", () => {
+  it("a trial cannot receive paid leads", () => {
+    assert.equal(canReceivePaidLeadDelivery(resolveEntitlement(session({ tier: "growth", subscriptionStatus: "trialing" }))), false);
+  });
   it("free cannot receive paid lead delivery", () => {
     assert.equal(canReceivePaidLeadDelivery(FREE_ENTITLEMENT), false);
   });
 
   it("any active paid tier can", () => {
-    const starter = resolveEntitlement(session({ tier: "starter", subscriptionStatus: "trialing" }));
+    const starter = resolveEntitlement(session({ tier: "starter", subscriptionStatus: "active" }));
     assert.equal(canReceivePaidLeadDelivery(starter), true);
   });
 });

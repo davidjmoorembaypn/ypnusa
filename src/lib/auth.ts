@@ -15,6 +15,9 @@ import {
 } from "@/lib/session";
 import { resolveEntitlement, type Entitlement } from "@/lib/entitlements";
 import type { PricingTierId } from "@/lib/pricing";
+import { nativePlatformEnabled } from "@/lib/native-platform";
+import { refreshNativeEntitlement } from "@/lib/native-billing";
+import { verifiedNativeEmail } from "@/lib/native-auth";
 
 export async function createSession(user: {
   sub: string;
@@ -37,7 +40,10 @@ export async function destroySession(): Promise<void> {
 /** Cached per-request: reads and verifies the session cookie. Optimistic only — see proxy.ts. */
 export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const store = await cookies();
-  return verifySessionToken(store.get(SESSION_COOKIE_NAME)?.value);
+  const session = verifySessionToken(store.get(SESSION_COOKIE_NAME)?.value);
+  if (!session || !nativePlatformEnabled()) return session;
+  if (session.sub.startsWith("native_") && verifiedNativeEmail(session.sub) !== session.email) return null;
+  return refreshNativeEntitlement(session);
 });
 
 /** Convenience: the current request's resolved entitlement (see entitlements.ts) — free by default until WordPress sends real tier claims. */

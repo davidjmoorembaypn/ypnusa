@@ -3,7 +3,7 @@ import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { ALL_BLOG_POSTS } from "@/content/blog-all";
+import { INDEXABLE_POSTS, TOPIC_CLUSTERS } from "@/lib/seo/clusters";
 import { marketingMetadata } from "@/lib/seo";
 import { getSiteOrigin } from "@/lib/request-host";
 
@@ -30,7 +30,7 @@ function formatDate(iso: string) {
 }
 
 export default function BlogIndexPage() {
-  const posts = [...ALL_BLOG_POSTS].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const posts = INDEXABLE_POSTS;
 
   return (
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
@@ -54,6 +54,13 @@ export default function BlogIndexPage() {
 
         <section className="bg-white py-16 text-slate-900 sm:py-20">
           <div className="mx-auto w-full max-w-4xl px-6">
+            <nav aria-label="Browse by topic" className="mb-10 flex flex-wrap gap-3">
+              {TOPIC_CLUSTERS.map((c) => (
+                <Link key={c.slug} href={`/topics/${c.slug}`} className="inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50">
+                  {c.name}
+                </Link>
+              ))}
+            </nav>
             <div className="space-y-6">
               {posts.map((post) => (
                 <Link

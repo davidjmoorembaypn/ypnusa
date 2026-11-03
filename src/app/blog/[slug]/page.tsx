@@ -9,6 +9,7 @@ import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { socialImageFor } from "@/lib/seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { getSiteOrigin } from "@/lib/request-host";
+import { getPostCluster, getRelatedPosts, isThinPost } from "@/lib/seo/clusters";
 
 export function generateStaticParams() {
   return ALL_BLOG_POSTS.map((post) => ({ slug: post.slug }));
@@ -24,6 +25,9 @@ export async function generateMetadata({
   if (!post) return {};
   const origin = await getSiteOrigin();
   const url = `${origin}/blog/${post.slug}`;
+  if (isThinPost(post)) {
+    return { title: post.title, robots: { index: false, follow: true }, alternates: { canonical: url } };
+  }
   const image = socialImageFor(origin);
   return {
     title: post.title,
@@ -60,9 +64,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound();
 
   const origin = await getSiteOrigin();
+  const cluster = getPostCluster(post.slug);
+  const related = getRelatedPosts(post.slug, 5);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
+    ...(cluster ? { articleSection: cluster.name } : {}),
     headline: post.title,
     description: post.description,
     datePublished: post.date,
@@ -84,6 +91,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         items={[
           { name: "Home", href: "/" },
           { name: "Blog", href: "/blog" },
+          ...(cluster ? [{ name: cluster.name, href: `/topics/${cluster.slug}` }] : []),
           { name: post.title, href: `/blog/${post.slug}` },
         ]}
       />
@@ -120,6 +128,25 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             dangerouslySetInnerHTML={{ __html: post.html }}
           />
         </article>
+        {cluster ? (
+          <aside aria-labelledby="related-heading" className="mx-auto w-full max-w-3xl px-6 pb-10">
+            <h2 id="related-heading" className="text-xl font-semibold text-slate-900">
+              More in{" "}
+              <Link href={`/topics/${cluster.slug}`} className="text-violet-700 underline">
+                {cluster.name}
+              </Link>
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {related.map((r) => (
+                <li key={r.slug}>
+                  <Link href={`/blog/${r.slug}`} className="font-semibold text-violet-700 hover:underline">
+                    {r.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        ) : null}
         <div className="mx-auto w-full max-w-3xl px-6 pb-16">
           <SiloNav silo="growth" currentPath={`/blog/${post.slug}`} tone="light" />
         </div>

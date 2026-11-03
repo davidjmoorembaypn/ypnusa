@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { ALL_BLOG_POSTS } from "@/content/blog-all";
+import { INDEXABLE_POSTS, TOPIC_CLUSTERS } from "@/lib/seo/clusters";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { getSiteOrigin } from "@/lib/request-host";
@@ -70,7 +70,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
-    ...ALL_BLOG_POSTS.map((post) => ({
+    { url: `${origin}/topics`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "weekly", priority: 0.8 },
+    ...TOPIC_CLUSTERS.map((cluster) => ({
+      url: `${origin}/topics/${cluster.slug}`,
+      lastModified: MARKETING_LAST_MODIFIED,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    })),
+    ...INDEXABLE_POSTS.map((post) => ({
       url: `${origin}/blog/${post.slug}`,
       lastModified: new Date(post.date),
       changeFrequency: "monthly" as const,

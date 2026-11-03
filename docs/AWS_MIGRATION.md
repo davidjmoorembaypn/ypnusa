@@ -102,6 +102,14 @@ Remaining work before ypnus.com can cut over (tracked as follow-ups):
    Not done: making this app's copy the system of record, or minting the SSO claim itself.
 5. Replace WPForms and WP Mail SMTP with app routes plus an email provider. **Not done.**
 
+## SEO topic clusters (2026-11-03)
+
+`src/lib/seo/clusters.ts` groups the migrated blog into 6 hub-and-spoke clusters. Each has a pillar page at
+`/topics/<slug>` (CollectionPage + ItemList + BreadcrumbList + FAQPage JSON-LD), every post links back to its
+pillar plus sibling posts, and thin stubs (`external-image-for-post-*`) are `noindex` and left out of the sitemap
+and blog index. New posts are assigned by keyword score, so no registry edit is needed.
+Not done: rehosting images, editorial pass on migrated posts, and the DNS cutover itself.
+
 ## Order of operations (each step is reversible until DNS cutover)
 
 1. `cd infra/aws && terraform init && terraform apply` (review the plan first).

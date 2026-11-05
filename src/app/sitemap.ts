@@ -3,6 +3,7 @@ import { INDEXABLE_POSTS, TOPIC_CLUSTERS } from "@/lib/seo/clusters";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { getSiteOrigin } from "@/lib/request-host";
+import { MLO_MARKETS } from "@/content/mlo-markets";
 import {
   WP_TOP_PAGES,
   WP_MARKET_PAGES,
@@ -46,6 +47,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origin}/`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "weekly", priority: 1 },
     { url: `${origin}/features`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
     { url: `${origin}/pricing`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${origin}/loan-officers`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
+    ...MLO_MARKETS.map((market) => ({
+      url: `${origin}/loan-officers/${market.slug}`,
+      lastModified: MARKETING_LAST_MODIFIED,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
     { url: `${origin}/about`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/book`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
     { url: `${origin}/claim-territory`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },

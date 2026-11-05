@@ -48,17 +48,23 @@
       },
       {
         "name": "Master of Business Administration (MBA)",
-        "category": "degree"
+        "category": "degree",
+        "recognizedBy": "California State University, Fresno",
+        "recognizedByUrl": "https://www.fresnostate.edu/"
       }
     ],
-    "bio": "Licensed mortgage loan originator (NMLS #787257) and California real estate licensee (DRE #01852847). Founder and CEO of YPN Inc., the company behind YPN USA.",
-    "_bioNote": "Only verifiable claims here. Experience counts (years, loans closed, past employers) are on /about/ but not yet confirmed for author blocks; add them only after David confirms.",
+    "bio": "Mortgage loan officer for 25 years with 2,000+ home loans closed, formerly at Wells Fargo Home Mortgage and JPMorgan Chase. Licensed loan originator (NMLS #787257), California real estate licensee (DRE #01852847), MBA from California State University, Fresno. Founder and CEO of YPN Inc., the company behind YPN USA.",
+    "_bioNote": "Experience claims confirmed by David on 2026-11-05: 25 years as a loan officer, 2,000+ loans closed, former Wells Fargo and JPMorgan Chase loan officer, MBA from Fresno State.",
     "knowsAbout": [
       "Mortgage lending",
       "Mortgage lead generation",
       "Local SEO for loan officers",
       "Realtor co-marketing"
-    ]
+    ],
+    "alumniOf": {
+      "name": "California State University, Fresno",
+      "url": "https://www.fresnostate.edu/"
+    }
   },
   "sameAs": [
     "https://www.linkedin.com/company/ypn-inc",
@@ -168,6 +174,14 @@
     {
       "label": "Disclaimer",
       "url": "/disclaimer/"
+    },
+    {
+      "label": "Editorial Policy",
+      "url": "/editorial-policy/"
+    },
+    {
+      "label": "How We Compare",
+      "url": "/research-methodology/"
     },
     {
       "label": "Refund Policy",

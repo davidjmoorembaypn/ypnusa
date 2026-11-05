@@ -1,5 +1,5 @@
 {
-  "_readme": "Source data for the 10 comparison pages. Edit here, then run `npm run build:comparisons` (rewrites the page bodies in content/pages). Competitor facts must come only from the competitor's own public pages; record the URL and the date you checked it. Re-check every 90 days.",
+  "_readme": "Source data for the 10 comparison pages. Edit here, then run `npm run build:comparisons` (rewrites the page bodies in content/pages). Competitor facts must come only from the competitor's own public pages; record the URL and the date you checked it. Re-check at least every 6 months, sooner when a company changes its pricing.",
   "checked": "2026-11-05",
   "ypn": {
     "summary": "YPN USA is a mortgage growth platform for licensed loan officers: Cerebro, an AI growth assistant; local pages, borrower funnels and Google Business Profile support under your own brand; automated follow-up; Realtor co-marketing tools; and a ZIP that is not assigned to another loan officer on the platform while your paid plan is active.",

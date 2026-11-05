@@ -72,6 +72,8 @@ Every published URL is kept exactly as WordPress served it (trailing slash inclu
 
 ## Needs a content decision (not blocking)
 
+> Resolved 2026-11-05: the old pricing on the 10 pages below was updated to Free $0 / Pro $99 / Growth $199 / Exclusive $299 (see `authority/CHANGELOG.md`). The home page's Stripe checkout links still need new-price payment links.
+
 Old pricing that couldn't be mapped automatically is still on these 10 pages (e.g. "Growth plan ($99.99/mo)", "Elite: Unlimited", JSON-LD Offers at 99.99/199.99/299.99):
 `/`, `/how-it-works/`, `/features/`, `/about/`, `/mlo-growth-engine/`, `/agent-co-branding/`, `/platform/loan-officer-crm/`, `/boost-business-ai-mortgae-leads-ypn-usa/`, `/easy-mortgage-websites-ypn-usa-professionals/`, `/boost-your-mortgage-business-ypn-usa-insights/`.
 

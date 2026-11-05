@@ -28,19 +28,19 @@ scripts are not in this repo.
 
 ## Using `ypnus-com/` with the app
 
-`ypnus-com/` is never deployed. Treat it as the newer, cleaner copy of the WordPress content
-to port into `src/content/wp-import/` in a follow-up PR. Compared with the app's 2026-10-21
-import, it adds:
+`ypnus-com/` is never deployed. It is the edited copy of the WordPress content; the app gets it
+through one script:
 
-- Pages the app doesn't have yet: `/agents/david-j-moore-mba`, `/editorial-policy`,
-  `/research-methodology`, `/ypn-usa-partner-suite`.
-- Rewritten comparison pages (`content/pages/vs/`, `authority/`) and internal links from the
-  authority plan, which was still being edited when this snapshot was taken.
-- Fewer leftovers of the old tier names: "Elite" appears 28 times across 15 of its files, versus 720 times in
-  the app's current import. Those still need a pricing pass before or during the port.
+```bash
+cd sites/ypnus-com && npm ci && node scripts/export-to-app.js     # writes src/content/wp-import/
+node scripts/export-to-app.js --check                              # exit 1 if the app is out of date
+```
 
-Every one of its 335 posts already exists in the app, either as a canonical post or as a
-redirect to one.
+The script takes the pages the authority plan rewrote or added (comparisons, editorial policy,
+methodology, founder pages, CRM wording, hand-fixed pricing) with their FAQ, schema type, author
+box and "Keep exploring" links; keeps the app's own HTML for everything else and only swaps old
+plan names and prices; and adds redirects the app is missing. Launch steps:
+[`docs/LAUNCH-YPNUS-COM.md`](../docs/LAUNCH-YPNUS-COM.md).
 
 The step-by-step build prompt is
 [`docs/prompts/ypnus-aws-build-prompt.md`](../docs/prompts/ypnus-aws-build-prompt.md).

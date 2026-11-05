@@ -40,6 +40,7 @@ function founderNode(site) {
     url: abs(site, f.url),
     image: abs(site, f.image),
     description: f.bio,
+    alumniOf: f.alumniOf ? { '@type': 'CollegeOrUniversity', name: f.alumniOf.name, url: f.alumniOf.url } : undefined,
     worksFor: { '@id': `${site.url}/#organization` },
     knowsAbout: f.knowsAbout || ['Mortgage lending', 'Mortgage lead generation', 'Local SEO for loan officers', 'Realtor co-marketing'],
     identifier: [

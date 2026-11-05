@@ -15,7 +15,11 @@ ypnus.com ──DNS──▶ AWS host 18.223.107.93 (i-0ad200fc61f4d39f5, us-eas
 ```
 
 Keeping `/wp-json/` on WordPress during launch means signups, the Stripe webhook, the ZIP
-ledger and logins keep working exactly as today. Nothing about billing changes at DNS cutover.
+ledger and logins keep working exactly as today, **as long as WordPress is up**. On 2026-11-05
+WordPress on Hostinger was reported down: then those WordPress routes return errors after the
+switch, checkout still works (buttons go straight to Stripe), ZIP checks fall back to the app's
+own data, and new subscribers are charged but get no login until WordPress is back or phase 2
+(PR 119) lands. Stripe keeps the subscription either way.
 Moving those into the app is phase 2 (PR 119), done afterwards with no DNS change.
 
 ## What PR 120 already does (*repo*)
@@ -33,8 +37,8 @@ Moving those into the app is phase 2 (PR 119), done afterwards with no DNS chang
 
 | # | Item | Owner | Blocks launch? |
 | --- | --- | --- | --- |
-| 1 | **Native pages still show old prices.** The app's own home page, `/pricing`, schema offers and social image say Growth $99.99 / Pro $199.99 / Elite $299.99. PR 119 changes them to the new lineup. | Merge PR 119 (YES) | Yes, if the new prices must show on day one |
-| 2 | **Stripe checkout links charge old prices.** The WordPress signup pages (`lo-signup.html` etc.) and the rebuild's home page use Payment Links made for $99.99 / $199.99 / $299.99. New prices + links are needed (PR 119 `docs/WORDPRESS_CUTOVER.md` step 1). | David in Stripe (YES) | Yes, if labels say $99 but checkout charges $99.99 |
+| 1 | ~~Native pages show old prices~~ **done in PR 120**: home, `/pricing`, schema offers, OG image and claim page show Pro $99 / Growth $199 / Exclusive $299. Tier ids are unchanged (id `growth` = Pro, `pro` = Growth, `elite` = Exclusive) so existing subscriptions keep working. | *repo* | — |
+| 2 | ~~Stripe links charge old prices~~ **done**: new monthly Payment Links (15-day trial, `ypnus_tier` + `pricing=2026-11`) are the default checkout targets in `src/lib/checkout.ts`; the webhook maps their names to tier ids (`src/lib/stripe-webhook.ts`). | *repo* + Stripe (done 2026-11-05) | — |
 | 3 | **New-subscriber logins.** Today WordPress creates the account when Stripe pays. That keeps working at launch because `/wp-json/` stays on WordPress. Only when WordPress is retired must the app take over (PR 119: Stripe webhook + emailed sign-in links). | Phase 2 | No |
 | 4 | **ZIP territory ledger** stays in WordPress (`/wp-json/ypnus/v1/zip-check`, already proxied). Phase 2 moves it with PR 119's export/import scripts. | Phase 2 | No |
 | 5 | **Media** (`/wp-content/uploads`) is proxied to WordPress. Copy to the server or S3 only before WordPress is shut down. | Phase 2 | No |

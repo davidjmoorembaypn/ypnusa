@@ -1,0 +1,35 @@
+# EXAMPLE ONLY. GitHub never runs files outside .github/workflows/, so this does nothing here.
+# To use it: copy to .github/workflows/deploy-site.yml in davidjmoorembaypn/ypnusa, AFTER the
+# ypnus-site stack exists and the owner has approved deploying ypnus.com from this repo.
+# It is manual-only (Actions tab -> "Deploy ypnus.com" -> Run workflow). Add a push trigger
+# later only if the owner asks for automatic deploys:
+#   push: { branches: [main], paths: ['sites/ypnus-com/**'] }
+# One-time setup: repo Settings -> Secrets and variables -> Actions -> New repository secret
+#   AWS_DEPLOY_ROLE_ARN = the DeployRoleArn output of the ypnus-site stack
+name: Deploy ypnus.com
+on:
+  workflow_dispatch: {}
+permissions:
+  id-token: write   # lets GitHub prove who it is to AWS (no stored AWS keys)
+  contents: read
+concurrency: { group: deploy-site, cancel-in-progress: false }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sites/ypnus-com
+    env: { STACK_NAME: ypnus-site, AWS_REGION: us-east-1 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: sites/ypnus-com/package-lock.json }
+      - run: npm ci --omit=dev --no-audit --no-fund
+      - name: Check every page, redirect and link
+        run: npm run check
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Build and publish
+        run: bash aws/scripts/deploy.sh

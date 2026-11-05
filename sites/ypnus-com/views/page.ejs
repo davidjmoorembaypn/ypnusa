@@ -1,0 +1,21 @@
+<%- include('partials/head') %>
+<body class="ypx-page<%= doc.ownHeader ? ' ypx-own-header' : '' %>">
+<% if (!doc.ownHeader) { %><%- include('partials/header') %><% } %>
+<% var designed = doc.ownHeader || doc.fullWidth || /<style\b/i.test(body); %>
+<main id="main" class="<%= designed ? 'ypx-designed' : 'ypx-prose-page' %>">
+  <% if (!doc.ownHeader && doc.permalink !== '/') { %><%- include('partials/breadcrumbs') %><% } %>
+  <% if (!doc.hideTitle) { %><div class="ypx-wrap"><h1 class="ypx-title"><%= doc.title %></h1></div><% } %>
+  <div class="<%= designed ? 'ypx-entry ypx-entry-wide' : 'ypx-entry ypx-wrap ypx-prose' %>">
+<%- body %>
+  </div>
+  <% var links = locals.relatedLinks || []; var wantAuthor = head.authorBox && body.indexOf('ypx-author') === -1; %>
+  <% if (links.length || wantAuthor) { %>
+  <div class="ypx-wrap ypx-page-foot">
+    <% if (links.length) { %>
+    <nav class="ypx-related-links" aria-label="Related pages"><h2>Keep exploring</h2><ul><% links.forEach(function (l) { %><li><a href="<%= l.url %>"><%= l.label %></a></li><% }) %></ul></nav>
+    <% } %>
+    <% if (wantAuthor) { %><%- include('partials/author-bio') %><% } %>
+  </div>
+  <% } %>
+</main>
+<%- include('partials/footer') %>

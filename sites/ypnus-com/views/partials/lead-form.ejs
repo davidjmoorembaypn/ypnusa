@@ -1,0 +1,14 @@
+<form class="ypx-lead" id="<%= formId %>" action="/api/lead" method="post" novalidate data-ypx-lead>
+  <input type="hidden" name="source" value="<%= source %>">
+  <div class="ypx-fields">
+    <label>First name<input type="text" name="name" autocomplete="given-name" required maxlength="120"></label>
+    <label>Work email<input type="email" name="email" autocomplete="email" required maxlength="254"></label>
+    <% if (withPhone) { %><label>Mobile phone <span class="ypx-opt">(optional)</span><input type="tel" name="phone" autocomplete="tel" maxlength="40"></label><% } %>
+    <% if (withZip) { %><label>ZIP you want<input type="text" name="zip" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" autocomplete="postal-code"></label><% } %>
+  </div>
+  <input class="ypx-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <label class="ypx-check"><input type="checkbox" name="consent" value="1" required> Email me YPN USA product information. I can unsubscribe anytime.</label>
+  <% if (withPhone) { %><label class="ypx-check"><input type="checkbox" name="sms_consent" value="1"> I agree to receive calls and text messages from YPN USA at the number above, including by automated means. Consent is not a condition of purchase. Message and data rates may apply. Reply STOP to opt out.</label><% } %>
+  <button class="ypx-btn" type="submit">Send</button>
+  <p class="ypx-res" role="status" aria-live="polite"></p>
+</form>

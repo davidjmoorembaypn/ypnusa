@@ -1,0 +1,92 @@
+---
+id: 2724
+type: "page"
+title: "Mortgage Payment Calculator | Free Monthly Payment Estimator — YPN USA"
+permalink: "/mortgage-payment-calculator/"
+status: "publish"
+date: "2026-07-28T21:54:02Z"
+modified: "2026-09-22T09:45:27Z"
+author: "David J. Moore, MBA"
+seoTitle: "Mortgage Payment Calculator | Free Monthly Payment Estima…"
+description: "Calculate your monthly mortgage payment, including principal, interest, taxes, insurance, and PMI, with this free tool from YPN USA and get matched locally."
+focusKeyword: "mortgage payment calculator"
+robots: "index,follow"
+ogImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImageAlt: "Loan officer reviewing mortgage rate history document to calculate discount point breakeven math"
+hideTitle: true
+wpSource: "ypnusa.WordPress.2026-11-04_2.xml"
+---
+<h1>Mortgage Payment Calculator</h1>
+<p>Estimate your monthly mortgage payment — principal, interest, taxes, insurance, and PMI — in seconds. Built for buyers working with a YPN USA loan officer.</p>
+<div id="ypn-calc-mpc" style="max-width:560px; margin:2rem 0; padding:1.5rem; border:1px solid #e2e8f0; border-radius:12px; font-family:inherit">
+<label>Home Price ($)<br><input type="number" id="mpc-price" value="400000" style="width:100%; padding:.5rem; margin:.25rem 0 .75rem"></label>
+<label>Down Payment (%)<br><input type="number" id="mpc-down" value="20" style="width:100%; padding:.5rem; margin:.25rem 0 .75rem"></label>
+<label>Interest Rate (% APR)<br><input type="number" id="mpc-rate" value="6.75" step="0.01" style="width:100%; padding:.5rem; margin:.25rem 0 .75rem"></label>
+<label>Loan Term (years)<br><select id="mpc-term" style="width:100%; padding:.5rem; margin:.25rem 0 .75rem"><option value="30">30</option><option value="15">15</option></select></label>
+<label>Annual Property Tax ($)<br><input type="number" id="mpc-tax" value="4800" style="width:100%; padding:.5rem; margin:.25rem 0 .75rem"></label>
+<label>Annual Home Insurance ($)<br><input type="number" id="mpc-ins" value="1600" style="width:100%; padding:.5rem; margin:.25rem 0 .75rem"></label>
+<button onclick="ypnMpcCalc()" style="background:#0A1F44; color:#fff; padding:.7rem 1.4rem; border:none; border-radius:8px; font-weight:700; cursor:pointer; width:100%">Calculate Payment</button>
+<div id="mpc-result" style="margin-top:1.25rem; padding:1rem; background:#fff; border-radius:8px; border-left:4px solid #C9A961; display:none"></div>
+</div>
+<script>
+function ypnMpcCalc(){
+var price=parseFloat(document.getElementById('mpc-price').value)||0;
+var downPct=parseFloat(document.getElementById('mpc-down').value)||0;
+var rate=parseFloat(document.getElementById('mpc-rate').value)||0;
+var term=parseInt(document.getElementById('mpc-term').value)||30;
+var tax=parseFloat(document.getElementById('mpc-tax').value)||0;
+var ins=parseFloat(document.getElementById('mpc-ins').value)||0;
+var loanAmt=price*(1-downPct/100);
+var monthlyRate=(rate/100)/12;
+var n=term*12;
+var pi=monthlyRate>0?loanAmt*(monthlyRate*Math.pow(1+monthlyRate,n))/(Math.pow(1+monthlyRate,n)-1):loanAmt/n;
+var pmi=downPct<20?loanAmt*0.006/12:0;
+var monthlyTax=tax/12;
+var monthlyIns=ins/12;
+var total=pi+monthlyTax+monthlyIns+pmi;
+var r=document.getElementById('mpc-result');
+r.style.display='block';
+r.innerHTML='<strong>Estimated Monthly Payment: $'+total.toFixed(2)+'</strong><br>Principal &amp; Interest: $'+pi.toFixed(2)+'<br>Property Tax: $'+monthlyTax.toFixed(2)+'<br>Insurance: $'+monthlyIns.toFixed(2)+(pmi>0?'<br>PMI: $'+pmi.toFixed(2)+' <em>(add 20% down to remove PMI)</em>':'')+'<br><br><a href="/lo-signup.html" style="color:#C9A961; font-weight:700">Get matched with a loan officer &rarr;</a>';
+}
+</script>
+<h2>How This Calculator Works</h2>
+<p>This tool uses the standard amortization formula to calculate principal and interest, then layers in property tax, homeowners insurance, and PMI (if your down payment is under 20%) to give you a true all-in monthly payment estimate — not just the bare loan payment most calculators show.</p>
+<h2>Next Steps</h2>
+<ul>
+<li>Read the full Mortgage Payment Guide to understand every line item</li>
+<li>See rates and programs specific to Fresno, CA or Kingsburg, CA</li>
+<li><a href="/lo-signup.html"><strong>Get matched with a YPN USA loan officer &rarr;</strong></a></li>
+</ul>
+
+
+            
+            <div class="wp-block-buttons">
+                
+                <div class="wp-block-button is-style-fill"><a class="wp-block-button__link wp-element-button" href="/lo-signup.html">Get Started Today</a></div>
+                
+            </div>
+            
+<div class="ypn-cta-container" style="background:#0f172a; color:#ffffff; padding:30px; border-radius:8px; margin:30px 0; text-align:center">
+  <h3 style="color:#ffffff; margin-top:0">Scale Your Mortgage Pipeline with YPN USA</h3>
+  <p style="font-size:16px">Automate cold lead acquisition, instant SMS/email follow-ups, and AI workflow management for MLOs.</p>
+  <a href="/mlo-site-demo/" style="background:#2563eb; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block; margin-top:10px">Schedule a Demo Today</a>
+</div>
+<div class="ypn-interlinks-container" style="border-top:1px solid #e2e8f0; margin-top:40px; padding-top:20px">
+  <h4 style="margin-bottom:10px">Explore Top <a href="/mlo-marketing-automation/">MLO</a> Platform Comparisons</h4>
+  <ul style="line-height:1.8">
+    <li><a href="/vs/total-expert/">YPN USA vs Total Expert</a></li>
+    <li><a href="/vs/bonzo/">YPN USA vs Bonzo</a></li>
+    <li><a href="/vs/homebot/">YPN USA vs Homebot</a></li>
+    <li><a href="/vs/velocify/">YPN USA vs ICE Velocify</a></li>
+  </ul>
+</div>
+
+
+<div class="wp-block-group has-tertiary-background-color has-background" style="padding:20px">
+<p><strong>Featured Resources:</strong></p>
+<ul>
+<li><strong>Previous Page:</strong> <a href="/mlo-site-demo/">See Your MLO Site Plan — Free Demo</a></li>
+<li><strong>Next Page:</strong> <a href="/site-directory/">Site Directory</a></li>
+</ul>
+</div>

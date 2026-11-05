@@ -1,0 +1,5 @@
+dist/
+.aws-sam/
+samconfig.toml
+stack.env
+dns-backup.json

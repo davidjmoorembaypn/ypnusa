@@ -1,0 +1,21 @@
+<%- include('partials/head') %>
+<body class="ypx-post">
+<%- include('partials/header') %>
+<main id="main">
+  <%- include('partials/breadcrumbs') %>
+  <article class="ypx-article ypx-wrap">
+    <header class="ypx-article-head">
+      <% if (cat) { %><p class="ypx-eyebrow"><a href="/category/<%= cat.slug %>/"><%= cat.name %></a></p><% } %>
+      <% if (!/<h1\b/i.test(body)) { %><h1 class="ypx-title"><%= doc.title %></h1><% } %>
+      <p class="ypx-meta">By <a href="<%= site.founder.url %>"><%= site.founder.name %></a><% if (doc.date) { %> &middot; <time datetime="<%= doc.date.toISOString() %>"><%= doc.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) %></time><% } %><% if (doc.modified && doc.date && doc.modified - doc.date > 86400000) { %> &middot; Updated <time datetime="<%= doc.modified.toISOString() %>"><%= doc.modified.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) %></time><% } %></p>
+    </header>
+    <% if (doc.featuredImage && body.indexOf(doc.featuredImage) === -1) { %><figure class="ypx-hero-img"><img src="<%= doc.featuredImage %>" alt="<%= doc.featuredImageAlt || doc.title %>" fetchpriority="high" decoding="async" width="1200" height="655"></figure><% } %>
+    <div class="ypx-entry ypx-prose">
+<%- body %>
+    </div>
+    <% if (doc.tags.length) { %><p class="ypx-tags">Topics: <% doc.tags.forEach(function (t, i) { var tag = content.tags.get(t); %><a href="/tag/<%= t %>/"><%= tag ? tag.name : t %></a><%= i < doc.tags.length - 1 ? ', ' : '' %><% }) %></p><% } %>
+    <%- include('partials/author-bio') %>
+    <% if (body.indexOf('ypx-related') === -1 && doc.related && doc.related.length) { %><%- include('partials/related', { posts: doc.related }) %><% } %>
+  </article>
+</main>
+<%- include('partials/footer') %>

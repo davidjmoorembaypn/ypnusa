@@ -1,0 +1,18 @@
+<a class="ypx-skip" href="#main">Skip to content</a>
+<header class="ypx-header" role="banner">
+  <div class="ypx-wrap ypx-header-in">
+    <a class="ypx-brand" href="/" aria-label="<%= site.name %> home"><span class="ypx-mark" aria-hidden="true">YPN</span><span class="ypx-brand-name"><%= site.name %></span></a>
+    <button class="ypx-menu-btn" type="button" aria-expanded="false" aria-controls="ypx-nav">Menu</button>
+    <nav id="ypx-nav" class="ypx-nav" aria-label="Primary">
+      <ul>
+        <% site.nav.forEach(function (item) { %>
+        <li class="<%= item.children ? 'has-sub' : '' %>">
+          <a href="<%= item.url %>"><%= item.label %></a>
+          <% if (item.children) { %><ul class="ypx-sub"><% item.children.forEach(function (c) { %><li><a href="<%= c.url %>"><%= c.label %></a></li><% }) %></ul><% } %>
+        </li>
+        <% }) %>
+        <li><a class="ypx-btn ypx-btn-sm" href="<%= site.navCta.url %>"><%= site.navCta.label %></a></li>
+      </ul>
+    </nav>
+  </div>
+</header>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= head.title %></title>
+<meta name="description" content="<%= head.description %>">
+<meta name="robots" content="<%= head.robots %>">
+<link rel="canonical" href="<%= head.canonical %>">
+<meta property="og:locale" content="<%= site.locale %>">
+<meta property="og:type" content="<%= head.ogType %>">
+<meta property="og:site_name" content="<%= site.name %>">
+<meta property="og:title" content="<%= head.ogTitle %>">
+<meta property="og:description" content="<%= head.ogDescription %>">
+<meta property="og:url" content="<%= head.canonical %>">
+<% if (head.image) { %><meta property="og:image" content="<%= head.image %>">
+<meta name="twitter:image" content="<%= head.image %>"><% } %>
+<% if (head.published && head.ogType === 'article') { %><meta property="article:published_time" content="<%= head.published %>">
+<meta property="article:modified_time" content="<%= head.modified %>"><% } %>
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ypn_today">
+<meta name="twitter:title" content="<%= head.twitterTitle %>">
+<meta name="twitter:description" content="<%= head.twitterDescription %>">
+<meta name="theme-color" content="#0A1F44">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="<%= site.name %> Blog" href="/feed/">
+<link rel="preconnect" href="https://app.ypnus.com">
+<link rel="stylesheet" href="/assets/site.css?v=<%= assetVersion %>">
+<script type="application/ld+json"><%- head.jsonLd %></script>
+<% if (process.env.GA_MEASUREMENT_ID) { %>
+<script async src="https://www.googletagmanager.com/gtag/js?id=<%= process.env.GA_MEASUREMENT_ID %>"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','<%= process.env.GA_MEASUREMENT_ID %>');</script>
+<% } %>
+</head>

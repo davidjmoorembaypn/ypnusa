@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Standalone Express site for ypnus.com (own package.json, own checks: npm run check).
+    "sites/**",
   ]),
 ]);
 

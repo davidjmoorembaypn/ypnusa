@@ -1,0 +1,241 @@
+---
+id: 27
+type: "page"
+title: "Disclaimer | YPN USA"
+permalink: "/disclaimer/"
+status: "publish"
+date: "2026-05-25T14:19:36Z"
+modified: "2026-09-22T09:43:26Z"
+author: "David J. Moore, MBA"
+description: "Interactive Strategy Tool Engage borrowers immediately with interactive financial modeling. Loan Amount ($) $450,000 Current Market Rate (%) Loan Produc..."
+focusKeyword: "disclaimer"
+robots: "noindex,follow"
+ogImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImageAlt: "Loan officer reviewing mortgage rate history document to calculate discount point breakeven math"
+wpSource: "ypnusa.WordPress.2026-11-04_2.xml"
+---
+<div class="wp-block-group alignfull hostinger-ai-about-us-3 hostinger-ai-fade-up">
+<div class="bg-white rounded-3xl shadow-xl p-8 border border-slate-200 max-w-4xl mx-auto my-8 font-sans">
+    <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold text-slate-900">Interactive Strategy Tool</h2>
+        <p class="text-slate-505 mt-2">Engage borrowers immediately with interactive financial modeling.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem">
+        <div style="display: flex; flex-direction: column; gap: 1.5rem">
+            <div>
+                <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #334155">Loan Amount ($)</label>
+                <input type="range" id="loanAmount" min="100000" max="2000000" step="10000" value="450000" style="width: 100%; cursor: pointer; accent-color: #1e40af">
+                <div id="loanDisplay" style="margin-top: 0.5rem; font-size: 1.125rem; font-weight: 700; color: #1e40af">$450,000</div>
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #334155">Current Market Rate (%)</label>
+                <input type="number" id="interestRate" step="0.01" value="6.70" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; outline: none">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #334155">Loan Product</label>
+                <select id="loanTerm" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; outline: none; background-color: #fff">
+                    <option value="30">30 Year Fixed - Standard</option>
+                    <option value="15">15 Year Fixed - Save on Interest</option>
+                    <option value="10">10 Year Fixed - Ultra Fast Equity</option>
+                </select>
+            </div>
+        </div>
+        <div style="background-color: #eff6ff; border-radius: 1rem; padding: 2rem; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center">
+            <div style="font-size: 0.875rem; font-weight: 600; color: #2563eb; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem">Target Monthly Payment</div>
+            <div id="monthlyPayment" style="font-size: 3rem; font-weight: 900; color: #1e3a8a">$2,903</div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-xl mx-auto my-12 font-sans">
+    <form id="onboardingForm" style="border: 1px solid #e2e8f0; padding: 2rem; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25)">
+        <div id="formStep1" style="display: flex; flex-direction: column; gap: 1.5rem">
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; text-align: center">Step 1: Choose Your Growth Path</h3>
+            <div style="display: flex; flex-direction: column; gap: 1rem">
+                <label style="cursor: pointer; position: relative">
+                    <input type="radio" name="loan_goal" value="LifeEvents" checked style="position: absolute; top: 1.25rem; left: 1rem; accent-color: #1e40af">
+                    <div style="padding: 1rem 1rem 1rem 2.5rem; background-color: #fff; border: 2px solid #e2e8f0; border-radius: 0.75rem">
+                        <p style="font-weight: 700; margin: 0">I Want Life Event Lead Data</p>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 0">Divorce, Marriage, and Probate filings in my zip codes.</p>
+                    </div>
+                </label>
+                <label style="cursor: pointer; position: relative">
+                    <input type="radio" name="loan_goal" value="Referrals" style="position: absolute; top: 1.25rem; left: 1rem; accent-color: #1e40af">
+                    <div style="padding: 1rem 1rem 1rem 2.5rem; background-color: #fff; border: 2px solid #e2e8f0; border-radius: 0.75rem">
+                        <p style="font-weight: 700; margin: 0">I Want Realtors to Chase Me</p>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 0">Provide agents with "Future Seller" lists they can't find elsewhere.</p>
+                    </div>
+                </label>
+            </div>
+            <button type="button" onclick="nextStep(2)" style="width: 100%; padding: 1rem; background-color: #1e40af; color: #fff; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer">
+                Next Step: Secure My Brand
+            </button>
+        </div>
+
+        <div id="formStep2" style="display: none; flex-direction: column; gap: 1.5rem">
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; text-align: center">Step 2: Final Details</h3>
+            <div style="display: flex; flex-direction: column; gap: 1rem">
+                <input type="text" name="full_name" placeholder="Full Name" required style="width: 100%; padding: 1rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; outline: none">
+                <input type="email" name="email" placeholder="Professional Email Address" required style="width: 100%; padding: 1rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; outline: none">
+                <input type="text" name="nmls" placeholder="NMLS # (For Legal Disclosure)" style="width: 100%; padding: 1rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; outline: none">
+            </div>
+            <div style="display: flex; gap: 1rem">
+                <button type="button" onclick="nextStep(1)" style="width: 33.33%; padding: 1rem; color: #334155; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer">Back</button>
+                <button type="submit" style="width: 66.66%; padding: 1rem; background-color: #059669; color: #fff; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer">Launch My AI Platform</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+const loanInput = document.getElementById('loanAmount');
+const rateInput = document.getElementById('interestRate');
+const termInput = document.getElementById('loanTerm');
+const displayAmount = document.getElementById('loanDisplay');
+const monthlyDisplay = document.getElementById('monthlyPayment');
+const onboardingForm = document.getElementById('onboardingForm');
+
+function calculatePayment() {
+    if(!loanInput || !rateInput || !termInput) return;
+    const P = parseFloat(loanInput.value) || 0;
+    const annualRate = parseFloat(rateInput.value) || 0;
+    const r = annualRate / 100 / 12;
+    const n = (parseInt(termInput.value) || 30) * 12;
+
+    displayAmount.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(P);
+
+    if (r === 0) {
+        const simplePayment = n > 0 ? P / n : 0;
+        monthlyDisplay.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(simplePayment);
+        return;
+    }
+
+    const payment = (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    
+    if (isFinite(payment)) {
+        monthlyDisplay.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(payment);
+    } else {
+        monthlyDisplay.textContent = "$0";
+    }
+}
+
+function nextStep(step) {
+    const s1 = document.getElementById('formStep1');
+    const s2 = document.getElementById('formStep2');
+    if(!s1 || !s2) return;
+    
+    if (step === 2) {
+        s1.style.display = 'none';
+        s2.style.display = 'flex';
+    } else {
+        s2.style.display = 'none';
+        s1.style.display = 'flex';
+    }
+}
+
+if (onboardingForm) {
+    onboardingForm.removeAttribute('method'); 
+    onboardingForm.addEventListener('submit', function(e) {
+        e.preventDefault(); 
+
+        const selectedGoal = document.querySelector('input[name="loan_goal"]:checked')?.value || 'Not Selected';
+        const fullName = onboardingForm.querySelector('input[name="full_name"]')?.value || '';
+        const emailAddress = onboardingForm.querySelector('input[name="email"]')?.value || '';
+        const nmlsNumber = onboardingForm.querySelector('input[name="nmls"]')?.value || '';
+
+        localStorage.setItem('lead_goal', selectedGoal);
+        localStorage.setItem('lead_name', fullName);
+        localStorage.setItem('lead_email', emailAddress);
+        localStorage.setItem('lead_nmls', nmlsNumber);
+
+        onboardingForm.innerHTML = `
+            <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 2rem; border-radius: 1.5rem; text-align: center">
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem">You're In!</h3>
+                <p style="margin-bottom: 1.5rem">Welcome to the future of lending. We've captured your secure brand reservation profile.</p>
+                <button type="button" onclick="window.location.reload()" style="background: none; border: none; color: #047857; font-weight: 700; text-decoration: underline; cursor: pointer">Restart New Registration</button>
+            </div>
+        `;
+    });
+}
+
+if(loanInput) loanInput.addEventListener('input', calculatePayment);
+if(rateInput) rateInput.addEventListener('input', calculatePayment);
+if(termInput) termInput.addEventListener('change', calculatePayment);
+
+window.addEventListener('DOMContentLoaded', calculatePayment);
+setTimeout(calculatePayment, 200); // Fail-safe fallback execution loop
+</script>
+
+
+
+<div class="wp-block-group alignwide hostinger-ai-fade-up" style="padding-top:var(--wp--preset--spacing--60); padding-right:0; padding-bottom:var(--wp--preset--spacing--60); padding-left:0">
+<div class="wp-block-group hostinger-ai-fade-up" style="padding-right:var(--wp--preset--spacing--60); padding-left:0">
+<h2 class="wp-block-heading hostinger-ai-title has-dark-color has-text-color has-link-color has-x-large-font-size" style="margin-top:0; margin-right:0; margin-bottom:0; margin-left:0; padding-bottom:var(--wp--preset--spacing--20)">About <a href="/">ypnus.com</a></h2>
+
+
+
+<p class="hostinger-ai-description has-dark-color has-text-color has-link-color has-medium-font-size" style="margin-top:0; margin-bottom:var(--wp--preset--spacing--50)"><a href="/">ypnus.com</a> is your AI partner, crafted solely to help mortgage loan officers close more loans with less hassle.</p>
+
+
+
+<div class="wp-block-buttons">
+<div class="wp-block-button hostinger-ai-cta-button hostinger-index-0"><a class="wp-block-button__link has-dark-color has-text-color has-link-color has-border-color has-medium-font-size has-custom-font-size wp-element-button" href="/marketing-tools/" style="border-color:#0d141a; border-width:1px; border-radius:50px; padding-top:var(--wp--preset--spacing--30); padding-right:var(--wp--preset--spacing--70); padding-bottom:var(--wp--preset--spacing--30); padding-left:var(--wp--preset--spacing--70); box-shadow:none">Learn More</a></div>
+</div>
+</div>
+
+
+
+<div class="wp-block-group hostinger-ai-fade-up">
+<figure class="wp-block-image size-full has-custom-border hostinger-ai-image hostinger-index-4"><img loading="lazy" decoding="async"  src="https://images.unsplash.com/photo-1590223765379-844473f6f9c8?q=85&amp;w=273&amp;h=462&amp;fit=crop" alt="A man stands at a whiteboard in a modern office setting. The whiteboard displays a website wireframe sketch with some notes. The man is wearing a white t-shirt and is holding a marker. In front of him, on a wooden table, there is a laptop with various stickers, a smartphone, and an electronic device. The office features large windows and sleek lighting fixtures." class="wp-image-478" style="border-radius:20px"/></figure>
+
+
+
+<figure class="wp-block-image size-full has-custom-border hostinger-ai-image hostinger-index-5"><img loading="lazy" decoding="async"  src="https://images.unsplash.com/photo-1698512156323-28e03350851e?q=85&amp;w=273&amp;h=462&amp;fit=crop" alt="A dimly lit workspace featuring a desktop monitor displaying a website development page and a laptop showing a digital growth insights page. The setup includes a keyboard, mouse, two cups, a pen holder, and a clock displaying '02 36'. The atmosphere suggests a cozy, focused work environment." class="wp-image-479" style="border-radius:20px"/></figure>
+</div>
+</div>
+</div>
+
+
+
+<div class="wp-block-group alignfull hostinger-ai-solid-block hostinger-ai-fade-up has-color-1-background-color has-background" style="padding-top:var(--wp--preset--spacing--60); padding-bottom:var(--wp--preset--spacing--60)">
+<div class="wp-block-group alignwide hostinger-ai-fade-up" style="min-height:0px; padding-top:0; padding-bottom:0">
+<div class="wp-block-group hostinger-ai-fade-up">
+<h2 class="wp-block-heading has-text-align-center hostinger-ai-title has-dark-color has-text-color has-link-color has-x-large-font-size" style="margin-top:0; margin-right:0; margin-bottom:0; margin-left:0">Get Started</h2>
+
+
+
+<p class="has-text-align-center hostinger-ai-description has-dark-color has-text-color has-link-color has-medium-font-size" style="margin-top:var(--wp--preset--spacing--20); margin-bottom:var(--wp--preset--spacing--50)">Ready to boost your mortgage business? Join <a href="/">ypnus.com</a> and transform your lead game today.</p>
+
+
+
+<div class="wp-block-buttons">
+<div class="wp-block-button hostinger-ai-cta-button"><a class="wp-block-button__link has-dark-color has-contrast-background-color has-text-color has-background has-link-color has-border-color has-medium-font-size has-custom-font-size wp-element-button" href="/contact/" style="border-color:#0d141a; border-width:1px; border-radius:50px; padding-top:var(--wp--preset--spacing--30); padding-right:var(--wp--preset--spacing--70); padding-bottom:var(--wp--preset--spacing--30); padding-left:var(--wp--preset--spacing--70); box-shadow:none">Join</a></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="ypn-cta-container" style="background:#0f172a; color:#ffffff; padding:30px; border-radius:8px; margin:30px 0; text-align:center">
+  <h3 style="color:#ffffff; margin-top:0">Scale Your Mortgage Pipeline with YPN USA</h3>
+  <p style="font-size:16px">Automate cold lead acquisition, instant SMS/email follow-ups, and AI workflow management for MLOs.</p>
+  <a href="/mlo-site-demo/" style="background:#2563eb; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block; margin-top:10px">Schedule a Demo Today</a>
+</div>
+<div class="ypn-interlinks-container" style="border-top:1px solid #e2e8f0; margin-top:40px; padding-top:20px">
+  <h4 style="margin-bottom:10px">Explore Top <a href="/mlo-marketing-automation/">MLO</a> Platform Comparisons</h4>
+  <ul style="line-height:1.8">
+    <li><a href="/vs/total-expert/">YPN USA vs Total Expert</a></li>
+    <li><a href="/vs/bonzo/">YPN USA vs Bonzo</a></li>
+    <li><a href="/vs/homebot/">YPN USA vs Homebot</a></li>
+    <li><a href="/vs/velocify/">YPN USA vs ICE Velocify</a></li>
+  </ul>
+</div>
+
+
+<div class="wp-block-group has-tertiary-background-color has-background" style="padding:20px">
+<p><strong>Featured Resources:</strong></p>
+<ul>
+<li><strong>Previous Page:</strong> <a href="/how-it-works/">How YPN USA Works for Mortgage Loan Officers</a></li>
+<li><strong>Next Page:</strong> <a href="/terms/">Terms of Service</a></li>
+</ul>
+</div>

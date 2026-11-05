@@ -1,0 +1,420 @@
+{
+  "_readme": "Source data for the 10 comparison pages. Edit here, then run `npm run build:comparisons` (rewrites the page bodies in content/pages). Competitor facts must come only from the competitor's own public pages; record the URL and the date you checked it. Re-check every 90 days.",
+  "checked": "2026-11-05",
+  "ypn": {
+    "summary": "YPN USA is a mortgage growth platform for licensed loan officers: Cerebro, an AI growth assistant; local pages, borrower funnels and Google Business Profile support under your own brand; automated follow-up; Realtor co-marketing tools; and a ZIP that is not assigned to another loan officer on the platform while your paid plan is active.",
+    "pricing": "Free $0 (no credit card, no ZIP). Pro $99/mo and Growth $199/mo each include a protected ZIP. Exclusive $299/mo adds ZIP code lockout exclusivity. Paid plans include a 15-day free trial and can be cancelled online anytime.",
+    "isNot": "YPN USA is not a lender, not a lead vendor that resells the same contacts, and not a replacement for your CRM or loan origination system. It does not guarantee leads, rankings, referrals or closings."
+  },
+  "workflowStages": [
+    { "key": "attract", "name": "Attract new borrowers", "desc": "Creating new demand in your market: local pages, Google Business Profile, content, Realtor co-marketing." },
+    { "key": "respond", "name": "Respond and qualify", "desc": "Answering new inquiries fast and sorting who is ready now." },
+    { "key": "nurture", "name": "Nurture the pipeline", "desc": "Texts, emails and calls over weeks or months until a borrower is ready." },
+    { "key": "advise", "name": "Advise on the loan", "desc": "Presenting loan options and costs so the borrower can decide." },
+    { "key": "retain", "name": "Retain past clients", "desc": "Staying in front of past borrowers for refinance, purchase and referrals." }
+  ],
+  "competitors": [
+    {
+      "key": "bonzo",
+      "file": "vs/bonzo.html",
+      "name": "Bonzo",
+      "title": "YPN USA vs Bonzo (2026): Local Lead Engine vs Outreach CRM",
+      "seoTitle": "YPN USA vs Bonzo: Comparison for Loan Officers (2026)",
+      "description": "YPN USA vs Bonzo for mortgage loan officers: features, published pricing, pros and cons, and where each fits in your workflow. Sourced and dated.",
+      "category": "Mortgage CRM and multi-channel outreach",
+      "whatItIs": "Bonzo is an outreach and follow-up platform. In its own words it helps business owners \"create conversations at scale\" through \"simplicity, automation, and authentic outreach.\" Its pricing page names loan officers, processors, assistants and Realtor partners as users.",
+      "pricing": "Solo: $150 per seat per month. Small team: no price shown. Enterprise: custom (contact sales). MonitorBase add-on: contact sales.",
+      "pricingSource": "https://www.getbonzo.com/pricing",
+      "sources": [
+        { "label": "Bonzo home page", "url": "https://www.getbonzo.com/" },
+        { "label": "Bonzo pricing", "url": "https://www.getbonzo.com/pricing" }
+      ],
+      "features": [
+        { "label": "Primary job", "ypn": "Build new local demand under your brand, then respond and follow up", "them": "Follow up with and nurture contacts you capture or upload" },
+        { "label": "Creates new borrower demand", "ypn": "Yes: local pages, borrower funnels, Google Business Profile support, Realtor co-marketing", "them": "Not described on its site; it works with leads from your sources (\"Unlimited Prospect Uploads\")" },
+        { "label": "Calling, texting, video, voicemail drops", "ypn": "Automated text and email follow-up; no built-in dialer described", "them": "Yes: \"Full telephony, including sms, mms, video, email, voicemail drops, and calling\"" },
+        { "label": "Integrations", "ypn": "Not a CRM or LOS replacement; works alongside them", "them": "Syncs with LOS, email, lead sources and AI tools" },
+        { "label": "Past-client signals", "ypn": "Not a core feature", "them": "MonitorBase add-on for predictive borrower insights and credit alerts" },
+        { "label": "Territory", "ypn": "One protected ZIP per paid plan; ZIP lockout on Exclusive", "them": "None (not a territory product)" },
+        { "label": "Published starting price", "ypn": "$0 Free; paid from $99/mo", "them": "$150 per seat per month (Solo)" }
+      ],
+      "fitsThem": "Loan officers and teams who already have steady lead flow and want calling, texting and video follow-up in one place.",
+      "fitsYpn": "Loan officers who need more new conversations in their own market, with AI follow-up included, and no shared lead lists.",
+      "prosThem": ["Full telephony, including calling, voicemail drops and video", "Automated email, voice and SMS campaigns for long nurture", "Integrations with LOS, email and lead sources", "Clear per-seat price for solo users"],
+      "consThem": ["Does not describe generating new borrower demand; you bring the leads", "Team pricing is not published", "No territory or market protection"],
+      "prosYpn": ["Builds local demand under your own name", "Free plan to start; paid plans published from $99/mo", "Protected ZIP on every paid plan", "AI follow-up included with lead capture"],
+      "consYpn": ["Not a full CRM: no dialer or deep LOS sync described", "Local results take time to build and are not guaranteed", "Newer platform with fewer third-party reviews"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["respond", "nurture", "retain"] },
+      "workflowNote": "Bonzo is strongest once a lead exists. YPN USA is strongest before that: creating the inquiry and making the first response. Many loan officers would use a CRM like Bonzo next to YPN USA, not instead of it.",
+      "verdict": "Choose Bonzo if your problem is follow-up volume and you already have the leads. Choose YPN USA if your problem is not having enough new local conversations. If you have both problems, YPN USA's Pro plan plus your existing CRM is the lower-cost starting point to test.",
+      "faq": [
+        { "q": "Is YPN USA a Bonzo alternative?", "a": "Only partly. Bonzo is an outreach and nurture CRM for contacts you already have. YPN USA focuses on creating new local demand and the first response, with automated follow-up included. They overlap on follow-up but solve different main problems." },
+        { "q": "Does Bonzo provide mortgage leads?", "a": "Bonzo's site does not describe selling or generating leads. It describes capturing, uploading and following up with leads from your own sources, plus a MonitorBase add-on for past-client signals." },
+        { "q": "How much does Bonzo cost compared with YPN USA?", "a": "Bonzo lists its Solo plan at $150 per seat per month; team and enterprise pricing are not published. YPN USA has a free plan, and paid plans at $99, $199 and $299 per month. Prices checked on each company's site on November 5, 2026." },
+        { "q": "Can I use YPN USA and Bonzo together?", "a": "Yes. YPN USA is not a CRM replacement. A common setup is YPN USA for local visibility and first response, and a CRM like Bonzo for long-term pipeline management." },
+        { "q": "Which is better for a solo loan officer?", "a": "If you have plenty of leads but slow follow-up, Bonzo. If you need more new conversations in your own market, YPN USA, starting on the free plan." }
+      ]
+    },
+    {
+      "key": "homebot",
+      "file": "vs/homebot.html",
+      "name": "Homebot",
+      "title": "YPN USA vs Homebot (2026): New Local Demand vs Client Engagement",
+      "seoTitle": "YPN USA vs Homebot: Comparison for Loan Officers (2026)",
+      "description": "YPN USA vs Homebot for loan officers: new local demand vs past-client equity reports. Features, published pricing, pros, cons and a verdict.",
+      "category": "Homeowner engagement and past-client retention",
+      "whatItIs": "Homebot is a homeownership engagement platform. It sends clients automated home value and equity digests and flags who may refinance, buy up or sell. Its site lists loan officers, real estate agents, insurance and title agents, lenders, credit unions and banks as users.",
+      "pricing": "Loan officer plans: Starter $125/mo (100 clients, 100 prospects), Pro $225/mo (500 clients, 1,500 prospects), Unlimited $300/mo, each with a one-time $100 setup fee. Teams and enterprise: custom. The page says annual billing saves 16%.",
+      "pricingSource": "https://homebot.ai/pricing",
+      "sources": [
+        { "label": "Homebot home page", "url": "https://homebot.ai/" },
+        { "label": "Homebot for loan officers", "url": "https://homebot.ai/loan-officers" },
+        { "label": "Homebot pricing", "url": "https://homebot.ai/pricing" }
+      ],
+      "features": [
+        { "label": "Primary job", "ypn": "Build new local demand, respond and follow up", "them": "Keep past clients and prospects engaged with equity and home value reports" },
+        { "label": "Works best with", "ypn": "Borrowers who don't know you yet in your ZIP", "them": "Clients and prospects you add to your database" },
+        { "label": "Refinance and buy-up signals", "ypn": "Not a core feature", "them": "Yes: refinance and buy-up scenarios, Likelihood to Sell score, behavioral triggers" },
+        { "label": "Realtor partnerships", "ypn": "Realtor co-marketing tools", "them": "Agent co-sponsorship and Partner Intel for finding agents" },
+        { "label": "Local pages and Google Business Profile", "ypn": "Yes, under your brand", "them": "Not described" },
+        { "label": "Territory", "ypn": "One protected ZIP per paid plan; ZIP lockout on Exclusive", "them": "None" },
+        { "label": "Published starting price", "ypn": "$0 Free; paid from $99/mo", "them": "$125/mo plus $100 setup (Starter)" }
+      ],
+      "fitsThem": "Loan officers with a large book of past clients who want automated, branded reasons to stay in touch and catch refinance or move-up moments.",
+      "fitsYpn": "Loan officers whose database is small or tapped out and who need new borrowers in their own market.",
+      "prosThem": ["Automated monthly equity and home value digests", "Refinance and buy-up scenarios borrowers can explore", "Signals such as Likelihood to Sell and behavioral triggers", "Agent co-sponsorship for Realtor relationships"],
+      "consThem": ["Value depends on the size of the database you bring", "Client and prospect caps on lower plans", "Setup fee on each plan"],
+      "prosYpn": ["Creates new demand rather than relying on your past book", "Free plan to start", "Protected ZIP on every paid plan", "Includes Realtor co-marketing tools"],
+      "consYpn": ["No equity-report product for past clients", "Local results take time and are not guaranteed", "Fewer third-party reviews than Homebot"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["nurture", "retain"] },
+      "workflowNote": "Homebot works at the back end of the loan lifecycle (past clients and prospects you already have). YPN USA works at the front end (new local borrowers). They rarely compete; most loan officers who need both would run them side by side.",
+      "verdict": "If your past-client database is your best asset, Homebot is the better fit. If you need borrowers who aren't in your database yet, YPN USA is. They complement each other more than they compete.",
+      "faq": [
+        { "q": "Is Homebot a lead generation tool?", "a": "Homebot describes itself as a homeowner engagement platform and mentions AI-driven lead generation, but its examples focus on clients and prospects you add, such as re-engaging past borrowers. It is strongest for retention and repeat business." },
+        { "q": "How much does Homebot cost for loan officers?", "a": "Homebot lists Starter at $125/mo, Pro at $225/mo and Unlimited at $300/mo, each with a one-time $100 setup fee, on its pricing page checked November 5, 2026. YPN USA has a free plan and paid plans at $99, $199 and $299 per month." },
+        { "q": "Can I use YPN USA and Homebot together?", "a": "Yes. YPN USA brings in new local borrowers; Homebot keeps them engaged after closing. The tools cover different stages." },
+        { "q": "Which is better for a newer loan officer?", "a": "A newer loan officer usually has a small past-client list, which limits what Homebot can do. YPN USA focuses on building new demand, so it is usually the better first tool." },
+        { "q": "Does YPN USA send equity reports?", "a": "No. Equity and home value reports are Homebot's core product, not YPN USA's." }
+      ]
+    },
+    {
+      "key": "lendingtree",
+      "file": "vs/lendingtree.html",
+      "name": "LendingTree",
+      "title": "YPN USA vs LendingTree (2026): Owning Local Demand vs Marketplace Leads",
+      "seoTitle": "YPN USA vs LendingTree Leads for Loan Officers (2026)",
+      "description": "YPN USA vs LendingTree's lender partner program: how leads arrive, pricing transparency, pros, cons and which fits your mortgage business.",
+      "category": "Consumer loan marketplace (lender partner program)",
+      "whatItIs": "LendingTree runs a consumer marketplace. Its partner page says it has helped \"connect customers to financial products like yours for 30 years.\" Borrowers complete a qualification form and then review loan offers; partner lenders can target the consumers they want and see data in LendingTree's Canopy Lender Portal.",
+      "pricing": "Not published on the partner pages.",
+      "pricingSource": "https://www.lendingtree.com/about/partner-with-us",
+      "sources": [
+        { "label": "LendingTree: Partner with us", "url": "https://www.lendingtree.com/about/partner-with-us" }
+      ],
+      "features": [
+        { "label": "Where borrowers come from", "ypn": "Your own local pages, Google Business Profile, content and Realtor partners", "them": "LendingTree's national consumer marketplace" },
+        { "label": "How the borrower sees you", "ypn": "As your brand, in your market", "them": "As one of the loan offers the borrower reviews on LendingTree" },
+        { "label": "Who can join", "ypn": "Licensed loan officers", "them": "\"Join our lender network\"; eligibility not detailed on the page" },
+        { "label": "Exclusivity", "ypn": "One protected ZIP per paid plan; ZIP lockout on Exclusive", "them": "Not stated on the partner page" },
+        { "label": "Follow-up tools", "ypn": "AI follow-up included", "them": "Lead data in the Canopy Lender Portal; follow-up is yours" },
+        { "label": "Pricing", "ypn": "Published: $0, $99, $199, $299 per month", "them": "Not published" }
+      ],
+      "fitsThem": "Lenders with a sales team and budget that want national purchase and refinance volume quickly and can work leads at speed.",
+      "fitsYpn": "Individual loan officers who want to build lasting local demand under their own name instead of paying for each inquiry.",
+      "prosThem": ["Large, established national consumer brand", "Volume is available quickly", "Targeting options and a lender portal for data"],
+      "consThem": ["Pricing is not published, so cost per loan is hard to estimate up front", "The borrower reviews several loan offers, so you compete at the point of contact", "Demand stops when spending stops; nothing builds under your own brand"],
+      "prosYpn": ["Demand builds under your name over time", "Transparent monthly pricing with a free plan", "Protected ZIP on every paid plan", "AI follow-up included"],
+      "consYpn": ["Slower to start than buying marketplace volume", "Local results are not guaranteed", "Better for local markets than for national volume"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["attract"] },
+      "workflowNote": "LendingTree supplies demand at the very start of the funnel and hands you the rest. YPN USA covers the start too, but by building assets you keep (pages, profile, partner relationships), plus the first response and follow-up.",
+      "verdict": "LendingTree suits lenders who need volume now and have the budget and call capacity to compete for it. YPN USA suits loan officers who would rather build a local source of borrowers that keeps working without paying per inquiry. Some use both while local demand ramps up.",
+      "faq": [
+        { "q": "Are LendingTree leads shared with other lenders?", "a": "LendingTree's partner page doesn't say. It describes borrowers completing a qualification form and then reviewing loan offers, so expect the borrower to compare more than one lender. Ask LendingTree directly how many lenders each request goes to." },
+        { "q": "How much do LendingTree leads cost?", "a": "LendingTree does not publish lender pricing on its partner pages (checked November 5, 2026). YPN USA publishes its plans: Free $0, Pro $99/mo, Growth $199/mo, Exclusive $299/mo." },
+        { "q": "Is YPN USA a lead vendor like LendingTree?", "a": "No. YPN USA does not resell contacts. It gives you the tools to build your own local source of borrowers and respond to them, and it does not guarantee lead volume." },
+        { "q": "Can an individual loan officer join LendingTree?", "a": "The partner page invites lenders to \"join our lender network\" but doesn't list eligibility rules. Contact LendingTree for requirements." },
+        { "q": "Which is faster: LendingTree or YPN USA?", "a": "Marketplace leads arrive faster. Local visibility through YPN USA takes time to build, but it does not stop when you stop paying per lead." }
+      ]
+    },
+    {
+      "key": "mortgage-coach",
+      "file": "vs/mortgage-coach.html",
+      "name": "Mortgage Coach",
+      "title": "YPN USA vs Mortgage Coach (2026): Finding Borrowers vs Advising Them",
+      "seoTitle": "YPN USA vs Mortgage Coach (MortgageCoach): 2026 Comparison",
+      "description": "YPN USA vs MortgageCoach by TrustEngine: lead generation vs borrower loan presentations. Features, published pricing, pros, cons and verdict.",
+      "category": "Borrower loan presentation and advice",
+      "whatItIs": "MortgageCoach, built by TrustEngine, is a loan presentation platform. In its own words it \"turns loan complexity into borrower clarity,\" with side-by-side loan comparisons and documented conversations. mortgagecoach.com now redirects to trustengine.com.",
+      "pricing": "Individual: $150 per user per month. Enterprise (5+ users): custom pricing.",
+      "pricingSource": "https://trustengine.com/mortgage-coach/mc-shop/",
+      "sources": [
+        { "label": "TrustEngine home page", "url": "https://trustengine.com/" },
+        { "label": "MortgageCoach by TrustEngine", "url": "https://trustengine.com/product/" },
+        { "label": "MortgageCoach pricing", "url": "https://trustengine.com/mortgage-coach/mc-shop/" }
+      ],
+      "features": [
+        { "label": "Primary job", "ypn": "Bring in new local borrowers and follow up", "them": "Help borrowers compare loan options and decide" },
+        { "label": "Side-by-side loan comparisons", "ypn": "No", "them": "Yes" },
+        { "label": "Documented, defensible conversations", "ypn": "No", "them": "Yes, plus AI conversation summaries" },
+        { "label": "Lead generation", "ypn": "Yes: local pages, Google Business Profile support, Realtor co-marketing", "them": "Not described" },
+        { "label": "Integrations and signals", "ypn": "Works alongside your CRM and LOS", "them": "Encompass integration; credit triggers and data ingestion; customer portal" },
+        { "label": "Published starting price", "ypn": "$0 Free; paid from $99/mo", "them": "$150 per user per month (Individual)" }
+      ],
+      "fitsThem": "Loan officers who already have conversations and want to win more of them with clear, documented loan presentations.",
+      "fitsYpn": "Loan officers who need more borrowers to present to in the first place.",
+      "prosThem": ["Side-by-side loan comparisons borrowers understand", "Documented conversations with AI summaries", "Encompass integration and a customer portal", "Published individual price"],
+      "consThem": ["Does not describe generating new borrowers", "Value depends on how many conversations you already have"],
+      "prosYpn": ["Creates new local conversations", "Free plan to start", "Protected ZIP on every paid plan", "AI follow-up included"],
+      "consYpn": ["No loan presentation or cost comparison tools", "Local results take time and are not guaranteed"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["advise", "retain"] },
+      "workflowNote": "These tools sit at opposite ends of the conversation. YPN USA helps start it; MortgageCoach helps you advise once the borrower is comparing options. They do not replace each other.",
+      "verdict": "This is not an either/or choice. If your close rate is the problem, MortgageCoach targets it directly. If your number of new conversations is the problem, YPN USA does. Fix the bigger bottleneck first.",
+      "faq": [
+        { "q": "What is Mortgage Coach now called?", "a": "Its product pages call it MortgageCoach, built by TrustEngine, and mortgagecoach.com redirects to trustengine.com (checked November 5, 2026)." },
+        { "q": "Does Mortgage Coach generate leads?", "a": "Its pages describe loan presentations, documented conversations, credit triggers and a customer portal. They do not describe generating new leads." },
+        { "q": "How much does MortgageCoach cost?", "a": "The Individual plan is listed at $150 per user per month; Enterprise (5+ users) is custom. YPN USA has a free plan and paid plans at $99, $199 and $299 per month." },
+        { "q": "Can I use YPN USA and MortgageCoach together?", "a": "Yes. YPN USA brings in and follows up with new borrowers; MortgageCoach helps you present loan options once they're ready to compare." }
+      ]
+    },
+    {
+      "key": "total-expert",
+      "file": "vs/total-expert.html",
+      "name": "Total Expert",
+      "title": "YPN USA vs Total Expert (2026): Solo Loan Officer Platform vs Enterprise Customer OS",
+      "seoTitle": "YPN USA vs Total Expert: Comparison for Loan Officers (2026)",
+      "description": "YPN USA vs Total Expert: individual loan officer growth platform vs enterprise customer operating system. Features, pricing, pros, cons, verdict.",
+      "category": "Enterprise CRM and marketing for financial institutions",
+      "whatItIs": "Total Expert describes itself as \"the Customer Operating System for financial services,\" built for mortgage lenders, banks, credit unions and insurers. Its site says more than 200 financial institutions use it.",
+      "pricing": "Not published. The site offers demos only.",
+      "pricingSource": "https://www.totalexpert.com/",
+      "sources": [
+        { "label": "Total Expert home page", "url": "https://www.totalexpert.com/" }
+      ],
+      "features": [
+        { "label": "Built for", "ypn": "Individual licensed loan officers and small teams", "them": "Financial institutions: mortgage lenders, banks, credit unions, insurers" },
+        { "label": "How you buy it", "ypn": "Sign up online; free plan available", "them": "Book a demo" },
+        { "label": "AI assistant", "ypn": "Cerebro AI growth assistant", "them": "AI Sales Assistant that nurtures and qualifies leads" },
+        { "label": "Marketing and journeys", "ypn": "Local content, borrower funnels, automated follow-up", "them": "Marketing Center, Journey Orchestration, Lead Management, Reporting Center" },
+        { "label": "Local pages and Google Business Profile", "ypn": "Yes, under your brand", "them": "Not described on the home page" },
+        { "label": "Territory", "ypn": "One protected ZIP per paid plan; ZIP lockout on Exclusive", "them": "None" },
+        { "label": "Pricing", "ypn": "Published: $0, $99, $199, $299 per month", "them": "Not published" }
+      ],
+      "fitsThem": "Lenders, banks and credit unions that want one system for marketing, sales and customer data across many loan officers, with compliance oversight.",
+      "fitsYpn": "Individual loan officers and small teams who need to build local demand themselves without an enterprise purchase.",
+      "prosThem": ["Broad platform: marketing, sales, lead management and reporting", "Built for financial institutions with consent awareness", "AI Sales Assistant for nurturing and qualifying", "Widely used by institutions"],
+      "consThem": ["No public pricing; buying usually goes through a demo and the company", "Sized for institutions rather than one loan officer", "Does not describe creating new local demand"],
+      "prosYpn": ["Buy and start alone, today, with a free plan", "Published pricing", "Local pages and Google Business Profile support under your name", "Protected ZIP"],
+      "consYpn": ["Not an enterprise system of record", "Fewer integrations and reporting features", "Local results take time and are not guaranteed"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["respond", "nurture", "retain"] },
+      "workflowNote": "Total Expert is usually chosen by the lender for all its loan officers. YPN USA is usually chosen by the loan officer for their own market. A loan officer at a Total Expert lender can still use YPN USA for local visibility, subject to company marketing policy.",
+      "verdict": "If you are buying for an institution, Total Expert is built for that. If you are a loan officer buying for yourself, YPN USA is the one you can start on your own. Check your company's marketing policy before adding any outside tool.",
+      "faq": [
+        { "q": "How much does Total Expert cost?", "a": "Total Expert does not publish pricing; its site offers demos (checked November 5, 2026). YPN USA publishes its plans: Free $0, Pro $99/mo, Growth $199/mo, Exclusive $299/mo." },
+        { "q": "Can an individual loan officer buy Total Expert?", "a": "Its site positions it for financial institutions, so purchases typically go through the lender. YPN USA is sold directly to individual loan officers." },
+        { "q": "Does Total Expert generate leads?", "a": "Its home page describes nurturing, qualifying and managing leads and engaging existing customers, not creating new local demand." },
+        { "q": "What are Total Expert alternatives for a solo loan officer?", "a": "Solo loan officers often look at tools they can buy themselves. For outreach, CRMs like Bonzo or BNTouch; for new local demand, YPN USA. See our comparison hub for each." },
+        { "q": "Can I use YPN USA if my lender uses Total Expert?", "a": "Usually yes, since YPN USA focuses on local visibility rather than replacing the lender's CRM. Confirm with your compliance team first." }
+      ]
+    },
+    {
+      "key": "velocify",
+      "file": "vs/velocify.html",
+      "name": "Velocify",
+      "title": "YPN USA vs Velocify (2026): Lead Source vs Lead Management",
+      "seoTitle": "YPN USA vs ICE Velocify: Comparison for Loan Officers (2026)",
+      "description": "YPN USA vs Velocify by ICE: building local lead sources vs managing lead flow at scale. Features, pricing, pros, cons and a verdict.",
+      "category": "Lead management and sales acceleration for lenders",
+      "whatItIs": "Velocify by ICE is \"a sales acceleration platform built for mortgage lenders.\" It retrieves, routes and prioritizes leads from many sources and helps sales teams follow up, with products for high-volume lenders, retail loan officers and Salesforce teams.",
+      "pricing": "Not published. The site offers \"Get Started\" and \"Get in touch\" only.",
+      "pricingSource": "https://mortgagetech.ice.com/products/velocify",
+      "sources": [
+        { "label": "ICE: Velocify", "url": "https://mortgagetech.ice.com/products/velocify" }
+      ],
+      "features": [
+        { "label": "Primary job", "ypn": "Create new local demand and respond to it", "them": "Capture, route, prioritize and work leads you already buy or receive" },
+        { "label": "Lead sources", "ypn": "Your own local pages, profile, content and Realtor partners", "them": "Retrieves leads from \"more than 1,400 integrated lead sources\"" },
+        { "label": "Dialer", "ypn": "No", "them": "Yes: Dial-IQ sales dialer" },
+        { "label": "Routing and distribution", "ypn": "Single loan officer focus", "them": "Intelligent lead routing, prioritization and reassignment" },
+        { "label": "Built for", "ypn": "Individual loan officers and small teams", "them": "Mortgage lenders and sales teams, including Salesforce users" },
+        { "label": "Pricing", "ypn": "Published: $0, $99, $199, $299 per month", "them": "Not published" }
+      ],
+      "fitsThem": "Lenders and call-center teams handling high lead volume from many sources who need routing, prioritization and a dialer.",
+      "fitsYpn": "Loan officers who need their own lead source rather than a system to manage purchased volume.",
+      "prosThem": ["Connects to a very large number of lead sources", "Routing, prioritization and reassignment for teams", "Built-in mortgage sales dialer", "Part of ICE's lending technology suite"],
+      "consThem": ["Does not generate leads itself; ICE describes lead generation as other products in its suite", "Pricing not published", "More than a solo loan officer typically needs"],
+      "prosYpn": ["Creates leads rather than only managing them", "Published pricing with a free plan", "Protected ZIP on every paid plan"],
+      "consYpn": ["No dialer or team routing", "Not built for high-volume call centers", "Local results take time and are not guaranteed"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["respond", "nurture"] },
+      "workflowNote": "Velocify assumes the leads already exist and helps a team work them efficiently. YPN USA helps a loan officer create them. A lender could feed YPN USA inquiries into a lead manager, but the two solve different problems.",
+      "verdict": "High-volume lender with purchased leads and a sales floor: Velocify. Individual loan officer who needs a source of local borrowers: YPN USA.",
+      "faq": [
+        { "q": "Does Velocify generate mortgage leads?", "a": "No. ICE describes Velocify as helping lenders \"capture, organize, prioritize and act on mortgage leads,\" and lists lead generation under other products in its suite." },
+        { "q": "How much does Velocify cost?", "a": "ICE does not publish Velocify pricing (checked November 5, 2026). YPN USA publishes its plans from $0 to $299 per month." },
+        { "q": "Is Velocify good for a solo loan officer?", "a": "Velocify is built for mortgage lenders and sales teams, including a version for distributed retail loan officers. A solo loan officer without high lead volume may not use most of it." },
+        { "q": "Can YPN USA replace Velocify?", "a": "No. YPN USA has no dialer or team routing. It is a source of local demand with follow-up, not a lead management system." }
+      ]
+    },
+    {
+      "key": "zillow-flex",
+      "file": "vs/zillow-flex.html",
+      "name": "Zillow Flex",
+      "title": "YPN USA vs Zillow Flex (2026): What Loan Officers Should Know",
+      "seoTitle": "YPN USA vs Zillow Flex: What Loan Officers Should Know (2026)",
+      "description": "Zillow Flex is an agent program, not a loan officer program. How it affects your Realtor referrals, and how YPN USA compares. Sourced and dated.",
+      "category": "Pay-at-close referral program for real estate agents",
+      "whatItIs": "Zillow Flex is \"Zillow's performance-based program\" for real estate agents, brokers and teams. Agents receive client connections from Zillow at no upfront cost and \"pay nothing to Zillow until they successfully close a transaction.\" Zillow's Flex page also promotes Zillow Home Loans as a lending partner for those clients.",
+      "pricing": "For agents: no upfront cost; a fee is owed after closing a Zillow-provided connection. The fee amount is not published on the page. Loan officers are not listed as eligible.",
+      "pricingSource": "https://www.zillow.com/c/flex-job-board",
+      "sources": [
+        { "label": "Zillow: What is Flex?", "url": "https://www.zillow.com/c/flex-job-board" },
+        { "label": "Zillow Home Loans for agents", "url": "https://www.zillow.com/premier-agent/zillow-home-loans" }
+      ],
+      "features": [
+        { "label": "Who it's for", "ypn": "Licensed mortgage loan officers", "them": "Real estate agents, brokers and teams" },
+        { "label": "Can a loan officer join?", "ypn": "Yes", "them": "Not listed as eligible" },
+        { "label": "Cost model", "ypn": "Monthly plans: $0, $99, $199, $299", "them": "No upfront cost; agents pay after closing a Zillow connection" },
+        { "label": "Financing for the buyer", "ypn": "You, the loan officer", "them": "Zillow promotes Zillow Home Loans (available in 49 states, not New York, per its page)" },
+        { "label": "Brand the borrower sees", "ypn": "Yours", "them": "Zillow's, then the agent's" },
+        { "label": "Territory", "ypn": "One protected ZIP per paid plan; ZIP lockout on Exclusive", "them": "Not stated" }
+      ],
+      "fitsThem": "Real estate agents who want buyer connections with no upfront cost and are comfortable with Zillow's performance standards.",
+      "fitsYpn": "Loan officers who want a source of borrowers and Realtor relationships that doesn't run through a portal.",
+      "prosThem": ["No upfront cost for agents", "Buyer connections from a very large consumer portal", "Simple model: agents pay only after a closing"],
+      "consThem": ["Not available to loan officers", "Zillow promotes its own lender, Zillow Home Loans, alongside the program", "Agents must meet Zillow's Flex performance standards"],
+      "prosYpn": ["Built for loan officers, not agents", "Borrowers find you under your own brand", "Realtor co-marketing tools give agents a reason to work with you", "Protected ZIP"],
+      "consYpn": ["No portal-scale traffic", "Local results take time and are not guaranteed"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["attract"] },
+      "workflowNote": "For a loan officer, Zillow Flex matters indirectly. If your referral partners are Flex agents, Zillow is promoting its own lender to the same buyers. Building borrower demand under your own name, and giving agents a co-marketing reason to send buyers your way, reduces that dependence.",
+      "verdict": "Zillow Flex is not an option for loan officers; it's an agent program that sits next to Zillow Home Loans. If your Realtor partners rely on Flex, a direct local presence through YPN USA is a way to keep your own pipeline.",
+      "faq": [
+        { "q": "Can mortgage loan officers join Zillow Flex?", "a": "Zillow's Flex page describes the program for agents, brokers and teams. Loan officers are not listed as eligible (checked November 5, 2026)." },
+        { "q": "How does Zillow Flex work?", "a": "Zillow provides client connections to agents at no upfront cost, and agents pay Zillow only after they close a transaction with one of those connections. Zillow does not publish the fee amount on that page." },
+        { "q": "Do Zillow Flex agents have to use Zillow Home Loans?", "a": "Zillow's Flex page promotes Zillow Home Loans as a lending partner for agents' clients. It doesn't say agents are required to use it." },
+        { "q": "How can a loan officer compete with Zillow Home Loans?", "a": "Be visible to borrowers before they reach a portal, respond fast, and give Realtor partners a co-marketing reason to work with you. Those are the parts YPN USA is built for." }
+      ]
+    },
+    {
+      "key": "bntouch",
+      "file": "ypnus-vs-bntouch.html",
+      "name": "BNTouch",
+      "title": "YPN USA vs BNTouch (2026): Local Growth Platform vs Mortgage CRM",
+      "seoTitle": "YPN USA vs BNTouch: Comparison for Loan Officers (2026)",
+      "description": "YPN USA vs BNTouch mortgage CRM: features, published pricing, pros, cons and where each fits in a loan officer's workflow. Sourced and dated.",
+      "category": "Mortgage CRM, texting and database mining",
+      "whatItIs": "BNTouch is a mortgage CRM \"built only for mortgage since 2004,\" with texting automation, campaigns, two-way LOS sync, opportunity mining on your database and an optional managed \"White Glove\" service.",
+      "pricing": "BNTouch CRM: $95 per user per month for 2 to 10 users, or $165 per month for a single user. Custom pricing for 10+ users (12-month contract). New Loan Opportunity Mining and White Glove: priced on a call. No free trial.",
+      "pricingSource": "https://bntouch.com/pricing/",
+      "sources": [
+        { "label": "BNTouch home page", "url": "https://bntouch.com/" },
+        { "label": "BNTouch pricing", "url": "https://bntouch.com/pricing/" }
+      ],
+      "features": [
+        { "label": "Primary job", "ypn": "Create new local demand and respond to it", "them": "Run your pipeline: CRM, texting, campaigns, LOS sync" },
+        { "label": "Lead sources", "ypn": "Your own local pages, profile, content and Realtor partners", "them": "Integrates 100+ lead providers (e.g. Zillow, LendingTree) plus mining your own database" },
+        { "label": "Campaigns and texting", "ypn": "Automated follow-up", "them": "400+ pre-built mortgage campaigns and texting automation" },
+        { "label": "LOS integration", "ypn": "Not a CRM or LOS replacement", "them": "Two-way sync with Encompass, Calyx, BytePro, MeridianLink, LendingPad" },
+        { "label": "Websites", "ypn": "Local pages, borrower funnels, Google Business Profile support", "them": "Mortgage websites plus SEO" },
+        { "label": "AI", "ypn": "Cerebro AI growth assistant", "them": "MAIA mortgage AI (included)" },
+        { "label": "Territory", "ypn": "One protected ZIP per paid plan; ZIP lockout on Exclusive", "them": "None" },
+        { "label": "Published starting price", "ypn": "$0 Free; paid from $99/mo with a 15-day trial", "them": "$165/mo single user; $95/user/mo for 2 to 10; no free trial" }
+      ],
+      "fitsThem": "Loan officers and mortgage teams who want a full mortgage CRM with LOS sync, campaigns and database mining, and are ready to commit without a trial.",
+      "fitsYpn": "Loan officers who want new local borrowers under their own brand and a lighter, lower-cost starting point.",
+      "prosThem": ["Mortgage-only CRM with a long track record", "Two-way LOS sync with major systems", "Large library of pre-built campaigns", "Database mining for credit and equity signals (extra fee)"],
+      "consThem": ["No free trial", "Key add-ons priced on a call", "Contract required for larger teams"],
+      "prosYpn": ["Free plan and 15-day trials", "Focus on new local demand under your name", "Protected ZIP on every paid plan"],
+      "consYpn": ["Not a full CRM; no LOS sync described", "Fewer pre-built campaigns", "Local results take time and are not guaranteed"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["respond", "nurture", "retain"] },
+      "workflowNote": "BNTouch is a system of record for your pipeline and past clients. YPN USA is a source of new local demand. Teams that need both often keep their CRM and add YPN USA for local visibility.",
+      "verdict": "Pick BNTouch if you need a mortgage CRM with LOS sync and are ready to commit. Pick YPN USA if your gap is new local borrowers and you want to start free. They can work together.",
+      "faq": [
+        { "q": "How much does BNTouch cost?", "a": "BNTouch lists $165 per month for a single user and $95 per user per month for 2 to 10 users, with custom pricing above 10 users; Opportunity Mining and White Glove are priced on a call (checked November 5, 2026). YPN USA has a free plan and paid plans at $99, $199 and $299 per month." },
+        { "q": "Does BNTouch have a free trial?", "a": "Its pricing page says no. YPN USA's paid plans include a 15-day free trial, and the Free plan needs no credit card." },
+        { "q": "Is YPN USA a CRM?", "a": "No. YPN USA focuses on local visibility, lead capture and follow-up. It is not a replacement for a mortgage CRM or LOS." },
+        { "q": "Does BNTouch generate leads?", "a": "BNTouch integrates with 100+ lead providers and mines your existing database for opportunities. Its site does not say it sells leads itself." },
+        { "q": "Can I use YPN USA with BNTouch?", "a": "Yes. Many loan officers keep their CRM and add YPN USA for local demand." }
+      ]
+    },
+    {
+      "key": "loanofficer-ai",
+      "file": "ypnus-vs-loanofficer-ai.html",
+      "name": "LoanOfficer.ai",
+      "title": "YPN USA vs LoanOfficer.ai (2026): AI Local Growth vs AI Mortgage CRM",
+      "seoTitle": "YPN USA vs LoanOfficer.ai: AI Tools for Loan Officers (2026)",
+      "description": "YPN USA vs LoanOfficer.ai: two AI tools for loan officers compared on features, published pricing, pros, cons and workflow fit. Sourced and dated.",
+      "category": "AI mortgage CRM",
+      "whatItIs": "LoanOfficer.ai calls itself \"The AI Mortgage CRM Built for Loan Officers.\" It answers inquiries, books appointments and reactivates your past database with AI, and adds websites, rate alerts and property monitoring.",
+      "pricing": "Every plan starts at $1 for 14 days. Starter $197/mo (2 seats), Team $397/mo (5 seats), Brokerage $697/mo (10 seats), Enterprise custom. One-time $299 setup fee. No contract. Website package $99/mo plus $299 setup.",
+      "pricingSource": "https://www.loanofficer.ai/pricing",
+      "sources": [
+        { "label": "LoanOfficer.ai home page", "url": "https://www.loanofficer.ai/" },
+        { "label": "LoanOfficer.ai pricing", "url": "https://www.loanofficer.ai/pricing" }
+      ],
+      "features": [
+        { "label": "Primary job", "ypn": "Create new local demand and respond to it", "them": "Answer, qualify and book every inquiry; reactivate your database" },
+        { "label": "AI response to new inquiries", "ypn": "Yes: AI follow-up", "them": "Yes: \"answered, qualified, and worked in under 60 seconds, 24/7\"" },
+        { "label": "AI appointment booking", "ypn": "Not described", "them": "Yes" },
+        { "label": "Database and rate alerts", "ypn": "Not a core feature", "them": "Borrower CRM, rate-drop alerts, Property Pulse equity monitoring" },
+        { "label": "Websites and local visibility", "ypn": "Local pages, borrower funnels, Google Business Profile support", "them": "Branded loan officer websites (add-on)" },
+        { "label": "Realtor partners", "ypn": "Realtor co-marketing tools", "them": "Realtor CRM to recruit and track partners" },
+        { "label": "Territory", "ypn": "One protected ZIP per paid plan; ZIP lockout on Exclusive", "them": "None" },
+        { "label": "Published starting price", "ypn": "$0 Free; paid from $99/mo", "them": "$197/mo for 2 seats plus $299 setup ($1 for the first 14 days)" }
+      ],
+      "fitsThem": "Loan officers with steady inbound inquiries and a past-client database who want AI to answer, book and reactivate around the clock.",
+      "fitsYpn": "Loan officers who need more new local inquiries in the first place, at a lower monthly price.",
+      "prosThem": ["Fast AI response and appointment booking", "Database reactivation, rate alerts and equity monitoring", "Realtor CRM for referral partners", "No contract"],
+      "consThem": ["Setup fee on top of the monthly plan", "Website is a paid add-on", "Does not describe generating new demand; works with inquiries and your database"],
+      "prosYpn": ["Builds new local demand under your name", "Lower starting price and a free plan", "Protected ZIP on every paid plan"],
+      "consYpn": ["No AI appointment setter or rate-drop alerts", "Not a full CRM", "Local results take time and are not guaranteed"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["respond", "nurture", "retain"] },
+      "workflowNote": "Both use AI, at different stages. LoanOfficer.ai maximizes what you get from inquiries and past clients you already have. YPN USA focuses on generating new local inquiries. The overlap is the first response.",
+      "verdict": "If you have the inquiries and the database, LoanOfficer.ai squeezes more out of them. If you need more new inquiries in your market, start with YPN USA.",
+      "faq": [
+        { "q": "How much does LoanOfficer.ai cost?", "a": "LoanOfficer.ai lists Starter at $197/mo for 2 seats, Team at $397/mo and Brokerage at $697/mo, with a one-time $299 setup fee and $1 for the first 14 days (checked November 5, 2026). YPN USA has a free plan and paid plans at $99, $199 and $299 per month." },
+        { "q": "Does LoanOfficer.ai generate leads?", "a": "Its site describes answering inquiries, booking appointments and reactivating your database, with lead-provider integrations. It doesn't describe selling or generating new leads itself." },
+        { "q": "Which has better AI follow-up?", "a": "LoanOfficer.ai's AI follow-up and appointment booking are its core product. YPN USA includes AI follow-up as part of a broader local growth system. If response automation is your main need, LoanOfficer.ai goes deeper." },
+        { "q": "Can I use both?", "a": "Yes. YPN USA can bring in new local inquiries, and a CRM like LoanOfficer.ai can work them and your past clients." }
+      ]
+    },
+    {
+      "key": "real-geeks",
+      "file": "ypnus-vs-real-geeks.html",
+      "name": "Real Geeks",
+      "title": "YPN USA vs Real Geeks (2026): Built for Loan Officers vs Built for Agents",
+      "seoTitle": "YPN USA vs Real Geeks for Loan Officers (2026)",
+      "description": "YPN USA vs Real Geeks: a loan officer platform vs a real estate agent platform. Features, published pricing, pros, cons and who each fits.",
+      "category": "Real estate agent website, CRM and paid lead packages",
+      "whatItIs": "Real Geeks is all-in-one software for real estate agents, teams and brokers: an IDX website, CRM, marketing automation and optional paid-ad lead packages. Its site does not describe a product for mortgage lenders or loan officers.",
+      "pricing": "Platform: $399/mo plus a $500 one-time setup fee (2 users). Lead packages: social $299/mo, search $599/mo, seller $599/mo each. Geek AI Text $49/mo. Terms of 6 or 12 months.",
+      "pricingSource": "https://www.realgeeks.com/pricing",
+      "sources": [
+        { "label": "Real Geeks home page", "url": "https://www.realgeeks.com/" },
+        { "label": "Real Geeks pricing", "url": "https://www.realgeeks.com/pricing" }
+      ],
+      "features": [
+        { "label": "Built for", "ypn": "Licensed mortgage loan officers", "them": "Real estate agents, teams and brokers" },
+        { "label": "Website", "ypn": "Local pages and borrower funnels for mortgage", "them": "IDX property search website" },
+        { "label": "New leads", "ypn": "Local visibility, Google Business Profile support, Realtor co-marketing", "them": "Paid-ad lead packages for home buyers and sellers" },
+        { "label": "CRM and automation", "ypn": "Automated follow-up; not a CRM replacement", "them": "CRM, dialer, text/email/video drips, AI insights" },
+        { "label": "Mortgage features", "ypn": "Built for mortgage", "them": "None described" },
+        { "label": "Territory", "ypn": "One protected ZIP per paid plan; ZIP lockout on Exclusive", "them": "None" },
+        { "label": "Published starting price", "ypn": "$0 Free; paid from $99/mo", "them": "$399/mo plus $500 setup; lead packages extra" }
+      ],
+      "fitsThem": "Real estate agents and teams who want an IDX website, CRM and paid buyer and seller leads in one package.",
+      "fitsYpn": "Mortgage loan officers who want tools made for borrowers, Realtor partners and local mortgage search.",
+      "prosThem": ["Mature IDX websites and CRM for agents", "Lead packages with stated monthly estimates", "Dialer and drip marketing included", "U.S.-based support"],
+      "consThem": ["Built for agents, not loan officers; no mortgage features described", "Higher starting cost plus setup fee and term commitment", "Lead packages cost extra"],
+      "prosYpn": ["Built for mortgage loan officers", "Free plan; paid plans from $99/mo", "Protected ZIP on every paid plan", "Realtor co-marketing tools"],
+      "consYpn": ["No IDX property search", "No paid-ad lead packages", "Local results take time and are not guaranteed"],
+      "workflow": { "ypn": ["attract", "respond", "nurture"], "them": ["attract", "respond", "nurture"] },
+      "workflowNote": "Real Geeks covers the same stages, but for agents and home buyers, not loan officers and borrowers. A loan officer would mostly encounter Real Geeks through Realtor partners who use it.",
+      "verdict": "For a real estate agent, Real Geeks is a proven package. For a loan officer, YPN USA is built for your job; Real Geeks isn't designed for mortgage.",
+      "faq": [
+        { "q": "Is Real Geeks good for loan officers?", "a": "Real Geeks is built for real estate agents, teams and brokers. Its site does not describe features for mortgage lenders or loan officers (checked November 5, 2026)." },
+        { "q": "How much does Real Geeks cost?", "a": "Real Geeks lists $399 per month plus a $500 one-time setup fee, with paid lead packages from $299 per month. YPN USA has a free plan and paid plans at $99, $199 and $299 per month." },
+        { "q": "Does Real Geeks provide leads?", "a": "Yes, through paid-ad lead packages for buyers and sellers, which are aimed at agents." },
+        { "q": "What is a Real Geeks alternative for mortgage?", "a": "Look for a tool built for loan officers. YPN USA focuses on local mortgage visibility, follow-up and Realtor co-marketing for loan officers." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,685 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >-
+  ypnus.com on AWS: static site on S3 + CloudFront (edge redirects in a KeyValueStore), lead form, ZIP
+  territory check and Stripe webhook on Lambda + API Gateway, DynamoDB, SES email, WAF, alarms.
+  Deploy in us-east-1 (CloudFront certificates and WAF for CloudFront must live there).
+
+Parameters:
+  ApexDomain:
+    Type: String
+    Default: ypnus.com
+    Description: Root domain of the marketing site (www redirects to it).
+  UseCustomDomain:
+    Type: String
+    AllowedValues: ['false', 'true']
+    Default: 'false'
+    Description: >-
+      false = staging (site only on the *.cloudfront.net address). true = add the TLS certificate and
+      ypnus.com + www to the distribution. Needs HostedZoneId and DNS already served by Route 53.
+      Turning this on does NOT move traffic; the DNS switch is a separate step (dns-cutover.py).
+  HostedZoneId:
+    Type: String
+    Default: ''
+    Description: Route 53 hosted zone ID for ApexDomain (for example Z0123456789ABCDEFGHIJ). Empty until DNS is on Route 53.
+  AppUrl:
+    Type: String
+    Default: https://app.ypnus.com
+    Description: Where logins live. /wp-login.php, /wp-admin and /login redirect to AppUrl/login.
+  AlertEmail:
+    Type: String
+    Description: Gets alarm and budget emails (confirm the AWS subscription email once).
+  NotifyEmail:
+    Type: String
+    Default: support@ypnus.com
+    Description: Gets an email for every new lead and every Stripe checkout.
+  FromEmail:
+    Type: String
+    Default: no-reply@ypnus.com
+    Description: Sender for those emails. Must be on ApexDomain once SES verifies the domain.
+  OriginVerifySecret:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: Random string CloudFront sends to the API so it only answers CloudFront (openssl rand -hex 24).
+  EnableWaf:
+    Type: String
+    AllowedValues: ['false', 'true']
+    Default: 'true'
+    Description: Attach a WAF web ACL (rate limit on forms, AWS managed rules). Required for CloudFront flat-rate plans.
+  SetUpSesDomain:
+    Type: String
+    AllowedValues: ['false', 'true']
+    Default: 'true'
+    Description: Verify ApexDomain in SES and add its DKIM records to Route 53 (needs HostedZoneId).
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 30
+    Description: Email AlertEmail when the AWS bill is forecast to pass this amount.
+  GitHubRepo:
+    Type: String
+    Default: ''
+    Description: owner/name of the GitHub repo that holds the site (for automatic deploys). Empty = no deploy role.
+  CreateGitHubOidcProvider:
+    Type: String
+    AllowedValues: ['false', 'true']
+    Default: 'true'
+    Description: Create the GitHub OIDC identity provider. Set false if this AWS account already has one.
+
+Conditions:
+  HasZone: !Not [!Equals [!Ref HostedZoneId, '']]
+  HasDomain: !And [!Equals [!Ref UseCustomDomain, 'true'], !Condition HasZone]
+  WafOn: !Equals [!Ref EnableWaf, 'true']
+  SesDomain: !And [!Equals [!Ref SetUpSesDomain, 'true'], !Condition HasZone]
+  HasRepo: !Not [!Equals [!Ref GitHubRepo, '']]
+  CreateOidc: !And [!Condition HasRepo, !Equals [!Ref CreateGitHubOidcProvider, 'true']]
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    MemorySize: 256
+    Timeout: 10
+    Environment:
+      Variables:
+        NOTIFY_EMAIL: !Ref NotifyEmail
+        FROM_EMAIL: !Ref FromEmail
+        SECRET_ARN: !Ref AppSecret
+        ORIGIN_VERIFY: !Ref OriginVerifySecret
+        ZIP_TABLE: !Ref ZipTable
+
+Resources:
+  # ------------------------------------------------------------------ storage
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      VersioningConfiguration: { Status: Enabled }
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-versions
+            Status: Enabled
+            NoncurrentVersionExpiration: { NoncurrentDays: 90 }
+            AbortIncompleteMultipartUpload: { DaysAfterInitiation: 7 }
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CloudFrontReadSiteAndMedia
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub '${SiteBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+          - Sid: CloudFrontListSoMissingFilesAre404
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:ListBucket
+            Resource: !GetAtt SiteBucket.Arn
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+          - Sid: HttpsOnly
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: [!GetAtt SiteBucket.Arn, !Sub '${SiteBucket.Arn}/*']
+            Condition: { Bool: { aws:SecureTransport: 'false' } }
+
+  LeadsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{ AttributeName: id, AttributeType: S }]
+      KeySchema: [{ AttributeName: id, KeyType: HASH }]
+      PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+      SSESpecification: { SSEEnabled: true }
+
+  ZipTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{ AttributeName: zip, AttributeType: S }]
+      KeySchema: [{ AttributeName: zip, KeyType: HASH }]
+      PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+      SSESpecification: { SSEEnabled: true }
+
+  BillingTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{ AttributeName: pk, AttributeType: S }]
+      KeySchema: [{ AttributeName: pk, KeyType: HASH }]
+      TimeToLiveSpecification: { AttributeName: ttl, Enabled: true }
+      PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+      SSESpecification: { SSEEnabled: true }
+
+  AppSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: ypnus.com settings. Edit the values in the Secrets Manager console; never commit them.
+      SecretString: '{"STRIPE_WEBHOOK_SECRET":"","PROVISION_WEBHOOK_URL":"","PROVISION_WEBHOOK_SECRET":"","LEAD_WEBHOOK_URL":"","LEAD_WEBHOOK_SECRET":"","EXCLUSIVE_PRICE_IDS":""}'
+
+  # ------------------------------------------------------------------ API (Lambda + HTTP API)
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 20
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: { RetentionInDays: 30 }
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: ypnus.com lead form, ZIP check, health
+      CodeUri: functions/api/
+      Handler: index.handler
+      LoggingConfig: { LogFormat: Text, LogGroup: !Ref ApiLogGroup }
+      Environment:
+        Variables:
+          LEADS_TABLE: !Ref LeadsTable
+      Policies:
+        - DynamoDBWritePolicy: { TableName: !Ref LeadsTable }
+        - DynamoDBReadPolicy: { TableName: !Ref ZipTable }
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref AppSecret
+            - Effect: Allow
+              Action: ses:SendEmail
+              Resource: '*'
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: '/api/{proxy+}', Method: ANY }
+        WpJson:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: '/wp-json/{proxy+}', Method: ANY }
+
+  StripeLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: { RetentionInDays: 90 }
+
+  StripeWebhookFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Stripe webhook -> ZIP ledger, billing records, provisioning hand-off
+      CodeUri: functions/stripe-webhook/
+      Handler: index.handler
+      Timeout: 15
+      LoggingConfig: { LogFormat: Text, LogGroup: !Ref StripeLogGroup }
+      Environment:
+        Variables:
+          BILLING_TABLE: !Ref BillingTable
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref BillingTable }
+        - DynamoDBCrudPolicy: { TableName: !Ref ZipTable }
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref AppSecret
+            - Effect: Allow
+              Action: ses:SendEmail
+              Resource: '*'
+      Events:
+        Webhook:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /api/stripe/webhook, Method: POST }
+
+  # ------------------------------------------------------------------ edge: redirects + URL rules
+  RedirectStore:
+    Type: AWS::CloudFront::KeyValueStore
+    Properties:
+      Name: !Sub '${AWS::StackName}-redirects'
+      Comment: ypnus.com redirects (r:/old/ -> "301 /new/") and WordPress IDs (p:123). Filled by deploy.sh.
+
+  ViewerRequestFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub '${AWS::StackName}-viewer-request'
+      AutoPublish: true
+      FunctionConfig:
+        Comment: www->apex, WordPress legacy URLs, redirects from the KeyValueStore, trailing slashes, index.html
+        Runtime: cloudfront-js-2.0
+        KeyValueStoreAssociations:
+          - KeyValueStoreARN: !GetAtt RedirectStore.Arn
+      FunctionCode: !Sub |
+        import cf from 'cloudfront';
+        var kvs = cf.kvs();
+        var APEX = '${ApexDomain}';
+        var APP = '${AppUrl}';
+        var FEEDS = { '/feed': 1, '/feed/': 1, '/rss': 1, '/rss/': 1, '/feed/rss2/': 1, '/blog/feed/': 1 };
+        function qs(q) {
+          var out = [];
+          for (var k in q) {
+            var v = q[k];
+            var list = v.multiValue ? v.multiValue : [v];
+            for (var i = 0; i < list.length; i++) out.push(k + (list[i].value !== '' ? '=' + list[i].value : ''));
+          }
+          return out.length ? '?' + out.join('&') : '';
+        }
+        function redirect(code, loc) {
+          return { statusCode: code, statusDescription: code === 301 ? 'Moved Permanently' : 'Found',
+            headers: { location: { value: loc }, 'cache-control': { value: code === 301 ? 'public, max-age=86400' : 'no-store' } } };
+        }
+        function gone() {
+          return { statusCode: 410, statusDescription: 'Gone', headers: { 'content-type': { value: 'text/plain' } }, body: { encoding: 'text', data: 'Gone' } };
+        }
+        async function lookup(key) {
+          try { return await kvs.get(key); } catch (e) { return null; }
+        }
+        function fromStore(hit, q) {
+          var sp = hit.indexOf(' ');
+          var to = hit.slice(sp + 1);
+          return redirect(parseInt(hit.slice(0, sp), 10), to + (to.indexOf('?') === -1 ? qs(q) : ''));
+        }
+        async function handler(event) {
+          var req = event.request;
+          var uri = req.uri;
+          var q = req.querystring || {};
+          var host = req.headers.host ? req.headers.host.value.toLowerCase() : '';
+          if (uri.indexOf('/assets/') === 0) return req;
+          if (APEX && host === 'www.' + APEX) return redirect(301, 'https://' + APEX + uri + qs(q));
+          if (uri === '/' || uri === '/index.php') {
+            var id = q.p || q.page_id || q.attachment_id;
+            if (id && id.value) {
+              var byId = await lookup('p:' + id.value);
+              if (byId) { var sp = byId.indexOf(' '); return redirect(301, byId.slice(sp + 1)); }
+            }
+            if (q.s) return redirect(302, '/blog/');
+            if (uri === '/index.php') return redirect(301, '/');
+          }
+          if (uri === '/wp-login.php' || uri === '/wp-admin' || uri.indexOf('/wp-admin/') === 0 || uri === '/login' || uri === '/login/') return redirect(301, APP + '/login');
+          if (uri === '/xmlrpc.php' || uri === '/wp-cron.php' || uri.indexOf('/wp-includes/') === 0) return gone();
+          if (FEEDS[uri]) { req.uri = '/feed.xml'; return req; }
+          if (uri === '/sitemap.xml' || uri === '/wp-sitemap.xml') { req.uri = '/sitemap_index.xml'; return req; }
+          if (uri === '/robots.txt' && host.indexOf('.cloudfront.net') !== -1) { req.uri = '/robots-staging.txt'; return req; }
+          if (uri.indexOf('//') !== -1) return redirect(301, uri.replace(/\/{2,}/g, '/') + qs(q));
+          var hit = await lookup('r:' + uri);
+          if (!hit && uri.charAt(uri.length - 1) !== '/') hit = await lookup('r:' + uri + '/');
+          if (hit) return fromStore(hit, q);
+          var last = uri.slice(uri.lastIndexOf('/') + 1);
+          if (last && last.indexOf('.') === -1) return redirect(301, uri + '/' + qs(q));
+          if (uri.charAt(uri.length - 1) === '/') req.uri = uri + 'index.html';
+          return req;
+        }
+
+  # ------------------------------------------------------------------ TLS, WAF, CDN
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Condition: HasDomain
+    Properties:
+      DomainName: !Ref ApexDomain
+      SubjectAlternativeNames: [!Sub 'www.${ApexDomain}']
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref ApexDomain
+          HostedZoneId: !Ref HostedZoneId
+        - DomainName: !Sub 'www.${ApexDomain}'
+          HostedZoneId: !Ref HostedZoneId
+
+  WebAcl:
+    Type: AWS::WAFv2::WebACL
+    Condition: WafOn
+    Properties:
+      Scope: CLOUDFRONT
+      DefaultAction: { Allow: {} }
+      VisibilityConfig: { SampledRequestsEnabled: true, CloudWatchMetricsEnabled: true, MetricName: !Sub '${AWS::StackName}-waf' }
+      Rules:
+        - Name: rate-limit-forms-and-api
+          Priority: 0
+          Action: { Block: {} }
+          Statement:
+            RateBasedStatement:
+              Limit: 100
+              EvaluationWindowSec: 300
+              AggregateKeyType: IP
+              ScopeDownStatement:
+                OrStatement:
+                  Statements:
+                    - ByteMatchStatement:
+                        FieldToMatch: { UriPath: {} }
+                        PositionalConstraint: STARTS_WITH
+                        SearchString: /api/
+                        TextTransformations: [{ Priority: 0, Type: LOWERCASE }]
+                    - ByteMatchStatement:
+                        FieldToMatch: { UriPath: {} }
+                        PositionalConstraint: STARTS_WITH
+                        SearchString: /wp-json/
+                        TextTransformations: [{ Priority: 0, Type: LOWERCASE }]
+          VisibilityConfig: { SampledRequestsEnabled: true, CloudWatchMetricsEnabled: true, MetricName: rate-limit }
+        - Name: aws-ip-reputation
+          Priority: 1
+          OverrideAction: { None: {} }
+          Statement: { ManagedRuleGroupStatement: { VendorName: AWS, Name: AWSManagedRulesAmazonIpReputationList } }
+          VisibilityConfig: { SampledRequestsEnabled: true, CloudWatchMetricsEnabled: true, MetricName: ip-reputation }
+        - Name: aws-common
+          Priority: 2
+          OverrideAction: { None: {} }
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+              RuleActionOverrides:
+                - Name: SizeRestrictions_BODY
+                  ActionToUse: { Count: {} }
+          VisibilityConfig: { SampledRequestsEnabled: true, CloudWatchMetricsEnabled: true, MetricName: common }
+        - Name: aws-known-bad-inputs
+          Priority: 3
+          OverrideAction: { None: {} }
+          Statement: { ManagedRuleGroupStatement: { VendorName: AWS, Name: AWSManagedRulesKnownBadInputsRuleSet } }
+          VisibilityConfig: { SampledRequestsEnabled: true, CloudWatchMetricsEnabled: true, MetricName: known-bad-inputs }
+
+  SiteOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-s3'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub '${ApexDomain} (${AWS::StackName})'
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Aliases: !If [HasDomain, [!Ref ApexDomain, !Sub 'www.${ApexDomain}'], !Ref AWS::NoValue]
+        ViewerCertificate: !If
+          - HasDomain
+          - { AcmCertificateArn: !Ref Certificate, SslSupportMethod: sni-only, MinimumProtocolVersion: TLSv1.2_2021 }
+          - { CloudFrontDefaultCertificate: true }
+        WebACLId: !If [WafOn, !GetAtt WebAcl.Arn, !Ref AWS::NoValue]
+        Origins:
+          - Id: site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginPath: /site
+            OriginAccessControlId: !GetAtt SiteOac.Id
+            S3OriginConfig: { OriginAccessIdentity: '' }
+          - Id: media
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginPath: /media
+            OriginAccessControlId: !GetAtt SiteOac.Id
+            S3OriginConfig: { OriginAccessIdentity: '' }
+          - Id: api
+            DomainName: !Sub '${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+            CustomOriginConfig: { OriginProtocolPolicy: https-only, OriginSSLProtocols: [TLSv1.2] }
+            OriginCustomHeaders:
+              - { HeaderName: x-origin-verify, HeaderValue: !Ref OriginVerifySecret }
+        DefaultCacheBehavior:
+          TargetOriginId: site
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6          # Managed-CachingOptimized
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # Managed-SecurityHeadersPolicy (HSTS, nosniff, frame, referrer)
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt ViewerRequestFunction.FunctionARN
+        CacheBehaviors:
+          - PathPattern: /wp-content/*
+            TargetOriginId: media
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03
+          - PathPattern: /api/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad          # Managed-CachingDisabled
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac  # Managed-AllViewerExceptHostHeader
+            ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03
+          - PathPattern: /wp-json/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+            ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03
+        CustomErrorResponses:
+          - { ErrorCode: 404, ResponseCode: 404, ResponsePagePath: /404.html, ErrorCachingMinTTL: 60 }
+
+  # ------------------------------------------------------------------ email (SES)
+  SesIdentity:
+    Type: AWS::SES::EmailIdentity
+    Condition: SesDomain
+    Properties:
+      EmailIdentity: !Ref ApexDomain
+      DkimSigningAttributes: { NextSigningKeyLength: RSA_2048_BIT }
+
+  SesDkimRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Condition: SesDomain
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      RecordSets:
+        - { Name: !GetAtt SesIdentity.DkimDNSTokenName1, Type: CNAME, TTL: '1800', ResourceRecords: [!GetAtt SesIdentity.DkimDNSTokenValue1] }
+        - { Name: !GetAtt SesIdentity.DkimDNSTokenName2, Type: CNAME, TTL: '1800', ResourceRecords: [!GetAtt SesIdentity.DkimDNSTokenValue2] }
+        - { Name: !GetAtt SesIdentity.DkimDNSTokenName3, Type: CNAME, TTL: '1800', ResourceRecords: [!GetAtt SesIdentity.DkimDNSTokenValue3] }
+
+  # ------------------------------------------------------------------ monitoring
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription: [{ Protocol: email, Endpoint: !Ref AlertEmail }]
+
+  ApiErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lead form / ZIP check Lambda is failing
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !Ref ApiFunction }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+
+  StripeErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Stripe webhook Lambda is failing (Stripe will retry; provisioning may be delayed)
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !Ref StripeWebhookFunction }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+
+  Api5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: API Gateway returned 5xx errors
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions: [{ Name: ApiId, Value: !Ref HttpApi }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+
+  CloudFront5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: More than 5% of ypnus.com requests are failing
+      Namespace: AWS/CloudFront
+      MetricName: 5xxErrorRate
+      Dimensions:
+        - { Name: DistributionId, Value: !Ref Distribution }
+        - { Name: Region, Value: Global }
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+
+  SiteHealthCheck:
+    Type: AWS::Route53::HealthCheck
+    Condition: HasDomain
+    Properties:
+      HealthCheckConfig:
+        Type: HTTPS
+        FullyQualifiedDomainName: !Ref ApexDomain
+        ResourcePath: /api/health
+        Port: 443
+        RequestInterval: 30
+        FailureThreshold: 3
+      HealthCheckTags: [{ Key: Name, Value: !Sub '${ApexDomain} /api/health' }]
+
+  SiteDownAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasDomain
+    Properties:
+      AlarmDescription: !Sub 'https://${ApexDomain}/api/health is not answering'
+      Namespace: AWS/Route53
+      MetricName: HealthCheckStatus
+      Dimensions: [{ Name: HealthCheckId, Value: !Ref SiteHealthCheck }]
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 3
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlertsTopic]
+      OKActions: [!Ref AlertsTopic]
+
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: !Sub '${AWS::StackName}-monthly'
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit: { Amount: !Ref MonthlyBudgetUsd, Unit: USD }
+      NotificationsWithSubscribers:
+        - Notification: { NotificationType: FORECASTED, ComparisonOperator: GREATER_THAN, Threshold: 100, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlertEmail }]
+        - Notification: { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 80, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlertEmail }]
+
+  # ------------------------------------------------------------------ CI/CD: GitHub Actions deploy role (OIDC, no stored keys)
+  GitHubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOidc
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Condition: HasRepo
+    Properties:
+      Description: GitHub Actions publishes ypnus.com (S3 sync, redirects, cache refresh). Nothing else.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: !If
+                - CreateOidc
+                - !GetAtt GitHubOidc.Arn
+                - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
+            Condition:
+              StringEquals: { 'token.actions.githubusercontent.com:aud': sts.amazonaws.com }
+              StringLike: { 'token.actions.githubusercontent.com:sub': !Sub 'repo:${GitHubRepo}:ref:refs/heads/main' }
+      Policies:
+        - PolicyName: publish-site
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt SiteBucket.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub '${SiteBucket.Arn}/site/*'
+              - Effect: Allow
+                Action: [cloudfront:CreateInvalidation, cloudfront:GetInvalidation]
+                Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+              - Effect: Allow
+                Action: [cloudfront-keyvaluestore:DescribeKeyValueStore, cloudfront-keyvaluestore:ListKeys, cloudfront-keyvaluestore:GetKey, cloudfront-keyvaluestore:UpdateKeys]
+                Resource: !GetAtt RedirectStore.Arn
+              - Effect: Allow
+                Action: cloudformation:DescribeStacks
+                Resource: !Ref AWS::StackId
+
+Outputs:
+  SiteUrl:
+    Description: Preview address (works before DNS moves)
+    Value: !Sub 'https://${Distribution.DomainName}'
+  DistributionId:
+    Value: !Ref Distribution
+  DistributionDomain:
+    Description: Point ypnus.com and www here at cutover (Route 53 alias, hosted zone Z2FDTNDATAQYW2)
+    Value: !GetAtt Distribution.DomainName
+  BucketName:
+    Description: site/ = built pages, media/wp-content/uploads/ = images
+    Value: !Ref SiteBucket
+  RedirectStoreArn:
+    Value: !GetAtt RedirectStore.Arn
+  ApiEndpoint:
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  StripeWebhookUrl:
+    Description: Add this endpoint in Stripe (use https://ypnus.com/api/stripe/webhook after cutover)
+    Value: !Sub 'https://${Distribution.DomainName}/api/stripe/webhook'
+  LeadsTableName:
+    Value: !Ref LeadsTable
+  ZipTableName:
+    Value: !Ref ZipTable
+  BillingTableName:
+    Value: !Ref BillingTable
+  SecretArn:
+    Description: Edit Stripe/webhook settings here (Secrets Manager console -> Retrieve secret value -> Edit)
+    Value: !Ref AppSecret
+  DeployRoleArn:
+    Condition: HasRepo
+    Description: Save as the GitHub secret AWS_DEPLOY_ROLE_ARN
+    Value: !GetAtt DeployRole.Arn

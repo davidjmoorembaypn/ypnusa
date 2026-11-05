@@ -1,0 +1,23 @@
+<%- include('partials/head') %>
+<body class="ypx-archive">
+<%- include('partials/header') %>
+<main id="main">
+  <%- include('partials/breadcrumbs') %>
+  <% if (doc.body) { %><div class="ypx-entry ypx-entry-wide"><%- doc.body %></div><% } %>
+  <section class="ypx-wrap ypx-archive-list" aria-labelledby="ypx-archive-h">
+    <h<%= doc.body && /<h1\b/i.test(doc.body) ? 2 : 1 %> id="ypx-archive-h" class="ypx-title"><%= doc.body ? 'Latest guides for loan officers' : doc.title %></h<%= doc.body && /<h1\b/i.test(doc.body) ? 2 : 1 %>>
+    <% if (!doc.body && doc.description) { %><p class="ypx-lead"><%= doc.description %></p><% } %>
+    <% if (base === '/blog/' || base.indexOf('/category/') === 0) { %>
+    <ul class="ypx-chips" aria-label="Categories"><% Array.from(content.categories.values()).filter(function (c) { return c.posts.length; }).forEach(function (c) { %><li><a href="/category/<%= c.slug %>/"<%- base === '/category/' + c.slug + '/' ? ' aria-current="page"' : '' %>><%= c.name %> <span>(<%= c.posts.length %>)</span></a></li><% }) %></ul>
+    <% } %>
+    <div class="ypx-grid"><% pg.items.forEach(function (p) { %><%- include('partials/card', { p: p }) %><% }) %></div>
+    <% if (pg.total > 1) { %>
+    <nav class="ypx-pager" aria-label="Pagination">
+      <% if (pg.page > 1) { %><a rel="prev" href="<%= pg.page === 2 ? base : base + 'page/' + (pg.page - 1) + '/' %>">&larr; Newer</a><% } %>
+      <span>Page <%= pg.page %> of <%= pg.total %></span>
+      <% if (pg.page < pg.total) { %><a rel="next" href="<%= base %>page/<%= pg.page + 1 %>/">Older &rarr;</a><% } %>
+    </nav>
+    <% } %>
+  </section>
+</main>
+<%- include('partials/footer') %>

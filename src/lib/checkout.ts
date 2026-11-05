@@ -28,11 +28,23 @@ const PAYMENT_LINK_ENV_VARS: Record<Exclude<PricingTierId, "free">, string> = {
   elite: "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ELITE",
 };
 
+/**
+ * Live Stripe Payment Links for the November 2026 lineup, created in the Stripe
+ * Dashboard on 2026-11-05 (monthly, 15-day trial, metadata ypnus_tier + pricing=2026-11).
+ * Keyed by tier id: id "growth" is sold as Pro $99, "pro" as Growth $199, "elite" as
+ * Exclusive $299 (see src/lib/pricing.ts). An env var above still wins when set.
+ */
+const NOVEMBER_2026_PAYMENT_LINKS: Partial<Record<PricingTierId, string>> = {
+  growth: "https://buy.stripe.com/bJe5kC4ZQffXdGxghg3AY0L",
+  pro: "https://buy.stripe.com/7sY14mdwm2tb7i93uu3AY0M",
+  elite: "https://buy.stripe.com/5kQdR8akagk1auld543AY0N",
+};
+
 function configuredPaymentLink(tier: PricingTierId): string | null {
   if (tier === "free") return null;
   const envVar = PAYMENT_LINK_ENV_VARS[tier];
   const value = process.env[envVar]?.trim();
-  return value || null;
+  return value || NOVEMBER_2026_PAYMENT_LINKS[tier] || null;
 }
 
 /**

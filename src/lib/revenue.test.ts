@@ -263,8 +263,8 @@ describe("revenue pulse", async () => {
 
   it("infers the tier from the stated team size wording", () => {
     const cases: Array<{ volume: string | undefined; tier: string }> = [
-      { volume: "Whole brokerage", tier: "Elite" },
-      { volume: "6-20 leads / month", tier: "Pro" },
+      { volume: "Whole brokerage", tier: "Exclusive" },
+      { volume: "6-20 leads / month", tier: "Growth" },
       { volume: "2-5 leads / month", tier: "Starter" },
       { volume: "just me", tier: "Free" },
       { volume: undefined, tier: "Free" },

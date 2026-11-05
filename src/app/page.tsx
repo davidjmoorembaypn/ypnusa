@@ -132,7 +132,7 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Growth $99.99/mo, Pro $199.99/mo, and Elite $299.99/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
+    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
   },
 ];
 
@@ -210,7 +210,7 @@ export default function Home() {
             <p className="mt-3 text-center text-xs text-white/70">
               Checking availability is free &mdash; locking a territory requires a paid plan.{" "}
               <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
-                Plans from $99.99/mo
+                Plans from $99/mo
               </Link>{" "}
               with a 15-day free trial.
             </p>

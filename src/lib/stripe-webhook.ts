@@ -20,6 +20,21 @@ export function verifyStripeWebhookEvent(rawBody: string, signatureHeader: strin
 }
 
 /**
+ * Payment Links created for the November 2026 lineup tag `ypnus_tier` with the NEW
+ * public names (pro = $99, growth = $199, exclusive = $299) plus `pricing: "2026-11"`.
+ * Older links use the tier ids directly (growth = $99.99, pro = $199.99, elite = $299.99).
+ * Translate the new names to tier ids so a $99 checkout never provisions the $199 tier.
+ */
+const NOVEMBER_2026_NAME_TO_TIER: Record<string, string> = { pro: "growth", growth: "pro", exclusive: "elite" };
+
+export function tierFromMetadata(metadata: Stripe.Metadata | null | undefined): string | undefined {
+  const raw = metadata?.ypnus_tier?.trim().toLowerCase();
+  if (!raw) return undefined;
+  if (metadata?.pricing === "2026-11" || raw === "exclusive") return NOVEMBER_2026_NAME_TO_TIER[raw] ?? raw;
+  return raw;
+}
+
+/**
  * Maps a verified Stripe event into the same FulfillmentPayload shape
  * @/lib/fulfillment already applies (used today by the internal-secret
  * forwarder route). Returns null for an event type this app doesn't act on —
@@ -50,7 +65,7 @@ export function mapStripeEventToFulfillmentPayload(event: Stripe.Event): Fulfill
         zip: session.client_reference_id ?? undefined,
         eventType: "checkout.session.completed",
         paymentStatus: session.payment_status,
-        tier: session.metadata?.ypnus_tier,
+        tier: tierFromMetadata(session.metadata),
         customerEmail: session.customer_details?.email ?? session.customer_email ?? undefined,
         eventCreatedAt,
         eventId,
@@ -66,7 +81,7 @@ export function mapStripeEventToFulfillmentPayload(event: Stripe.Event): Fulfill
         stripeSubscriptionId: subscription.id,
         eventType: event.type,
         subscriptionStatus: subscription.status,
-        tier: subscription.metadata?.ypnus_tier,
+        tier: tierFromMetadata(subscription.metadata),
         priceId: firstItem?.price?.id,
         productId: typeof firstItem?.price?.product === "string" ? firstItem.price.product : undefined,
         eventCreatedAt,

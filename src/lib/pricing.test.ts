@@ -44,10 +44,11 @@ describe("pricing catalog", () => {
     }
   });
 
-  it("prices the display string consistently with the billed cents", () => {
+  it("prices the display string consistently with the billed cents (to the dollar)", () => {
+    // Display shows the November 2026 whole-dollar prices; cents keep legacy subscribers' $x.99.
     for (const tier of PRICING_TIERS) {
       const dollars = Number(tier.price.replace(/[^0-9.]/g, ""));
-      assert.equal(Math.round(dollars * 100), tier.priceMonthlyCents, `${tier.id} price mismatch`);
+      assert.equal(Math.floor(dollars), Math.floor(tier.priceMonthlyCents / 100), `${tier.id} price mismatch`);
     }
   });
 

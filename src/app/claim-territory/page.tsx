@@ -64,7 +64,7 @@ export default function ClaimTerritoryPage() {
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-white/85">
               <li>We confirm your zip code is still open. Territory locks only after you are on a paid plan.</li>
               <li>You get a free borrower page and zip code access right away.</li>
-              <li>Lock the zip code whenever you are ready by choosing Growth, Pro or Elite.</li>
+              <li>Lock the zip code whenever you are ready by choosing Pro, Growth or Exclusive.</li>
             </ol>
           </div>
           <p className="mt-8 text-white/85">

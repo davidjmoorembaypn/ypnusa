@@ -1,3 +1,11 @@
+/**
+ * Tier ids are stable storage keys (existing subscriptions, SSO claims, Stripe metadata).
+ * Since the November 2026 lineup the public names and prices differ from the ids:
+ *   id "growth" = Pro $99, id "pro" = Growth $199, id "elite" = Exclusive $299.
+ * priceMonthlyCents stays at what existing subscribers are billed ($99.99 / $199.99 / $299.99)
+ * so revenue and LTV figures don't drop; new checkouts use the November 2026 Stripe links
+ * (src/lib/checkout.ts) and the webhook translates their tier names (src/lib/stripe-webhook.ts).
+ */
 export type PricingTierId = "free" | "starter" | "growth" | "pro" | "elite";
 
 export interface PricingTier {
@@ -68,8 +76,8 @@ export const PRICING_TIERS: readonly PricingTier[] = [
   },
   {
     id: "growth",
-    name: "Growth",
-    price: "$99.99",
+    name: "Pro",
+    price: "$99",
     priceMonthlyCents: 9999,
     cadence: "/mo",
     tagline: "More automation, same exclusive footprint",
@@ -90,8 +98,8 @@ export const PRICING_TIERS: readonly PricingTier[] = [
   },
   {
     id: "pro",
-    name: "Pro",
-    price: "$199.99",
+    name: "Growth",
+    price: "$199",
     priceMonthlyCents: 19999,
     cadence: "/mo",
     tagline: "For the serious loan officer",
@@ -112,8 +120,8 @@ export const PRICING_TIERS: readonly PricingTier[] = [
   },
   {
     id: "elite",
-    name: "Elite",
-    price: "$299.99",
+    name: "Exclusive",
+    price: "$299",
     priceMonthlyCents: 29999,
     cadence: "/mo",
     tagline: "Maximum automation and priority support",

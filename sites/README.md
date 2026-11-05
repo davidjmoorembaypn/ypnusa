@@ -1,40 +1,46 @@
 # sites/
 
-Standalone websites that live next to the `app.ypnus.com` Next.js app but are **not part of
-its build**. Each folder has its own `package.json`, its own checks and its own deploy path.
-The root `npm run lint`, `tsc`, `npm test` and `npm run build` ignore this folder.
+Website sources that live next to the `app.ypnus.com` Next.js app but are **not part of its
+build and are not deployed**. The root `npm run lint`, `tsc`, `npm test` and `npm run build`
+ignore this folder.
 
-| Folder | What it is | Status |
-| --- | --- | --- |
-| [`ypnus-com/`](./ypnus-com/) | The ypnus.com marketing site rebuilt from the 2026-11-04 WordPress exports as a small Express app (139 pages, 335 posts, 89 redirects), plus an AWS S3 + CloudFront + Lambda hosting plan in `ypnus-com/aws/`. | Snapshot of 2026-11-05. **Not deployed. Nothing has been created in AWS.** |
+| Folder | What it is |
+| --- | --- |
+| [`ypnus-com/`](./ypnus-com/) | Content source: the ypnus.com marketing site rebuilt from the 2026-11-04 WordPress exports (142 pages, 335 posts, 89 redirects) as a small Express app, used for local preview and checks (`npm run check`). Snapshot of 2026-11-05. |
 
-## How `ypnus-com/` relates to the rest of this repo
+## How ypnus.com is served (decided 2026-11-05)
 
-There are now three candidate ways to serve ypnus.com once WordPress is retired. The owner
-has not picked one yet; nothing here changes production.
+ypnus.com is served by **this Next.js app**, as planned in `docs/AWS_MIGRATION.md`
+("Decision: WordPress is retired"):
 
-1. **The Next.js app itself** (`docs/AWS_MIGRATION.md`, "Decision: WordPress is retired"):
-   `src/content/wp-import/` already holds an earlier import (171 posts after dedupe, 134 pages,
-   330 redirects) served by app.ypnus.com, with `aws/apache/` as an Apache "front door" for
-   ypnus.com on the existing EC2 host (`i-0ad200fc61f4d39f5`, us-east-2).
-2. **This static site** (`sites/ypnus-com/`): pre-rendered to S3 behind CloudFront in
-   **us-east-1**, with two Lambdas (forms + ZIP check, Stripe webhook). Separate CloudFormation
-   stack `ypnus-site`; it does not touch the EC2 host or app.ypnus.com.
-3. **The unapplied Terraform/ECS stack** in `infra/aws/` (also us-east-1).
+- Marketing pages, posts and the 301 redirect map live in `src/content/wp-import/`
+  (wired into `next.config.ts` and the `src/app/*/[slug]` routes).
+- ypnus.com reaches the app through the Apache front door in `aws/apache/` on the existing
+  app server (`i-0ad200fc61f4d39f5`, us-east-2). Deploys follow `aws/README.md`
+  (`scripts/aws-install-release.sh`). There is no separate hosting stack for ypnus.com.
+- DNS for ypnus.com stays on WordPress until the cutover items in `docs/AWS_MIGRATION.md` are
+  done (Stripe webhook owner, ZIP ledger, media, final content check).
 
-Before deploying `sites/ypnus-com/aws/` check:
+A separate static site on S3 + CloudFront (with its own Lambdas, in us-east-1) was considered
+on 2026-11-05 and set aside: it needed a second system to run, and the AWS account's
+quarantine SCP blocks the CloudFormation and Lambda actions it depends on. Its template and
+scripts are not in this repo.
 
-- **Account guardrails.** `aws/README.md` notes an org quarantine SCP (`p-vxracxez`) that denies
-  most EC2/Lambda/CloudFormation/ECS actions in the account that hosts app.ypnus.com. The
-  `ypnus-site` stack needs CloudFormation, Lambda, S3, CloudFront, ACM, WAF, SES and IAM, so it
-  will fail in that account until the SCP is lifted, or it must go in a different account.
-- **Region.** The stack is us-east-1 (required for CloudFront certificates and WAF); the app
-  host is us-east-2. That is fine, but alarms, logs and budgets will live in two regions.
-- **Stripe.** WordPress still receives the Stripe webhook; app.ypnus.com is the planned
-  receiver (`docs/AWS_MIGRATION.md`). Only one system should create logins for new subscribers.
-- **Deploy workflow.** `ypnus-com/aws/github-actions/deploy-site.yml` is an example kept
-  outside `.github/workflows/`, so it never runs. It is manual-only if copied in.
+## Using `ypnus-com/` with the app
 
-`ypnus-com/README.md` still describes Hostinger install steps from the first draft; the AWS
-path is `ypnus-com/aws/AWS-SETUP.md`. The step-by-step build prompt is
+`ypnus-com/` is never deployed. Treat it as the newer, cleaner copy of the WordPress content
+to port into `src/content/wp-import/` in a follow-up PR. Compared with the app's 2026-10-21
+import, it adds:
+
+- Pages the app doesn't have yet: `/agents/david-j-moore-mba`, `/editorial-policy`,
+  `/research-methodology`, `/ypn-usa-partner-suite`.
+- Rewritten comparison pages (`content/pages/vs/`, `authority/`) and internal links from the
+  authority plan, which was still being edited when this snapshot was taken.
+- Fewer leftovers of the old tier names: "Elite" appears 28 times across 15 of its files, versus 720 times in
+  the app's current import. Those still need a pricing pass before or during the port.
+
+Every one of its 335 posts already exists in the app, either as a canonical post or as a
+redirect to one.
+
+The step-by-step build prompt is
 [`docs/prompts/ypnus-aws-build-prompt.md`](../docs/prompts/ypnus-aws-build-prompt.md).

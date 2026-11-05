@@ -42,7 +42,7 @@ YPNUS is "the AI Growth Operating System for Mortgage Loan Officers": it helps l
 | CI/CD | GitHub Actions with OIDC to AWS (no long-lived keys): lint, typecheck, test, CDK diff, deploy to dev on merge, prod on manual approval |
 | Environments | dev and prod stacks, separate databases and secrets |
 
-The public marketing site (ypnus.com) is a separate static site on S3 + CloudFront, defined in `ypnus-node/aws/`. Do not merge it into the app. The app publishes to it (section 5).
+The public marketing site (ypnus.com) is served by this same Next.js app, as described in `docs/AWS_MIGRATION.md` ("Decision: WordPress is retired"): its pages live in `src/content/wp-import/` and ypnus.com reaches the app through the Apache front door in `aws/apache/` on the existing app server (see `aws/README.md`). Do not add a separate hosting stack for it. `sites/ypnus-com/` is the newer WordPress rebuild, kept as a content source for re-importing into the app, not as something to deploy. A static S3 + CloudFront site was considered on 2026-11-05 and set aside.
 
 ## 3. Data model (Prisma)
 
@@ -80,7 +80,7 @@ Audit (section 0), CDK stacks, CI/CD, auth and roles, organizations and projects
 
 ### Phase 5 — Publishing
 - States: Draft → Review → Queued → Published / Failed, with retries, logs and rollback.
-- Primary target: the YPNUS static marketing site — publishing writes the page into the site's content repo (or S3 source bucket), triggers the static build and a CloudFront invalidation, then updates the sitemap and pings IndexNow.
+- Primary target: the ypnus.com pages served by this app — publishing adds the page to the app's marketing content, triggers a release through the existing deploy path (`aws/README.md`), then updates the sitemap and pings IndexNow.
 - Optional connectors behind one interface: WordPress REST API, webhook.
 
 ### Phase 6 — Hardening and launch

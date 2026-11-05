@@ -50,7 +50,7 @@ Phone, address, NMLS/DRE numbers, navigation, footer links and the four pricing 
 
 ## 3. Deploy to Hostinger
 
-> Superseded: ypnus.com is moving to AWS, not Hostinger. Use `aws/AWS-SETUP.md` and see `../README.md` for how this fits the ypnusa repo. The steps below are kept for reference only.
+> Superseded: this folder is not deployed anywhere. ypnus.com is served by the Next.js app in this repo on its AWS server; see `../README.md`. The steps below are kept for reference only.
 
 > Nothing here touches the live WordPress site until step 3.4. Back up WordPress first (hPanel > Websites > ypnus.com > Backups).
 

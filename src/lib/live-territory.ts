@@ -1,6 +1,6 @@
 import { OUTBOUND_TIMEOUT_MS } from "./outbound";
 import { WP_API_BASE } from "./site";
-import { isValidZip, normalizeZip, type TerritoryCheckResult } from "./territory";
+import { checkPaidLedgerTerritory, isValidZip, normalizeZip, type TerritoryCheckResult } from "./territory";
 
 export interface LiveZipCheckResponse {
   success?: boolean;
@@ -40,6 +40,11 @@ export async function fetchLiveTerritory(
       totalClaimed: 0,
       message: "Enter a valid 5-digit ZIP code to check territory availability.",
     };
+  }
+
+  // Once WordPress is retired, this app's own paid ledger is the source of truth.
+  if (process.env.TERRITORY_SOURCE?.trim().toLowerCase() === "local") {
+    return checkPaidLedgerTerritory(zip);
   }
 
   const url = `${WP_API_BASE}/zip-check/${encodeURIComponent(zip)}`;

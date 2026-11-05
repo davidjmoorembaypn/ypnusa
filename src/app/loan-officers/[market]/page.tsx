@@ -14,7 +14,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
   const { market: slug } = await params;
   const market = getMloMarket(slug);
-  if (!market) return {};
+  if (!market) notFound();
   const origin = await getSiteOrigin();
   return marketingMetadata({
     title: market.title,

@@ -3,6 +3,8 @@ import type { Stats } from "fs";
 import path from "path";
 import { parseStoredTier } from "@/lib/pricing";
 import type {
+  AccountRecord,
+  LoginTokenRecord,
   DbShape,
   AppointmentRecord,
   AgentOnboardingRecord,
@@ -164,6 +166,8 @@ const emptyDb = (): DbShape => ({
   autopilotRuns: [],
   paymentConversions: [],
   agentOnboarding: [],
+  accounts: [],
+  loginTokens: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -226,6 +230,8 @@ function normalize(snapshot: unknown): DbShape {
     autopilotRuns: arrayOrEmpty<AutopilotRunRecord>(parsed.autopilotRuns),
     paymentConversions: arrayOrEmpty<PaymentConversionRecord>(parsed.paymentConversions),
     agentOnboarding: arrayOrEmpty<AgentOnboardingRecord>(parsed.agentOnboarding),
+    accounts: arrayOrEmpty<AccountRecord>(parsed.accounts),
+    loginTokens: arrayOrEmpty<LoginTokenRecord>(parsed.loginTokens),
   };
 }
 

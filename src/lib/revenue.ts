@@ -13,10 +13,9 @@ type FlowStageId = "intake" | "qualified" | "booked" | "subscription";
 
 const DEFAULT_LIFETIME_MONTHS: Record<PricingTierId, number> = {
   free: 3,
-  starter: 12,
-  growth: 14,
-  pro: 16,
-  elite: 18,
+  pro: 14,
+  growth: 16,
+  exclusive: 18,
 };
 
 const LEAD_PIPELINE_VALUE_CENTS: Record<LeadQuality, number> = {
@@ -108,13 +107,13 @@ function normalizeZip(value?: string): string | null {
 function inferTierFromDemoRequest(request: DemoRequestRecord): PricingTierId {
   const volume = request.monthlyLeadVolume?.toLowerCase() ?? "";
   if (volume.includes("whole") || volume.includes("brokerage") || volume.includes("branch")) {
-    return "elite";
+    return "exclusive";
   }
   if (volume.includes("6") || volume.includes("20")) {
-    return "pro";
+    return "growth";
   }
   if (volume.includes("2") || volume.includes("5")) {
-    return "starter";
+    return "pro";
   }
   return "free";
 }

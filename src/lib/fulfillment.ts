@@ -5,7 +5,7 @@ import {
 } from "@/lib/db";
 import { generateId } from "@/lib/id";
 import { logApiError } from "@/lib/http";
-import { PAID_PRICING_TIERS, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
+import { PAID_PRICING_TIERS, fromLegacyTierName, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 import { optionalText, requiredText } from "@/lib/validation";
@@ -81,9 +81,14 @@ export interface FulfillmentPayload {
   priceId?: unknown;
   productId?: unknown;
   /**
-   * A tier already known from Stripe metadata (session.metadata.ypnus_tier or
-   * subscription.metadata.ypnus_tier — every current live Payment Link sets
-   * this), checked before falling back to priceId/productId resolution.
+   * Current-lineup plan from Stripe metadata (`metadata.ypnus_plan`: pro | growth | exclusive),
+   * set on every price and Payment Link created for the Nov 2026 lineup. Checked first.
+   */
+  plan?: unknown;
+  /**
+   * Retired-lineup tier from Stripe metadata (`metadata.ypnus_tier`: starter | growth | pro | elite),
+   * still set on the older live Payment Links. Mapped by price point via `fromLegacyTierName`,
+   * then priceId/productId resolution is the last fallback.
    */
   tier?: unknown;
   /**
@@ -131,11 +136,18 @@ function isStaleOrDuplicateEvent(
   );
 }
 
-function resolveTier(tierRaw: unknown, priceId: string | undefined, productId: string | undefined): PricingTierId | null {
-  const candidate = optionalText(tierRaw, 40);
-  if (candidate && PAID_PRICING_TIERS.some((tier) => tier.id === candidate)) {
-    return candidate as PricingTierId;
+function resolveTier(
+  planRaw: unknown,
+  legacyTierRaw: unknown,
+  priceId: string | undefined,
+  productId: string | undefined,
+): PricingTierId | null {
+  const plan = optionalText(planRaw, 40);
+  if (plan && PAID_PRICING_TIERS.some((tier) => tier.id === plan)) {
+    return plan as PricingTierId;
   }
+  const legacy = fromLegacyTierName(optionalText(legacyTierRaw, 40));
+  if (legacy && legacy !== "free") return legacy;
   return resolveTierFromStripeIdentifier(priceId, productId);
 }
 
@@ -195,11 +207,11 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
     }
     const priceId = optionalText(payload.priceId, 200);
     const productId = optionalText(payload.productId, 200);
-    const tier = resolveTier(payload.tier, priceId, productId);
+    const tier = resolveTier(payload.plan, payload.tier, priceId, productId);
     if (!tier) {
       return {
         ok: false,
-        error: "Could not resolve a tier from metadata.ypnus_tier or priceId/productId.",
+        error: "Could not resolve a tier from metadata.ypnus_plan, metadata.ypnus_tier or priceId/productId.",
         code: "UNRECOGNIZED_STRIPE_PRICE",
       };
     }
@@ -257,11 +269,11 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
 
   const priceId = optionalText(payload.priceId, 200);
   const productId = optionalText(payload.productId, 200);
-  const tier = resolveTier(payload.tier, priceId, productId);
+  const tier = resolveTier(payload.plan, payload.tier, priceId, productId);
   if (!tier) {
     return {
       ok: false,
-      error: "Could not resolve a tier from metadata.ypnus_tier or priceId/productId.",
+      error: "Could not resolve a tier from metadata.ypnus_plan, metadata.ypnus_tier or priceId/productId.",
       code: "UNRECOGNIZED_STRIPE_PRICE",
     };
   }

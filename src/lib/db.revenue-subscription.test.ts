@@ -56,7 +56,7 @@ describe("revenue subscription persistence (db.ts)", async () => {
     const updated = subscription("sub_new_1", {
       stripeCustomerId: "cus_123",
       stripeSubscriptionId: "sub_stripe_123",
-      tier: "elite",
+      tier: "exclusive",
       status: "cancelled",
     });
     saveRevenueSubscription(updated);
@@ -65,7 +65,7 @@ describe("revenue subscription persistence (db.ts)", async () => {
     assert.equal(db.revenueSubscriptions.length, countBefore);
 
     const stored = findRevenueSubscriptionByStripeSubscriptionId("sub_stripe_123");
-    assert.equal(stored?.tier, "elite");
+    assert.equal(stored?.tier, "exclusive");
     assert.equal(stored?.status, "cancelled");
   });
 

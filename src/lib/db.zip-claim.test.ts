@@ -13,7 +13,7 @@ function subscription(id: string, stripeCustomerId = `cus_${id}`): RevenueSubscr
     id,
     createdAt: new Date().toISOString(),
     startedAt: new Date().toISOString(),
-    tier: "starter",
+    tier: "pro",
     status: "active",
     source: "stripe_webhook",
     stripeSubscriptionId: `stripe_${id}`,

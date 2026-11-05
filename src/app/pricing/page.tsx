@@ -13,33 +13,33 @@ import { getSiteOrigin } from "@/lib/request-host";
 export async function generateMetadata(): Promise<Metadata> {
   const origin = await getSiteOrigin();
   return marketingMetadata({
-    title: "Pricing: Free, Growth, Pro & Elite Plans",
+    title: "Loan Officer Pricing: Free, Pro $99, Growth $199, Exclusive $299",
     description:
-      "Start free, then lock an exclusive ZIP territory on Growth ($99.99), Pro ($199.99) or Elite ($299.99). 15-day free trial on every paid plan.",
+      "Plans for mortgage loan officers: start free with Cerebro, then lock a protected ZIP on Pro ($99), Growth ($199) or Exclusive ($299). 15-day free trial on every paid plan.",
     path: "/pricing",
     origin,
   });
 }
 
-const COMPARE_ROWS: Array<{ label: string; free: string; growth: string; pro: string; elite: string }> = [
-  { label: "Cerebro AI growth diagnostic", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "AI borrower intake assistant", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "Exclusive ZIP territory", free: "—", growth: "1 included", pro: "1 included", elite: "1 included" },
-  { label: "Live lead delivery", free: "—", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "SMS + email nurture ladders", free: "—", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "Calendar booking + CRM mirroring", free: "—", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "Portable MLO website", free: "—", growth: "—", pro: "✓", elite: "✓" },
-  { label: "Priority lead delivery", free: "—", growth: "—", pro: "✓", elite: "✓" },
-  { label: "Advanced life-event signals", free: "—", growth: "—", pro: "✓", elite: "✓" },
-  { label: "Priority ZIP add-on access", free: "—", growth: "—", pro: "—", elite: "✓" },
-  { label: "Unlimited automation runs", free: "—", growth: "—", pro: "—", elite: "✓" },
-  { label: "White-glove onboarding", free: "—", growth: "—", pro: "—", elite: "✓" },
+const COMPARE_ROWS: Array<{ label: string; free: string; pro: string; growth: string; exclusive: string }> = [
+  { label: "Cerebro AI growth plan for your market", free: "✓", pro: "✓", growth: "✓", exclusive: "✓" },
+  { label: "Cerebro borrower chat (24/7 answers + qualification)", free: "Demo", pro: "✓", growth: "✓", exclusive: "✓" },
+  { label: "Protected ZIP territory", free: "—", pro: "1 included", growth: "1 included", exclusive: "1 + first access to add-ons" },
+  { label: "Live lead delivery", free: "—", pro: "✓", growth: "✓", exclusive: "✓" },
+  { label: "Branded borrower intake on your site", free: "—", pro: "✓", growth: "✓", exclusive: "✓" },
+  { label: "Cerebro workflow assistant for your pipeline", free: "—", pro: "—", growth: "✓", exclusive: "✓" },
+  { label: "SMS + email nurture sequences", free: "—", pro: "Email", growth: "✓", exclusive: "✓" },
+  { label: "Calendar booking + CRM sync", free: "—", pro: "—", growth: "✓", exclusive: "✓" },
+  { label: "Local SEO pages + Realtor co-marketing", free: "—", pro: "—", growth: "✓", exclusive: "✓" },
+  { label: "Google Business Profile + website autopilot", free: "—", pro: "—", growth: "—", exclusive: "✓" },
+  { label: "Unlimited Cerebro automation", free: "—", pro: "—", growth: "—", exclusive: "✓" },
+  { label: "White-glove onboarding", free: "—", pro: "—", growth: "—", exclusive: "✓" },
 ];
 
 const PRICING_FAQ = [
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Growth $99.99/mo, Pro $199.99/mo, and Elite $299.99/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
+    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Pro $99/mo, Growth $199/mo and Exclusive $299/mo, and every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
   },
   {
     q: "What happens after the 15-day trial?",
@@ -168,9 +168,9 @@ export default function PricingPage() {
                   <tr className="bg-white/5 text-left text-xs font-semibold uppercase tracking-wide text-white/60">
                     <th className="px-5 py-4">Feature</th>
                     <th className="px-5 py-4 text-center">Free</th>
-                    <th className="px-5 py-4 text-center text-violet-200">Growth</th>
                     <th className="px-5 py-4 text-center">Pro</th>
-                    <th className="px-5 py-4 text-center">Elite</th>
+                    <th className="px-5 py-4 text-center text-violet-200">Growth</th>
+                    <th className="px-5 py-4 text-center">Exclusive</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -178,9 +178,9 @@ export default function PricingPage() {
                     <tr key={row.label} className="border-t border-white/10">
                       <td className="px-5 py-3 text-white/80">{row.label}</td>
                       <td className="px-5 py-3 text-center text-white/60">{row.free}</td>
-                      <td className="px-5 py-3 text-center text-emerald-300">{row.growth}</td>
                       <td className="px-5 py-3 text-center text-white/60">{row.pro}</td>
-                      <td className="px-5 py-3 text-center text-white/60">{row.elite}</td>
+                      <td className="px-5 py-3 text-center text-emerald-300">{row.growth}</td>
+                      <td className="px-5 py-3 text-center text-white/60">{row.exclusive}</td>
                     </tr>
                   ))}
                 </tbody>

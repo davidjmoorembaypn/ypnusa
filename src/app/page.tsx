@@ -25,9 +25,9 @@ const MortgageCalculator = dynamic(
 export async function generateMetadata(): Promise<Metadata> {
   const origin = await getSiteOrigin();
   return marketingMetadata({
-    title: "Exclusive Mortgage Leads by ZIP for Loan Officers | YPN USA",
+    title: "Cerebro AI for Mortgage Loan Officers + Exclusive ZIP Leads | YPN USA",
     description:
-      "Claim an exclusive ZIP territory and an AI assistant that captures, qualifies and nurtures borrowers 24/7. Leads you own for life. Start free.",
+      "Cerebro is the agentic AI assistant for mortgage loan officers: it answers and qualifies your borrowers 24/7 and runs your follow-up, inside a protected ZIP you own. Plans from $99. Start free.",
     path: "/",
     absoluteTitle: true,
     origin,
@@ -115,6 +115,10 @@ const PROGRAMS = ["FHA", "VA", "Conventional", "DSCR", "HELOC", "Refinance", "Ju
 
 const FAQ = [
   {
+    q: "What is Cerebro?",
+    a: "Cerebro is YPN USA's agentic AI assistant for mortgage loan officers. It works on both sides: inside your dashboard it builds your growth plan, works your pipeline and drafts your marketing; on your website it answers borrower questions 24/7, qualifies them and books time with you. It assists you as the licensed loan officer and never replaces you.",
+  },
+  {
     q: "What does “exclusive ZIP territory” actually mean?",
     a: "You lock the rights to borrower demand in specific ZIP codes. Only one loan officer owns a territory at a time — so you're never competing with five other MLOs for the same recycled lead.",
   },
@@ -132,7 +136,7 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Growth $99.99/mo, Pro $199.99/mo, and Elite $299.99/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
+    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Pro $99/mo, Growth $199/mo and Exclusive $299/mo, and every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
   },
 ];
 
@@ -151,15 +155,15 @@ export default function Home() {
         <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:py-24">
           <div className="max-w-xl">
             <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
-              Exclusive ZIP demand · for MLOs
+              For licensed mortgage loan officers
             </span>
             <h1 className="mt-6 text-balance text-4xl font-semibold leading-[1.08] lg:text-[3.4rem]">
-              Own your mortgage leads — <span className="text-violet-300">without waiting on Realtors.</span>
+              Meet Cerebro: the AI that works your borrowers <span className="text-violet-300">while you close loans.</span>
             </h1>
             <p className="mt-5 text-lg text-white/90">
-              Paid YPN USA plans let you secure an exclusive ZIP-code territory and use an always-on AI assistant that captures,
-              qualifies, and nurtures every borrower in it — automatically. And the leads and website are
-              yours to keep, even if you switch brokerages.
+              Cerebro answers and qualifies every borrower who reaches your site, day or night, then hands you the ready
+              ones and keeps your follow-up moving. Lock a protected ZIP so the demand in your market comes to you, not
+              to the loan officer down the street. Your leads and your site stay yours, even if you change brokerages.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-4 text-sm font-semibold">
@@ -170,7 +174,7 @@ export default function Home() {
                 Check ZIP availability — free
               </a>
               <OpenAssistantButton className="inline-flex items-center justify-center rounded-full bg-violet-600 px-6 py-3.5 text-white shadow-xl shadow-violet-900/40 transition duration-200 hover:-translate-y-0.5 hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
-                Talk to the AI agent
+                Talk to Cerebro
               </OpenAssistantButton>
               <a
                 href="#demo"
@@ -210,7 +214,7 @@ export default function Home() {
             <p className="mt-3 text-center text-xs text-white/70">
               Checking availability is free &mdash; locking a territory requires a paid plan.{" "}
               <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
-                Plans from $99.99/mo
+                Plans from $99/mo
               </Link>{" "}
               with a 15-day free trial.
             </p>
@@ -238,34 +242,59 @@ export default function Home() {
 
       <FounderTrustStrip />
 
-      {/* AI AGENT */}
-      <section id="ai-agent" className="border-b border-white/10 bg-[#0d0b26] py-16">
+      {/* CEREBRO: ONE AI, BOTH SIDES OF THE LOAN */}
+      <section id="cerebro" className="border-b border-white/10 bg-[#0d0b26] py-16">
         <div className="mx-auto w-full max-w-6xl px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">Your AI agent</p>
-            <h2 className="mt-3 text-3xl font-semibold text-white lg:text-4xl">An assistant that actually does things</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">Meet Cerebro&trade;</p>
+            <h2 className="mt-3 text-3xl font-semibold text-white lg:text-4xl">One agentic AI, working both sides of the loan</h2>
             <p className="mt-4 text-white/75">
-              Not a script or an FAQ box. The YPN USA agent takes action in the conversation — it looks up live data,
-              records what a borrower tells it, and moves them to the next step, so you are not the first thing standing
-              between a visitor and an answer.
+              Cerebro is not a script or an FAQ box. It takes action: it looks up live data, records what people tell it
+              and moves them to the next step. It works for you inside your dashboard, and it works for your borrowers on
+              your site, under your brand.
             </p>
           </div>
-          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-6 lg:grid-cols-2">
             {[
-              ["Checks ZIP availability", "Looks up whether a territory is open or already claimed, live, while you chat."],
-              ["Answers pricing", "Pulls the current plans and what each includes instead of guessing."],
-              ["Qualifies and books", "Captures name, goals and consent, then offers open times and books the meeting."],
-              ["Hands off to a human", "Connects a person by phone when the conversation calls for one."],
-            ].map(([title, body]) => (
-              <li key={title} className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/15">
-                <p className="text-sm font-semibold text-white">{title}</p>
-                <p className="mt-2 text-[13px] leading-relaxed text-white/70">{body}</p>
-              </li>
+              {
+                audience: "For you, the loan officer",
+                items: [
+                  ["Builds your growth plan", "Tell it your market and your biggest challenge; it maps the next steps for your ZIP."],
+                  ["Works your pipeline", "Surfaces who needs a call today and drafts the follow-up for your review."],
+                  ["Writes your marketing", "Drafts local posts, Google Business Profile updates and Realtor co-marketing."],
+                  ["Keeps follow-up moving", "Runs nurture sequences on schedule so no borrower goes cold."],
+                ],
+              },
+              {
+                audience: "For your borrowers",
+                items: [
+                  ["Answers questions 24/7", "Explains programs and next steps in plain language, any hour, on your site."],
+                  ["Qualifies the inquiry", "Captures goal, timeline, price range and contact details with consent."],
+                  ["Books time with you", "Offers your open slots and puts the appointment on your calendar."],
+                  ["Hands off to you", "Routes ready borrowers to you with a summary, never to another lender."],
+                ],
+              },
+            ].map((column) => (
+              <div key={column.audience} className="rounded-3xl bg-white/5 p-6 ring-1 ring-white/15">
+                <h3 className="text-lg font-semibold text-white">{column.audience}</h3>
+                <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {column.items.map(([title, body]) => (
+                    <li key={title}>
+                      <p className="text-sm font-semibold text-violet-100">{title}</p>
+                      <p className="mt-1 text-[13px] leading-relaxed text-white/70">{body}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
+          <p className="mx-auto mt-6 max-w-2xl text-center text-[12px] text-white/55">
+            Cerebro assists licensed loan officers; it does not replace one. It never quotes rates as offers, makes credit
+            decisions or gives legal or tax advice, and every borrower conversation is handed to you, the licensed MLO.
+          </p>
           <div className="mt-8 text-center">
             <OpenAssistantButton className="inline-flex items-center justify-center rounded-full bg-amber-400 px-7 py-3.5 text-sm font-semibold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
-              Try the agent now
+              Try Cerebro now
             </OpenAssistantButton>
             <p className="mt-3 text-[12px] text-white/50">No credit card. Results vary; nothing here is a guarantee of leads or loan approval.</p>
           </div>

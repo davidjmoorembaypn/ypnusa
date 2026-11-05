@@ -158,7 +158,8 @@ describe("SSO handoff verification", () => {
     );
     assert.ok(!("error" in result));
     if (!("error" in result)) {
-      assert.equal(result.tier, "growth");
+      // WordPress names tiers in the retired lineup: its "growth" ($99.99) is today's Pro ($99).
+      assert.equal(result.tier, "pro");
       assert.equal(result.subscriptionStatus, "trialing");
       assert.equal(result.trialEndsAt, "2026-10-01T00:00:00Z");
     }
@@ -190,7 +191,7 @@ describe("SSO handoff verification", () => {
     const badTier = verifySsoHandoff(
       buildUrl({ tier: "platinum", sig: sign("jordan@example.com", "wp_42", "mlo", iat, "/dashboard", "platinum") }),
     );
-    // An unrecognized tier is signed validly but simply dropped (isPricingTierId guards it) — not an error,
+    // An unrecognized tier is signed validly but simply dropped (fromLegacyTierName guards it) — not an error,
     // just no claim carried through, matching "absent" behavior (fails closed to free downstream).
     assert.ok(!("error" in badTier));
     if (!("error" in badTier)) assert.equal(badTier.tier, undefined);

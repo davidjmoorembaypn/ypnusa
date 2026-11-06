@@ -1,0 +1,241 @@
+{
+  "name": "YPN USA",
+  "legalName": "YPN Inc.",
+  "tagline": "Lead Generation for Mortgage Loan Officers",
+  "url": "https://ypnus.com",
+  "appUrl": "https://app.ypnus.com",
+  "logo": "/wp-content/uploads/2026/05/logo.jpg",
+  "defaultOgImage": "/wp-content/uploads/2026/05/logo.jpg",
+  "locale": "en_US",
+  "phone": "(559) 512-0372",
+  "phoneE164": "+15595120372",
+  "email": "support@ypnus.com",
+  "address": {
+    "street": "247 N L Street",
+    "city": "Dinuba",
+    "region": "CA",
+    "postalCode": "93618",
+    "country": "US"
+  },
+  "areaServed": [
+    "Visalia, CA",
+    "Fresno, CA",
+    "United States"
+  ],
+  "licenses": {
+    "nmls": "787257",
+    "dre": "01852847"
+  },
+  "founder": {
+    "name": "David J. Moore, MBA",
+    "jobTitle": "CEO & Founder, YPN Inc.",
+    "url": "/about-david-moore/",
+    "image": "/wp-content/uploads/2026/05/ypnus-davidjmoore.jpg",
+    "credentials": [
+      {
+        "name": "Mortgage Loan Originator License",
+        "category": "license",
+        "identifier": "NMLS #787257",
+        "recognizedBy": "Nationwide Multistate Licensing System (NMLS)",
+        "recognizedByUrl": "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/787257"
+      },
+      {
+        "name": "California Real Estate License",
+        "category": "license",
+        "identifier": "DRE #01852847",
+        "recognizedBy": "California Department of Real Estate",
+        "recognizedByUrl": "https://www.dre.ca.gov/"
+      },
+      {
+        "name": "Master of Business Administration (MBA)",
+        "category": "degree",
+        "recognizedBy": "California State University, Fresno",
+        "recognizedByUrl": "https://www.fresnostate.edu/"
+      }
+    ],
+    "bio": "Mortgage loan officer for 25 years with 2,000+ home loans closed, formerly at Wells Fargo Home Mortgage and JPMorgan Chase. Licensed loan originator (NMLS #787257), California real estate licensee (DRE #01852847), MBA from California State University, Fresno. Founder and CEO of YPN Inc., the company behind YPN USA.",
+    "_bioNote": "Experience claims confirmed by David on 2026-11-05: 25 years as a loan officer, 2,000+ loans closed, former Wells Fargo and JPMorgan Chase loan officer, MBA from Fresno State.",
+    "knowsAbout": [
+      "Mortgage lending",
+      "Mortgage lead generation",
+      "Local SEO for loan officers",
+      "Realtor co-marketing"
+    ],
+    "alumniOf": {
+      "name": "California State University, Fresno",
+      "url": "https://www.fresnostate.edu/"
+    }
+  },
+  "sameAs": [
+    "https://www.linkedin.com/company/ypn-inc",
+    "https://www.facebook.com/YPN.Incorporated",
+    "https://www.youtube.com/channel/UCpFxCObTCMsAglPeG6ivi5w",
+    "https://x.com/ypn_today",
+    "https://www.instagram.com/ypn_today",
+    "https://github.com/davidjmoorembaypn"
+  ],
+  "nav": [
+    {
+      "label": "Platform",
+      "url": "/features/",
+      "children": [
+        {
+          "label": "Cerebro AI Assistant",
+          "url": "/platform/ai-tools/"
+        },
+        {
+          "label": "Marketing Engine",
+          "url": "/platform/marketing-automation/"
+        },
+        {
+          "label": "Websites",
+          "url": "/platform/ai-websites/"
+        }
+      ]
+    },
+    {
+      "label": "Solutions",
+      "url": "/mlo-growth-engine/",
+      "children": [
+        {
+          "label": "Local Markets",
+          "url": "/markets/"
+        },
+        {
+          "label": "Loan Type Leads",
+          "url": "/loan-types/"
+        },
+        {
+          "label": "Compare",
+          "url": "/compare/"
+        }
+      ]
+    },
+    {
+      "label": "Resources",
+      "url": "/blog/",
+      "children": [
+        {
+          "label": "Blog",
+          "url": "/blog/"
+        },
+        {
+          "label": "MLO Marketing Hub",
+          "url": "/mlo-marketing/"
+        },
+        {
+          "label": "About",
+          "url": "/about/"
+        },
+        {
+          "label": "Books",
+          "url": "/top-9-real-estate-leads-book/"
+        }
+      ]
+    },
+    {
+      "label": "Pricing",
+      "url": "/pricing.html"
+    },
+    {
+      "label": "Check ZIP Availability",
+      "url": "/#zip-check"
+    }
+  ],
+  "navCta": {
+    "label": "Login",
+    "url": "https://app.ypnus.com/login"
+  },
+  "footerLinks": [
+    {
+      "label": "About",
+      "url": "/about/"
+    },
+    {
+      "label": "Pricing",
+      "url": "/pricing.html"
+    },
+    {
+      "label": "Blog",
+      "url": "/blog/"
+    },
+    {
+      "label": "Contact",
+      "url": "/contact/"
+    },
+    {
+      "label": "Privacy Policy",
+      "url": "/privacy/"
+    },
+    {
+      "label": "Terms of Service",
+      "url": "/terms/"
+    },
+    {
+      "label": "Disclaimer",
+      "url": "/disclaimer/"
+    },
+    {
+      "label": "Editorial Policy",
+      "url": "/editorial-policy/"
+    },
+    {
+      "label": "How We Compare",
+      "url": "/research-methodology/"
+    },
+    {
+      "label": "Refund Policy",
+      "url": "/refund-policy/"
+    },
+    {
+      "label": "Cancellation Policy",
+      "url": "/cancellation-policy/"
+    },
+    {
+      "label": "Sitemap",
+      "url": "/sitemap/"
+    }
+  ],
+  "pricing": {
+    "note": "Paid plans include a 15-day free trial. The Free plan needs no credit card. Cancel online anytime.",
+    "tiers": [
+      {
+        "key": "free",
+        "name": "Free",
+        "price": 0,
+        "summary": "Start on the platform with Cerebro, your AI growth assistant. No credit card.",
+        "zip": "No ZIP lock",
+        "cta": "Create Free Account"
+      },
+      {
+        "key": "pro",
+        "name": "Pro",
+        "price": 99,
+        "summary": "Everything in Free, plus a protected ZIP and the lead capture and follow-up tools to work it.",
+        "zip": "Includes a protected ZIP",
+        "cta": "Start 15-Day Trial"
+      },
+      {
+        "key": "growth",
+        "name": "Growth",
+        "price": 199,
+        "summary": "More room to grow: expanded automation, local content and Realtor co-marketing capacity.",
+        "zip": "Includes a protected ZIP",
+        "cta": "Start 15-Day Trial",
+        "featured": true
+      },
+      {
+        "key": "exclusive",
+        "name": "Exclusive",
+        "price": 299,
+        "summary": "The full suite with ZIP code lockout exclusivity: no other YPN USA loan officer gets your ZIP.",
+        "zip": "ZIP code lockout exclusivity",
+        "cta": "Start 15-Day Trial"
+      }
+    ],
+    "signupUrl": "https://app.ypnus.com/signup"
+  },
+  "disclosure": "YPN Inc. (YPN USA) is a marketing technology platform for licensed mortgage loan originators. YPN Inc. is not a lender and does not originate, fund, or service mortgage loans.",
+  "editorialPolicyUrl": "/editorial-policy/",
+  "methodologyUrl": "/research-methodology/"
+}

@@ -1,0 +1,26 @@
+<footer class="ypx-footer" role="contentinfo">
+  <div class="ypx-wrap">
+    <div class="ypx-footer-grid">
+      <div>
+        <p class="ypx-footer-brand"><%= site.name %></p>
+        <p><%= site.tagline %>. Built by a working loan officer.</p>
+        <p><a href="tel:<%= site.phoneE164 %>"><%= site.phone %></a> &middot; <a href="mailto:<%= site.email %>"><%= site.email %></a></p>
+        <p><%= site.address.street %>, <%= site.address.city %>, <%= site.address.region %> <%= site.address.postalCode %></p>
+      </div>
+      <nav aria-label="Footer"><ul class="ypx-footer-links"><% site.footerLinks.forEach(function (l) { %><li><a href="<%= l.url %>"><%= l.label %></a></li><% }) %></ul></nav>
+      <div>
+        <ul class="ypx-social">
+          <% site.sameAs.forEach(function (u) { var n = u.indexOf('linkedin')>-1?'LinkedIn':u.indexOf('facebook')>-1?'Facebook':u.indexOf('youtube')>-1?'YouTube':u.indexOf('instagram')>-1?'Instagram':u.indexOf('x.com')>-1?'X':u.indexOf('github')>-1?'GitHub':'Profile'; %><li><a href="<%= u %>" rel="noopener me" target="_blank"><%= n %></a></li><% }) %>
+        </ul>
+      </div>
+    </div>
+    <div class="ypx-disclosure">
+      <p><%= site.disclosure %> NMLS #<%= site.licenses.nmls %> &middot; CA DRE #<%= site.licenses.dre %> &middot; <a href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/<%= site.licenses.nmls %>" target="_blank" rel="noopener">NMLS Consumer Access</a></p>
+      <p class="ypx-eho"><svg width="22" height="22" viewBox="0 0 24 24" role="img" aria-label="Equal Housing Opportunity logo"><path fill="currentColor" d="M12 2 1 9h3v12h16V9h3L12 2Zm5 17H7v-8h10v8Zm-8-6v2h6v-2H9Zm0 3v2h6v-2H9Z"/></svg> Equal Housing Opportunity</p>
+      <p>&copy; <%= new Date().getFullYear() %> <%= site.legalName %> All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+<script src="/assets/site.js?v=<%= assetVersion %>" defer></script>
+</body>
+</html>

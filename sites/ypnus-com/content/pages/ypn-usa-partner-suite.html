@@ -1,0 +1,455 @@
+---
+id: 5867
+type: "page"
+title: "YPN USA Partner Suite"
+permalink: "/ypn-usa-partner-suite/"
+status: "publish"
+date: "2026-11-03T19:20:18Z"
+modified: "2026-11-03T19:20:18Z"
+author: "David J. Moore, MBA"
+seoTitle: "YPN USA Partner Suite"
+description: "YPN USA Enterprise Partner Suite YP YPN USA ENTERPRISE Access Platform YPN USA Enterprise Partner Suite YPN USA ENTERPRISE PARTNER SUITE Activate…"
+robots: "index,follow"
+fullWidth: true
+hideTitle: true
+ownHeader: true
+wpSource: "ypnusa.WordPress.2026-11-04_2.xml"
+---
+<style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #1d4ed8;
+            --accent: #10b981;
+            --bg-dark: #050814;
+            --card-bg: #0f172a;
+            --card-border: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glow: rgba(59, 130, 246, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        .badge {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: #fff;
+            padding: 0.85rem 1.8rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 20px var(--glow);
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(59, 130, 246, 0.45);
+        }
+
+        /* Header */
+        header {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .nav-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-main);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 900;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 5rem 0 3rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            line-height: 1.15;
+            font-weight: 900;
+            margin-bottom: 1.2rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(to right, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 760px;
+            margin: 0 auto 2rem;
+        }
+
+        /* Interactive Switcher */
+        .preview-section {
+            margin: 3rem 0;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .preview-tabs {
+            display: flex;
+            background: rgba(0,0,0,0.4);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1.2rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--text-main);
+            background: var(--card-bg);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .preview-content {
+            padding: 3rem 2rem;
+            min-height: 200px;
+            text-align: center;
+        }
+
+        /* Calculator */
+        .calc-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 3rem;
+            margin: 4rem 0;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .calc-controls input[type="range"] {
+            width: 100%;
+            margin: 1rem 0 2rem;
+            accent-color: var(--primary);
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card h4 {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-card .val {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        /* Features Matrix */
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin: 3rem 0;
+        }
+
+        .matrix-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 2rem;
+            border-radius: 12px;
+        }
+
+        .matrix-card h3 {
+            margin-bottom: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .matrix-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(6px);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-body {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 2.5rem;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            color: #fff;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem 0;
+            border-top: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.2rem; }
+            .calc-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+        }
+    </style>
+
+
+
+    <header>
+        <div class="container nav-wrap">
+            <a href="#" class="logo"><span class="logo-badge">YP</span> YPN USA ENTERPRISE</a>
+            <button class="btn" onclick="toggleModal(true)">Access Platform</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <span class="badge">YPN USA Enterprise Partner Suite</span>
+            <h1>YPN USA ENTERPRISE PARTNER SUITE</h1>
+            <p>Activate the ultimate white-label AI website platform. Scale high-volume client onboarding, automate deployment, and drive recurring growth under your brand.</p>
+            <button class="btn" onclick="toggleModal(true)">Launch Enterprise Hub</button>
+        </section>
+
+        <!-- Preview Switcher -->
+        <section class="preview-section">
+            <div class="preview-tabs">
+                <button class="tab-btn active" onclick="switchTab('whitelabel', event)">High-Volume Client Onboarding</button>
+                <button class="tab-btn" onclick="switchTab('affiliate', event)">Real-Time Affiliate Tracking</button>
+            </div>
+            <div class="preview-content" id="tabContent">
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Custom CNAME &amp; Fully Branded UI</h3>
+                <p style="color: var(--text-muted); max-width: 650px; margin: 0 auto;">Deliver AI website generation directly through <code>app.yourdomain.com</code> with zero YPN branding exposed to your buyers.</p>
+            </div>
+        </section>
+
+        <!-- Calculator -->
+        <section class="calc-box">
+            <h2 style="text-align: center; margin-bottom: 2rem;">Dynamic ROI Calculator</h2>
+            <div class="calc-grid">
+                <div class="calc-controls">
+                    <label>Active Enterprise Accounts / Clients: <strong id="clientCount">25</strong></label>
+                    <input type="range" id="clientSlider" min="5" max="250" value="25" step="5">
+
+                    <label>Monthly Client Retainer ($/mo): <strong id="priceDisplay">$99</strong></label>
+                    <input type="range" id="priceSlider" min="29" max="299" value="99" step="10">
+                </div>
+                <div>
+                    <div class="stat-card">
+                        <h4>Est. Monthly Recurring Revenue (MRR)</h4>
+                        <div class="val" id="mrrVal">$2,475</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Annual Projected Growth (ARR)</h4>
+                        <div class="val" id="arrVal">$29,700</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Matrix -->
+        <section class="matrix-grid">
+            <div class="matrix-card">
+                <h3>White-Label Agency Engine</h3>
+                <p>Deploy localized AI WordPress installations automatically with pre-packaged custom plugins, schemas, and SEO silos.</p>
+            </div>
+            <div class="matrix-card">
+                <h3>Real-Time Partner Tracking</h3>
+                <p>Track conversions, recurring commissions, and sub-agency seats in real time through your unified dashboard.</p>
+            </div>
+            <div class="matrix-card">
+                <h3>Automated Client Portals</h3>
+                <p>Grant instant admin access to pre-configured client sites pre-loaded with your agency's preferred themes and assets.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Application Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-body">
+            <h2 style="margin-bottom: 1rem;">Apply for Enterprise Access</h2>
+            <form id="partnerForm" onsubmit="handleForm(event)">
+                <div class="form-group">
+                    <label>Company / Agency Name</label>
+                    <input type="text" required="" placeholder="YPN Agency Partner">
+                </div>
+                <div class="form-group">
+                    <label>Work Email</label>
+                    <input type="email" required="" placeholder="partner@green-pig-770837.hostingersite.com">
+                </div>
+                <div class="form-group">
+                    <label>Primary Business Model</label>
+                    <select>
+                        <option>Real Estate &amp; Mortgage Tech</option>
+                        <option>Digital Marketing Agency</option>
+                        <option>SaaS Reseller &amp; Web Host</option>
+                        <option>Enterprise Affiliate Partner</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn" style="width: 100%;">Submit Enterprise Request</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 YPN USA. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const tabData = {
+            whitelabel: {
+                title: "Custom CNAME & Fully Branded UI",
+                desc: "Deliver AI website generation directly through app.yourdomain.com with zero YPN branding exposed to your buyers."
+            },
+            affiliate: {
+                title: "Real-Time Commission Tracking",
+                desc: "Monitor client retention, conversion metrics, and automated recurring payouts inside your enterprise partner hub."
+            }
+        };
+
+        function switchTab(type, e) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            const content = tabData[type];
+            document.getElementById('tabContent').innerHTML = `
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">${content.title}</h3>
+                <p style="color: var(--text-muted); max-width: 650px; margin: 0 auto;">${content.desc}</p>
+            `;
+        }
+
+        const clientSlider = document.getElementById('clientSlider');
+        const priceSlider = document.getElementById('priceSlider');
+
+        function updateCalc() {
+            const clients = parseInt(clientSlider.value);
+            const price = parseInt(priceSlider.value);
+            
+            document.getElementById('clientCount').textContent = clients;
+            document.getElementById('priceDisplay').textContent = `$${price}`;
+
+            const mrr = clients * price;
+            const arr = mrr * 12;
+
+            document.getElementById('mrrVal').textContent = `$${mrr.toLocaleString()}`;
+            document.getElementById('arrVal').textContent = `$${arr.toLocaleString()}`;
+        }
+
+        clientSlider.addEventListener('input', updateCalc);
+        priceSlider.addEventListener('input', updateCalc);
+
+        function toggleModal(show) {
+            document.getElementById('modal').style.display = show ? 'flex' : 'none';
+        }
+
+        window.onclick = function(e) {
+            const modal = document.getElementById('modal');
+            if (e.target === modal) toggleModal(false);
+        }
+
+        function handleForm(e) {
+            e.preventDefault();
+            alert('Enterprise request received. Your YPN USA partner manager will contact you shortly.');
+            toggleModal(false);
+        }
+    </script>

@@ -1,0 +1,8 @@
+<article class="ypx-card">
+  <% if (p.featuredImage) { %><a href="<%= p.permalink %>" tabindex="-1" aria-hidden="true"><img src="<%= p.featuredImage %>" alt="" loading="lazy" decoding="async" width="640" height="350"></a><% } %>
+  <div class="ypx-card-body">
+    <h3><a href="<%= p.permalink %>"><%= p.title %></a></h3>
+    <% if (p.date) { %><p class="ypx-meta"><time datetime="<%= p.date.toISOString() %>"><%= p.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) %></time></p><% } %>
+    <% if (p.description) { %><p><%= p.description %></p><% } %>
+  </div>
+</article>

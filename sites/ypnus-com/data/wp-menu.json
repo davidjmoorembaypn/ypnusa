@@ -1,0 +1,106 @@
+[
+  {
+    "id": "5903",
+    "parent": "0",
+    "order": 1,
+    "label": "Platform",
+    "url": "/features/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "5904",
+    "parent": "0",
+    "order": 2,
+    "label": "Solutions",
+    "url": "/mlo-growth-engine/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "5905",
+    "parent": "0",
+    "order": 3,
+    "label": "Resources",
+    "url": "/blog/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "2389",
+    "parent": "5903",
+    "order": 4,
+    "label": "AI Growth Assistant",
+    "url": "/platform/ai-tools/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "2679",
+    "parent": "5903",
+    "order": 5,
+    "label": "Marketing Engine",
+    "url": "/platform/marketing-automation/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "2680",
+    "parent": "5903",
+    "order": 6,
+    "label": "Websites",
+    "url": "/platform/ai-websites/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "2667",
+    "parent": "5904",
+    "order": 7,
+    "label": "Local Markets",
+    "url": "/markets/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "4280",
+    "parent": "5905",
+    "order": 8,
+    "label": "About",
+    "url": "/about/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "9498",
+    "parent": "5905",
+    "order": 9,
+    "label": "Books",
+    "url": "/top-9-real-estate-leads-book/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "1673",
+    "parent": "5905",
+    "order": 10,
+    "label": "Blog",
+    "url": "/blog/",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "1672",
+    "parent": "0",
+    "order": 11,
+    "label": "Pricing",
+    "url": "/pricing.html",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "2416",
+    "parent": "0",
+    "order": 12,
+    "label": "Check ZIP Availability",
+    "url": "/#zip-check",
+    "menu": "ypnus-primary-nav"
+  },
+  {
+    "id": "5422",
+    "parent": "0",
+    "order": 13,
+    "label": "Login",
+    "url": "https://app.ypnus.com/login",
+    "menu": "ypnus-primary-nav"
+  }
+]

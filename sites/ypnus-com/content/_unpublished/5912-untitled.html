@@ -1,0 +1,408 @@
+---
+id: 5912
+type: "page"
+title: "Homepage V2 REDESIGN DRAFT (do not publish)"
+status: "draft"
+date: "0000-00-00T00:00:00Z"
+modified: "2026-09-16T23:33:00Z"
+author: "David J. Moore, MBA"
+description: "Mortgage Growth Platform for Loan Officers Stop chasing leads. Start owning your market. YPN USA brings AI lead follow-up, borrower intake, local SEO,…"
+robots: "index,follow"
+hideTitle: true
+faq: [{"q":"What is Cerebro?","a":"Cerebro is YPN USA's AI growth assistant. It qualifies borrowers in conversation and helps keep follow-up moving automatically."},{"q":"What does protected ZIP mean?","a":"One licensed loan officer per ZIP code. Your local visibility in that ZIP isn't shared with another MLO on the platform."},{"q":"When is my ZIP protected?","a":"Checking availability is free and instant, and doesn't reserve anything. Your ZIP becomes protected once you're on a paid plan."},{"q":"Can I start free?","a":"Yes. The Free plan lets you explore Cerebro with no credit card required. It doesn't include a protected ZIP."},{"q":"Can I add more ZIPs?","a":"Yes. Additional ZIP territories are available as a separate paid add-on, subject to availability."},{"q":"Do I need to replace my LOS/CRM?","a":"No. YPN USA works alongside your existing loan origination system and CRM — it's a growth layer, not a replacement for them."}]
+wpSource: "ypnusa.WordPress.2026-11-04_2.xml"
+---
+<div id="ypn-home">
+<style>
+#ypn-home{
+  --navy:#0B1220; --navy2:#0F1B33; --ink:#0F1B33; --surface:#FFFFFF; --bg:#F6F7FA;
+  --blue:#2F6FED; --purple:#6C4FE0; --gold:#C8A84B;
+  --white:#FFFFFF; --dim:#B9C2D6; --muted:#5B6472; --border:#E4E7EE;
+  --success:#0F7A54; --danger:#B3261E;
+  --r:14px; --r-sm:8px;
+  --sp-sm:8px; --sp-md:24px; --sp-lg:64px; --sp-xl:104px;
+  font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.6;
+}
+#ypn-home *{box-sizing:border-box}
+#ypn-home a{text-decoration:none;color:inherit}
+#ypn-home .wrap{width:min(1120px,calc(100% - 40px));margin:0 auto}
+#ypn-home h1,#ypn-home h2,#ypn-home h3{font-weight:700;line-height:1.12;letter-spacing:-.015em;margin:0 0 var(--sp-md);color:var(--navy)}
+#ypn-home h1{font-size:clamp(2.3rem,5vw,3.6rem)}
+#ypn-home h2{font-size:clamp(1.6rem,3vw,2.2rem)}
+#ypn-home h3{font-size:1.15rem;margin-bottom:8px}
+#ypn-home p{margin:0 0 var(--sp-md);color:var(--muted);font-size:1.02rem}
+#ypn-home section{padding:var(--sp-xl) 0}
+#ypn-home .eyebrow{display:block;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:18px}
+#ypn-home .section-head{max-width:640px;margin:0 0 44px}
+#ypn-home .section-head.center{margin:0 auto 44px;text-align:center}
+#ypn-home .btn{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 28px;border-radius:var(--r-sm);font-weight:600;font-size:.98rem;border:1px solid transparent;transition:transform .15s ease,opacity .15s ease}
+#ypn-home .btn:hover{transform:translateY(-1px);opacity:.92}
+#ypn-home .btn-primary{background:var(--blue);color:#fff}
+#ypn-home .btn-outline{background:transparent;border-color:var(--border);color:var(--navy)}
+#ypn-home .btn-outline-dark{background:transparent;border-color:rgba(255,255,255,.32);color:#fff}
+#ypn-home .cta-row{display:flex;gap:14px;flex-wrap:wrap}
+#ypn-home .fine-note{font-size:.85rem;color:var(--dim);margin-top:14px}
+
+/* HERO */
+#ypn-home .hero{background:radial-gradient(circle at 15% 0%,#152341 0%,#0B1220 55%);padding:calc(var(--sp-xl) + 20px) 0 var(--sp-xl)}
+#ypn-home .hero .eyebrow{color:#8FB4FF}
+#ypn-home .hero h1{color:#fff}
+#ypn-home .hero p.sub{max-width:600px;color:var(--dim);font-size:1.15rem}
+#ypn-home .hero-inner{max-width:660px}
+
+/* CEREBRO */
+#ypn-home .cerebro-section{background:var(--navy2)}
+#ypn-home .cerebro-section .eyebrow{color:#8FB4FF}
+#ypn-home .cerebro-section h2{color:#fff}
+#ypn-home .cerebro-section > .wrap > p{color:var(--dim);max-width:640px}
+#ypn-home .cerebro-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:48px;align-items:start;margin-top:40px}
+#ypn-home .cerebro-points{list-style:none;margin:0;padding:0}
+#ypn-home .cerebro-points li{display:flex;gap:14px;padding:16px 0;border-top:1px solid rgba(255,255,255,.1)}
+#ypn-home .cerebro-points li:first-child{border-top:none;padding-top:0}
+#ypn-home .cerebro-points .dot{flex-shrink:0;width:8px;height:8px;border-radius:50%;background:var(--blue);margin-top:9px}
+#ypn-home .cerebro-points strong{display:block;color:#fff;font-weight:600}
+#ypn-home .cerebro-points span{color:var(--dim);font-size:.92rem}
+#ypn-home .cerebro-frame{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.12);border-radius:var(--r);padding:22px;min-height:440px}
+
+/* ZIP */
+#ypn-home .zip-section{background:var(--surface)}
+#ypn-home .zip-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+#ypn-home .zip-steps{list-style:none;margin:0;padding:0}
+#ypn-home .zip-steps li{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--border)}
+#ypn-home .zip-steps li:first-child{border-top:none;padding-top:0}
+#ypn-home .zip-steps .num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700}
+#ypn-home .zip-card{border:1px solid var(--border);border-radius:var(--r);padding:32px;box-shadow:0 12px 32px rgba(15,27,51,.06)}
+#ypn-home .zip-card h3{margin-bottom:6px}
+#ypn-home .zip-form{display:flex;gap:8px;margin-top:18px}
+#ypn-home .zip-form input{flex:1;min-width:0;height:50px;padding:0 14px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:1rem}
+#ypn-home .zip-form input:focus{outline:none;border-color:var(--blue)}
+#ypn-home .zip-result{margin-top:16px;min-height:20px;font-size:.95rem}
+#ypn-home .zip-result.open{color:var(--success);font-weight:600}
+#ypn-home .zip-result.taken{color:var(--danger);font-weight:600}
+#ypn-home .zip-result .detail{color:var(--muted);font-weight:400;display:block;margin-top:4px}
+
+/* HOW IT WORKS */
+#ypn-home .steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:40px}
+#ypn-home .step-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:32px}
+#ypn-home .step-card .snum{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:rgba(47,111,237,.1);color:var(--blue);font-weight:700;margin-bottom:16px}
+
+/* PLATFORM GRID */
+#ypn-home .platform-section{background:var(--surface)}
+#ypn-home .platform-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+#ypn-home .platform-card{border:1px solid var(--border);border-radius:var(--r);padding:26px}
+#ypn-home .platform-card p{margin-bottom:0;font-size:.92rem}
+
+/* PRICING */
+#ypn-home .pricing-section{background:var(--bg)}
+#ypn-home .price-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:40px;align-items:stretch}
+#ypn-home .price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px 22px;display:flex;flex-direction:column}
+#ypn-home .price-card.featured{border:2px solid var(--blue);box-shadow:0 18px 40px rgba(47,111,237,.12)}
+#ypn-home .price-tag{color:var(--muted);font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;font-weight:700}
+#ypn-home .price-amt{font-size:2rem;font-weight:700;color:var(--navy);margin:12px 0}
+#ypn-home .price-amt small{font-size:.8rem;color:var(--muted);font-weight:400}
+#ypn-home .price-card ul{list-style:none;padding:0;margin:0 0 22px;flex:1}
+#ypn-home .price-card li{font-size:.87rem;color:var(--muted);padding:6px 0 6px 18px;position:relative}
+#ypn-home .price-card li::before{content:"";position:absolute;left:0;top:14px;width:6px;height:6px;background:var(--blue);border-radius:50%}
+#ypn-home .price-card .btn{width:100%}
+#ypn-home .price-foot{max-width:680px;margin:var(--sp-md) auto 0;text-align:center;font-size:.85rem;color:var(--muted)}
+
+/* FOUNDER */
+#ypn-home .founder-row{display:flex;align-items:center;gap:24px}
+#ypn-home .founder-mark{width:64px;height:64px;border-radius:50%;overflow:hidden;flex-shrink:0}
+#ypn-home .founder-mark img{width:100%;height:100%;object-fit:cover}
+#ypn-home .founder-name{font-weight:700;color:var(--navy);display:block}
+#ypn-home .founder-role{color:var(--muted);font-size:.9rem}
+
+/* FAQ */
+#ypn-home .faq-list{max-width:720px;margin:40px auto 0}
+#ypn-home details.faq-item{border-top:1px solid var(--border);padding:18px 0}
+#ypn-home details.faq-item:first-child{border-top:none}
+#ypn-home details.faq-item summary{cursor:pointer;font-weight:600;color:var(--navy);font-size:1rem;list-style:none;display:flex;justify-content:space-between;gap:12px}
+#ypn-home details.faq-item summary::-webkit-details-marker{display:none}
+#ypn-home details.faq-item summary::after{content:"+";font-size:1.2rem;color:var(--blue);flex-shrink:0}
+#ypn-home details.faq-item[open] summary::after{content:"\2212"}
+#ypn-home details.faq-item p{margin-top:10px;margin-bottom:0;font-size:.95rem}
+
+/* FINAL */
+#ypn-home .final{background:var(--navy);border-radius:var(--r);padding:64px 40px;text-align:center}
+#ypn-home .final h2{color:#fff;margin-bottom:20px}
+#ypn-home .final .cta-row{justify-content:center}
+
+@media(max-width:960px){
+  #ypn-home .cerebro-grid,#ypn-home .zip-grid{grid-template-columns:1fr}
+  #ypn-home .steps-grid,#ypn-home .platform-grid{grid-template-columns:repeat(2,1fr)}
+  #ypn-home .price-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:560px){
+  #ypn-home section{padding:56px 0}
+  #ypn-home .steps-grid,#ypn-home .platform-grid,#ypn-home .price-grid{grid-template-columns:1fr}
+  #ypn-home .final{padding:40px 22px}
+  #ypn-home .cta-row{flex-direction:column}
+  #ypn-home .cta-row .btn{width:100%}
+}
+
+/* ---- Master-style override guard: the sitewide "YPN USA Master Style" WPCode
+   snippet forces h1-h6/p/a/strong/li colors globally with !important. Re-assert
+   real colors here with matching !important so they reliably win. ---- */
+#ypn-home,#ypn-home p{color:var(--ink) !important}
+#ypn-home h1,#ypn-home h2,#ypn-home h3{color:var(--navy) !important}
+#ypn-home .hero h1,#ypn-home .cerebro-section h2,#ypn-home .final h2{color:#fff !important}
+#ypn-home a{color:inherit !important}
+#ypn-home .hero p.sub,#ypn-home .cerebro-section>.wrap>p,#ypn-home .cerebro-points span,#ypn-home .fine-note{color:var(--dim) !important}
+#ypn-home .btn-primary{background:var(--blue) !important;color:#fff !important}
+#ypn-home .btn-outline{color:var(--navy) !important}
+#ypn-home .btn-outline-dark{color:#fff !important}
+#ypn-home .zip-result.open{color:var(--success) !important}
+#ypn-home .zip-result.taken{color:var(--danger) !important}
+</style>
+
+<main>
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-inner">
+    <span class="eyebrow">Mortgage Growth Platform for Loan Officers</span>
+    <h1>Stop chasing leads.<br>Start owning your market.</h1>
+    <p class="sub">YPN USA brings AI lead follow-up, borrower intake, local SEO, Realtor growth and protected ZIP territory into one mortgage growth system.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#zip-check">Check Your ZIP</a>
+      <a class="btn btn-outline-dark" href="/lo-signup.html">Start Free</a>
+    </div>
+    <p class="fine-note">15-day trial &middot; No ZIP is protected until you become a paid customer</p>
+  </div>
+</section>
+
+<!-- MEET CEREBRO -->
+<section class="cerebro-section" id="cerebro">
+  <div class="wrap">
+    <span class="eyebrow">The Product</span>
+    <h2>Meet Cerebro&trade;</h2>
+    <p>Cerebro is YPN USA's AI growth assistant &mdash; it's live below. Ask it anything a borrower or loan officer would ask.</p>
+    <div class="cerebro-grid">
+      <ul class="cerebro-points">
+        <li><span class="dot"></span><div><strong>Capture opportunity</strong><span>Engages every visitor the moment they land, day or night.</span></div></li>
+        <li><span class="dot"></span><div><strong>Qualify borrowers</strong><span>Asks the right questions and captures loan goal, timeline and contact details.</span></div></li>
+        <li><span class="dot"></span><div><strong>Follow up automatically</strong><span>Keeps working a lead on a schedule so nothing goes cold.</span></div></li>
+        <li><span class="dot"></span><div><strong>Support your growth workflow</strong><span>Surfaces what needs attention next across your pipeline.</span></div></li>
+      </ul>
+      <div class="cerebro-frame">
+        <!--ypx:cerebro-->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROTECTED ZIP -->
+<section class="zip-section" id="zip-check">
+  <div class="wrap zip-grid">
+    <div>
+      <span class="eyebrow">Protected Territory</span>
+      <h2>Own your local growth territory.</h2>
+      <ol class="zip-steps">
+        <li><span class="num">1</span><div><strong>Check your ZIP &mdash; free, instant</strong><p style="margin:4px 0 0">Checking availability does not reserve it.</p></div></li>
+        <li><span class="num">2</span><div><strong>Territory locks in on a paid plan</strong><p style="margin:4px 0 0">Pro, Growth and Exclusive plans each include one protected ZIP.</p></div></li>
+        <li><span class="num">3</span><div><strong>Need more than one?</strong><p style="margin:4px 0 0">Additional ZIPs can be purchased separately, subject to availability.</p></div></li>
+      </ol>
+    </div>
+    <div class="zip-card">
+      <h3>Is your ZIP still open?</h3>
+      <p style="margin-bottom:0">One MLO holds each ZIP. Check yours before someone else does.</p>
+      <form id="ypnZipForm" class="zip-form">
+        <input id="ypnZipInput" type="text" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" placeholder="Enter ZIP code" aria-label="ZIP code" required>
+        <button class="btn btn-primary" type="submit">Check Availability</button>
+      </form>
+      <div id="ypnZipResult" class="zip-result"></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="eyebrow">How YPN USA Works</span>
+      <h2>Three steps, one connected system</h2>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card"><span class="snum">1</span><h3>Attract</h3><p>Local SEO, marketing and Realtor relationships build visibility in your ZIP.</p></div>
+      <div class="step-card"><span class="snum">2</span><h3>Capture + Convert</h3><p>Borrower intake and Cerebro qualification route ready leads straight to you.</p></div>
+      <div class="step-card"><span class="snum">3</span><h3>Own + Grow</h3><p>Your protected ZIP and owned content keep compounding over time.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CORE PLATFORM -->
+<section class="platform-section">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="eyebrow">Core Platform</span>
+      <h2>Everything included, one system</h2>
+    </div>
+    <div class="platform-grid">
+      <div class="platform-card"><h3>Cerebro AI</h3><p>Your always-on growth assistant for borrowers and pipeline.</p></div>
+      <div class="platform-card"><h3>Borrower Intake</h3><p>Structured qualification that routes ready leads to you.</p></div>
+      <div class="platform-card"><h3>Local SEO</h3><p>City and loan-program pages built around your market.</p></div>
+      <div class="platform-card"><h3>Realtor Growth</h3><p>Co-branded assets that make partnering with you easy.</p></div>
+      <div class="platform-card"><h3>Marketing Engine</h3><p>Your Google Business Profile and local content, kept current.</p></div>
+      <div class="platform-card"><h3>Websites &amp; Funnels</h3><p>A portable MLO web presence tied to your protected ZIP.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="eyebrow">Pricing</span>
+      <h2>Start free. Add a ZIP when you're ready.</h2>
+      <p style="max-width:600px;margin:0 auto">Every paid plan includes one protected ZIP territory. Higher tiers unlock more platform capability, not more included territory.</p>
+    </div>
+    <div class="price-grid">
+      <div class="price-card">
+        <span class="price-tag">Free</span>
+        <div class="price-amt">$0<small> /mo</small></div>
+        <ul>
+          <li>Explore Cerebro</li>
+          <li>No protected ZIP</li>
+        </ul>
+        <a class="btn btn-outline" href="/lo-signup.html">Start free</a>
+      </div>
+      <div class="price-card featured">
+        <span class="price-tag">Growth</span>
+        <div class="price-amt">$99<small> /mo</small></div>
+        <ul>
+          <li>1 protected ZIP</li>
+          <li>Realtor partnership engine</li>
+          <li>Local SEO pages</li>
+          <li>15-day trial</li>
+        </ul>
+        <a class="btn btn-primary" href="https://buy.stripe.com/14A6oG4ZQ3xf31T5CC3AY0I" rel="nofollow noopener" target="_blank">Start Growth</a>
+      </div>
+      <div class="price-card">
+        <span class="price-tag">Pro</span>
+        <div class="price-amt">$199<small> /mo</small></div>
+        <ul>
+          <li>1 protected ZIP</li>
+          <li>Advanced automation</li>
+          <li>Expanded local pages</li>
+          <li>15-day trial</li>
+        </ul>
+        <a class="btn btn-outline" href="https://buy.stripe.com/4gM3cu8c2aZHcCt3uu3AY0J" rel="nofollow noopener" target="_blank">Start Pro</a>
+      </div>
+      <div class="price-card">
+        <span class="price-tag">Elite</span>
+        <div class="price-amt">$299<small> /mo</small></div>
+        <ul>
+          <li>1 protected ZIP</li>
+          <li>Highest platform capability</li>
+          <li>Priority support</li>
+          <li>15-day trial</li>
+        </ul>
+        <a class="btn btn-outline" href="https://buy.stripe.com/dRmcN43VM9VDeKBfdc3AY0K" rel="nofollow noopener" target="_blank">Start Elite</a>
+      </div>
+    </div>
+    <p class="price-foot">Additional ZIP territories are a separate paid add-on and depend on availability.</p>
+  </div>
+</section>
+
+<!-- FOUNDER -->
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Built By An Operator</span>
+      <h2>Built by someone who's worked the desk</h2>
+      <p>YPN USA was built around the operational problems that slow mortgage production down: referral dependence, inconsistent follow-up, fragmented marketing, and weak local visibility.</p>
+    </div>
+    <div class="founder-row">
+      <div class="founder-mark"><img src="/wp-content/uploads/2026/05/ypnus-davidjmoore.jpg" alt="David J. Moore, MBA" width="64" height="64" loading="lazy" decoding="async"></div>
+      <div>
+        <span class="founder-name">David J. Moore, MBA</span>
+        <span class="founder-role">Founder, YPN USA</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section>
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="eyebrow">Questions</span>
+      <h2>Frequently asked questions</h2>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>What is Cerebro?</summary>
+        <p>Cerebro is YPN USA's AI growth assistant. It qualifies borrowers in conversation and helps keep follow-up moving automatically.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What does protected ZIP mean?</summary>
+        <p>One licensed loan officer per ZIP code. Your local visibility in that ZIP isn't shared with another MLO on the platform.</p>
+      </details>
+      <details class="faq-item">
+        <summary>When is my ZIP protected?</summary>
+        <p>Checking availability is free and instant, and doesn't reserve anything. Your ZIP becomes protected once you're on a paid plan.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can I start free?</summary>
+        <p>Yes. The Free plan lets you explore Cerebro with no credit card required. It doesn't include a protected ZIP.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can I add more ZIPs?</summary>
+        <p>Yes. Additional ZIP territories are available as a separate paid add-on, subject to availability.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Do I need to replace my LOS/CRM?</summary>
+        <p>No. YPN USA works alongside your existing loan origination system and CRM &mdash; it's a growth layer, not a replacement for them.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL -->
+<section>
+  <div class="wrap">
+    <div class="final">
+      <h2>Don't chase your market. Own it.</h2>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#zip-check">Check Your ZIP</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+(function(){
+  var form = document.getElementById('ypnZipForm');
+  var input = document.getElementById('ypnZipInput');
+  var result = document.getElementById('ypnZipResult');
+  if(!form) return;
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var zip = (input.value || '').trim();
+    if(!/^\d{5}$/.test(zip)){ input.focus(); return; }
+    result.className = 'zip-result';
+    result.textContent = 'Checking ' + zip + '...';
+    fetch('/wp-json/ypnus/v1/zip-check/' + zip)
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data && data.available){
+          result.className = 'zip-result open';
+          result.innerHTML = zip + ' is open.<span class="detail">' + (data.city ? data.city + ', ' + data.state : '') + ' <a href="/claim-territory/?zip=' + zip + '" style="color:inherit;text-decoration:underline;font-weight:600">Claim this ZIP &rarr;</a></span>';
+        } else if(data && data.success){
+          result.className = 'zip-result taken';
+          result.innerHTML = zip + ' is already claimed by another MLO.<span class="detail">Try a nearby ZIP.</span>';
+        } else {
+          result.className = 'zip-result';
+          result.textContent = "Couldn't check that ZIP right now. Please try again.";
+        }
+      })
+      .catch(function(){
+        result.className = 'zip-result';
+        result.textContent = "Couldn't reach the territory checker. Please try again.";
+      });
+  });
+})();
+</script>
+</div>

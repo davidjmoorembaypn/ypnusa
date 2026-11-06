@@ -1,0 +1,8 @@
+<aside class="ypx-author" aria-label="About the author">
+  <img src="<%= site.founder.image %>" alt="<%= site.founder.name %>" width="72" height="72" loading="lazy" decoding="async">
+  <div>
+    <p class="ypx-author-name"><a href="<%= site.founder.url %>" rel="author"><%= site.founder.name %></a> &middot; <%= site.founder.jobTitle %></p>
+    <p><%= site.founder.bio %></p>
+    <p class="ypx-author-creds">NMLS #<%= site.licenses.nmls %> (<a href="https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/<%= site.licenses.nmls %>" target="_blank" rel="noopener">verify</a>) &middot; CA DRE #<%= site.licenses.dre %> &middot; MBA<% if (locals.doc && doc.reviewedDate) { %> &middot; Reviewed <time datetime="<%= doc.reviewedDate %>"><%= new Date(doc.reviewedDate + 'T12:00:00Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) %></time><% } %> &middot; <a href="<%= site.editorialPolicyUrl %>">Editorial policy</a></p>
+  </div>
+</aside>

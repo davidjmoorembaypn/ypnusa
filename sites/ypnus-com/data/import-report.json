@@ -1,0 +1,266 @@
+{
+  "generatedAt": "2026-11-05T08:49:50.078Z",
+  "files": [
+    {
+      "file": "ypnusa.WordPress.2026-11-04.xml",
+      "items": 590,
+      "alreadySeen": 0
+    },
+    {
+      "file": "ypnusa.WordPress.2026-11-04_1.xml",
+      "items": 389,
+      "alreadySeen": 389
+    },
+    {
+      "file": "ypnusa.WordPress.2026-11-04_2.xml",
+      "items": 166,
+      "alreadySeen": 166
+    },
+    {
+      "file": "ypnusa.WordPress.2026-11-04_3.xml",
+      "items": 79,
+      "alreadySeen": 79
+    }
+  ],
+  "counts": {
+    "page": 139,
+    "post": 335,
+    "mlo_profile": 1,
+    "unpublished": 13,
+    "attachments": 79,
+    "classicAutop": 7,
+    "redirects": 84,
+    "mediaUrlsReferenced": 110,
+    "categories": 14,
+    "tags": 44,
+    "menuItems": 13
+  },
+  "flagged": [
+    {
+      "url": "https://ypnus.com/?page_id=5452",
+      "issue": "Content was a full HTML document (doctype/head/title); the document shell was removed and its styles kept."
+    },
+    {
+      "url": "https://ypnus.com/?page_id=5912",
+      "issue": "AI Engine chatbot shortcode [mwai_chatbot id=\"Cerebro\"] replaced with a Cerebro card linking to https://app.ypnus.com/assistant (the WordPress chatbot plugin cannot run in Node)."
+    },
+    {
+      "url": "/features/",
+      "issue": "AI Engine chatbot shortcode [mwai_chatbot id=\"Cerebro\"] replaced with a Cerebro card linking to https://app.ypnus.com/assistant (the WordPress chatbot plugin cannot run in Node)."
+    },
+    {
+      "url": "/onboarding/",
+      "issue": "Custom [ypnus_onboarding_form] shortcode (WordPress mu-plugin) replaced with the native lead form; automatic site provisioning is not wired in the Node app."
+    },
+    {
+      "url": "/",
+      "issue": "AI Engine chatbot shortcode [mwai_chatbot id=\"Cerebro\"] replaced with a Cerebro card linking to https://app.ypnus.com/assistant (the WordPress chatbot plugin cannot run in Node)."
+    },
+    {
+      "url": "/boost-business-ai-mortgae-leads-ypn-usa/",
+      "issue": "Content was a full HTML document (doctype/head/title); the document shell was removed and its styles kept."
+    },
+    {
+      "url": "/claim-territory/",
+      "issue": "WPForms shortcode [wpforms id=\"2711\"] replaced with the native claim-territory form (posts to /api/lead). Check the fields match what WPForms collected."
+    },
+    {
+      "url": "/easiest-mortgage-website-builder/",
+      "issue": "Dynamic block \"rank-math/howto-block\" has no saved HTML in the export and was removed; rebuild it by hand if it mattered."
+    },
+    {
+      "url": "/7-ways-to-find-better-real-estate-leads-today/",
+      "issue": "Dynamic block \"generateblocks/media\" has no saved HTML in the export and was removed; rebuild it by hand if it mattered."
+    },
+    {
+      "url": "/ypn-usa-partner-suite/",
+      "issue": "Content was a full HTML document (doctype/head/title); the document shell was removed and its styles kept."
+    },
+    {
+      "url": "/how-to-find-better-real-estate-leads-today/",
+      "issue": "Dynamic block \"generateblocks/media\" has no saved HTML in the export and was removed; rebuild it by hand if it mattered."
+    },
+    {
+      "url": "/the-end-of-trafitiona-mortgage-leads-models-ypn-usa/",
+      "issue": "Content was a full HTML document (doctype/head/title); the document shell was removed and its styles kept."
+    },
+    {
+      "url": "/the-end-of-traditional-mortgage-leads-models/",
+      "issue": "Content was a full HTML document (doctype/head/title); the document shell was removed and its styles kept."
+    }
+  ],
+  "unpublished": [
+    {
+      "id": "436",
+      "status": "draft",
+      "title": "Contact YPN USA — Mortgage Marketing Support",
+      "link": "https://ypnus.com/?page_id=436"
+    },
+    {
+      "id": "5278",
+      "status": "draft",
+      "title": "Home Redesign Preview",
+      "link": "https://ypnus.com/?page_id=5278"
+    },
+    {
+      "id": "5340",
+      "status": "draft",
+      "title": "YPNUS Home - AI Lead Growth",
+      "link": "https://ypnus.com/?page_id=5340"
+    },
+    {
+      "id": "5452",
+      "status": "draft",
+      "title": "Best Alternative to Paid Mortgage Leads",
+      "link": "https://ypnus.com/?page_id=5452"
+    },
+    {
+      "id": "5912",
+      "status": "draft",
+      "title": "Homepage V2 REDESIGN DRAFT (do not publish)",
+      "link": "https://ypnus.com/?page_id=5912"
+    },
+    {
+      "id": "857",
+      "status": "private",
+      "title": "Email: Welcome to YPN USA — here’s how to own your local market",
+      "link": "https://ypnus.com/email-1-welcome/"
+    },
+    {
+      "id": "858",
+      "status": "private",
+      "title": "Email: Your first SEO pages are ready to publish — here's how",
+      "link": "https://ypnus.com/email-2-seo-pages/"
+    },
+    {
+      "id": "859",
+      "status": "private",
+      "title": "Email: The Realtor co-branding play that gets agents to call YOU",
+      "link": "https://ypnus.com/email-3-realtors/"
+    },
+    {
+      "id": "860",
+      "status": "private",
+      "title": "Email: Your Google Business Profile is costing you leads right now",
+      "link": "https://ypnus.com/email-4-gbp-social/"
+    },
+    {
+      "id": "861",
+      "status": "private",
+      "title": "Email: Your trial ends in 24 hours — here's what happens next",
+      "link": "https://ypnus.com/email-5-upgrade/"
+    },
+    {
+      "id": "1810",
+      "status": "private",
+      "title": "Agent Site Redesign — PREVIEW",
+      "link": "https://ypnus.com/agent-site-preview/"
+    },
+    {
+      "id": "5914",
+      "status": "draft",
+      "title": "Homepage V4 - Premium Design (DRAFT PREVIEW)",
+      "link": "https://ypnus.com/?page_id=5914"
+    },
+    {
+      "id": "6175",
+      "status": "draft",
+      "title": "About YPN USA — AI for Loan Officers",
+      "link": "https://ypnus.com/?page_id=6175"
+    }
+  ],
+  "stalePricing": [
+    {
+      "url": "/how-it-works/",
+      "examples": [
+        "$99.99",
+        "$199.99",
+        "Elite"
+      ]
+    },
+    {
+      "url": "/agent-co-branding/",
+      "examples": [
+        "rk. Growth: 3 pages, no watermark. Pro: 10 pages. Elite: Unlimited."
+      ]
+    },
+    {
+      "url": "/features/",
+      "examples": [
+        "Elite"
+      ]
+    },
+    {
+      "url": "/",
+      "examples": [
+        "months of the Growth plan ($99.99/mo) paid for by",
+        "$99.99",
+        "15-day free trial, then $99.99/month. Renews automatically every month"
+      ]
+    },
+    {
+      "url": "/about/",
+      "examples": [
+        "$99.99",
+        "$199.99",
+        "Elite"
+      ]
+    },
+    {
+      "url": "/mlo-growth-engine/",
+      "examples": [
+        ", AI intake, and pricing that scales from free to Elite—so your book of business does not depen",
+        "imple enough for a free start, serious enough for Elite producers."
+      ]
+    },
+    {
+      "url": "/platform/loan-officer-crm/",
+      "examples": [
+        "Included (Pro/Elite)"
+      ]
+    },
+    {
+      "url": "/boost-business-ai-mortgae-leads-ypn-usa/",
+      "examples": [
+        "y\": \"USD\" },\n        { \"@type\": \"Offer\", \"name\": \"Elite\", \"price\": \"299.99\", \"priceCurrency\": \"",
+        "$99.99",
+        "$199.99"
+      ]
+    },
+    {
+      "url": "/easy-mortgage-websites-ypn-usa-professionals/",
+      "examples": [
+        "y\": \"USD\" },\n        { \"@type\": \"Offer\", \"name\": \"Elite\", \"price\": \"299.99\", \"priceCurrency\": \"",
+        "$99.99",
+        "$199.99"
+      ]
+    },
+    {
+      "url": "/boost-your-mortgage-business-ypn-usa-insights/",
+      "examples": [
+        "$99.99",
+        "$199.99",
+        "Elite"
+      ]
+    },
+    {
+      "url": "/central-valley-financing-hub-fresno-visalia-dinuba/",
+      "examples": [
+        "Elite-scale production needs consistent proce"
+      ]
+    },
+    {
+      "url": "/central-valley-financing-hub-fresno-visalia-dinuba-mortgages-for-loan-officers/",
+      "examples": [
+        "Elite-scale production needs consistent proce"
+      ]
+    }
+  ],
+  "notes": [
+    "Rank Math Redirections rules live in their own database table and are not part of a WXR export. Export them from Rank Math > Redirections and add them to data/redirects-extra.json as {\"/old-path/\": \"/new-path/\"}."
+  ],
+  "fixes": {
+    "strayNewlineArtifactsFixed": 10182,
+    "pricingPhrasesUpdated": 1331
+  }
+}

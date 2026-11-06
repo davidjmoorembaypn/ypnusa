@@ -1,0 +1,29 @@
+<%- include('partials/head') %>
+<body class="ypx-pricing">
+<%- include('partials/header') %>
+<main id="main">
+  <%- include('partials/breadcrumbs') %>
+  <section class="ypx-wrap ypx-pricing-head">
+    <p class="ypx-eyebrow">Pricing</p>
+    <h1 class="ypx-title">Simple plans for mortgage loan officers</h1>
+    <p class="ypx-lead">One loan officer per ZIP. Start free, then protect your market when you&rsquo;re ready. <%= site.pricing.note %></p>
+  </section>
+  <section class="ypx-wrap ypx-tiers" aria-label="Plans">
+    <% site.pricing.tiers.forEach(function (t) { %>
+    <article class="ypx-tier<%= t.featured ? ' is-featured' : '' %>" id="<%= t.key %>">
+      <% if (t.featured) { %><p class="ypx-badge">Most popular</p><% } %>
+      <h2><%= t.name %></h2>
+      <p class="ypx-price"><span>$<%= t.price %></span><%= t.price ? '/mo' : '' %></p>
+      <p class="ypx-zip"><%= t.zip %></p>
+      <p><%= t.summary %></p>
+      <a class="ypx-btn<%= t.featured ? '' : ' ypx-btn-ghost' %>" href="<%= site.pricing.signupUrl %>?plan=<%= t.key %>&utm_source=ypnus&utm_medium=pricing"><%= t.cta %></a>
+    </article>
+    <% }) %>
+  </section>
+  <section class="ypx-wrap ypx-prose ypx-pricing-foot">
+    <h2>Is your ZIP still open?</h2>
+    <p>Territories are first-come, first-served. <a href="/check-zip.html">Check your ZIP now</a>. Checking is free and doesn&rsquo;t reserve it.</p>
+    <p>Questions about which plan fits your market? Call <a href="tel:<%= site.phoneE164 %>"><%= site.phone %></a> or <a href="/contact/">contact us</a>. See the <a href="/refund-policy/">refund</a> and <a href="/cancellation-policy/">cancellation</a> policies.</p>
+  </section>
+</main>
+<%- include('partials/footer') %>

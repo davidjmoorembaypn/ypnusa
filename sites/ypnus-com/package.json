@@ -1,0 +1,28 @@
+{
+  "name": "ypnus-node",
+  "version": "1.0.0",
+  "description": "ypnus.com marketing site (YPN USA) migrated from WordPress to Node.js/Express",
+  "main": "server.js",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node --watch server.js",
+    "import": "node scripts/import-wxr.js",
+    "check": "node scripts/smoke-test.js",
+    "build:comparisons": "node scripts/build-comparisons.js"
+  },
+  "dependencies": {
+    "compression": "^1.8.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "fast-xml-parser": "^4.5.3",
+    "gray-matter": "^4.0.3",
+    "he": "^1.2.0",
+    "helmet": "^8.1.0",
+    "marked": "^15.0.12"
+  }
+}

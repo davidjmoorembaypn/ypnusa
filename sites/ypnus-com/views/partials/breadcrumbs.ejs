@@ -1,0 +1,3 @@
+<% if (head.crumbs && head.crumbs.length > 1) { %>
+<nav class="ypx-crumbs ypx-wrap" aria-label="Breadcrumb"><ol><% head.crumbs.forEach(function (c, i) { %><li><% if (i < head.crumbs.length - 1) { %><a href="<%= c.url %>"><%= c.name %></a><% } else { %><span aria-current="page"><%= c.name %></span><% } %></li><% }) %></ol></nav>
+<% } %>

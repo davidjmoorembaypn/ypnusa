@@ -13,9 +13,9 @@ import { getSiteOrigin } from "@/lib/request-host";
 export async function generateMetadata(): Promise<Metadata> {
   const origin = await getSiteOrigin();
   return marketingMetadata({
-    title: "Pricing: Free, Growth, Pro & Elite Plans",
+    title: "Pricing: Free, Pro, Growth & Exclusive Plans",
     description:
-      "Start free, then lock an exclusive ZIP territory on Growth ($99.99), Pro ($199.99) or Elite ($299.99). 15-day free trial on every paid plan.",
+      "Start free, then lock an exclusive ZIP territory on Pro ($99), Growth ($199) or Exclusive ($299). 15-day free trial on every paid plan.",
     path: "/pricing",
     origin,
   });
@@ -39,7 +39,7 @@ const COMPARE_ROWS: Array<{ label: string; free: string; growth: string; pro: st
 const PRICING_FAQ = [
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Growth $99.99/mo, Pro $199.99/mo, and Elite $299.99/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
+    a: "Nothing. Run Cerebro and the AI intake free, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
   },
   {
     q: "What happens after the 15-day trial?",
@@ -168,9 +168,9 @@ export default function PricingPage() {
                   <tr className="bg-white/5 text-left text-xs font-semibold uppercase tracking-wide text-white/60">
                     <th className="px-5 py-4">Feature</th>
                     <th className="px-5 py-4 text-center">Free</th>
-                    <th className="px-5 py-4 text-center text-violet-200">Growth</th>
-                    <th className="px-5 py-4 text-center">Pro</th>
-                    <th className="px-5 py-4 text-center">Elite</th>
+                    <th className="px-5 py-4 text-center text-violet-200">Pro</th>
+                    <th className="px-5 py-4 text-center">Growth</th>
+                    <th className="px-5 py-4 text-center">Exclusive</th>
                   </tr>
                 </thead>
                 <tbody>

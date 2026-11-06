@@ -4,22 +4,21 @@ import {
   PAID_PRICING_TIERS,
   PUBLIC_PRICING_TIERS,
   PRICING_TIERS,
-  fromLegacyTierName,
   getPricingTier,
-  parseStoredTier,
   resolveTierFromStripeIdentifier,
   type PricingTierId,
 } from "./pricing";
 
 describe("pricing catalog", () => {
-  it("offers Free $0, Pro $99, Growth $199 and Exclusive $299", () => {
-    assert.deepEqual(PUBLIC_PRICING_TIERS.map((tier) => tier.id), ["free", "pro", "growth", "exclusive"]);
-    assert.deepEqual(PUBLIC_PRICING_TIERS.map((tier) => tier.priceMonthlyCents), [0, 9900, 19900, 29900]);
+  it("offers only current plans while preserving legacy subscription resolution", () => {
+    assert.deepEqual(PUBLIC_PRICING_TIERS.map((tier) => tier.id), ["free", "growth", "pro", "elite"]);
+    assert.deepEqual(PUBLIC_PRICING_TIERS.map((tier) => tier.priceMonthlyCents), [0, 9999, 19999, 29999]);
+    assert.equal(getPricingTier("starter").priceMonthlyCents, 2999);
   });
-  it("exposes the four tiers in ascending price order with unique ids", () => {
+  it("exposes the five tiers in ascending price order with unique ids", () => {
     const ids = PRICING_TIERS.map((tier) => tier.id);
 
-    assert.deepEqual(ids, ["free", "pro", "growth", "exclusive"]);
+    assert.deepEqual(ids, ["free", "starter", "growth", "pro", "elite"]);
     assert.equal(new Set(ids).size, ids.length);
 
     const prices = PRICING_TIERS.map((tier) => tier.priceMonthlyCents);
@@ -36,7 +35,7 @@ describe("pricing catalog", () => {
   it("gives Free zero ZIPs and every paid tier exactly 1 included ZIP — higher plans buy capability, not more ZIPs", () => {
     const capacities = PRICING_TIERS.map((tier) => tier.zipCapacity);
 
-    assert.deepEqual(capacities, [0, 1, 1, 1]);
+    assert.deepEqual(capacities, [0, 1, 1, 1, 1]);
     for (const tier of PRICING_TIERS) {
       assert.ok(tier.capacityNote.length > 0, `${tier.id} is missing a capacity note`);
       assert.ok(tier.countyCapacityNote.length > 0, `${tier.id} is missing a county note`);
@@ -45,17 +44,18 @@ describe("pricing catalog", () => {
     }
   });
 
-  it("prices the display string consistently with the billed cents", () => {
+  it("prices the display string consistently with the billed cents (to the dollar)", () => {
+    // Display shows the November 2026 whole-dollar prices; cents keep legacy subscribers' $x.99.
     for (const tier of PRICING_TIERS) {
       const dollars = Number(tier.price.replace(/[^0-9.]/g, ""));
-      assert.equal(Math.round(dollars * 100), tier.priceMonthlyCents, `${tier.id} price mismatch`);
+      assert.equal(Math.floor(dollars), Math.floor(tier.priceMonthlyCents / 100), `${tier.id} price mismatch`);
     }
   });
 
   it("excludes the free tier from the paid list", () => {
     assert.deepEqual(
       PAID_PRICING_TIERS.map((tier) => tier.id),
-      ["pro", "growth", "exclusive"],
+      ["starter", "growth", "pro", "elite"],
     );
     assert.ok(PAID_PRICING_TIERS.every((tier) => tier.priceMonthlyCents > 0));
   });
@@ -84,12 +84,14 @@ describe("getPricingTier", () => {
 
 describe("resolveTierFromStripeIdentifier", () => {
   const ENV_KEYS = [
-    "STRIPE_PRICE_ID_PRO",
+    "STRIPE_PRICE_ID_STARTER",
     "STRIPE_PRICE_ID_GROWTH",
-    "STRIPE_PRICE_ID_EXCLUSIVE",
-    "STRIPE_PRODUCT_ID_PRO",
+    "STRIPE_PRICE_ID_PRO",
+    "STRIPE_PRICE_ID_ELITE",
+    "STRIPE_PRODUCT_ID_STARTER",
     "STRIPE_PRODUCT_ID_GROWTH",
-    "STRIPE_PRODUCT_ID_EXCLUSIVE",
+    "STRIPE_PRODUCT_ID_PRO",
+    "STRIPE_PRODUCT_ID_ELITE",
   ] as const;
   const savedEnv: Record<string, string | undefined> = {};
   for (const key of ENV_KEYS) savedEnv[key] = process.env[key];
@@ -112,38 +114,15 @@ describe("resolveTierFromStripeIdentifier", () => {
   });
 
   it("falls back to productId when priceId doesn't match", () => {
-    process.env.STRIPE_PRICE_ID_EXCLUSIVE = "price_exclusive_123";
-    process.env.STRIPE_PRODUCT_ID_EXCLUSIVE = "prod_exclusive_456";
-    assert.equal(resolveTierFromStripeIdentifier("price_unknown", "prod_exclusive_456"), "exclusive");
+    process.env.STRIPE_PRICE_ID_ELITE = "price_elite_123";
+    process.env.STRIPE_PRODUCT_ID_ELITE = "prod_elite_456";
+    assert.equal(resolveTierFromStripeIdentifier("price_unknown", "prod_elite_456"), "elite");
   });
 
   it("returns null — never a default tier — when nothing matches or nothing is configured", () => {
-    delete process.env.STRIPE_PRICE_ID_PRO;
-    delete process.env.STRIPE_PRODUCT_ID_PRO;
+    delete process.env.STRIPE_PRICE_ID_STARTER;
+    delete process.env.STRIPE_PRODUCT_ID_STARTER;
     assert.equal(resolveTierFromStripeIdentifier("price_unrecognized", undefined), null);
     assert.equal(resolveTierFromStripeIdentifier(undefined, undefined), null);
-  });
-});
-
-describe("legacy tier names", () => {
-  it("maps the retired lineup to the current tier at the same price point", () => {
-    assert.equal(fromLegacyTierName("starter"), "pro");
-    assert.equal(fromLegacyTierName("growth"), "pro");
-    assert.equal(fromLegacyTierName("pro"), "growth");
-    assert.equal(fromLegacyTierName("elite"), "exclusive");
-    assert.equal(fromLegacyTierName("free"), "free");
-    assert.equal(fromLegacyTierName("platinum"), null);
-    assert.equal(fromLegacyTierName(undefined), null);
-  });
-
-  it("reads stored records by their saved price when growth/pro are ambiguous", () => {
-    assert.equal(parseStoredTier("growth", 9999), "pro");
-    assert.equal(parseStoredTier("pro", 19999), "growth");
-    assert.equal(parseStoredTier("growth", 19900), "growth");
-    assert.equal(parseStoredTier("pro"), "pro");
-    assert.equal(parseStoredTier("starter"), "pro");
-    assert.equal(parseStoredTier("elite"), "exclusive");
-    assert.equal(parseStoredTier("exclusive"), "exclusive");
-    assert.equal(parseStoredTier("bogus"), null);
   });
 });

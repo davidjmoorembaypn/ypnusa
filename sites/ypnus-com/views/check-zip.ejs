@@ -1,0 +1,23 @@
+<%- include('partials/head') %>
+<body class="ypx-checkzip">
+<%- include('partials/header') %>
+<main id="main">
+  <%- include('partials/breadcrumbs') %>
+  <section class="ypx-wrap ypx-zipbox">
+    <p class="ypx-eyebrow">Own your market</p>
+    <h1 class="ypx-title">Is your ZIP still open?</h1>
+    <p class="ypx-lead">One loan officer per ZIP. While your paid plan is active, YPN USA won&rsquo;t assign it to anyone else. Checking is free and doesn&rsquo;t reserve it.</p>
+    <form class="ypx-zipform" data-ypx-zip action="/check-zip.html" method="get">
+      <label for="ypx-zip-in" class="ypx-sr">5-digit ZIP code</label>
+      <input id="ypx-zip-in" name="zip" type="text" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" placeholder="Enter your ZIP" autocomplete="postal-code" required>
+      <button class="ypx-btn" type="submit">Is My ZIP Open? &rarr;</button>
+    </form>
+    <p class="ypx-zipres" role="status" aria-live="polite"></p>
+    <div class="ypx-zipnext" hidden>
+      <h2>Save this ZIP and get your growth plan</h2>
+      <%- include('partials/lead-form', { source: 'check-zip', withZip: true, withPhone: true, formId: 'zipLead' }) %>
+      <p><a href="/pricing.html">Compare plans</a> &middot; <a href="<%= site.pricing.signupUrl %>?plan=free&utm_source=check-zip">Create a free account</a></p>
+    </div>
+  </section>
+</main>
+<%- include('partials/footer') %>

@@ -1,0 +1,874 @@
+---
+id: 1818
+type: "page"
+title: "Free Property Analyzer"
+permalink: "/free-property-analyzer/"
+status: "publish"
+date: "2026-06-16T22:40:25Z"
+modified: "2026-10-08T07:46:59Z"
+author: "David J. Moore, MBA"
+seoTitle: "Free Property Analyzer | YPN USA"
+description: "javascript /** * Intercepts frontend sandbox submit actions to process the property 1% rule validation benchmarks. */ function executeFrontendAnalysis(event)…"
+focusKeyword: "free property analyzer"
+robots: "index,follow"
+ogImage: "/wp-content/uploads/2026/06/real-estate-property-for-sale.jpg"
+featuredImage: "/wp-content/uploads/2026/06/real-estate-property-for-sale.jpg"
+featuredImageAlt: "About YPNUS.com"
+fullWidth: true
+wpSource: "ypnusa.WordPress.2026-11-04_2.xml"
+---
+<style data-wp-block-html="css">
+/* --- Core Design Token Variables --- */
+:root {
+    --primary-color: #0066FF;
+    --primary-dark: #004ecc;
+    --cta-color: #FF5A1F;
+    --cta-hover: #E04E16;
+    --text-dark: #0F172A;
+    --text-muted: #475569;
+    --bg-light: #F8FAFC;
+    --bg-dark: #0F172A;
+    --border-color: #E2E8F0;
+    --success: #10B981;
+    --danger: #EF4444;
+}
+
+/* --- Global Reset & Foundation --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: #FFFFFF;
+    color: var(--text-dark);
+    line-height: 1.5;
+}
+
+/* --- Reusable Layout Components --- */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 4%;
+}
+
+.section-padding {
+    padding: 100px 0;
+}
+
+.section-header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 60px auto;
+}
+
+.section-header h2 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+    color: var(--text-dark);
+}
+
+.section-header p {
+    font-size: 18px;
+    color: var(--text-muted);
+}
+
+/* --- Buttons --- */
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: #FFFFFF;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+}
+
+.btn-cta {
+    background-color: var(--cta-color);
+    color: #FFFFFF;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 16px 32px;
+    text-align: center;
+}
+
+.btn-cta:hover {
+    background-color: var(--cta-hover);
+}
+
+/* --- SECTION 1: Navigation --- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 8%;
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text-dark);
+}
+
+.logo span {
+    color: var(--primary-color);
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 15px;
+}
+
+.nav-links a:hover {
+    color: var(--primary-color);
+}
+
+/* --- SECTION 2: Hero Split Screen --- */
+.hero-bg {
+    background-color: var(--bg-light);
+    padding: 80px 0;
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 60px;
+    align-items: center;
+}
+
+.hero-content .tagline {
+    background-color: #E6F0FF;
+    color: var(--primary-color);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.hero-content h1 {
+    font-size: 52px;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    font-weight: 800;
+    margin-bottom: 24px;
+}
+
+.hero-content p {
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+}
+
+.hero-bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.bullet-item {
+    font-size: 15px;
+    font-weight: 500;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Hero Calculator Widget Card */
+.widget-card {
+    background: #FFFFFF;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
+    border: 1px solid var(--border-color);
+}
+
+.widget-card h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.widget-subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.form-group input {
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: var(--primary-color);
+}
+
+.widget-card .btn-cta {
+    width: 100%;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+/* Dynamic Verdict Result Box */
+.verdict-box {
+    margin-top: 24px;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    border-left: 4px solid var(--success);
+    background-color: #F0FDF4;
+}
+
+.verdict-box.fail {
+    border-left-color: var(--danger);
+    background-color: #FEF2F2;
+}
+
+.verdict-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* --- SECTION 3: Social Proof Logo Ribbon --- */
+.ribbon-section {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid var(--border-color);
+    padding: 30px 0;
+    text-align: center;
+}
+
+.ribbon-section p {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    font-weight: 600;
+}
+
+.logo-grid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 60px;
+    flex-wrap: wrap;
+    opacity: 0.6;
+}
+
+.logo-item {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+/* --- SECTION 4: Strategy Selection Matrix --- */
+.matrix-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.matrix-card {
+    background-color: var(--bg-light);
+    padding: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s;
+}
+
+.matrix-card:hover {
+    transform: translateY(-5px);
+}
+
+.matrix-icon {
+    font-size: 32px;
+    margin-bottom: 20px;
+}
+
+.matrix-card h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.matrix-card p {
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    font-size: 15px;
+}
+
+.matrix-card ul {
+    list-style: none;
+}
+
+.matrix-card ul li {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #334155;
+}
+
+/* --- SECTION 5: Deep Product Feature Alternator --- */
+.features-section {
+    background-color: var(--bg-light);
+}
+
+.feature-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+    margin-bottom: 100px;
+}
+
+.feature-row:last-child {
+    margin-bottom: 0;
+}
+
+.feature-row.reverse {
+    direction: rtl;
+}
+
+.feature-row.reverse .feature-text-block {
+    direction: ltr;
+}
+
+.feature-text-block h3 {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+}
+
+.feature-text-block p {
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.mock-ui-display {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+}
+
+/* --- SECTION 6: Authority Proof & Video Playback --- */
+.authority-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+}
+
+.founder-quote {
+    font-size: 22px;
+    font-style: italic;
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    color: var(--text-dark);
+}
+
+.founder-meta h4 {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.founder-meta p {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.video-placeholder-box {
+    background-color: var(--bg-dark);
+    border-radius: 16px;
+    aspect-ratio: 16 / 9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #FFFFFF;
+    cursor: pointer;
+    position: relative;
+}
+
+.play-icon-btn {
+    width: 70px;
+    height: 70px;
+    background-color: var(--cta-color);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* --- SECTION 7: Transparent Value Pricing Tiers --- */
+.pricing-section {
+    background-color: var(--bg-light);
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+    align-items: stretch;
+}
+
+.price-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.price-card.popular {
+    border-color: var(--primary-color);
+    box-shadow: 0 15px 30px rgba(0, 102, 255, 0.06);
+}
+
+.popular-badge {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--primary-color);
+    color: #FFFFFF;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.price-card h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.price-amount {
+    font-size: 42px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+}
+
+.price-amount span {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.price-features-list {
+    list-style: none;
+    margin-bottom: 30px;
+    flex-grow: 1;
+}
+
+.price-features-list li {
+    font-size: 15px;
+    margin-bottom: 12px;
+    color: #334155;
+}
+
+.price-card .btn {
+    width: 100%;
+    text-align: center;
+}
+
+/* --- SECTION 8: Bottom Sticky Conversion Catch --- */
+.footer-cta-section {
+    background-color: var(--bg-dark);
+    color: #FFFFFF;
+    text-align: center;
+}
+
+.footer-cta-section h2 {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+
+.logo {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.logo span {
+    color: var(--primary-color);
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--text-light);
+    margin-left: 25px;
+    font-weight: 500;
+    font-size: 15px;
+}
+
+/* Hero Section Base Split */
+.hero-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 4%;
+    align-items: center;
+}
+
+/* Left Content Styles */
+.hero-content .tagline {
+    background-color: #E6F0FF;
+    color: var(--primary-color);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.hero-content h1 {
+    font-size: 48px;
+    line-height: 1.15;
+    letter-spacing: -1.5px;
+    font-weight: 800;
+    margin-bottom: 20px;
+}
+
+.hero-content p {
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--text-light);
+    margin-bottom: 30px;
+}
+
+.hero-bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bullet-item {
+    font-size: 15px;
+    font-weight: 500;
+    color: #2D3748;
+}
+
+/* Right Interactive Widget Card */
+.widget-card {
+    background: #ffffff;
+    padding: 35px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border-color);
+}
+
+.widget-card h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.widget-subtitle {
+    color: var(--text-light);
+    font-size: 14px;
+    margin-bottom: 25px;
+}
+
+/* Form Styling */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 18px;
+    width: 100%;
+}
+
+.input-row {
+    display: flex;
+    gap: 16px;
+}
+
+label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4A5568;
+}
+
+input {
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input:focus {
+    border-color: var(--primary-color);
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white !important;
+    padding: 10px 20px;
+    border-radius: 6px;
+}
+
+.btn-cta {
+    width: 100%;
+    background-color: var(--cta-color);
+    color: white;
+    border: none;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.2s;
+}
+
+.btn-cta:hover {
+    background-color: #E04E16;
+}
+
+/* Results Box UI */
+.verdict-box {
+    margin-top: 25px;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    border-left: 4px solid #10B981;
+    background-color: #F0FDF4;
+}
+
+.verdict-box.fail {
+    border-left-color: #EF4444;
+    background-color: #FEF2F2;
+}
+
+.verdict-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Responsive Breakpoint for Mobile */
+@media (max-width: 900px) {
+    .hero-container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        padding: 40px 5%;
+    }
+    .hero-content h1 {
+        font-size: 36px;
+    }
+}
+</style>
+
+<script data-wp-block-html="js">
+function calculateDeal(event) {
+    // Prevent default page reload
+    event.preventDefault();
+
+    // Grab frontend user inputs
+    const purchasePrice = parseFloat(document.getElementById('purchasePrice').value);
+    const monthlyRent = parseFloat(document.getElementById('monthlyRent').value);
+    
+    // Elements to manipulate
+    const verdictBox = document.getElementById('verdictResult');
+    const verdictBadge = document.getElementById('verdictBadge');
+    const verdictText = document.getElementById('verdictText');
+
+    // Run a basic sanity calculation rule (1% rule benchmark calculation)
+    const rentToPriceRatio = (monthlyRent / purchasePrice) * 100;
+
+    // Show the results box UI view
+    verdictBox.classList.remove('hidden');
+
+    if (rentToPriceRatio >= 0.8) {
+        // High performing deal layout updates
+        verdictBox.classList.remove('fail');
+        verdictBadge.textContent = "BUY VERDICT";
+        verdictBadge.style.color = "#10B981";
+        verdictText.textContent = `Strong cash flow indicators. The rent-to-price ratio is ${rentToPriceRatio.toFixed(2)}%. Create a full profile to unlock your complete report package.`;
+    } else {
+        // High risk deal layout updates
+        verdictBox.classList.add('fail');
+        verdictBadge.textContent = "PASS / WARN";
+        verdictBadge.style.color = "#EF4444";
+        verdictText.textContent = `Tight margins detected. Rent-to-price ratio is low (${rentToPriceRatio.toFixed(2)}%). Check for high operational overhead or adjust purchase price targets.`;
+    }
+}
+</script>
+
+javascript
+/**
+ * Intercepts frontend sandbox submit actions to process the property 1% rule validation benchmarks.
+ */
+function executeFrontendAnalysis(event) {
+    event.preventDefault();
+
+    // Fetch live user metrics from DOM inputs
+    const address = document.getElementById('address').value;
+    const purchasePrice = parseFloat(document.getElementById('purchasePrice').value);
+    const monthlyRent = parseFloat(document.getElementById('monthlyRent').value);
+
+    // Target elements to modify
+    const verdictBox = document.getElementById('verdictResult');
+    const verdictBadge = document.getElementById('verdictBadge');
+    const verdictText = document.getElementById('verdictText');
+
+    // Run simple math checks (Gross Monthly Return Yield Benchmark Percentage)
+    const yieldRatio = (monthlyRent / purchasePrice) * 100;
+
+    // Display the dynamic box panel view layer
+    verdictBox.classList.remove('hidden');
+
+    if (yieldRatio >= 0.85) {
+        // Safe asset margins found parameters
+        verdictBox.classList.remove('fail');
+        verdictBadge.textContent = "BUY STRATEGY ALIGNED";
+        verdictBadge.style.color = "#10B981";
+        verdictText.textContent = `Strong cash generation footprint. Gross monthly rental yields sit at ${yieldRatio.toFixed(2)}%. Create your full profile to unlock deep localized tax and CAPEX breakdowns.`;
+    } else {
+        // High risk performance boundaries breached parameters
+        verdictBox.classList.add('fail');
+        verdictBadge.textContent = "MARGIN WARNING / PASS";
+        verdictBadge.style.color = "#EF4444";
+        verdictText.textContent = `Tight operational margins detected. Current gross asset yield performance checks hit ${yieldRatio.toFixed(2)}%. Review operational expense allocations or renegotiate purchase price.`;
+    }
+
+
+
+<h2 class="wp-block-heading"><a href="/loan-types/investor-mortgage-leads/">free property analyzer</a></h2>
+
+
+
+
+
+
+<!--ypx:related-posts-->
+
+
+            
+            <div class="wp-block-buttons">
+                
+                <div class="wp-block-button is-style-fill"><a class="wp-block-button__link wp-element-button" href="/lo-signup.html">Get Started Today</a></div>
+                
+            </div>
+            
+
+<div class="ypn-cta-container" style="background:#0f172a; color:#ffffff; padding:30px; border-radius:8px; margin:30px 0; text-align:center">
+  <h3 style="color:#ffffff; margin-top:0">Scale Your Mortgage Pipeline with YPN USA</h3>
+  <p style="font-size:16px">Automate cold lead acquisition, instant SMS/email follow-ups, and AI workflow management for MLOs.</p>
+  <a href="/mlo-site-demo/" style="background:#2563eb; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block; margin-top:10px">Schedule a Demo Today</a>
+</div>
+<div class="ypn-interlinks-container" style="border-top:1px solid #e2e8f0; margin-top:40px; padding-top:20px">
+  <h4 style="margin-bottom:10px">Explore Top <a href="/mlo-marketing-automation/">MLO</a> Platform Comparisons</h4>
+  <ul style="line-height:1.8">
+    <li><a href="/vs/total-expert/">YPN USA vs Total Expert</a></li>
+    <li><a href="/vs/bonzo/">YPN USA vs Bonzo</a></li>
+    <li><a href="/vs/homebot/">YPN USA vs Homebot</a></li>
+    <li><a href="/vs/velocify/">YPN USA vs ICE Velocify</a></li>
+  </ul>
+</div>
+
+
+<div class="wp-block-group has-tertiary-background-color has-background" style="padding:20px">
+<p><strong>Featured Resources:</strong></p>
+<ul>
+<li><strong>Previous Page:</strong> <a href="/">Home</a></li>
+<li><strong>Next Page:</strong> <a href="/onboarding.html">Getting Started</a></li>
+</ul>
+</div>

@@ -1,5 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "crypto";
-import { fromLegacyTierName, type PricingTierId } from "@/lib/pricing";
+import { isPricingTierId, type PricingTierId } from "@/lib/pricing";
 import { isEntitlementStatus, type EntitlementStatus, type SessionRole } from "@/lib/session";
 
 /**
@@ -173,9 +173,7 @@ export function verifySsoHandoff(url: URL): SsoHandoffClaim | { error: string } 
   // are present in the URL, they're unsigned under this format and must never be trusted. Only
   // a v2-matched signature can carry an entitlement claim. See the module doc comment above.
   if (matchesV2) {
-    // WordPress still names tiers in the retired lineup (growth = $99.99, pro = $199.99).
-    const mappedTier = fromLegacyTierName(tier);
-    if (mappedTier) claim.tier = mappedTier;
+    if (isPricingTierId(tier)) claim.tier = tier;
     if (isEntitlementStatus(subscriptionStatus)) claim.subscriptionStatus = subscriptionStatus;
     if (trialEndsAt) claim.trialEndsAt = trialEndsAt;
   }

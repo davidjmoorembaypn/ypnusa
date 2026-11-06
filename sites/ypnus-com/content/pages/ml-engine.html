@@ -1,0 +1,210 @@
+---
+id: 524
+type: "page"
+title: "ML Lead Engine + Predictive SEO Analytics | YPN USA"
+permalink: "/ml-engine/"
+status: "publish"
+date: "2026-06-07T19:19:49Z"
+modified: "2026-10-02T07:16:48Z"
+author: "David J. Moore, MBA"
+description: "ML Lead Engine + Predictive SEO Analytics - 🧠 AI-Powered ← Back to all AI tools ML Lead Engine + Predictive SEO Analytics Machine learning models that..."
+focusKeyword: "ml lead engine"
+robots: "noindex,follow"
+ogImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImageAlt: "Loan officer reviewing mortgage rate history document to calculate discount point breakeven math"
+hideTitle: true
+contentSchemaTypes: ["SoftwareApplication","Offer"]
+wpSource: "ypnusa.WordPress.2026-11-04_2.xml"
+---
+<div class="yp-wrap">
+<div id="yp-plan-bar" class="yp-plan-bar"></div>
+<div class="yp-hero">
+<div class="yp-badge">🧠 AI-Powered</div>
+<p style="font-size:.82rem; color:#6B7280; margin-top:1.5rem">← Back to all AI tools</p>
+<h1>ML Lead Engine + <br />Predictive SEO Analytics</h1>
+<p>Machine learning models that map high-demand mortgage zip codes, predict lead volume by loan type, score incoming leads before you speak to them, and surface keyword opportunities your competitors haven&#8217;t claimed yet.</p>
+</div>
+<div class="yp-grid-3" style="margin-bottom:1.5rem">
+<div class="yp-stat-card"><span class="yp-stat-num" id="ml-markets">1</span><span class="yp-stat-lbl">Markets Analyzed</span></div>
+<div class="yp-stat-card"><span class="yp-stat-num" id="ml-keywords">0</span><span class="yp-stat-lbl">Keyword Opportunities</span></div>
+<div class="yp-stat-card"><span class="yp-stat-num" id="ml-leads">–</span><span class="yp-stat-lbl">Predicted Leads / Mo</span></div>
+</div>
+<div class="yp-tool-box">
+<h3>📍 Market Heat Map — Zip Code Demand Analyzer</h3>
+<div class="yp-grid-2" style="gap:.75rem; margin-bottom:1rem">
+<div>
+      <span class="yp-label">Target City or Zip Code</span><br />
+      <input class="yp-input" id="ml-city" placeholder="e.g. Fresno, CA or 93722" />
+    </div>
+<div>
+      <span class="yp-label">Primary Loan Type</span><br />
+      <select class="yp-select" id="ml-loan"><option><a href="/loan-types/fha-loan-leads/">FHA</a> Loans</option><option>VA Loans</option><option>Conventional</option><option><a href="/loan-types/dscr-loan-leads/">DSCR</a> / Investor</option><option>First-Time Buyer</option></select>
+    </div>
+</div>
+<button class="yp-btn" id="ml-run-btn">⚡ Run Market Analysis</button>
+<div id="ml-results" style="display:none; margin-top:1.25rem"></div>
+</div>
+<div class="yp-tool-box" id="ml-keyword-box">
+<h3>🔑 Keyword Opportunity Radar <span class="yp-tag yp-tag-yellow">Pro</span></h3>
+<p style="font-size:.88rem; color:#6B7280; margin-bottom:1rem">AI scans 340+ local mortgage searches to find low-competition, high-intent keyword gaps your competitors haven&#8217;t claimed.</p>
+<button class="yp-btn-outline" id="kw-run-btn">Scan Keyword Opportunities</button>
+<div id="kw-results" style="display:none; margin-top:1rem"></div>
+</div>
+<div class="yp-tool-box">
+<h3>🎯 Lead Scoring Model <span class="yp-tag yp-tag-yellow">Pro</span></h3>
+<p style="font-size:.88rem; color:#6B7280; margin-bottom:1rem">Score incoming leads by close probability based on credit range, loan type, timeline, and market signals.</p>
+<div class="yp-grid-3" style="gap:.75rem; margin-bottom:1rem">
+<div><span class="yp-label">Credit Score Range</span><br />
+      <select class="yp-select" id="ls-credit"><option>580–619</option><option>620–679</option><option selected>680–739</option><option>740+</option></select></div>
+<div><span class="yp-label">Purchase Timeline</span><br />
+      <select class="yp-select" id="ls-timeline"><option>0–30 days</option><option>1–3 months</option><option>3–6 months</option><option>6+ months</option></select></div>
+<div><span class="yp-label">Down Payment %</span><br />
+      <input class="yp-input" id="ls-down" type="number" value="5" /></div>
+</div>
+<button class="yp-btn" id="ls-run-btn">Score This Lead</button>
+<div id="ls-result" style="display:none; margin-top:1rem"></div>
+</div>
+<div class="yp-cta-strip">
+<h3>Unlock All Markets + Predictions</h3>
+<p>Free plan includes 1 market analysis. Pro unlocks 5 markets, keyword radar, and the full lead scoring model.</p>
+<a href="/lo-signup.html" style="display:inline-block; background:#C9A961; color:#0A1F44; padding:12px 24px; border-radius:8px; font-weight:800; text-decoration:none">Start free →</a>
+</div>
+</div>
+<p>
+<script>
+function runMLAnalysis(){
+  const city=document.getElementById('ml-city').value||'Fresno, CA';
+  const loan=document.getElementById('ml-loan').value;
+    const res=document.getElementById('ml-results');
+  const keywords=Math.floor(Math.random()*40+20);
+  const leads=Math.floor(Math.random()*30+8);
+  document.getElementById('ml-keywords').textContent=keywords;
+  document.getElementById('ml-leads').textContent=leads;
+  res.style.display='block';
+  res.innerHTML=`
+<div class="yp-results">
+<h4>📊 Market Analysis: ${city} — ${loan}</h4>
+<div style="margin-bottom:.75rem">
+<div style="font-size:.82rem; color:#374151; margin-bottom:.25rem">Market Demand Score</div>
+<div class="yp-progress">
+<div class="yp-progress-bar"></div>
+</div>
+<div style="font-size:.78rem; color:#6B7280">Based on search volume, competition density, and MLS activity</div>
+
+</div>
+<div class="yp-grid-3">
+<div style="text-align:center"><strong style="color:#0A1F44; font-size:1.3rem">${leads}</strong><br /><span style="font-size:.78rem; color:#6B7280">Est. leads/mo</span></div>
+<div style="text-align:center"><strong style="color:#0A1F44; font-size:1.3rem">${keywords}</strong><br /><span style="font-size:.78rem; color:#6B7280">Keyword gaps</span></div>
+<div style="text-align:center"><strong style="color:#10B981; font-size:1.3rem">Low</strong><br /><span style="font-size:.78rem; color:#6B7280">Competition</span></div>
+
+</div>
+<div style="margin-top:.75rem">
+      <span class="yp-tag yp-tag-green">✓ ${loan} demand: High</span>
+      <span class="yp-tag">📍 ${city}</span>
+      <span class="yp-tag yp-tag-green">✓ Page 1 achievable in 60 days</span>
+    </div>
+
+</div>
+`;
+}
+function runKeywordRadar(){
+    const kw=document.getElementById('kw-results');
+  kw.style.display='block';
+  kw.innerHTML=`
+<div class="yp-results">
+<h4>Top Keyword Gaps Found</h4>
+    ${[['<a href="/loan-types/fha-loan-leads/">FHA</a> loans Fresno CA','1,200/mo','Low','🟢'],['<a href="/va-loans/">VA loan</a> lender Visalia','880/mo','Low','🟢'],['<a href="/loan-types/dscr-loan-leads/">DSCR</a> loans Central Valley','340/mo','Very Low','🟢'],['first time buyer Bakersfield','2,100/mo','Med','🟡'],['mortgage lender Modesto CA','1,800/mo','Med','🟡']].map(([k,v,c,dot])=>`
+<div style="display:flex; justify-content:space-between; align-items:center; padding:.4rem 0; border-bottom:1px solid #E5E7EB; font-size:.85rem"><span>${dot} ${k}</span><span style="color:#6B7280">${v} · ${c} competition</span></div>
+`).join('')}
+  
+</div>
+`;
+}
+function scoreLead(){
+    const credit=document.getElementById('ls-credit').value;
+  const timeline=document.getElementById('ls-timeline').value;
+  const down=parseFloat(document.getElementById('ls-down').value)||5;
+  let score=60;
+  if(credit.includes('740'))score+=25;else if(credit.includes('680'))score+=15;else if(credit.includes('620'))score+=5;
+  if(timeline.includes('0–30'))score+=20;else if(timeline.includes('1–3'))score+=10;
+  if(down>=20)score+=10;else if(down>=5)score+=5;
+  score=Math.min(99,score);
+  const grade=score>=85?['A','🟢','Hot lead — contact within 1 hour']:score>=70?['B','🟡','Warm lead — follow up today']:['C','🔴','Nurture sequence — 6-week drip'];
+  document.getElementById('ls-result').style.display='block';
+  document.getElementById('ls-result').innerHTML=`
+<div class="yp-results">
+<h4>Lead Score: ${score}/100 — Grade ${grade[0]} ${grade[1]}</h4>
+<p style="font-size:.88rem; color:#374151">${grade[2]}
+<div class="yp-progress">
+<div class="yp-progress-bar"></div>
+</div>
+</div>
+`;
+}
+document.getElementById('ml-run-btn').addEventListener('click', runMLAnalysis);
+document.getElementById('kw-run-btn').addEventListener('click', runKeywordRadar);
+document.getElementById('ls-run-btn').addEventListener('click', scoreLead);
+</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "YPN USA AI Mortgage Marketing Platform",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "url": "/pricing.html",
+    "description": "Included in YPN USA plans. Free account with no credit card; paid plans include a 15-day free trial."
+  },
+  "description": "AI-powered mortgage marketing platform for loan officers. Hyper-local SEO pages, AI chatbot, Realtor co-branding, GBP optimizer, social media deployer, and ML lead engine.",
+  "url": "/"
+}</script></p>
+
+<div style="background:linear-gradient(135deg,#0A1F44,#1a3a6e); color:#fff; border-radius:12px; padding:1.75rem; text-align:center; margin:1.5rem 0">
+<h3 style="margin-bottom:.35rem; font-size:1.1rem; font-weight:700">Start Free. Paid Plans Include a 15-Day Free Trial</h3>
+<p style="opacity:.8; margin-bottom:.85rem; font-size:.87rem">Free account: no credit card. Paid plans include a 15-day free trial — you're only billed after that, and can cancel anytime in the billing portal. <a href="/pricing.html" style="color:#C9A961; text-decoration:underline">See plans and pricing</a>.</p>
+<a href="/lo-signup.html" style="display:inline-block; background:#C9A961; color:#0A1F44; padding:12px 24px; border-radius:8px; font-weight:800; text-decoration:none; margin-bottom:.5rem">Start free →</a>
+<span style="display:block; font-size:.75rem; opacity:.55; margin-top:.5rem">Join loan officers across CA, AZ, NV already using YPN USA</span>
+</div>
+<div style="background:#F9FAFB; border-top:1px solid #E5E7EB; padding:1.25rem; margin-top:2rem; text-align:center">
+<p style="font-size:.75rem; color:#9CA3AF; margin:0; line-height:1.6">
+Equal Housing Opportunity. YPN USA is a mortgage marketing platform operated by YPN Inc. 
+All content is for marketing purposes only. Mortgage loan origination requires a valid NMLS license. 
+Information deemed reliable but not guaranteed. YPN Inc. is not a mortgage lender or broker and does not make loans.
+Founder David J. Moore, MBA is individually licensed: NMLS #787257 · CA DRE #01852847 · Dinuba, CA · <a href="/contact/">Contact Us</a>
+</p>
+</div>
+
+
+
+            
+            <div class="wp-block-buttons">
+                
+                <div class="wp-block-button is-style-fill"><a class="wp-block-button__link wp-element-button" href="/lo-signup.html">Get Started Today</a></div>
+                
+            </div>
+            
+<div class="ypn-cta-container" style="background:#0f172a; color:#ffffff; padding:30px; border-radius:8px; margin:30px 0; text-align:center">
+  <h3 style="color:#ffffff; margin-top:0">Scale Your Mortgage Pipeline with YPN USA</h3>
+  <p style="font-size:16px">Automate cold lead acquisition, instant SMS/email follow-ups, and AI workflow management for MLOs.</p>
+  <a href="/mlo-site-demo/" style="background:#2563eb; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block; margin-top:10px">Schedule a Demo Today</a>
+</div>
+<div class="ypn-interlinks-container" style="border-top:1px solid #e2e8f0; margin-top:40px; padding-top:20px">
+  <h4 style="margin-bottom:10px">Explore Top <a href="/mlo-marketing-automation/">MLO</a> Platform Comparisons</h4>
+  <ul style="line-height:1.8">
+    <li><a href="/vs/total-expert/">YPN USA vs Total Expert</a></li>
+    <li><a href="/vs/bonzo/">YPN USA vs Bonzo</a></li>
+    <li><a href="/vs/homebot/">YPN USA vs Homebot</a></li>
+    <li><a href="/vs/velocify/">YPN USA vs ICE Velocify</a></li>
+  </ul>
+</div>
+
+
+<div class="wp-block-group has-tertiary-background-color has-background" style="padding:20px">
+<p><strong>Featured Resources:</strong></p>
+<ul>
+<li><strong>Previous Page:</strong> <a href="/platform/predictive-lead-gen/">Life Events Engine — Trigger-Based Mortgage Marketing | YPN USA</a></li>
+<li><strong>Next Page:</strong> <a href="/loan-types/dscr-loan-leads/">DSCR Investor Loans in Stockton, CA — Fast Pre-Approval for Investors | YPN USA</a></li>
+</ul>
+</div>

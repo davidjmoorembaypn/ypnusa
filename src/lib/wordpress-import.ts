@@ -1,6 +1,6 @@
 import { normalizeEmail, upsertAccount } from "@/lib/accounts";
 import { readDb, saveRevenueSubscription } from "@/lib/db";
-import { fromLegacyTierName, type PricingTierId } from "@/lib/pricing";
+import { isPricingTierId, type PricingTierId } from "@/lib/pricing";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 
 /**
@@ -78,7 +78,9 @@ export function planWordPressImport(data: WordPressExport): WordPressImportPlan 
       }
       continue;
     }
-    const tier: PricingTierId | null = fromLegacyTierName(user.tier);
+    // WordPress and the app share the same tier ids (growth = Pro $99, pro = Growth $199,
+    // elite = Exclusive $299; see src/lib/pricing.ts), so the stored name carries over as is.
+    const tier: PricingTierId | null = isPricingTierId(user.tier) ? user.tier : null;
     if (!tier || tier === "free") {
       warnings.push(`${email} is ${status} but has an unrecognized tier "${user.tier ?? ""}"; skipped their plan.`);
       continue;

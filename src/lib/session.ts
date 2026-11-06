@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
-import { isPricingTierId, parseStoredTier, type PricingTierId } from "@/lib/pricing";
+import { isPricingTierId, type PricingTierId } from "@/lib/pricing";
 
 /**
  * Signed, stateless session tokens for app.ypnus.com.
@@ -176,8 +176,7 @@ export function verifySessionToken(token: string | undefined | null): SessionPay
     // Every entitlement field is verified independently and dropped (not just
     // ignored downstream) if malformed — a tampered/old-shape token degrades
     // to "no entitlement claim," never to a guessed or partial one.
-    const tier = parseStoredTier(raw.tier);
-    if (tier) payload.tier = tier;
+    if (isPricingTierId(raw.tier)) payload.tier = raw.tier;
     if (isEntitlementStatus(raw.subscriptionStatus)) payload.subscriptionStatus = raw.subscriptionStatus;
     if (typeof raw.trialEndsAt === "string" && raw.trialEndsAt) payload.trialEndsAt = raw.trialEndsAt;
 

@@ -1,0 +1,57 @@
+{
+  "_readme": "'Keep exploring' links shown under page bodies. A group matches its exact page or every page under its prefix. 'siblings' adds that many pages from the same folder (the ones after the current page, wrapping). Links already in the page body, the page itself, and links to pages that don't exist are skipped. Max 'max' links per page.",
+  "max": 7,
+  "groups": [
+    { "exact": "/compare/", "siblings": 0, "links": [
+      { "url": "/vs/", "label": "YPN USA vs competitors: all comparisons" },
+      { "url": "/vs/total-expert/", "label": "YPN USA vs Total Expert" },
+      { "url": "/vs/bonzo/", "label": "YPN USA vs Bonzo" },
+      { "url": "/ypnus-vs-bntouch/", "label": "YPN USA vs BNTouch" },
+      { "url": "/vs/lendingtree/", "label": "YPN USA vs LendingTree" },
+      { "url": "/vs/homebot/", "label": "YPN USA vs Homebot" },
+      { "url": "/research-methodology/", "label": "How we compare tools" }
+    ] },
+    { "exact": "/vs/", "siblings": 0, "links": [
+      { "url": "/compare/", "label": "Compare YPN USA to shared lead vendors" },
+      { "url": "/research-methodology/", "label": "How we compare tools" },
+      { "url": "/pricing.html", "label": "YPN USA pricing" }
+    ] },
+    { "prefix": "/loan-types/", "siblings": 3, "links": [
+      { "url": "/features/niche-lead-magnets/", "label": "Niche lead magnets for loan programs" },
+      { "url": "/markets/", "label": "Mortgage markets for loan officers" },
+      { "url": "/vs/lendingtree/", "label": "YPN USA vs LendingTree" },
+      { "url": "/compare/", "label": "Compare YPN USA to other tools" }
+    ] },
+    { "prefix": "/markets/", "siblings": 2, "links": [
+      { "url": "/features/hyper-local-seo-pages/", "label": "Hyper-local SEO pages" },
+      { "url": "/mlo-marketing/local-seo-for-loan-officers/", "label": "Local SEO for loan officers" },
+      { "url": "/loan-types/first-time-buyer-leads/", "label": "First-time buyer mortgage leads" },
+      { "url": "/vs/zillow-flex/", "label": "YPN USA vs Zillow Flex" },
+      { "url": "/check-zip.html", "label": "Check if your ZIP is available" }
+    ] },
+    { "prefix": "/territory/", "siblings": 0, "links": [
+      { "url": "/markets/", "label": "Mortgage markets for loan officers" },
+      { "url": "/features/hyper-local-seo-pages/", "label": "Hyper-local SEO pages" },
+      { "url": "/vs/lendingtree/", "label": "YPN USA vs LendingTree" },
+      { "url": "/check-zip.html", "label": "Check if your ZIP is available" }
+    ] },
+    { "prefix": "/features/", "siblings": 3, "links": [
+      { "url": "/vs/bonzo/", "label": "YPN USA vs Bonzo" },
+      { "url": "/ypnus-vs-loanofficer-ai/", "label": "YPN USA vs LoanOfficer.ai" },
+      { "url": "/loan-types/", "label": "Mortgage leads by loan type" },
+      { "url": "/pricing.html", "label": "YPN USA pricing" }
+    ] },
+    { "prefix": "/platform/", "siblings": 2, "links": [
+      { "url": "/features/ai-lead-follow-up/", "label": "AI lead follow-up" },
+      { "url": "/vs/total-expert/", "label": "YPN USA vs Total Expert" },
+      { "url": "/ypnus-vs-bntouch/", "label": "YPN USA vs BNTouch" },
+      { "url": "/pricing.html", "label": "YPN USA pricing" }
+    ] },
+    { "prefix": "/mlo-marketing/", "siblings": 2, "links": [
+      { "url": "/features/hyper-local-seo-pages/", "label": "Hyper-local SEO pages" },
+      { "url": "/features/realtor-partnership-tools/", "label": "Realtor partnership tools" },
+      { "url": "/loan-types/", "label": "Mortgage leads by loan type" },
+      { "url": "/compare/", "label": "Compare YPN USA to other tools" }
+    ] }
+  ]
+}

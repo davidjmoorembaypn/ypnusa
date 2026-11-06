@@ -32,7 +32,8 @@ export function makeWpSectionRoute(
     if (!page) return {};
     const origin = await getSiteOrigin();
     return marketingMetadata({
-      title: page.title,
+      title: page.seoTitle ?? page.title,
+      absoluteTitle: Boolean(page.seoTitle && /YPN USA/.test(page.seoTitle)),
       description: page.description,
       path: `${sectionPath}/${slug}`,
       origin,
@@ -43,7 +44,10 @@ export function makeWpSectionRoute(
     const { slug } = await params;
     const page = getWpPage(list, slug);
     if (!page) notFound();
-    return <WpImportedPageView page={page} path={`${sectionPath}/${slug}`} breadcrumbLabel={breadcrumbLabel} />;
+    const origin = await getSiteOrigin();
+    return (
+      <WpImportedPageView page={page} path={`${sectionPath}/${slug}`} breadcrumbLabel={breadcrumbLabel} origin={origin} />
+    );
   }
 
   return { generateStaticParams, generateMetadata, Page };

@@ -17,19 +17,18 @@ WordPress's old tier names to the new lineup.
 
 ## Plans (Stripe)
 
-Free $0 · Pro $99 · Growth $199 · Exclusive $299, each with one protected ZIP and a 15-day trial.
-New Stripe prices should carry `metadata.ypnus_plan` = `pro` | `growth` | `exclusive` on both the
-price and the Payment Link. Older links tagged `metadata.ypnus_tier` still resolve, by price
-point: growth $99.99 → Pro, pro $199.99 → Growth, elite $299.99 → Exclusive.
+Done in PR 120: the November 2026 Payment Links (Pro $99, Growth $199, Exclusive $299) are the
+checkout defaults in `src/lib/checkout.ts`, and `src/lib/stripe-webhook.ts` maps their tier names.
+Tier ids stay stable (`growth` = Pro, `pro` = Growth, `elite` = Exclusive), so WordPress records
+import without renaming.
 
 ## Cutover steps (each needs a yes)
 
-1. **Stripe:** create the three new monthly prices + Payment Links (with `ypnus_plan` metadata
-   and a 15-day trial). Put the link URLs in `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_PRO|GROWTH|EXCLUSIVE`
-   and price ids in `STRIPE_PRICE_ID_PRO|GROWTH|EXCLUSIVE`.
+1. **Stripe:** done in PR 120 (new Payment Links are live defaults).
 2. **Email:** set `RESEND_API_KEY` (and `RESEND_FROM_EMAIL`) so sign-in links send; set
    `ADMIN_EMAILS` to the owner's email.
-3. **Export from WordPress (read-only):**
+3. **Export from WordPress (read-only).** Needs WordPress's database to be reachable; it was
+   reported down on Nov 5, so this may have to run against a Hostinger backup restored first:
    `wp eval-file scripts/wordpress-export-accounts.php --path="$HOME/domains/ypnus.com/public_html" > ypnus-wp-export.json`
 4. **Import into the app:** on the app server, with the app's `LOANPILOT_DATA_DIR`:
    `npx tsx scripts/import-wordpress-accounts.ts ypnus-wp-export.json` (dry run), review warnings,

@@ -31,8 +31,8 @@ describe("WordPress import", () => {
     assert.deepEqual(
       plan.subscriptions.map((s) => [s.ownerEmail, s.tier, s.status, s.claimedZips]),
       [
-        ["paid@example.com", "pro", "active", ["93291"]],
-        ["trial@example.com", "exclusive", "trialing", ["93277"]],
+        ["paid@example.com", "growth", "active", ["93291"]],
+        ["trial@example.com", "elite", "trialing", ["93277"]],
       ],
     );
     assert.ok(plan.warnings.some((w) => w.includes("lapsed@example.com")));
@@ -44,8 +44,8 @@ describe("WordPress import", () => {
     applyWordPressImport(planWordPressImport(EXPORT));
 
     assert.equal(findAccountByEmail("paid@example.com")?.wpUserId, "1");
-    assert.deepEqual(entitlementForEmail("paid@example.com"), { tier: "pro", subscriptionStatus: "active" });
-    assert.deepEqual(entitlementForEmail("trial@example.com"), { tier: "exclusive", subscriptionStatus: "trialing" });
+    assert.deepEqual(entitlementForEmail("paid@example.com"), { tier: "growth", subscriptionStatus: "active" });
+    assert.deepEqual(entitlementForEmail("trial@example.com"), { tier: "elite", subscriptionStatus: "trialing" });
     assert.deepEqual(entitlementForEmail("free@example.com"), { tier: "free", subscriptionStatus: "none" });
 
     assert.equal(checkPaidLedgerTerritory("93291").available, false);

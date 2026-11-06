@@ -1,0 +1,199 @@
+---
+id: 525
+type: "page"
+title: "Life Events Engine — Trigger-Based Mortgage Marketing | YPN USA"
+permalink: "/life-events-engine/"
+status: "publish"
+date: "2026-06-07T19:19:50Z"
+modified: "2026-10-08T07:46:04Z"
+author: "David J. Moore, MBA"
+description: "Life Events Engine — Trigger-Based Mortgage Marketing - 🔔 Trigger-Based Marketing ← Back to all AI tools Life Events Engine Automatically detect and..."
+focusKeyword: "life events engine"
+robots: "noindex,follow"
+ogImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImageAlt: "Loan officer reviewing mortgage rate history document to calculate discount point breakeven math"
+hideTitle: true
+contentSchemaTypes: ["SoftwareApplication","Offer"]
+wpSource: "ypnusa.WordPress.2026-11-04_2.xml"
+---
+<div class="yp-wrap">
+<div id="yp-plan-bar" class="yp-plan-bar"></div>
+<div class="yp-hero">
+<div class="yp-badge">🔔 Trigger-Based Marketing</div>
+<p style="font-size:.82rem; color:#6B7280; margin-top:1.5rem">← Back to all AI tools</p>
+<h1>Life Events Engine</h1>
+<p>Automatically detect and act on life events — marriage, new baby, job change, divorce, inheritance — that signal a mortgage need. Reach the right prospect at the exact moment they&#8217;re most likely to buy.</p>
+</div>
+<div class="yp-grid-3" style="margin-bottom:1.5rem">
+<div class="yp-stat-card"><span class="yp-stat-num">12</span><span class="yp-stat-lbl">Life Event Triggers</span></div>
+<div class="yp-stat-card"><span class="yp-stat-num">3.8×</span><span class="yp-stat-lbl">Higher Response Rate</span></div>
+<div class="yp-stat-card"><span class="yp-stat-num">24hr</span><span class="yp-stat-lbl">Avg Trigger to Outreach</span></div>
+</div>
+<div class="yp-tool-box">
+<h3>🎯 Active Event Triggers</h3>
+<p style="font-size:.87rem; color:#6B7280; margin-bottom:1.25rem">Free plan: 3 triggers active. <strong>Pro unlocks all 12.</strong></p>
+<div id="triggers-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:.75rem"></div>
+</div>
+<div class="yp-tool-box">
+<h3>✉️ Outreach Message Generator <span class="yp-tag yp-tag-yellow">Growth+</span></h3>
+<p style="font-size:.87rem; color:#6B7280; margin-bottom:1rem">Select a life event and get a compliance-safe outreach message personalised to that moment.</p>
+<div class="yp-grid-2" style="gap:.75rem; margin-bottom:1rem">
+<div><span class="yp-label">Life Event</span><br />
+      <select class="yp-select" id="le-event"><option>Just Got Married</option><option>New Baby</option><option>Job Promotion / Raise</option><option>Relocation to New City</option><option>Recently Divorced</option><option>Inheritance Received</option></select></div>
+<div><span class="yp-label">Channel</span><br />
+      <select class="yp-select" id="le-channel"><option>Text / SMS</option><option>Email</option><option>LinkedIn DM</option><option>Facebook Messenger</option></select></div>
+</p>
+</div>
+<p>  <button class="yp-btn">Generate Message</button></p>
+<div id="le-output" style="display:none; margin-top:1rem"></div>
+</div>
+<div class="yp-tool-box">
+<h3>🤖 Automation Sequences <span class="yp-tag yp-tag-yellow">Pro</span></h3>
+<p style="font-size:.87rem; color:#6B7280; margin-bottom:1rem">Set it and forget it. When a trigger fires, the engine automatically runs a multi-step outreach sequence on your behalf.</p>
+<div id="automation-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem"></div>
+<p>  <button class="yp-btn" style="margin-top:1rem">+ Add Automation Sequence</button>
+</div>
+<div class="yp-cta-strip">
+<h3>Never Miss a Life Event Signal Again</h3>
+<p>Free: 3 triggers. Growth: All 12 triggers + message generator. Pro: Full automation + CRM sync.</p>
+<p>  Start free →
+</div>
+</div>
+<p>
+const TRIGGERS=[
+  {icon:'💍',name:'Just Got Married',desc:'New household = new home needs',locked:false},
+  {icon:'👶',name:'New Baby',desc:'Growing family often needs more space',locked:false},
+  {icon:'💼',name:'Job Promotion / Raise',desc:'Higher income = upgrade opportunity',locked:false},
+  {icon:'🏙️',name:'Relocation to New City',desc:'Moving = immediate buyer prospect',locked:true},
+  {icon:'💔',name:'Recently Divorced',desc:'Asset split often triggers home purchase',locked:true},
+  {icon:'🏆',name:'Inheritance Received',desc:'New capital = down payment ready',locked:true},
+  {icon:'🎓',name:'College Graduation',desc:'First-time buyer pipeline',locked:true},
+  {icon:'👴',name:'Retirement',desc:'Downsizing or second home buyer',locked:true},
+  {icon:'📈',name:'Stock Vesting Event',desc:'Liquidity event = down payment',locked:true},
+  {icon:'🏗️',name:'Business Launch',desc:'Commercial or investment property need',locked:true},
+  {icon:'🏠',name:'Lease Expiring',desc:'Renter-to-buyer conversion opportunity',locked:true},
+  {icon:'⚰️',name:'Estate Settlement',desc:'Beneficiary may need mortgage guidance',locked:true},
+];
+window.addEventListener('DOMContentLoaded',()=&gt;{
+  const g=document.getElementById('triggers-grid');
+  TRIGGERS.forEach(t=&gt;{
+    const locked=t.locked&amp;&amp;!YPN USA.canDo('pro');
+    const d=document.createElement('div');
+    d.style.cssText=`border:1.5px solid ${locked?'#E5E7EB':'#D1FAE5'};border-radius:10px;padding:1rem;background:${locked?'#F9FAFB':'#F0FDF4'};cursor:${locked?'pointer':'default'};position:relative`;
+    d.innerHTML=`</p>
+<div style="font-size:1.5rem; margin-bottom:.4rem">${t.icon}</div>
+<div style="font-weight:700; font-size:.88rem; color:#0A1F44">${t.name}</div>
+<div style="font-size:.78rem; color:#6B7280">${t.desc}</div>
+<p>${locked?'</p>
+<div style="position:absolute; top:.5rem; right:.5rem; font-size:.72rem; background:#FEF3C7; color:#92400E; padding:.15rem .5rem; border-radius:999px; font-weight:700">Pro</div>
+<p>':'</p>
+<div style="position:absolute; top:.5rem; right:.5rem; font-size:.72rem; background:#D1FAE5; color:#065F46; padding:.15rem .5rem; border-radius:999px; font-weight:700">✓ Active</div>
+<p>'}`;
+    if(locked)d.onclick=()=&gt;YPN USA.paywall(t.name+' Trigger','pro');
+    g.appendChild(d);
+  });</p>
+<p>  const ag=document.getElementById('automation-grid');
+  const seqs=[{name:'New Marriage Sequence',steps:'Day 1: SMS → Day 3: Email → Day 7: LI',active:true},{name:'Job Change Sequence',steps:'Day 1: Email → Day 5: SMS → Day 14: Follow-up',active:false}];
+  seqs.forEach(s=&gt;{
+    const d=document.createElement('div');
+    d.style.cssText='border:1.5px solid #E5E7EB;border-radius:8px;padding:1rem;background:#fff';
+    d.innerHTML=`</p>
+<div style="font-weight:700; font-size:.88rem; color:#0A1F44; margin-bottom:.3rem">${s.name}</div>
+<div style="font-size:.78rem; color:#6B7280; margin-bottom:.5rem">${s.steps}</div>
+<p><label style="display:flex; align-items:center; gap:.4rem; cursor:pointer; font-size:.82rem"><input type="checkbox"> Active</label>`;
+    ag.appendChild(d);
+  });
+});</p>
+<p>const MSGS={
+  'Just Got Married':{sms:`Hi [Name]! Congrats on the wedding 💍 A lot of newlyweds start looking at homes around this time. If you're thinking about buying together, I help couples in [City] get pre-approved fast. Happy to run some numbers — just say the word! — [Your Name]`,email:`Subject: Congrats on your wedding — quick note on home buying</p>
+<p>Hi [Name],</p>
+<p>Wishing you both an incredible start to your new chapter together. Many couples find that getting pre-approved for a home is one of the first big moves they make as a married couple — and the market in [City] has some great options right now.</p>
+<p>If you'd like a no-obligation pre-qualification to see what you'd qualify for together, I'd love to help. Takes about 10 minutes.</p>
+<p>Congratulations again,
+[Your Name] | NMLS #[Your NMLS]`},
+  'New Baby':{sms:`Hi [Name]! Heard about the new addition — congratulations! 👶 A lot of growing families in [City] start thinking about more space around this time. If you're curious what you'd qualify for, I can run a quick pre-qual — no obligation at all. — [Your Name]`,email:`Subject: Congrats on the new baby!</p>
+<p>Hi [Name],</p>
+<p>So excited for you and your family! A new baby is such an amazing time — and it's also when a lot of families in [City] start thinking about more space.</p>
+<p>Whenever you're ready to explore options, I'm here. Happy to run a free pre-qualification that shows exactly what you'd qualify for.</p>
+<p>Warmly,
+[Your Name]`},
+};
+function generateOutreach(){
+  if(!YPN USA.canDo('launch')){YPN USA.paywall('Outreach Message Generator','launch');return;}
+  const event=document.getElementById('le-event').value;
+  const channel=document.getElementById('le-channel').value;
+  const msg=MSGS[event];
+  const out=document.getElementById('le-output');
+  out.style.display='block';
+  const text=msg?(channel.includes('Text')?msg.sms:msg.email):`Hi [Name], I noticed [${event}] — congratulations! This is a great time to explore your mortgage options in [City]. I'd love to help. — [Your Name]`;
+  out.innerHTML=`</p>
+<div class="yp-results">
+<h4>✉️ ${channel} — ${event}</h4>
+<p><textarea style="width:100%; min-height:140px; padding:.75rem; border:1.5px solid #D1FAE5; border-radius:8px; font-size:.85rem; font-family:inherit">${text}</textarea><button>{this.textContent='✓ Copied';setTimeout(()=&gt;this.textContent='Copy Message',2000)})"&gt;Copy Message</button></div>
+<p>`;
+}
+function setupAutomation(){
+  alert('Automation builder coming soon! For now, use the message generator + your CRM to set up sequences.');
+}
+</p>
+<p>{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "YPN USA AI Mortgage Marketing Platform",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "url": "/pricing.html",
+    "description": "Included in YPN USA plans. Free account with no credit card; paid plans include a 15-day free trial."
+  },
+  "description": "AI-powered mortgage marketing platform for loan officers. Hyper-local SEO pages, AI chatbot, Realtor co-branding, GBP optimizer, social media deployer, and ML lead engine.",
+  "url": "/"
+}</p>
+
+<div style="background:linear-gradient(135deg,#0A1F44,#1a3a6e); color:#fff; border-radius:12px; padding:1.75rem; text-align:center; margin:1.5rem 0">
+<h3 style="margin-bottom:.35rem; font-size:1.1rem; font-weight:700">Start Free. Paid Plans Include a 15-Day Free Trial</h3>
+<p style="opacity:.8; margin-bottom:.85rem; font-size:.87rem">The Free plan needs no credit card. Pro, Growth, and Exclusive each include a 15-day free trial. Cancel anytime.</p>
+Start Free →
+<span style="display:block; font-size:.75rem; opacity:.55; margin-top:.5rem">Join loan officers across CA, AZ, NV already using YPN USA</span>
+</div><div style="background:#f9fafb; border-radius:10px; padding:1.5rem; margin-top:2rem"><h3 style="color:#0A1F44; margin-bottom:1rem">Related Guides</h3><ul style="line-height:2.2"><li>Divorce Mortgage Options Explained</li><li>The Probate Mortgage Leads Playbook</li></ul></div><div style="background:linear-gradient(135deg,#0A1F44,#1a3a6e); color:#fff; border-radius:12px; padding:1.75rem; text-align:center; margin:1.5rem 0">
+<h3 style="margin-bottom:.35rem; font-size:1.1rem; font-weight:700">Start Free. Paid Plans Include a 15-Day Free Trial</h3>
+<p style="opacity:.8; margin-bottom:.85rem; font-size:.87rem">Free account: no credit card. Paid plans include a 15-day free trial — you're only billed after that, and can cancel anytime in the billing portal. <a href="/pricing.html" style="color:#C9A961; text-decoration:underline">See plans and pricing</a>.</p>
+Start free →
+<span style="display:block; font-size:.75rem; opacity:.55; margin-top:.5rem">Join loan officers across CA, AZ, NV already using YPN USA</span>
+</div>
+<div style="background:#F9FAFB; border-top:1px solid #E5E7EB; padding:1rem; text-align:center; margin-top:2rem"><p style="font-size:.74rem; color:#9CA3AF; margin:0">Equal Housing Opportunity · YPN USA by YPN Inc. · Founder David J. Moore, MBA is individually licensed (NMLS #787257 · CA DRE #01852847) · YPN Inc. is not a lender or broker · Contact Us · <a href="mailto:support@ypnus.com" style="color:#10B981">support@ypnus.com</a></p></div>
+
+
+
+            
+            <div class="wp-block-buttons">
+                
+                <div class="wp-block-button is-style-fill"><a class="wp-block-button__link wp-element-button" href="/lo-signup.html">Get Started Today</a></div>
+                
+            </div>
+            
+<div class="ypn-cta-container" style="background:#0f172a; color:#ffffff; padding:30px; border-radius:8px; margin:30px 0; text-align:center">
+  <h3 style="color:#ffffff; margin-top:0">Scale Your Mortgage Pipeline with YPN USA</h3>
+  <p style="font-size:16px">Automate cold lead acquisition, instant SMS/email follow-ups, and AI workflow management for MLOs.</p>
+  <a href="/mlo-site-demo/" style="background:#2563eb; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block; margin-top:10px">Schedule a Demo Today</a>
+</div>
+<div class="ypn-interlinks-container" style="border-top:1px solid #e2e8f0; margin-top:40px; padding-top:20px">
+  <h4 style="margin-bottom:10px">Explore Top <a href="/mlo-marketing-automation/">MLO</a> Platform Comparisons</h4>
+  <ul style="line-height:1.8">
+    <li><a href="/vs/total-expert/">YPN USA vs Total Expert</a></li>
+    <li><a href="/vs/bonzo/">YPN USA vs Bonzo</a></li>
+    <li><a href="/vs/homebot/">YPN USA vs Homebot</a></li>
+    <li><a href="/vs/velocify/">YPN USA vs ICE Velocify</a></li>
+  </ul>
+</div>
+
+
+<div class="wp-block-group has-tertiary-background-color has-background" style="padding:20px">
+<p><strong>Featured Resources:</strong></p>
+<ul>
+<li><strong>Previous Page:</strong> <a href="/gbp-ai-engine/">GBP AI Engine — Google Business Profile Optimizer for Loan Officers | YPN USA</a></li>
+<li><strong>Next Page:</strong> <a href="/platform/predictive-lead-gen/">ML Lead Engine + Predictive SEO Analytics | YPN USA</a></li>
+</ul>
+</div>

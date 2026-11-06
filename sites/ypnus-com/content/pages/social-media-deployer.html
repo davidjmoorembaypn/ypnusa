@@ -1,0 +1,244 @@
+---
+id: 528
+type: "page"
+title: "Social Media Deployer — 30-Day Mortgage Content Calendar | YPN USA"
+permalink: "/social-media-deployer/"
+status: "publish"
+date: "2026-06-07T19:22:53Z"
+modified: "2026-10-02T03:06:33Z"
+author: "David J. Moore, MBA"
+seoTitle: "Social Media Deployer: 30-Day Mortgage Calendar | YPN USA"
+description: "Plan a 30-day mortgage social content calendar with Social Media Deployer, plus editable post drafts for LinkedIn, Instagram, Facebook, X, YouTube and TikTok."
+focusKeyword: "social media deployer"
+robots: "index,follow"
+ogImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImageAlt: "Loan officer reviewing mortgage rate history document to calculate discount point breakeven math"
+hideTitle: true
+contentSchemaTypes: ["SoftwareApplication","Offer"]
+wpSource: "ypnusa.WordPress.2026-11-04_2.xml"
+---
+<div class="yp-wrap">
+<div id="yp-plan-bar" class="yp-plan-bar"></div>
+<div class="yp-hero">
+<div class="yp-badge">📱 Multi-Platform</div>
+<p style="font-size:.82rem; color:#6B7280; margin-top:1.5rem">← Back to all AI tools</p>
+<h1>Social Media Deployer</h1>
+<p>Generate a full 30-day mortgage content calendar across LinkedIn, Instagram, Facebook, X, YouTube, and TikTok, with platform-specific post drafts you can edit before you publish.</p>
+</div>
+<div class="yp-g3" style="margin-bottom:1.5rem">
+<div class="yp-stat"><b id="soc-posts">0</b><span>Posts Generated</span></div>
+<div class="yp-stat"><b>6</b><span>Platforms Supported</span></div>
+<div class="yp-stat"><b>30-day</b><span>Calendar Generated</span></div>
+</div>
+<div class="yp-box">
+<h3>✍️ Single Post Generator</h3>
+<p style="font-size:.87rem; color:#6B7280; margin-bottom:1rem">Included in YPN USA plans. <a href="/pricing.html">See plans and pricing</a>.</p>
+<div class="yp-g2" style="gap:.75rem; margin-bottom:.75rem">
+<div><span class="yp-label">Platform</span><br />
+      <select aria-label="Social platform" class="yp-select" id="soc-platform" onchange="if(window.checkPlatformAccess)checkPlatformAccess()"><option value="linkedin">💼 LinkedIn</option><option value="instagram">📸 Instagram</option><option value="facebook">📘 Facebook</option><option value="twitter">𝕏 X / Twitter</option><option value="youtube">▶ YouTube (script)</option><option value="tiktok">🎵 TikTok (script)</option></select></div>
+<div><span class="yp-label">Topic</span><br />
+      <select aria-label="Post topic" class="yp-select" id="soc-topic"><option><a href="/loan-types/fha-loan-leads/">FHA</a> Loan Tips</option><option><a href="/va-loans/">VA Loan</a> Benefits</option><option>First-Time Buyer Guide</option><option>Market Update</option><option><a href="/loan-types/dscr-loan-leads/">DSCR</a> / Investor Loans</option><option>Credit Score Tips</option><option>Realtor Partnership Value</option><option><a href="/features/">Pre-Approval</a> Process</option><option>Client Success Story</option></select></div>
+</p>
+</div>
+<div class="yp-g2" style="gap:.75rem; margin-bottom:1rem">
+<div><span class="yp-label">Tone</span><br />
+      <select aria-label="Post tone" class="yp-select" id="soc-tone"><option>Educational</option><option>Conversational</option><option>Authority</option><option>Storytelling</option><option>Urgency</option></select></div>
+<div><span class="yp-label">Your Market / City</span><br />
+      <input aria-label="City" class="yp-input" id="soc-city" placeholder="Fresno, CA"></div>
+</div>
+<p>  <button class="yp-btn">⚡ Generate Post</button></p>
+<div id="soc-output" style="display:none; margin-top:1rem"></div>
+</div>
+<div class="yp-box">
+<h3>📅 30-Day Content Calendar <span class="yp-tag yp-ty">Pro</span></h3>
+<p style="font-size:.87rem; color:#6B7280; margin-bottom:1rem">A 30-day plan with suggested topics, platforms and posting times for your market.</p>
+<div class="yp-g2" style="gap:.75rem; margin-bottom:1rem">
+<div><span class="yp-label">Platforms (select all that apply)</span>
+<div style="display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.3rem" id="cal-platforms">
+        <label style="display:flex; gap:.3rem; align-items:center; font-size:.85rem"><input type="checkbox" checked value="linkedin"> LinkedIn</label><br />
+        <label style="display:flex; gap:.3rem; align-items:center; font-size:.85rem"><input type="checkbox" value="instagram"> Instagram</label><br />
+        <label style="display:flex; gap:.3rem; align-items:center; font-size:.85rem"><input type="checkbox" value="facebook"> Facebook</label><br />
+        <label style="display:flex; gap:.3rem; align-items:center; font-size:.85rem"><input type="checkbox" value="twitter"> X / Twitter</label>
+      </div>
+</div>
+<div><span class="yp-label">Your Primary Market</span><input aria-label="Content calendar city" class="yp-input" id="cal-city" placeholder="Fresno, CA"></div>
+</div>
+<button class="yp-btn" id="cal-gen-btn">Generate Full Calendar</button>
+<div id="cal-output" style="display:none; margin-top:1rem"></div>
+</div>
+<div class="yp-box">
+<h3>🔗 Connect &#038; Schedule <span class="yp-tag yp-ty">Growth</span></h3>
+<p style="font-size:.87rem; color:#6B7280; margin-bottom:1rem">Connect your social accounts and auto-schedule posts directly — no copy/paste.</p>
+<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:.75rem">
+    ${[&#8216;💼 LinkedIn&#8217;,&#8217;📸 Instagram&#8217;,&#8217;📘 Facebook&#8217;,&#8217;𝕏 X/Twitter&#8217;,&#8217;▶ YouTube&#8217;,&#8217;🎵 TikTok&#8217;].map(p=&gt;`</p>
+<div style="border:1.5px solid #E5E7EB; border-radius:8px; padding:1rem; text-align:center; font-size:.88rem; color:#374151; font-weight:600">${p}<br /><button style="margin-top:.6rem; background:#F3F4F6; border:none; padding:.3rem .8rem; border-radius:6px; font-size:.75rem; cursor:pointer; font-family:inherit">Connect</button></div>
+<p>`).join(&#8221;)}
+  </p>
+</div>
+</div>
+<div class="yp-cta">
+<h3>Plan Your Social Content in One Place</h3>
+<p>Included in YPN USA plans. Paid plans include a 15-day free trial. <a href="/pricing.html">See plans and pricing</a>.</p>
+<a href="/lo-signup.html" style="display:inline-block; background:#0A1F44; color:#fff; padding:12px 24px; border-radius:8px; font-weight:800; text-decoration:none">Start free →</a>
+</div>
+</div>
+<p>
+<script>
+let postCount=0;
+const PLATFORM_TEMPLATES={
+  linkedin:{
+    '<a href="/loan-types/fha-loan-leads/">FHA</a> Loan Tips':`🏠 FHA Loan Myth: You Need 20% Down
+Reality: FHA loans allow as little as 3.5% down with a 580+ credit score.
+On a $350,000 home, that's $12,250 vs $70,000.
+Some buyers in {city} are sitting on the sidelines because nobody told them this.
+If you know someone who thinks they can't afford to buy — share this.
+And if you're ready to find out what you actually qualify for, drop a comment or DM me "FHA" and I'll send you a free breakdown.
+#MortgageTips #FHALoans #HomeBuying #{city_tag} #LoanOfficer`,
+    'Market Update':`📊 {city} Mortgage Market — Quick Update
+Here's what I'm seeing on the ground this month:
+→ Inventory: Tight but improving
+→ FHA demand: High — first-time buyers are active
+→ Rate sensitivity: Buyers locking in on any dip
+→ Best opportunity: <a href="/loan-types/dscr-loan-leads/">DSCR</a> investor market is wide open
+If you're thinking about buying in the next 90 days, now is a great time to get pre-approved so you can move fast when the right property hits.
+Any questions about the {city} market? Drop them below 👇
+#MortgageMarket #{city_tag} #RealEstate #<a href="/mlo-marketing-automation/">MLO</a>`,
+  },
+  instagram:{
+    'FHA Loan Tips':`FHA loans = homeownership with 3.5% down 🏠
+↓ Save this post ↓
+✅ Min credit score: 580
+✅ Down payment: 3.5%
+✅ Loan limit: Up to $472,030
+✅ Works for: Single family, condos, 2–4 units
+DM me "FHA" for a free breakdown specific to {city} 📍
+#FHALoans #HomeBuying #FirstTimeHomeBuyer #{city_tag} #MortgageTips #LoanOfficer #RealEstate`,
+    'Market Update':`{city} housing market update 📊
+Swipe for the 3 things you need to know before buying this month ➡️
+[Slide 1] Rates are moving — here's what that means for your payment
+[Slide 2] Inventory is low — <a href="/features/">pre-approval</a> = competitive edge
+[Slide 3] FHA & VA demand is up — programs still have great terms
+DM me "MARKET" for a personalized analysis 💬
+#{city_tag} #MortgageMarket #HomeBuying #RealEstate #LoanOfficer`,
+  }
+};
+function checkPlatformAccess(){
+  const p=document.getElementById('soc-platform').value;
+  
+}
+function generatePost(){
+  const p=document.getElementById('soc-platform').value;
+  const topic=document.getElementById('soc-topic').value;
+  const tone=document.getElementById('soc-tone').value;
+  const city=document.getElementById('soc-city').value||'Fresno, CA';
+  postCount++;
+  document.getElementById('soc-posts').textContent=postCount;
+  const cityTag=city.replace(/[^a-zA-Z]/g,'');
+  const templates=PLATFORM_TEMPLATES[p]||PLATFORM_TEMPLATES.linkedin;
+  const tmpl=templates[topic]||`📌 ${topic} — ${city}
+As a mortgage loan officer serving ${city}, I help clients navigate ${topic.toLowerCase()} every week. Here's what you need to know:
+→ Understanding your options is the first step
+→ Every situation is unique — one conversation can change everything
+→ I'm here to answer any questions, no pressure
+DM me or comment below to get started.
+#MortgageTips #${cityTag} #LoanOfficer`;
+  const post=tmpl.replace(/{city}/g,city).replace(/{city_tag}/g,cityTag);
+  const out=document.getElementById('soc-output');
+  out.style.display='block';
+  out.innerHTML=`
+<div class="yp-results">
+<h4>📝 ${p.charAt(0).toUpperCase()+p.slice(1)} Post — ${topic}</h4>
+<textarea id="soc-post-ta" style="width:100%; min-height:200px; padding:.75rem; border:1.5px solid #D1FAE5; border-radius:8px; font-size:.85rem; font-family:inherit">${post}</textarea>
+<div style="display:flex; gap:.5rem; margin-top:.5rem"><button onclick="navigator.clipboard.writeText(document.getElementById('soc-post-ta').value);this.textContent='✓ Copied';setTimeout(()=>this.textContent='Copy',2000)">Copy Post</button><span class="yp-tag yp-tg" style="line-height:2">Review for your own compliance requirements before posting</span></div>
+</div>
+`;
+}
+function generateCalendar(){
+  const city=document.getElementById('cal-city').value||'Fresno, CA';
+  const topics=['FHA Loan Tip','Market Update','VA Benefits','First-Time Buyer','Client Story','Rate Watch','DSCR / Investor','Credit Tips','Realtor Partnership','Pre-Approval Guide'];
+  const days=Array.from({length:20},(_,i)=>({day:i*1.5+1|0,topic:topics[i%topics.length],platform:['LinkedIn','Instagram','Facebook','X'][i%4],time:['8:00 AM','12:00 PM','5:00 PM','7:00 PM'][i%4]}));
+  const out=document.getElementById('cal-output');
+  out.style.display='block';
+  out.innerHTML=`
+<div class="yp-results">
+<h4>📅 30-Day Calendar — ${city}</h4>
+<div>
+<table style="width:100%; font-size:.82rem; border-collapse:collapse">${days.map(d=>`
+<tr style="border-bottom:1px solid #E5E7EB">
+<td style="padding:.4rem .6rem; color:#6B7280">Day ${d.day}</td>
+<td style="padding:.4rem .6rem; font-weight:600">${d.platform}</td>
+<td style="padding:.4rem .6rem">${d.topic}</td>
+<td style="padding:.4rem .6rem; color:#6B7280">${d.time}</td>
+<td style="padding:.4rem .6rem"><button class="yp-btn yp-btn-sm" style="font-size:.72rem; padding:.25rem .6rem">Generate</button></td>
+</tr>
+`).join('')}</table>
+</div>
+</div>
+`;
+}
+
+document.getElementById('soc-gen-btn').addEventListener('click', generatePost);
+document.getElementById('cal-gen-btn').addEventListener('click', generateCalendar);
+
+</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "YPN USA AI Mortgage Marketing Platform",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "url": "/pricing.html",
+    "description": "Included in YPN USA plans. Free account with no credit card; paid plans include a 15-day free trial."
+  },
+  "description": "AI-powered mortgage marketing platform for loan officers. Hyper-local SEO pages, AI chatbot, Realtor co-branding, GBP optimizer, social media deployer, and ML lead engine.",
+  "url": "/"
+}</script></p>
+
+<div style="background:linear-gradient(135deg,#0A1F44,#1a3a6e); color:#fff; border-radius:12px; padding:1.75rem; text-align:center; margin:1.5rem 0">
+<h3 style="margin-bottom:.35rem; font-size:1.1rem; font-weight:700">Start Free. Paid Plans Include a 15-Day Free Trial</h3>
+<p style="opacity:.8; margin-bottom:.85rem; font-size:.87rem">Free account: no credit card. Paid plans include a 15-day free trial — you're only billed after that, and can cancel anytime in the billing portal. <a href="/pricing.html" style="color:#C9A961; text-decoration:underline">See plans and pricing</a>.</p>
+<a href="/lo-signup.html" style="display:inline-block; background:#C9A961; color:#0A1F44; padding:12px 24px; border-radius:8px; font-weight:800; text-decoration:none">Start free →</a>
+<span style="display:block; font-size:.75rem; opacity:.55; margin-top:.5rem">Built for mortgage loan officers</span>
+</div>
+<h2>Related guides</h2>
+<ul>
+<li><a href="/social-media-post-ideas-for-loan-officers/">30 Social Media Post Ideas for Loan Officers</a></li>
+<li><a href="/how-often-loan-officer-post-social-media/">How Often Should a Loan Officer Post on Social Media?</a></li>
+<li><a href="/instagram-for-loan-officers/">Instagram for Loan Officers: How to Get Clients, Not Just Likes</a></li>
+</ul><div style="background:#F9FAFB; border-top:1px solid #E5E7EB; padding:1rem; text-align:center; margin-top:2rem"><p style="font-size:.74rem; color:#9CA3AF; margin:0">Equal Housing Opportunity · YPN USA by YPN Inc. · Founder David J. Moore, MBA is individually licensed (NMLS #787257 · CA DRE #01852847) · YPN Inc. is not a lender or broker · Contact Us · <a href="mailto:support@ypnus.com" style="color:#10B981">support@ypnus.com</a></p></div>
+
+
+
+            
+            <div class="wp-block-buttons">
+                
+                <div class="wp-block-button is-style-fill"><a class="wp-block-button__link wp-element-button" href="/lo-signup.html">Get Started Today</a></div>
+                
+            </div>
+            
+<div class="ypn-cta-container" style="background:#0f172a; color:#ffffff; padding:30px; border-radius:8px; margin:30px 0; text-align:center">
+  <h3 style="color:#ffffff; margin-top:0">Scale Your Mortgage Pipeline with YPN USA</h3>
+  <p style="font-size:16px">Automate cold lead acquisition, instant SMS/email follow-ups, and AI workflow management for MLOs.</p>
+  <a href="/mlo-site-demo/" style="background:#2563eb; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block; margin-top:10px">Schedule a Demo Today</a>
+</div>
+<div class="ypn-interlinks-container" style="border-top:1px solid #e2e8f0; margin-top:40px; padding-top:20px">
+  <h4 style="margin-bottom:10px">Explore Top <a href="/mlo-marketing-automation/">MLO</a> Platform Comparisons</h4>
+  <ul style="line-height:1.8">
+    <li><a href="/vs/total-expert/">YPN USA vs Total Expert</a></li>
+    <li><a href="/vs/bonzo/">YPN USA vs Bonzo</a></li>
+    <li><a href="/vs/homebot/">YPN USA vs Homebot</a></li>
+    <li><a href="/vs/velocify/">YPN USA vs ICE Velocify</a></li>
+  </ul>
+</div>
+
+
+<div class="wp-block-group has-tertiary-background-color has-background" style="padding:20px">
+<p><strong>Featured Resources:</strong></p>
+<ul>
+<li><strong>Previous Page:</strong> <a href="/agent-co-branding/">Realtor Co-Branding Page Builder | YPN USA</a></li>
+<li><strong>Next Page:</strong> <a href="/gbp-ai-engine/">GBP AI Engine — Google Business Profile Optimizer for Loan Officers | YPN USA</a></li>
+</ul>
+</div>

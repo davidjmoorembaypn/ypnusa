@@ -1,0 +1,266 @@
+{
+  "categories": [
+    {
+      "slug": "ai-tools",
+      "name": "AI Tools",
+      "parent": "",
+      "description": "AI-powered mortgage marketing tools"
+    },
+    {
+      "slug": "blog",
+      "name": "Blog",
+      "parent": "",
+      "description": "Your blog category"
+    },
+    {
+      "slug": "compare-stack",
+      "name": "Compare Alternatives",
+      "parent": "",
+      "description": ""
+    },
+    {
+      "slug": "financing-mastery",
+      "name": "Financing Mastery",
+      "parent": "",
+      "description": ""
+    },
+    {
+      "slug": "lead-generation",
+      "name": "Lead Generation",
+      "parent": "",
+      "description": "Mortgage lead generation strategies"
+    },
+    {
+      "slug": "local-markets",
+      "name": "Local Markets",
+      "parent": "",
+      "description": ""
+    },
+    {
+      "slug": "local-seo",
+      "name": "Local SEO",
+      "parent": "",
+      "description": "Hyper-local SEO for MLOs"
+    },
+    {
+      "slug": "mlo-growth-engine",
+      "name": "MLO Growth Engine",
+      "parent": "",
+      "description": ""
+    },
+    {
+      "slug": "mlo-leads",
+      "name": "MLO Leads",
+      "parent": "",
+      "description": ""
+    },
+    {
+      "slug": "mortgage-marketing",
+      "name": "Mortgage Marketing",
+      "parent": "",
+      "description": "Marketing strategies for mortgage loan officers"
+    },
+    {
+      "slug": "predictive-lead-gen",
+      "name": "Predictive Lead Gen",
+      "parent": "",
+      "description": ""
+    },
+    {
+      "slug": "real-estate",
+      "name": "Real Estate",
+      "parent": "",
+      "description": ""
+    },
+    {
+      "slug": "realtor-partnerships",
+      "name": "Realtor Partnerships",
+      "parent": "",
+      "description": "Building Realtor referral networks"
+    },
+    {
+      "slug": "social-media-marketing",
+      "name": "Social Media",
+      "parent": "",
+      "description": "Social media for loan officers"
+    }
+  ],
+  "tags": [
+    {
+      "slug": "ai-mortgage-leads",
+      "name": "AI mortgage leads"
+    },
+    {
+      "slug": "ai-mortgage-leadslead-generation",
+      "name": "AI mortgage leads,lead generation"
+    },
+    {
+      "slug": "buyer-migration",
+      "name": "buyer migration"
+    },
+    {
+      "slug": "central-valley",
+      "name": "Central Valley"
+    },
+    {
+      "slug": "exclusive-leads",
+      "name": "exclusive leads"
+    },
+    {
+      "slug": "exclusive-leadsmarketsmlo-growth",
+      "name": "exclusive leads,Markets,MLO Growth"
+    },
+    {
+      "slug": "facebook-ads-for-loan-officers",
+      "name": "facebook ads for loan officers"
+    },
+    {
+      "slug": "first-time-homebuyer",
+      "name": "first time homebuyer"
+    },
+    {
+      "slug": "home-mortgage-loans",
+      "name": "home mortgage loans"
+    },
+    {
+      "slug": "how-to",
+      "name": "how to"
+    },
+    {
+      "slug": "instagram-loan-officer",
+      "name": "instagram loan officer"
+    },
+    {
+      "slug": "lead-generation",
+      "name": "lead generation"
+    },
+    {
+      "slug": "lead-generationmlo-leads",
+      "name": "lead generation,MLO leads"
+    },
+    {
+      "slug": "lead-generationmortgage-marketing",
+      "name": "lead generation,mortgage marketing"
+    },
+    {
+      "slug": "loan-officer",
+      "name": "loan officer"
+    },
+    {
+      "slug": "loan-officer-leads",
+      "name": "loan officer leads"
+    },
+    {
+      "slug": "loan-officer-leadsexclusive-leads",
+      "name": "loan officer leads,exclusive leads"
+    },
+    {
+      "slug": "loan-officer-leadsmortgage-marketing",
+      "name": "loan officer leads,mortgage marketing"
+    },
+    {
+      "slug": "loan-officer-referrals",
+      "name": "loan officer referrals"
+    },
+    {
+      "slug": "markets",
+      "name": "Markets"
+    },
+    {
+      "slug": "marketsmortgage-marketinglead-generation",
+      "name": "Markets,mortgage marketing,lead generation"
+    },
+    {
+      "slug": "marketszip-code-exclusivitymortgage-marketing",
+      "name": "Markets,ZIP code exclusivity,mortgage marketing"
+    },
+    {
+      "slug": "mlo-growth",
+      "name": "MLO Growth"
+    },
+    {
+      "slug": "mlo-growthmortgage-marketinglead-generation",
+      "name": "MLO Growth,mortgage marketing,lead generation"
+    },
+    {
+      "slug": "mlo-leads",
+      "name": "MLO leads"
+    },
+    {
+      "slug": "mortage-industry",
+      "name": "mortage industry"
+    },
+    {
+      "slug": "mortgage",
+      "name": "mortgage"
+    },
+    {
+      "slug": "mortgage-leads",
+      "name": "mortgage leads"
+    },
+    {
+      "slug": "mortgage-marketing",
+      "name": "mortgage marketing"
+    },
+    {
+      "slug": "personal-brand",
+      "name": "personal brand"
+    },
+    {
+      "slug": "real-estate",
+      "name": "real estate"
+    },
+    {
+      "slug": "real-estate-leads",
+      "name": "real estate leads"
+    },
+    {
+      "slug": "real-estate-market-trends",
+      "name": "real estate market trends"
+    },
+    {
+      "slug": "real-estatelead-generationrealtor-referrals",
+      "name": "real estate,lead generation,realtor referrals"
+    },
+    {
+      "slug": "realtor-referrals",
+      "name": "realtor referrals"
+    },
+    {
+      "slug": "realtor-referralsloan-officer-referrals",
+      "name": "realtor referrals,loan officer referrals"
+    },
+    {
+      "slug": "realtor-referralsloan-officer-referralsmortgage-marketing",
+      "name": "realtor referrals,loan officer referrals,mortgage marketing"
+    },
+    {
+      "slug": "realtor-referralsmortgage-marketing",
+      "name": "realtor referrals,mortgage marketing"
+    },
+    {
+      "slug": "realtor-referralsmortgage-marketingloan-officer",
+      "name": "realtor referrals,mortgage marketing,loan officer"
+    },
+    {
+      "slug": "social-media-mortgage",
+      "name": "social media mortgage"
+    },
+    {
+      "slug": "social-media-mortgage-marketing",
+      "name": "social media mortgage marketing"
+    },
+    {
+      "slug": "top-7-ai-tools",
+      "name": "top 7 ai tools"
+    },
+    {
+      "slug": "zip-code-exclusivity",
+      "name": "ZIP code exclusivity"
+    },
+    {
+      "slug": "zip-code-exclusivitylead-generationmlo-growth",
+      "name": "ZIP code exclusivity,lead generation,MLO Growth"
+    }
+  ]
+}

@@ -61,7 +61,8 @@ export function MloMarketPage({ market, origin }: { market?: MloMarket; origin: 
         offers: PUBLIC_PRICING_TIERS.map((tier) => ({
           "@type": "Offer",
           name: tier.name,
-          price: (tier.priceMonthlyCents / 100).toFixed(2),
+          // The advertised price (e.g. "$99"), not the legacy billed cents kept for existing subscribers.
+          price: tier.price.replace(/[^0-9.]/g, ""),
           priceCurrency: "USD",
           url: `${origin}/pricing`,
         })),

@@ -1,0 +1,237 @@
+---
+id: 531
+type: "page"
+title: "Mortgage Marketing Platform | AI Tools for Loan Officers | YPN USA"
+permalink: "/marketing-platform/"
+status: "publish"
+date: "2026-06-07T19:26:41Z"
+modified: "2026-10-08T07:46:17Z"
+author: "David J. Moore, MBA"
+seoTitle: "Mortgage Marketing Platform for Loan Officers | YPN USA"
+description: "Explore YPN USA's mortgage marketing platform for loan officers, combining AI tools, local marketing, lead capture, follow-up, Realtor partnerships and growth systems."
+focusKeyword: "mortgage marketing platform"
+robots: "noindex,follow"
+ogImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImage: "/wp-content/uploads/2026/08/pexels-photo-8292885.jpg"
+featuredImageAlt: "Loan officer reviewing mortgage rate history document to calculate discount point breakeven math"
+hideTitle: true
+contentSchemaTypes: ["SoftwareApplication","Offer"]
+wpSource: "ypnusa.WordPress.2026-11-04_2.xml"
+---
+<div class="yp-wrap">
+<div id="yp-plan-bar" class="yp-plan-bar"></div>
+<div class="yp-hero">
+<div class="yp-badge">🚀 Full Platform</div>
+<h1>Mortgage Marketing Platform</h1>
+<p>Your complete <a href="/mlo-marketing-automation/">MLO</a> marketing command center. All six tools in one place — SEO pages, lead engine, life events, GBP, social media, and Realtor co-branding — with unified analytics and a 30-day action plan.</p>
+</div>
+<div class="yp-g3" style="margin-bottom:1.5rem">
+<div class="yp-stat"><b id="mp-tools">6</b><span>AI Marketing Tools</span></div>
+<div class="yp-stat"><b id="mp-pages">60+</b><span>SEO Pages Live</span></div>
+<div class="yp-stat"><b id="mp-score">–</b><span>Your Marketing Score</span></div>
+</div>
+<div class="yp-box">
+<h3>📊 Your Marketing Health Score</h3>
+<p style="font-size:.87rem; color:#6B7280; margin-bottom:1rem">Answer 8 quick questions — get a score and your top 3 quick wins.</p>
+<div id="health-form">
+<div style="display:flex; flex-direction:column; gap:.65rem" id="health-qs"></div>
+<p>    <button class="yp-btn" style="margin-top:1rem">Calculate My Score →</button>
+  </div>
+<div id="health-result" style="display:none"></div>
+</div>
+<div class="yp-box">
+<h3>🛠 Platform Tools</h3>
+<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:.75rem" id="tools-grid"></div>
+</div>
+<div class="yp-box">
+<h3>📅 Your 30-Day Action Plan <span class="yp-tag yp-ty">Growth+</span></h3>
+<p style="font-size:.87rem; color:#6B7280; margin-bottom:1rem">A week-by-week plan built around your market, plan level, and current marketing score.</p>
+<p>  <button class="yp-btn">Build My Action Plan</button></p>
+<div id="action-plan" style="display:none; margin-top:1rem"></div>
+</div>
+<div class="yp-box">
+<h3>📈 Analytics Dashboard <span class="yp-tag yp-ty">Pro</span></h3>
+<p style="font-size:.87rem; color:#6B7280; margin-bottom:1rem">Lead volume by source, page rankings, chatbot conversion rate, and Realtor referral pipeline — all in one view.</p>
+<p>  <button class="yp-btn">View Analytics</button></p>
+<div id="analytics" style="display:none; margin-top:1rem"></div>
+</div>
+<div class="yp-cta">
+<h3>Every Tool an <a href="/mlo-marketing-automation/">MLO</a> Needs. Nothing They Don&#8217;t.</h3>
+<p>Free: limited access to core tools. Pro $99/mo, Growth $199/mo, and Exclusive $299/mo expand automation and platform capability. Paid plans include a 15-day trial and one protected ZIP after qualifying paid activation.</p>
+<p>  Start Free — Explore YPN USA →
+</div>
+</div>
+<p>
+const TOOLS=[
+  {icon:'🧠',name:'ML Lead Engine',desc:'Predictive SEO + lead scoring',url:'/ml-engine/',tier:'free',badge:''},
+  {icon:'🔔',name:'Life Events Engine',desc:'Trigger-based prospect outreach',url:'/life-events-engine/',tier:'free',badge:''},
+  {icon:'📍',name:'GBP AI Engine',desc:'Google 3-pack domination',url:'/gbp-ai-engine/',tier:'free',badge:''},
+  {icon:'📱',name:'Social Deployer',desc:'30-day content calendar',url:'/social-media-deployer/',tier:'free',badge:''},
+  {icon:'🤝',name:'Agent Co-Branding',desc:'Realtor partnership pages',url:'/agent-co-branding/',tier:'free',badge:''},
+  {icon:'📍',name:'Local SEO Engine',desc:'City × loan-type pages',url:'/platform/#seo',tier:'free',badge:''},
+  {icon:'🤖',name:'AI Chatbot',desc:'24/7 lead qualification',url:'/ai-chatbot-for-loan-officers/',tier:'free',badge:''},
+  {icon:'📊',name:'LendPro AI',desc:'Instant mortgage pre-qual',url:'/lendpro/',tier:'free',badge:''},
+];
+const HEALTH_QS=[
+  'Do you have hyper-local SEO pages (<a href="/loan-types/fha-loan-leads/">FHA</a>, VA, <a href="/loan-types/dscr-loan-leads/">DSCR</a> by city)?',
+  'Is your Google Business Profile fully optimized (750+ char description, 10+ photos)?',
+  'Do you post to social media at least 3x per week?',
+  'Do you have at least 5 active Realtor referral partners?',
+  'Is there an AI chatbot on your website capturing leads 24/7?',
+  'Do you have an automated follow-up sequence for new leads?',
+  'Do you track which marketing channels produce your best leads?',
+  'Do you request Google reviews from every closed client?',
+];
+let healthAnswers={};
+window.addEventListener('DOMContentLoaded',()=&gt;{
+  YPN USA.banner();
+  const tg=document.getElementById('tools-grid');
+  TOOLS.forEach(t=&gt;{
+    const d=document.createElement('div');
+    d.style.cssText='border:1.5px solid #E5E7EB;border-radius:10px;padding:1.1rem;transition:border-color .2s,box-shadow .2s;cursor:pointer';
+    d.onmouseenter=()=&gt;{d.style.borderColor='#10B981';d.style.boxShadow='0 4px 16px rgba(10,31,68,.08)';};
+    d.onmouseleave=()=&gt;{d.style.borderColor='#E5E7EB';d.style.boxShadow='none';};
+    d.innerHTML=`</p>
+<div style="font-size:1.6rem; margin-bottom:.4rem">${t.icon}</div>
+<div style="font-weight:700; font-size:.9rem; color:#0A1F44; margin-bottom:.2rem">${t.name}</div>
+<div style="font-size:.78rem; color:#6B7280; margin-bottom:.6rem">${t.desc}</div>
+<p>Open Tool →`;
+    tg.appendChild(d);
+  });
+  const hq=document.getElementById('health-qs');
+  HEALTH_QS.forEach((q,i)=&gt;{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:flex-start;gap:.75rem;padding:.6rem;background:#F9FAFB;border-radius:8px';
+    row.innerHTML=`<span style="font-size:.88rem; color:#374151; flex:1">${q}</span><label style="display:flex; gap:.35rem; align-items:center; font-size:.85rem; white-space:nowrap"><input type="radio" name="hq${i}" value="yes"> Yes</label><label style="display:flex; gap:.35rem; align-items:center; font-size:.85rem; white-space:nowrap"><input type="radio" name="hq${i}" value="no"> No</label>`;
+    hq.appendChild(row);
+  });
+});
+function calcHealth(){
+  let score=0;const missing=[];
+  HEALTH_QS.forEach((q,i)=&gt;{if(healthAnswers[i]==='yes')score+=12.5;else missing.push(q.replace('?',''));});
+  document.getElementById('mp-score').textContent=Math.round(score);
+  const grade=score&gt;=75?['🟢','Strong foundation','Keep optimizing']:score&gt;=50?['🟡','Room to grow','3 quick wins below']:['🔴','Early stage','Start with these fundamentals'];
+  document.getElementById('health-form').style.display='none';
+  const res=document.getElementById('health-result');
+  res.style.display='block';
+  const top3=missing.slice(0,3);
+  res.innerHTML=`</p>
+<div class="yp-results">
+<h4>Marketing Score: ${Math.round(score)}/100 ${grade[0]}</h4>
+<div>=75?'#D1FAE5':score&gt;=50?'#FEF3C7':'#FEE2E2'};color:${score&gt;=75?'#065F46':score&gt;=50?'#92400E':'#991B1B'};padding:.5rem .9rem;border-radius:7px;font-size:.87rem;font-weight:600;margin-bottom:1rem"&gt;${grade[1]} — ${grade[2]}</div>
+<div style="background:#E5E7EB; border-radius:999px; height:10px; overflow:hidden; margin-bottom:1rem">
+<div style="height:100%; background:#10B981; border-radius:999px"></div>
+</div>
+<p>    ${top3.length?`<strong style="font-size:.85rem; display:block; margin-bottom:.5rem">Top 3 Quick Wins:</strong>${top3.map((m,i)=&gt;`</p>
+<div style="display:flex; align-items:flex-start; gap:.5rem; margin-bottom:.4rem; font-size:.85rem"><span style="background:#10B981; color:#fff; border-radius:999px; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:.7rem; flex-shrink:0">${i+1}</span>${m}</div>
+<p>`).join('')}`:''}
+  </p>
+</div>
+<p>`;
+}
+function buildActionPlan(){
+  const plan=[
+    {week:'Week 1',title:'Claim Your Territory',tasks:['Set up 5 hyper-local SEO pages (<a href="/loan-types/fha-loan-leads/">FHA</a> + VA for your top 2 cities)','Complete your GBP 100-point audit and fix top 3 issues','Deploy your AI chatbot on your website homepage']},
+    {week:'Week 2',title:'Build Your Realtor Network',tasks:['Create co-branded pages for 3 target Realtors','Send personalized AI-generated outreach to 10 agents','Set up your life events engine (marriage + new baby triggers)']},
+    {week:'Week 3',title:'Content &amp; Social',tasks:['Generate your 30-day social media calendar','Post your first market update video/reel','Start your GBP weekly post schedule']},
+    {week:'Week 4',title:'Optimize &amp; Scale',tasks:['Review chatbot conversation logs — refine qualification flow','Check which SEO pages are getting impressions in GSC','Add 5 more city pages based on ML heat map data']},
+  ];
+  const out=document.getElementById('action-plan');
+  out.style.display='block';
+  out.innerHTML=`</p>
+<div class="yp-results">
+<h4>📅 Your 30-Day Action Plan</h4>
+<p>${plan.map(w=&gt;`</p>
+<div style="margin-bottom:1rem"><strong style="display:block; color:#0A1F44; margin-bottom:.35rem">${w.week}: ${w.title}</strong>${w.tasks.map(t=&gt;`</p>
+<div style="display:flex; gap:.5rem; align-items:flex-start; font-size:.85rem; margin-bottom:.3rem; color:#374151"><span style="color:#10B981; flex-shrink:0">✓</span>${t}</div>
+<p>`).join('')}</p>
+</div>
+<p>`).join('')}</p>
+</div>
+<p>`;
+}
+function showAnalytics(){
+  const out=document.getElementById('analytics');
+  out.style.display='block';
+  const leads=[12,18,14,22,19,25,21,30,28,35,32,40];
+  out.innerHTML=`</p>
+<div class="yp-results">
+<h4>📈 Lead Analytics — Last 12 Weeks</h4>
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; margin-bottom:1rem">
+<div class="yp-stat"><b>40</b><span>Leads this week</span></div>
+<div class="yp-stat"><b>68%</b><span>Chatbot capture rate</span></div>
+<div class="yp-stat"><b>4</b><span>Active Realtor partners</span></div>
+</p>
+</div>
+<div style="display:flex; align-items:flex-end; gap:4px; height:80px; margin-top:.5rem">${leads.map(v=&gt;`</p>
+<div style="flex:1; background:#10B981; border-radius:4px 4px 0 0; opacity:.7" title="${v} leads"></div>
+<p>`).join('')}</p>
+</div>
+<div style="display:flex; justify-content:space-between; font-size:.72rem; color:#9CA3AF; margin-top:.25rem"><span>12 wks ago</span><span>This week</span></div>
+</p>
+</div>
+<p>`;
+}
+</p>
+<p>{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "YPN USA AI Mortgage Marketing Platform",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "url": "/pricing.html",
+    "description": "Included in YPN USA plans. Free account with no credit card; paid plans include a 15-day free trial."
+  },
+  "description": "AI-powered mortgage marketing platform for loan officers. Hyper-local SEO pages, AI chatbot, Realtor co-branding, GBP optimizer, social media deployer, and ML lead engine.",
+  "url": "/"
+}</p>
+
+<div style="background:linear-gradient(135deg,#0A1F44,#1a3a6e); color:#fff; border-radius:12px; padding:1.75rem; text-align:center; margin:1.5rem 0">
+<h3 style="margin-bottom:.35rem; font-size:1.1rem; font-weight:700">Start Free. Paid Plans Include a 15-Day Free Trial</h3>
+<p style="opacity:.8; margin-bottom:.85rem; font-size:.87rem">The Free plan needs no credit card. Pro, Growth, and Exclusive each include a 15-day free trial. Cancel anytime.</p>
+Start Free →
+<span style="display:block; font-size:.75rem; opacity:.55; margin-top:.5rem">Join loan officers across CA, AZ, NV already using YPN USA</span>
+</div>
+<div style="background:#F9FAFB; border-top:1px solid #E5E7EB; padding:1.25rem; margin-top:2rem; text-align:center">
+<p style="font-size:.75rem; color:#9CA3AF; margin:0; line-height:1.6">
+Equal Housing Opportunity. YPN USA is a mortgage marketing platform operated by YPN Inc. 
+All content is for marketing purposes only. Mortgage loan origination requires a valid NMLS license. 
+Information deemed reliable but not guaranteed. YPN Inc. is not a mortgage lender or broker and does not make loans.
+Founder David J. Moore, MBA is individually licensed: NMLS #787257 · CA DRE #01852847 · Dinuba, CA · <a href="/contact/">Contact Us</a>
+</p>
+</div>
+
+
+
+            
+            <div class="wp-block-buttons">
+                
+                <div class="wp-block-button is-style-fill"><a class="wp-block-button__link wp-element-button" href="/lo-signup.html">Get Started Today</a></div>
+                
+            </div>
+            
+<div class="ypn-cta-container" style="background:#0f172a; color:#ffffff; padding:30px; border-radius:8px; margin:30px 0; text-align:center">
+  <h3 style="color:#ffffff; margin-top:0">Scale Your Mortgage Pipeline with YPN USA</h3>
+  <p style="font-size:16px">Automate cold lead acquisition, instant SMS/email follow-ups, and AI workflow management for MLOs.</p>
+  <a href="/mlo-site-demo/" style="background:#2563eb; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block; margin-top:10px">Schedule a Demo Today</a>
+</div>
+<div class="ypn-interlinks-container" style="border-top:1px solid #e2e8f0; margin-top:40px; padding-top:20px">
+  <h4 style="margin-bottom:10px">Explore Top MLO Platform Comparisons</h4>
+  <ul style="line-height:1.8">
+    <li><a href="/vs/total-expert/">YPN USA vs Total Expert</a></li>
+    <li><a href="/vs/bonzo/">YPN USA vs Bonzo</a></li>
+    <li><a href="/vs/homebot/">YPN USA vs Homebot</a></li>
+    <li><a href="/vs/velocify/">YPN USA vs ICE Velocify</a></li>
+  </ul>
+</div>
+
+
+<div class="wp-block-group has-tertiary-background-color has-background" style="padding:20px">
+<p><strong>Featured Resources:</strong></p>
+<ul>
+<li><strong>Previous Page:</strong> <a href="/realtor-marketing-tools/">Realtor Marketing Tools - Become the Go-To Loan Officer in Your City | YPN USA</a></li>
+<li><strong>Next Page:</strong> <a href="/agent-co-branding/">Realtor Co-Branding Page Builder | YPN USA</a></li>
+</ul>
+</div>

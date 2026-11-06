@@ -41,11 +41,11 @@ describe("accounts", () => {
       claimedZips: [],
     };
     saveRevenueSubscription({ ...base, id: "s1", tier: "pro", status: "active", source: "stripe_webhook" });
-    saveRevenueSubscription({ ...base, id: "s2", tier: "exclusive", status: "trialing", source: "stripe_webhook" });
-    saveRevenueSubscription({ ...base, id: "s3", tier: "exclusive", status: "cancelled", source: "stripe_webhook" });
-    assert.deepEqual(entitlementForEmail("buyer@example.com"), { tier: "exclusive", subscriptionStatus: "trialing" });
+    saveRevenueSubscription({ ...base, id: "s2", tier: "elite", status: "trialing", source: "stripe_webhook" });
+    saveRevenueSubscription({ ...base, id: "s3", tier: "elite", status: "cancelled", source: "stripe_webhook" });
+    assert.deepEqual(entitlementForEmail("buyer@example.com"), { tier: "elite", subscriptionStatus: "trialing" });
 
-    saveRevenueSubscription({ ...base, id: "s4", ownerEmail: "seed@example.com", tier: "exclusive", status: "active", source: "seed" });
+    saveRevenueSubscription({ ...base, id: "s4", ownerEmail: "seed@example.com", tier: "elite", status: "active", source: "seed" });
     assert.deepEqual(entitlementForEmail("seed@example.com"), { tier: "free", subscriptionStatus: "none" });
   });
 });

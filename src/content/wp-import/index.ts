@@ -24,6 +24,7 @@ import type { BlogPost } from "@/content/blog";
 import pagesData from "./pages.json";
 import postsData from "./posts.json";
 import redirectsData from "./redirects.json";
+import authorData from "./author.json";
 
 export interface WpImportedPage {
   slug: string;
@@ -33,6 +34,40 @@ export interface WpImportedPage {
   date: string;
   modified: string;
   wpId: number;
+  /** Fields below come from the ypnus.com rebuild (sites/ypnus-com, scripts/export-to-app.js). */
+  /** Search-result title when it differs from the on-page title. */
+  seoTitle?: string;
+  /** The body has no <h1> of its own: render the title as one, in the prose layout. */
+  showTitle?: boolean;
+  /** Show the founder author box and emit Person / author / reviewedBy schema. */
+  authorBox?: boolean;
+  /** YYYY-MM-DD the page was last reviewed (author box + WebPage.lastReviewed). */
+  reviewedDate?: string;
+  /** "Article" adds an Article node (comparison pages). */
+  schemaType?: string;
+  /** Visible FAQ on the page, mirrored as FAQPage JSON-LD. */
+  faq?: { q: string; a: string }[];
+  /** "Keep exploring" internal links shown under the body. */
+  related?: { href: string; label: string }[];
+}
+
+/** Founder facts for the author box and Person schema (generated from sites/ypnus-com/data/site.json). */
+export interface WpAuthor {
+  name: string;
+  jobTitle: string;
+  url: string;
+  bio: string;
+  credentials: {
+    name: string;
+    category: string;
+    identifier?: string;
+    recognizedBy?: string;
+    recognizedByUrl?: string;
+  }[];
+  knowsAbout: string[];
+  sameAs: string[];
+  alumniOf: { name: string; url?: string } | string | null;
+  editorialPolicyUrl: string;
 }
 
 interface RawPost {
@@ -58,6 +93,9 @@ export const WP_FEATURES_SUBPAGES: readonly WpImportedPage[] = SECTIONS.features
 export const WP_MLO_MARKETING_PAGES: readonly WpImportedPage[] = SECTIONS["mlo-marketing"] ?? [];
 export const WP_TERRITORY_PAGES: readonly WpImportedPage[] = SECTIONS.territory ?? [];
 export const WP_RESOURCE_PAGES: readonly WpImportedPage[] = SECTIONS.resources ?? [];
+export const WP_AGENT_PAGES: readonly WpImportedPage[] = SECTIONS.agents ?? [];
+
+export const WP_AUTHOR = authorData as WpAuthor;
 
 export function getWpPage(list: readonly WpImportedPage[], slug: string): WpImportedPage | undefined {
   return list.find((p) => p.slug === slug);

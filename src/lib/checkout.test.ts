@@ -11,10 +11,17 @@ afterEach(() => {
 });
 
 describe("checkoutUrlForTier", () => {
-  it("routes to lo-signup.html with plan (and zip, when given) when no Payment Link is configured", () => {
+  it("uses the November 2026 Payment Links when no env var is set (id pro = Growth $199)", () => {
     delete process.env[ENV_KEY];
-    assert.match(checkoutUrlForTier("pro"), /lo-signup\.html\?plan=pro$/);
-    assert.match(checkoutUrlForTier("pro", "90210"), /lo-signup\.html\?plan=pro&zip=90210$/);
+    assert.equal(checkoutUrlForTier("pro"), "https://buy.stripe.com/7sY14mdwm2tb7i93uu3AY0M");
+    assert.equal(checkoutUrlForTier("growth"), "https://buy.stripe.com/bJe5kC4ZQffXdGxghg3AY0L");
+    assert.equal(checkoutUrlForTier("elite"), "https://buy.stripe.com/5kQdR8akagk1auld543AY0N");
+  });
+
+  it("routes the retired starter tier to lo-signup.html with plan (and zip, when given)", () => {
+    delete process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_STARTER;
+    assert.match(checkoutUrlForTier("starter"), /lo-signup\.html\?plan=starter$/);
+    assert.match(checkoutUrlForTier("starter", "90210"), /lo-signup\.html\?plan=starter&zip=90210$/);
   });
 
   it("returns the direct Payment Link unchanged when no zip is given", () => {
@@ -40,7 +47,9 @@ describe("checkoutUrlForTier", () => {
 describe("hasDirectCheckoutLink", () => {
   it("reflects whether a Payment Link is configured for the tier", () => {
     delete process.env[ENV_KEY];
-    assert.equal(hasDirectCheckoutLink("pro"), false);
+    delete process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_STARTER;
+    assert.equal(hasDirectCheckoutLink("starter"), false);
+    assert.equal(hasDirectCheckoutLink("pro"), true);
     process.env[ENV_KEY] = "https://buy.stripe.com/test_abc123";
     assert.equal(hasDirectCheckoutLink("pro"), true);
   });

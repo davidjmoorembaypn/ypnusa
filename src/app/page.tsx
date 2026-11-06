@@ -12,6 +12,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { FounderTrustStrip } from "@/components/founder-trust-strip";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
+import { checkoutUrlForTier } from "@/lib/checkout";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
 import { getSiteOrigin } from "@/lib/request-host";
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
@@ -136,7 +137,7 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Pro $99/mo, Growth $199/mo and Exclusive $299/mo, and every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
+    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
   },
 ];
 
@@ -177,12 +178,15 @@ export default function Home() {
                 Talk to Cerebro
               </OpenAssistantButton>
               <a
-                href="#demo"
+                href={checkoutUrlForTier("growth")}
                 className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3.5 text-white backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
               >
-                See the AI live ↓
+                Start 15-day free trial · Pro $99/mo
               </a>
             </div>
+            <p className="mt-3 text-xs text-white/70">
+              Built by licensed loan officer {AUTHOR_NAME} · NMLS #{NMLS_ID} · CA DRE #{CA_DRE_ID}
+            </p>
 
             <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-white/70">
               {["Free to start", "No credit card", "You keep every lead"].map((item) => (

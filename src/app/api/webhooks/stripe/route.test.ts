@@ -56,8 +56,7 @@ function subscriptionUpdatedEvent(overrides: Record<string, unknown> = {}) {
         id: "sub_1",
         customer: "cus_1",
         status: "active",
-        // New prices carry ypnus_plan; it wins over a leftover legacy ypnus_tier.
-        metadata: { ypnus_plan: "exclusive", ypnus_tier: "pro" },
+        metadata: { ypnus_tier: "pro" },
         items: { object: "list", data: [{ price: { id: "price_pro_test", product: "prod_pro" } }] },
         ...overrides,
       },
@@ -85,8 +84,7 @@ describe("Direct Stripe webhook — /api/webhooks/stripe route", async () => {
     assert.equal(res.status, 200);
     const body = (await res.json()) as { ok: boolean; applied: boolean; tier: string; zipClaimed: boolean };
     assert.equal(body.applied, true);
-    // Legacy metadata.ypnus_tier "growth" was the $99.99 plan, today's Pro.
-    assert.equal(body.tier, "pro");
+    assert.equal(body.tier, "growth");
     assert.equal(body.zipClaimed, true);
 
     const stored = findRevenueSubscriptionByStripeSubscriptionId("sub_1");
@@ -94,16 +92,16 @@ describe("Direct Stripe webhook — /api/webhooks/stripe route", async () => {
     assert.deepEqual(stored?.claimedZips, ["93720"]);
   });
 
-  await it("updates tier/status from customer.subscription.updated, preferring metadata.ypnus_plan", async () => {
+  await it("updates tier/status from customer.subscription.updated using subscription metadata", async () => {
     const res = await POST(signedRequest(subscriptionUpdatedEvent()));
     assert.equal(res.status, 200);
     const body = (await res.json()) as { ok: boolean; applied: boolean; tier: string; status: string };
     assert.equal(body.applied, true);
-    assert.equal(body.tier, "exclusive");
+    assert.equal(body.tier, "pro");
     assert.equal(body.status, "active");
 
     const stored = findRevenueSubscriptionByStripeSubscriptionId("sub_1");
-    assert.equal(stored?.tier, "exclusive");
+    assert.equal(stored?.tier, "pro");
     // The earlier checkout event's claimed ZIP must survive an unrelated subscription update.
     assert.deepEqual(stored?.claimedZips, ["93720"]);
   });

@@ -1,7 +1,6 @@
 import fs from "fs";
 import type { Stats } from "fs";
 import path from "path";
-import { parseStoredTier } from "@/lib/pricing";
 import type {
   AccountRecord,
   LoginTokenRecord,
@@ -104,24 +103,24 @@ const defaultLoanOfficers: LoanOfficerRecord[] = [
 
 const defaultRevenueSubscriptions: RevenueSubscriptionRecord[] = [
   {
-    id: "sub_seed_jordan_pro",
+    id: "sub_seed_jordan_starter",
     createdAt: "2026-01-01T00:00:00.000Z",
     startedAt: "2026-01-01T00:00:00.000Z",
-    tier: "pro",
+    tier: "starter",
     status: "active",
     source: "seed",
     ownerLoId: "lo_jordan_lee",
     ownerEmail: "jordan.lee@loanapilot.ai",
     company: "Jordan Lee Lending",
     claimedZips: ["78701", "78702"],
-    monthlyPriceCents: 9900,
+    monthlyPriceCents: 2999,
     lifetimeMonths: 14,
   },
   {
-    id: "sub_seed_priya_growth",
+    id: "sub_seed_priya_pro",
     createdAt: "2026-01-01T00:00:00.000Z",
     startedAt: "2026-01-01T00:00:00.000Z",
-    tier: "growth",
+    tier: "pro",
     status: "active",
     source: "seed",
     ownerLoId: "lo_priya_nandakumar",
@@ -129,14 +128,14 @@ const defaultRevenueSubscriptions: RevenueSubscriptionRecord[] = [
     company: "Nandakumar Capital",
     claimedZips: ["33131", "33132", "33133", "33134"],
     countyTerritories: ["Miami-Dade County, FL"],
-    monthlyPriceCents: 19900,
+    monthlyPriceCents: 9999,
     lifetimeMonths: 18,
   },
   {
-    id: "sub_seed_mateo_exclusive",
+    id: "sub_seed_mateo_elite",
     createdAt: "2026-01-01T00:00:00.000Z",
     startedAt: "2026-01-01T00:00:00.000Z",
-    tier: "exclusive",
+    tier: "elite",
     status: "active",
     source: "seed",
     ownerLoId: "lo_mateo_rosales",
@@ -144,7 +143,7 @@ const defaultRevenueSubscriptions: RevenueSubscriptionRecord[] = [
     company: "Rosales Home Finance",
     claimedZips: ["85004", "85006", "85251", "85257", "85281", "85282"],
     countyTerritories: ["Maricopa County, AZ", "Pima County, AZ"],
-    monthlyPriceCents: 29900,
+    monthlyPriceCents: 29999,
     lifetimeMonths: 20,
   },
 ];
@@ -192,11 +191,7 @@ function normalize(snapshot: unknown): DbShape {
   );
 
   return {
-    loanOfficers: (loanOfficers.length > 0 ? loanOfficers : defaultLoanOfficers).map((officer) => {
-      if (officer.entitlementTier === undefined) return officer;
-      const entitlementTier = parseStoredTier(officer.entitlementTier) ?? undefined;
-      return { ...officer, entitlementTier };
-    }),
+    loanOfficers: loanOfficers.length > 0 ? loanOfficers : defaultLoanOfficers,
     sessions: sessions.map((session) => ({
       ...session,
       status: session.status ?? "collecting",
@@ -213,14 +208,8 @@ function normalize(snapshot: unknown): DbShape {
     analyticsEvents: arrayOrEmpty<AnalyticsEventRecord>(parsed.analyticsEvents),
     demoRequests: arrayOrEmpty<DemoRequestRecord>(parsed.demoRequests),
     propertyEvaluations: arrayOrEmpty<PropertyEvaluationRecord>(parsed.propertyEvaluations),
-    revenueSubscriptions: (revenueSubscriptions.length > 0 ? revenueSubscriptions : defaultRevenueSubscriptions).map(
-      (subscription) => ({
-        ...subscription,
-        // Records saved before the Nov 2026 lineup change can carry starter/elite, or
-        // growth/pro at their old price points; read them as the current tier at that price.
-        tier: parseStoredTier(subscription.tier, subscription.monthlyPriceCents) ?? "free",
-      }),
-    ),
+    revenueSubscriptions:
+      revenueSubscriptions.length > 0 ? revenueSubscriptions : defaultRevenueSubscriptions,
     chatSessions: arrayOrEmpty<ChatSessionRecord>(parsed.chatSessions).map((session) => ({
       ...session,
       capturedFields: isPlainRecord(session.capturedFields) ? session.capturedFields : {},

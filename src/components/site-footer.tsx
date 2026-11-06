@@ -93,6 +93,8 @@ export function SiteFooter() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">Resources</p>
           <ul className="mt-4 space-y-2 text-sm">
             <li><Link href="/pricing" className="transition hover:text-white">Pricing</Link></li>
+            <li><Link href="/loan-officers" className="transition hover:text-white">For loan officers</Link></li>
+            <li><Link href="/loan-officers/visalia-ca" className="transition hover:text-white">Visalia loan officers</Link></li>
             <li><Link href="/blog" className="transition hover:text-white">Blog</Link></li>
             <li><Link href="/about" className="transition hover:text-white">About David</Link></li>
             <li><Link href="/book" className="transition hover:text-white">The book</Link></li>

@@ -1,4 +1,5 @@
 import { recordInvoicePaid } from "@/lib/conversions";
+import { normalizeEmail, upsertAccount } from "@/lib/accounts";
 import { applyFulfillmentEvent } from "@/lib/fulfillment";
 import { jsonError, jsonOk, logApiError } from "@/lib/http";
 import { mapStripeEventToFulfillmentPayload, verifyStripeWebhookEvent } from "@/lib/stripe-webhook";
@@ -62,6 +63,10 @@ export async function POST(request: Request) {
     if (!result.applied) {
       return jsonOk({ applied: false, reason: result.reason });
     }
+    // Provision the sign-in account for whoever paid, so they can sign in with the same
+    // email right away (replaces WordPress user creation on checkout).
+    const paidEmail = normalizeEmail(payload.customerEmail);
+    if (paidEmail) upsertAccount({ email: paidEmail, source: "stripe_checkout" });
     return jsonOk({
       applied: true,
       subscriptionId: result.subscriptionId,

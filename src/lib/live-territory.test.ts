@@ -112,3 +112,28 @@ describe("live territory lookup", async () => {
     assert.equal(await fetchLiveTerritory("93720"), null, "transport failure");
   });
 });
+
+describe("TERRITORY_SOURCE=local", () => {
+  it("answers from this app's paid ledger without calling WordPress", async () => {
+    const previous = process.env.TERRITORY_SOURCE;
+    process.env.TERRITORY_SOURCE = "local";
+    const originalFetch = globalThis.fetch;
+    let fetched = false;
+    globalThis.fetch = (async () => {
+      fetched = true;
+      throw new Error("should not be called");
+    }) as typeof fetch;
+    try {
+      const { fetchLiveTerritory } = await import("./live-territory");
+      const result = await fetchLiveTerritory("93291");
+      assert.ok(result);
+      assert.equal(result?.valid, true);
+      assert.equal(result?.live, undefined);
+      assert.equal(fetched, false);
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (previous === undefined) delete process.env.TERRITORY_SOURCE;
+      else process.env.TERRITORY_SOURCE = previous;
+    }
+  });
+});

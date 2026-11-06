@@ -113,8 +113,11 @@ systemctl enable ypnusa.service
 install -d /var/www/letsencrypt/.well-known/acme-challenge
 cat > /usr/local/sbin/ypnusa-render-app-vhost <<'EOF'
 #!/bin/bash
-# Render /etc/httpd/conf.d/ypnusa.conf: plain HTTP proxy until the
-# app.ypnus.com certificate exists, then HTTPS + redirect.
+# Render /etc/httpd/conf.d/ypnusa.conf. ypnus.com is the one public site:
+# app.ypnus.com 301-redirects to https://ypnus.com/<same path + query>, except
+# ACME challenges and /api/webhooks/ (webhook senders such as Stripe do not
+# follow redirects), which are served directly. Requests by bare IP (health
+# checks before DNS moves) are proxied to the app.
 set -euo pipefail
 CONF=/etc/httpd/conf.d/ypnusa.conf
 LIVE=/etc/letsencrypt/live/app.ypnus.com
@@ -122,46 +125,42 @@ ACME='    Alias /.well-known/acme-challenge/ /var/www/letsencrypt/.well-known/ac
     <Directory "/var/www/letsencrypt/.well-known/acme-challenge/">
         Require all granted
     </Directory>'
+REDIRECT='    RewriteEngine On
+    RewriteCond %{HTTP_HOST} ^app\.ypnus\.com$ [NC]
+    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+    RewriteCond %{REQUEST_URI} !^/api/webhooks/
+    RewriteRule ^/?(.*)$ https://ypnus.com/$1 [R=301,L]'
 PROXY='    ProxyPreserveHost On
     ProxyTimeout 60
     ProxyPass /.well-known/acme-challenge/ !
     ProxyPass / http://127.0.0.1:3000/
     ProxyPassReverse / http://127.0.0.1:3000/'
+TLS=""
 if [ -f "$LIVE/fullchain.pem" ]; then
-  cat > "$CONF" <<V
-# Rendered by ypnusa-render-app-vhost. Loads before zz-ypnus-com.conf, so it is the default vhost.
-<VirtualHost *:80>
-    ServerName app.ypnus.com
-$ACME
-    RewriteEngine On
-    RewriteCond %{HTTP_HOST} ^app\.ypnus\.com$ [NC]
-    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
-    RewriteRule ^/?(.*)$ https://app.ypnus.com/\$1 [R=301,L]
-$PROXY
-</VirtualHost>
-<VirtualHost *:443>
+  TLS="<VirtualHost *:443>
     ServerName app.ypnus.com
     SSLEngine on
     SSLCertificateFile    $LIVE/fullchain.pem
     SSLCertificateKeyFile $LIVE/privkey.pem
-    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Proto \"https\"
+$REDIRECT
 $PROXY
     ErrorLog  /var/log/httpd/ypnusa-error.log
     CustomLog /var/log/httpd/ypnusa-access.log combined
-</VirtualHost>
-V
-else
-  cat > "$CONF" <<V
-# Rendered by ypnusa-render-app-vhost (no certificate yet: HTTP only).
+</VirtualHost>"
+fi
+cat > "$CONF" <<V
+# Rendered by ypnusa-render-app-vhost. Loads before zz-ypnus-com.conf, so it is the default vhost.
 <VirtualHost *:80>
     ServerName app.ypnus.com
 $ACME
+$REDIRECT
 $PROXY
     ErrorLog  /var/log/httpd/ypnusa-error.log
     CustomLog /var/log/httpd/ypnusa-access.log combined
 </VirtualHost>
+$TLS
 V
-fi
 apachectl configtest
 EOF
 chmod 755 /usr/local/sbin/ypnusa-render-app-vhost

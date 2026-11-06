@@ -1,8 +1,9 @@
 # New production server (Amazon Linux 2023, user data)
 
 Used on 2026-11-06 after the old app server (`i-0ad200fc61f4d39f5`, 18.223.107.93, in the
-locked account ending 3723) stopped answering. Builds a fresh server for **app.ypnus.com and
-ypnus.com** from the console with no shell access.
+locked account ending 3723) stopped answering. Builds a fresh server from the console with no shell access. **ypnus.com is the one public site**:
+app.ypnus.com 301-redirects to the same path on ypnus.com (except `/api/webhooks/`, served
+directly because Stripe does not follow redirects).
 
 ## Launch (AWS console, account ending 3689, region Ohio us-east-2)
 
@@ -45,6 +46,11 @@ until then HTTPS shows a certificate warning.
 Rollback: set `A @` back to `82.29.85.227` (Hostinger WordPress, kept running).
 
 ## After launch
+
+- Move any Stripe webhook endpoint that points at `app.ypnus.com` to `https://ypnus.com/...`
+  (same path) when convenient; the old URL keeps working.
+- Links built from `APP_SITE_URL` (`src/lib/site.ts`) still say app.ypnus.com and redirect;
+  switching its default to ypnus.com is a follow-up code change.
 
 - `/etc/ypnusa/app.env` has generated `SESSION_SECRET`, `ADMIN_TOKEN`, `CRON_SECRET`.
   `ANTHROPIC_API_KEY` (assistant tools) and `YPNUS_SSO_SHARED_SECRET` (sign-in hand-off from

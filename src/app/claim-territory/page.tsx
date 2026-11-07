@@ -39,7 +39,8 @@ export default function ClaimTerritoryPage() {
           <h1 className="text-3xl font-semibold leading-tight md:text-5xl">Claim your exclusive ZIP code</h1>
           <p className="mt-4 max-w-xl text-lg text-white/85">
             One licensed loan officer per ZIP code. Tell us which ZIP code you want and we&rsquo;ll confirm
-            availability and get you started. Checking is free; locking a ZIP code starts a 15-day free trial.
+            availability and get you started. Checking is free. A 15-day free trial lets you try the tools; your ZIP code locks at your
+            first payment, so pay now if you want it locked today.
           </p>
           <div className="mt-6 max-w-xl rounded-2xl border border-white/15 bg-white/[0.06] p-4 text-sm text-white/85">
             <p>

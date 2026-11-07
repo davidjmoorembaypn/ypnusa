@@ -1,5 +1,5 @@
 import { marketingUrl } from "@/lib/site";
-import type { PricingTierId } from "@/lib/pricing";
+import type { CurrentPaidTierId, PricingTierId } from "@/lib/pricing";
 
 /**
  * Resolves where a pricing CTA should actually send someone.
@@ -64,15 +64,18 @@ function configuredPaymentLink(tier: PricingTierId): string | null {
  */
 export const FREE_SIGNUP_HREF = "/login?next=%2Fonboarding";
 
+/** Adds the checked ZIP code as `client_reference_id` (see the note above) when one is given. */
+function withZip(link: string, zip?: string): string {
+  if (!zip) return link;
+  const url = new URL(link);
+  url.searchParams.set("client_reference_id", zip);
+  return url.toString();
+}
+
 export function checkoutUrlForTier(tier: PricingTierId, zip?: string): string {
   if (tier === "free") return FREE_SIGNUP_HREF;
   const direct = configuredPaymentLink(tier);
-  if (direct) {
-    if (!zip) return direct;
-    const url = new URL(direct);
-    url.searchParams.set("client_reference_id", zip);
-    return url.toString();
-  }
+  if (direct) return withZip(direct, zip);
   const params = new URLSearchParams({ plan: tier });
   if (zip) params.set("zip", zip);
   return marketingUrl(`/lo-signup.html?${params.toString()}`);
@@ -81,4 +84,39 @@ export function checkoutUrlForTier(tier: PricingTierId, zip?: string): string {
 /** True when a direct Stripe Payment Link is configured for this tier (vs. falling back to lo-signup.html). */
 export function hasDirectCheckoutLink(tier: PricingTierId): boolean {
   return configuredPaymentLink(tier) !== null;
+}
+
+/**
+ * "Pay now & lock my ZIP code today": same monthly prices, no trial, so the first payment
+ * (which is what locks a ZIP code) happens at checkout. Live Payment Links created in the
+ * Stripe Dashboard; keyed by tier id like NOVEMBER_2026_PAYMENT_LINKS.
+ */
+const PAY_NOW_PAYMENT_LINKS: Readonly<Record<CurrentPaidTierId, string>> = {
+  growth: "https://buy.stripe.com/14A00idwm3xf9qhe983AY0O",
+  pro: "https://buy.stripe.com/aFa7sK9g6aZHgSJ0ii3AY0P",
+  elite: "https://buy.stripe.com/28E8wO4ZQ3xf31T7KK3AY0Q",
+};
+
+/**
+ * 5-year prepaid plans: one payment, ZIP code locked 5 years from payment (prices in
+ * PREPAID_5Y, src/lib/pricing.ts). Live Payment Links created in the Stripe Dashboard.
+ */
+const PREPAID_5Y_PAYMENT_LINKS: Readonly<Record<CurrentPaidTierId, string>> = {
+  growth: "https://buy.stripe.com/3cI28q63UebT1XP7KK3AY0R",
+  pro: "https://buy.stripe.com/14A8wO2RI3xf45Xghg3AY0S",
+  elite: "https://buy.stripe.com/7sY28qfEuaZH31T3uu3AY0T",
+};
+
+function isCurrentPaidTier(tier: PricingTierId): tier is CurrentPaidTierId {
+  return tier === "growth" || tier === "pro" || tier === "elite";
+}
+
+/** Pay-now (no trial) checkout for a current paid plan; null for free and the retired starter tier. */
+export function payNowUrlForTier(tier: PricingTierId, zip?: string): string | null {
+  return isCurrentPaidTier(tier) ? withZip(PAY_NOW_PAYMENT_LINKS[tier], zip) : null;
+}
+
+/** 5-year prepaid checkout for a current paid plan; null for free and the retired starter tier. */
+export function prepaid5yUrlForTier(tier: PricingTierId, zip?: string): string | null {
+  return isCurrentPaidTier(tier) ? withZip(PREPAID_5Y_PAYMENT_LINKS[tier], zip) : null;
 }

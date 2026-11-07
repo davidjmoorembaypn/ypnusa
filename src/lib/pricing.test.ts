@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import {
+  CURRENT_PAID_TIER_IDS,
   PAID_PRICING_TIERS,
+  PREPAID_5Y,
+  PREPAID_5Y_REFUND_WINDOW_DAYS,
+  PREPAID_5Y_YEARS,
+  PUBLIC_MONTHLY_PRICE_CENTS,
   PUBLIC_PRICING_TIERS,
   PRICING_TIERS,
   getPricingTier,
+  prepaid5ySavingsRatio,
   resolveTierFromStripeIdentifier,
   type PricingTierId,
 } from "./pricing";
@@ -124,5 +130,50 @@ describe("resolveTierFromStripeIdentifier", () => {
     delete process.env.STRIPE_PRODUCT_ID_STARTER;
     assert.equal(resolveTierFromStripeIdentifier("price_unrecognized", undefined), null);
     assert.equal(resolveTierFromStripeIdentifier(undefined, undefined), null);
+  });
+});
+
+describe("5-year prepaid plans", () => {
+  it("prices Pro $3,999, Growth $7,999 and Exclusive $11,999 (ids growth / pro / elite)", () => {
+    assert.equal(PREPAID_5Y.growth.priceCents, 399900);
+    assert.equal(PREPAID_5Y.pro.priceCents, 799900);
+    assert.equal(PREPAID_5Y.elite.priceCents, 1199900);
+  });
+
+  it("compares against 60 months at the public monthly price ($5,940 / $11,940 / $17,940)", () => {
+    assert.equal(PREPAID_5Y_YEARS, 5);
+    assert.equal(PREPAID_5Y.growth.monthlyEquivalentCents, 594000);
+    assert.equal(PREPAID_5Y.pro.monthlyEquivalentCents, 1194000);
+    assert.equal(PREPAID_5Y.elite.monthlyEquivalentCents, 1794000);
+  });
+
+  it("keeps the public monthly price in step with each tier's displayed price", () => {
+    for (const tierId of CURRENT_PAID_TIER_IDS) {
+      const displayed = Number(getPricingTier(tierId).price.replace(/[^0-9.]/g, ""));
+      assert.equal(PUBLIC_MONTHLY_PRICE_CENTS[tierId], displayed * 100, `${tierId} public price mismatch`);
+      assert.equal(PREPAID_5Y[tierId].tierId, tierId);
+    }
+  });
+
+  it("saves about a third on every plan, which is what the copy promises", () => {
+    for (const tierId of CURRENT_PAID_TIER_IDS) {
+      const ratio = prepaid5ySavingsRatio(tierId);
+      assert.ok(ratio > 0.3 && ratio < 0.36, `${tierId} saves ${ratio}`);
+    }
+  });
+
+  it("refunds in full only within 30 days of purchase", () => {
+    assert.equal(PREPAID_5Y_REFUND_WINDOW_DAYS, 30);
+  });
+});
+
+describe("plan feature copy", () => {
+  it("never claims a trial locks a ZIP code, and drops the unbuilt branded experience", () => {
+    for (const tier of PRICING_TIERS) {
+      for (const feature of tier.features) {
+        assert.doesNotMatch(feature, /Branded borrower experience/i, `${tier.id}: ${feature}`);
+        if (/trial/i.test(feature)) assert.doesNotMatch(feature, /lock|reserve/i, `${tier.id}: ${feature}`);
+      }
+    }
   });
 });

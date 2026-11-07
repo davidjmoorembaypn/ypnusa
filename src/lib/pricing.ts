@@ -42,7 +42,7 @@ export const PRICING_TIERS: readonly PricingTier[] = [
       "AI borrower intake assistant",
       "Qualification + scoring",
       "Explore the borrower intake experience",
-      "Does NOT lock a ZIP code: anyone can take yours until you choose a paid plan",
+      "Does NOT lock a ZIP code: anyone can take yours until you make a first payment on a paid plan",
     ],
     cta: "Start free",
     highlight: false,
@@ -58,13 +58,12 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     price: "$29.99",
     priceMonthlyCents: 2999,
     cadence: "/mo",
-    tagline: "Lock your first exclusive ZIP",
+    tagline: "Lock your first exclusive ZIP code",
     features: [
-      "1 included exclusive ZIP",
-      "Branded borrower experience",
+      "1 included exclusive ZIP code",
       "AI intake + follow-up",
       "Territory demand reports",
-      "15-day free trial",
+      "15-day free trial to try the tools",
     ],
     cta: "Start 15-day trial",
     highlight: false,
@@ -82,11 +81,11 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     cadence: "/mo",
     tagline: "Lock your exclusive ZIP code and go live",
     features: [
-      "1 included exclusive ZIP",
+      "1 included exclusive ZIP code",
       "Higher automation run limits",
       "SMS + email nurture ladders",
       "Calendar booking + CRM mirroring",
-      "15-day free trial",
+      "15-day free trial to try the tools",
     ],
     cta: "Start 15-day trial",
     highlight: true,
@@ -104,11 +103,11 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     cadence: "/mo",
     tagline: "For the serious loan officer",
     features: [
-      "1 included exclusive ZIP",
+      "1 included exclusive ZIP code",
       "Portable MLO website",
       "Priority lead delivery",
       "Advanced life-event signals",
-      "15-day free trial",
+      "15-day free trial to try the tools",
     ],
     cta: "Start 15-day trial",
     highlight: false,
@@ -126,11 +125,11 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     cadence: "/mo",
     tagline: "Maximum automation and priority support",
     features: [
-      "1 included exclusive ZIP",
+      "1 included exclusive ZIP code",
       "Priority territory add-on access",
       "Unlimited automation runs",
       "White-glove onboarding",
-      "15-day free trial",
+      "15-day free trial to try the tools",
     ],
     cta: "Start 15-day trial",
     highlight: false,
@@ -141,6 +140,52 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     trialDays: TRIAL_DAYS,
   },
 ];
+
+/** The three plans sold today, by tier id (id "growth" = Pro, "pro" = Growth, "elite" = Exclusive). */
+export type CurrentPaidTierId = "growth" | "pro" | "elite";
+
+export const CURRENT_PAID_TIER_IDS: readonly CurrentPaidTierId[] = ["growth", "pro", "elite"];
+
+/**
+ * What new customers pay per month, in cents ($99 / $199 / $299). priceMonthlyCents above
+ * keeps legacy subscribers' $x.99 billing; marketing math (yearly cost, 5-year comparison,
+ * ROI calculator) uses these whole-dollar prices, which match the Stripe Payment Links.
+ */
+export const PUBLIC_MONTHLY_PRICE_CENTS: Readonly<Record<CurrentPaidTierId, number>> = {
+  growth: 9900,
+  pro: 19900,
+  elite: 29900,
+};
+
+/** Years a 5-year prepaid plan covers: plan access and the ZIP code lock, from the payment date. */
+export const PREPAID_5Y_YEARS = 5;
+
+/** Days after purchase in which a 5-year prepaid plan can be refunded in full (none after). */
+export const PREPAID_5Y_REFUND_WINDOW_DAYS = 30;
+
+export interface Prepaid5yPlan {
+  tierId: CurrentPaidTierId;
+  /** One-time price, in cents. */
+  priceCents: number;
+  /** The same 5 years paid monthly at PUBLIC_MONTHLY_PRICE_CENTS, in cents. */
+  monthlyEquivalentCents: number;
+}
+
+/**
+ * 5-year prepaid plans: one payment locks the ZIP code for 5 years from the payment date.
+ * Shared by the /pricing copy and the ROI calculator so the numbers can't drift apart.
+ */
+export const PREPAID_5Y: Readonly<Record<CurrentPaidTierId, Prepaid5yPlan>> = {
+  growth: { tierId: "growth", priceCents: 399900, monthlyEquivalentCents: PUBLIC_MONTHLY_PRICE_CENTS.growth * 12 * PREPAID_5Y_YEARS },
+  pro: { tierId: "pro", priceCents: 799900, monthlyEquivalentCents: PUBLIC_MONTHLY_PRICE_CENTS.pro * 12 * PREPAID_5Y_YEARS },
+  elite: { tierId: "elite", priceCents: 1199900, monthlyEquivalentCents: PUBLIC_MONTHLY_PRICE_CENTS.elite * 12 * PREPAID_5Y_YEARS },
+};
+
+/** Share of the monthly-billing total a 5-year prepaid plan saves (0..1). */
+export function prepaid5ySavingsRatio(tierId: CurrentPaidTierId): number {
+  const plan = PREPAID_5Y[tierId];
+  return (plan.monthlyEquivalentCents - plan.priceCents) / plan.monthlyEquivalentCents;
+}
 
 export const PAID_PRICING_TIERS = PRICING_TIERS.filter((tier) => tier.priceMonthlyCents > 0);
 

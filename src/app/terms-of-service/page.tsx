@@ -79,7 +79,7 @@ export default function TermsOfServicePage() {
         <li>
           <strong>How to cancel.</strong> You can cancel online at any time, with no phone call or
           cancellation fee, from Billing in your account (
-          <Link href="/billing">app.ypnus.com/billing</Link>) or through the{" "}
+          <Link href="/billing">ypnus.com/billing</Link>) or through the{" "}
           <a href={CUSTOMER_PORTAL_URL}>Stripe billing portal</a>, or by emailing{" "}
           <a href="mailto:support@ypnus.com">support@ypnus.com</a>. Cancelling stops all future
           charges; your access, including any territory claim, continues through the end of the

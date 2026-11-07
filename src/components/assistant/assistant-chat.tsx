@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { appUrl } from "@/lib/site";
+import { marketingUrl } from "@/lib/site";
 import type { AssistantMode, ChatCapturedFields } from "@/lib/types";
 
 type BubbleRole = "user" | "assistant" | "system";
@@ -306,7 +306,7 @@ export function AssistantChat(props: {
               Chats are answered by AI and saved so we can respond. Please don&rsquo;t share sensitive
               personal or financial details.{" "}
               <a
-                href={appUrl("/privacy-policy")}
+                href={marketingUrl("/privacy-policy")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-white/70"

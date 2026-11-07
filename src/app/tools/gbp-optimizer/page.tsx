@@ -4,12 +4,12 @@ import Link from "next/link";
 import { MarketingToolForm } from "@/components/marketing-tool-form";
 import { serializeJsonLd } from "@/lib/local-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import { getSiteOrigin } from "@/lib/request-host";
+import { pageTitle } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return {
-    title: "Google Business Profile Optimizer for Mortgage & Real Estate",
+    title: pageTitle("Google Business Profile Optimizer for Mortgage & Real Estate"),
     description:
       "Generate a practical Google Business Profile audit, optimized business description, post ideas and local SEO actions for mortgage and real estate professionals.",
     alternates: { canonical: `${origin}/tools/gbp-optimizer` },
@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function GbpOptimizerPage() {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",

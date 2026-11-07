@@ -23,10 +23,9 @@ export function FounderTrustStrip() {
             Built by a licensed loan officer, not a marketing agency
           </p>
           <p className="mt-2 text-base text-white/85">
-            <span className="font-semibold text-white">{AUTHOR_NAME}</span> &mdash; 25+ years in
-            mortgage lending, former top-producing loan officer at Chase Bank and Wells Fargo Home
-            Mortgage, 2,000+ loans closed, and Amazon-published author on real estate lead
-            generation. Licensed NMLS #{NMLS_ID} &middot; CA DRE #{CA_DRE_ID}.
+            <span className="font-semibold text-white">{AUTHOR_NAME}</span> &mdash; 25 years as a
+            loan officer, formerly with Wells Fargo and JPMorgan Chase, 2,000+ loans closed, Fresno
+            State MBA, and author of a guide to online real estate lead sources. Licensed NMLS #{NMLS_ID} &middot; CA DRE #{CA_DRE_ID}.
           </p>
           <p className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-white/50 md:justify-start">
             <Link href="/about" className="underline hover:text-white">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { serializeJsonLd } from "@/lib/local-seo";
-import { APP_SITE_URL } from "@/lib/site";
+import { MARKETING_SITE_URL } from "@/lib/site";
 
 export interface BreadcrumbItem {
   /** Visible label. */
@@ -28,7 +28,7 @@ export function Breadcrumbs({
       "@type": "ListItem",
       position: index + 1,
       name: item.name,
-      ...(item.href ? { item: `${APP_SITE_URL}${item.href}` } : {}),
+      ...(item.href ? { item: `${MARKETING_SITE_URL}${item.href}` } : {}),
     })),
   };
 

@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
-import { marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { FOUNDER_ID, marketingMetadata } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import {
@@ -17,11 +16,11 @@ import {
 import { MARKETING_SITE_URL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: "David J. Moore, MBA: Mortgage Expert & Author",
     description:
-      "Meet David J. Moore, MBA: nearly 30 years in mortgage lending, former top-producing loan officer at Chase Bank and Wells Fargo Home Mortgage, author, and founder of YPN USA.",
+      "Meet David J. Moore, MBA: 25 years as a loan officer, 2,000+ home loans closed, formerly with Wells Fargo and JPMorgan Chase, author, and founder of YPN USA.",
     path: "/about",
     origin,
   });
@@ -29,14 +28,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const CREDENTIALS: Array<[string, string]> = [
   ["Education", "MBA, California State University, Fresno"],
-  ["Experience", "Former top-producing loan officer at Chase Bank and Wells Fargo Home Mortgage; thousands of closed home loans"],
+  ["Experience", "25 years as a loan officer, formerly with Wells Fargo and JPMorgan Chase; 2,000+ home loans closed"],
   ["Licensing", `NMLS #${NMLS_ID} · California DRE #${CA_DRE_ID}`],
-  ["Author", "Amazon-published real estate author and nationwide speaker"],
+  ["Author", "Author of a guide to online real estate lead sources"],
   ["Founder", "YPN Inc. (YPN USA) and ToInvested.com"],
 ];
 
 export default async function AboutPage() {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
@@ -45,7 +44,7 @@ export default async function AboutPage() {
     name: `${AUTHOR_NAME} — Mortgage Expert & Author`,
     // Always the marketing-site entity id (see layout.tsx's @graph) — this is
     // the canonical Person node regardless of which host served this page.
-    mainEntity: { "@id": `${MARKETING_SITE_URL}/#person-david-moore` },
+    mainEntity: { "@id": FOUNDER_ID },
   };
   return (
     <>
@@ -60,8 +59,8 @@ export default async function AboutPage() {
               {AUTHOR_NAME} — mortgage expert, author &amp; founder of YPN USA
             </h1>
             <p className="mt-5 text-lg text-white/85">
-              With nearly 30 years in mortgage lending, David built YPN USA to give loan officers what he
-              wished he had at the top of his own production: exclusive local demand, an AI assistant that
+              With 25 years as a loan officer, David built YPN USA to give loan officers what he
+              wished he had during his own years in production: exclusive local demand, an AI assistant that
               never lets a borrower bounce, and a pipeline that belongs to the loan officer, not the employer.
             </p>
 

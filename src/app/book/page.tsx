@@ -2,15 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
-import { marketingMetadata } from "@/lib/seo";
+import { FOUNDER_ID, marketingMetadata } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AUTHOR_NAME, BOOK_AMAZON_URL, BOOK_COVER_TITLE, BOOK_TITLE } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import { getSiteOrigin } from "@/lib/request-host";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: "Top 9 Online Real Estate Leads: The Book",
     description:
@@ -21,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function BookPage() {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Book",
@@ -30,7 +29,7 @@ export default async function BookPage() {
     alternateName: BOOK_COVER_TITLE,
     // Always the marketing-site entity id (see layout.tsx's @graph) — the
     // canonical Person node regardless of which host served this page.
-    author: { "@id": `${MARKETING_SITE_URL}/#person-david-moore` },
+    author: { "@id": FOUNDER_ID },
     url: `${origin}/book`,
     image: `${origin}/images/top-9-online-real-estate-leads-cover.jpg`,
     inLanguage: "en",
@@ -63,7 +62,7 @@ export default async function BookPage() {
             <p className="mt-2 text-sm text-white/60">by {AUTHOR_NAME}</p>
             <p className="mt-5 text-lg text-white/85">
               A practical guide to nine online lead sources that most real estate and mortgage professionals
-              never use. Written by a former top-producing loan officer with nearly 30 years in the industry.
+              never use. Written by a loan officer with 25 years in the industry.
             </p>
             <div className="mt-8 flex flex-wrap gap-4 text-sm font-semibold">
               <a

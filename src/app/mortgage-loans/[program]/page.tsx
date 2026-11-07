@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { TrackedLink } from "@/components/tracked-link";
 import { faqJsonLd } from "@/lib/seo";
-import { appUrl } from "@/lib/site";
+import { MARKETING_SITE_URL, marketingUrl } from "@/lib/site";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
 import type { LoanProgram } from "@/lib/types";
@@ -29,11 +29,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!program) notFound();
 
   const content = PROGRAM_CONTENT[program];
-  const path = `/mortgage-loans/${slug}`;
+  // Canonical URLs use the lowercase program slug (/mortgage-loans/fha, not /FHA).
+  const path = `/mortgage-loans/${program.toLowerCase()}`;
   return {
     title: content.label,
     description: content.summary,
-    alternates: { canonical: appUrl(path) },
+    alternates: { canonical: marketingUrl(path) },
     robots: { index: true, follow: true },
   };
 }
@@ -44,7 +45,9 @@ export default async function MortgageLoanProgramPage({ params }: Props) {
   if (!program) notFound();
 
   const content = PROGRAM_CONTENT[program];
-  const path = `/mortgage-loans/${slug}`;
+  // Canonical URLs use the lowercase program slug (/mortgage-loans/fha, not /FHA).
+  const path = `/mortgage-loans/${program.toLowerCase()}`;
+  if (slug !== program.toLowerCase()) permanentRedirect(path);
 
   const breadcrumbItems = [
     { name: "Home", href: "/" },
@@ -55,11 +58,11 @@ export default async function MortgageLoanProgramPage({ params }: Props) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "FinancialProduct",
-    "@id": `${appUrl(path)}#product`,
+    "@id": `${marketingUrl(path)}#product`,
     name: content.label,
     category: "MortgageLoan",
-    url: appUrl(path),
-    provider: { "@id": `${appUrl("/")}#organization` },
+    url: marketingUrl(path),
+    provider: { "@id": `${MARKETING_SITE_URL}/#organization` },
     description: content.summary,
   };
 

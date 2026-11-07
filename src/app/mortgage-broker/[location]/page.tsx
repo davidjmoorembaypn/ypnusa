@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const path = getLocalSeoPath(profile);
   const title = `Mortgage Broker in ${profile.city}, ${profile.stateCode}`;
-  const description = `${profile.introduction} Explore local public resources and connect with the configured ${profile.city} mortgage professional.`;
+  const description = `${profile.introduction} Explore local public resources and connect with a licensed ${profile.city} loan officer.`;
 
   return {
     title,

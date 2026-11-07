@@ -8,10 +8,10 @@ import { TerritoryClaim } from "@/components/territory-claim";
 import { PricingCta } from "@/components/pricing-cta";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: "Pricing: Free, Pro, Growth & Exclusive Plans",
     description:

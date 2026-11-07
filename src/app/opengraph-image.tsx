@@ -31,7 +31,7 @@ export default function OGImage() {
             marginBottom: 24,
           }}
         >
-          YPN USA · app.ypnus.com
+          YPN USA · ypnus.com
         </div>
         <div
           style={{

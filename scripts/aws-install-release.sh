@@ -78,10 +78,10 @@ chown -R ypnusa:ypnusa "$dest"
 mkdir -p "$dest/.next/cache"
 chown ypnusa:ypnusa "$dest/.next/cache"
 
-# The systemd unit's ReadWritePaths points at /opt/ypnusa/current/.next/cache
-# (a symlink, resolved at service start) rather than a hardcoded release sha —
-# no unit-file edit needed here. If you ever see ReadWritePaths hardcoded to a
-# specific release dir again, re-generalize it (see aws/README.md).
+# The systemd unit's ReadWritePaths covers /opt/ypnusa/releases (every release),
+# because Next.js writes its prerender/route cache under .next/server as well as
+# .next/cache. No unit-file edit is needed per release. If you ever see
+# ReadWritePaths hardcoded to a specific release dir again, re-generalize it.
 
 switch_to() {
   ln -sfn "$1" "$BASE/current.tmp"

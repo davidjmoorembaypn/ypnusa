@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { SessionBar } from "@/components/session-bar";
+import { VisibilityScoreCard } from "@/components/visibility-score-card";
+import { computeVisibilityScore } from "@/lib/visibility-score";
 import { requireSession } from "@/lib/auth";
 import { isPaidEntitlement, resolveEntitlement } from "@/lib/entitlements";
 import { getPricingTier, isPricingTierId, TRIAL_DAYS } from "@/lib/pricing";
@@ -198,7 +200,12 @@ export default async function DashboardHubPage({
           </section>
         ) : null}
 
-        <section aria-label="Cerebro" className="mt-8">
+        <VisibilityScoreCard
+          score={computeVisibilityScore({ userId: session.sub, email: session.email })}
+          chatAnchorId="cerebro-chat"
+        />
+
+        <section id="cerebro-chat" aria-label="Cerebro" className="mt-8 scroll-mt-6">
           <AssistantChat
             mode="mlo_dashboard"
             title="Cerebro — your AI marketing assistant"

@@ -67,6 +67,9 @@ function formatCapturedValue(value: string | boolean | undefined): string {
   return value;
 }
 
+/** Window event other dashboard widgets fire to send Cerebro a message: detail = { prompt }. */
+export const CEREBRO_ASK_EVENT = "ypn:cerebro-ask";
+
 const DEFAULT_MLO_STARTERS = [
   "Help me get visible in my ZIP code",
   "Write my Google Business Profile post",
@@ -172,6 +175,18 @@ export function AssistantChat(props: {
     setMsgs((prev) => [...prev, { id: makeId(role.slice(0, 2)), role, body: trimmed }]);
   }
 
+  // Lets other widgets on the page (e.g. the Local Visibility Score) hand Cerebro a task.
+  const sendMessageRef = useRef<(message: string) => void>(() => undefined);
+  useEffect(() => {
+    if (mode !== "mlo_dashboard") return;
+    function onAsk(event: Event) {
+      const prompt = (event as CustomEvent<{ prompt?: string }>).detail?.prompt;
+      if (typeof prompt === "string" && prompt.trim()) sendMessageRef.current(prompt.trim());
+    }
+    window.addEventListener(CEREBRO_ASK_EVENT, onAsk);
+    return () => window.removeEventListener(CEREBRO_ASK_EVENT, onAsk);
+  }, [mode]);
+
   async function sendMessage(message: string, options: { retry?: boolean } = {}) {
     if (!message || busy || authRequired) return;
 
@@ -248,6 +263,12 @@ export function AssistantChat(props: {
   }
 
   const showCapturedPanel = mode === "lead_qualification";
+
+  useEffect(() => {
+    sendMessageRef.current = (message: string) => {
+      if (!busy) void sendMessage(message);
+    };
+  });
 
   return (
     // Solid background: the floating widget places this over page content.

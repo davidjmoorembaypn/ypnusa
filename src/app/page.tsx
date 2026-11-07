@@ -12,6 +12,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { FounderTrustStrip } from "@/components/founder-trust-strip";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
+import { YouTubeFacade } from "@/components/youtube-facade";
+import { EXPLAINER_VIDEO, explainerVideoJsonLd } from "@/lib/explainer-video";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
 import { getSiteOrigin } from "@/lib/request-host";
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
@@ -188,7 +190,7 @@ export default function Home() {
             </p>
 
             <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-white/70">
-              {["Free to start", "No credit card", "You keep every lead"].map((item) => (
+              {["Free to start", "Free plan needs no card", "You keep every lead"].map((item) => (
                 <li key={item} className="flex items-center gap-1.5">
                   <span aria-hidden className="text-emerald-400">✓</span>
                   {item}
@@ -221,6 +223,31 @@ export default function Home() {
               </Link>{" "}
               with a 15-day free trial.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* SEE HOW IT WORKS */}
+      <section id="how-it-works-video" className="border-b border-white/10 bg-[#09081b] py-14 md:py-16">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(explainerVideoJsonLd()).replace(/</g, "\\u003c") }}
+        />
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:gap-12">
+          <YouTubeFacade videoId={EXPLAINER_VIDEO.id} title={EXPLAINER_VIDEO.title} />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">See how it works</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white lg:text-3xl">{EXPLAINER_VIDEO.title}</h2>
+            <p className="mt-3 text-white/75">
+              David J. Moore explains why owning your local ZIP code beats renting clicks and shared leads, and how
+              AI follow-up answers borrowers while you&rsquo;re busy closing loans.
+            </p>
+            <a
+              href="#territories"
+              className="mt-6 inline-flex items-center justify-center rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-[#09081b] transition hover:-translate-y-0.5 hover:brightness-105"
+            >
+              Check if my ZIP code is open
+            </a>
           </div>
         </div>
       </section>

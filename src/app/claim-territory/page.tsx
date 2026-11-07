@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 import claimTerritoryContent from "@/content/wp-import/claim-territory.json";
 
 /**
@@ -20,7 +20,7 @@ import claimTerritoryContent from "@/content/wp-import/claim-territory.json";
  * to /api/territory/check and /api/demo-request).
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: claimTerritoryContent.title,
     description: claimTerritoryContent.description,

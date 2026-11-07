@@ -15,7 +15,7 @@ import { PricingCta } from "@/components/pricing-cta";
 import { YouTubeFacade } from "@/components/youtube-facade";
 import { EXPLAINER_VIDEO, explainerVideoJsonLd } from "@/lib/explainer-video";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
 
 // Below the fold: split it out of the first-load bundle, and reserve its height to avoid layout shift.
@@ -25,7 +25,7 @@ const MortgageCalculator = dynamic(
 );
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: "Cerebro AI for Mortgage Loan Officers + Exclusive ZIP Leads | YPN USA",
     description:

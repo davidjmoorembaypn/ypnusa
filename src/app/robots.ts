@@ -1,11 +1,10 @@
 import type { MetadataRoute } from "next";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 
-// Host-aware for the same reason as sitemap.ts: ypnus.com and app.ypnus.com
-// serve the same deployment, so robots.txt must self-identify as whichever
-// host actually served the request.
-export default async function robots(): Promise<MetadataRoute.Robots> {
-  const origin = await getSiteOrigin();
+// Always the canonical ypnus.com origin (app.ypnus.com 301s there). A constant,
+// not request headers, so robots.txt stays static.
+export default function robots(): MetadataRoute.Robots {
+  const origin = MARKETING_SITE_URL;
   return {
     rules: {
       userAgent: "*",

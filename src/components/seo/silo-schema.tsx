@@ -1,4 +1,4 @@
-import { appUrl, centralValleyAreaServed, MARKETING_SITE_URL } from "@/lib/site";
+import { marketingUrl, centralValleyAreaServed, MARKETING_SITE_URL } from "@/lib/site";
 
 const ORGANIZATION_REF = { "@id": `${MARKETING_SITE_URL}/#organization` };
 
@@ -16,12 +16,12 @@ export function MortgageLoansFinancialProductSchema() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "FinancialProduct",
-    "@id": `${appUrl("/mortgage-loans")}#financial-product`,
+    "@id": `${marketingUrl("/mortgage-loans")}#financial-product`,
     name: "YPN USA Mortgage Loan Programs",
     category: "Mortgage",
     provider: ORGANIZATION_REF,
     areaServed: centralValleyAreaServed(),
-    url: appUrl("/mortgage-loans"),
+    url: marketingUrl("/mortgage-loans"),
     description:
       "Directory of mortgage loan programs (FHA, VA, Conventional, DSCR, HELOC, refinance, jumbo) reviewed by licensed loan officers on the YPN USA platform.",
   };
@@ -37,12 +37,12 @@ export function RealEstateLeadsServiceSchema() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Service",
-    "@id": `${appUrl("/real-estate-leads")}#service`,
+    "@id": `${marketingUrl("/real-estate-leads")}#service`,
     name: "YPN USA Real Estate Lead Generation",
     serviceType: "Real estate lead generation",
     provider: ORGANIZATION_REF,
     areaServed: centralValleyAreaServed(),
-    url: appUrl("/real-estate-leads"),
+    url: marketingUrl("/real-estate-leads"),
     description:
       "Placeholder listing for the real-estate-leads silo's local demand tools and book funnel. Not a live offer.",
   };
@@ -58,11 +58,11 @@ export function AiPlatformEducationalOrganizationSchema() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "EducationalOrganization",
-    "@id": `${appUrl("/ai-platform")}#educational-organization`,
+    "@id": `${marketingUrl("/ai-platform")}#educational-organization`,
     name: "YPN USA Cerebro AI Platform",
     parentOrganization: ORGANIZATION_REF,
     areaServed: centralValleyAreaServed(),
-    url: appUrl("/ai-platform"),
+    url: marketingUrl("/ai-platform"),
     description:
       "Placeholder listing for planned Cerebro AI assistant training and MLO autopilot education content.",
   };

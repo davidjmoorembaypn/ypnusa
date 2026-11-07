@@ -5,10 +5,9 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { EquitySnapshot } from "@/components/equity-snapshot";
 import { serializeJsonLd } from "@/lib/local-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import { getSiteOrigin } from "@/lib/request-host";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return {
     title: "Home Equity Snapshot",
     description:
@@ -28,7 +27,7 @@ const breadcrumbItems = [
 ];
 
 export default async function EquitySnapshotPage() {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",

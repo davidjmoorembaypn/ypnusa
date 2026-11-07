@@ -3,8 +3,9 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { WP_AUTHOR, type WpImportedPage } from "@/content/wp-import";
-import { faqJsonLd } from "@/lib/seo";
+import { FOUNDER_ID, faqJsonLd } from "@/lib/seo";
 import { NMLS_CONSUMER_ACCESS_URL, NMLS_ID, CA_DRE_ID } from "@/lib/author";
+import { needsFullPageLoad, prepareWpHtml } from "@/lib/wp-html";
 
 /**
  * Renders a page migrated from ypnus.com's WordPress (see
@@ -41,7 +42,8 @@ function personJsonLd(origin: string) {
   const alumni = typeof a.alumniOf === "string" ? { name: a.alumniOf } : a.alumniOf;
   return {
     "@type": "Person",
-    "@id": `${origin}${a.url}#person`,
+    // One founder entity site-wide: the root layout's Person node.
+    "@id": FOUNDER_ID,
     name: a.name,
     jobTitle: a.jobTitle,
     url: absolute(origin, a.url),
@@ -148,6 +150,8 @@ export function WpImportedPageView({
   // A page that already renders its own author block keeps it; only add ours when missing.
   const wantAuthor = page.authorBox && !page.html.includes("ypx-author");
   const related = page.related ?? [];
+  // Normalized links/assets, and exactly one <h1> on the page.
+  const body = prepareWpHtml(page.html, Boolean(page.showTitle));
   return (
     <div className="flex min-h-full flex-col bg-white text-slate-900">
       <SiteHeader />
@@ -177,10 +181,17 @@ export function WpImportedPageView({
         {page.showTitle ? (
           <article className="mx-auto w-full max-w-3xl px-6 py-10">
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{page.title}</h1>
-            <div className={`mt-8 ${PROSE}`} dangerouslySetInnerHTML={{ __html: page.html }} />
+            <div className={`mt-8 ${PROSE}`} dangerouslySetInnerHTML={{ __html: body.html }} />
           </article>
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: page.html }} />
+          <>
+            {body.needsTitleH1 ? (
+              <div className="mx-auto w-full max-w-3xl px-6 pt-6">
+                <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{page.title}</h1>
+              </div>
+            ) : null}
+            <div dangerouslySetInnerHTML={{ __html: body.html }} />
+          </>
         )}
         {related.length || wantAuthor ? (
           <div className="mx-auto w-full max-w-3xl px-6 pb-12">
@@ -190,9 +201,16 @@ export function WpImportedPageView({
                 <ul className="mt-3 space-y-2">
                   {related.map((l) => (
                     <li key={l.href}>
-                      <Link href={l.href} className="font-semibold text-violet-700 hover:underline">
-                        {l.label}
-                      </Link>
+                      {needsFullPageLoad(l.href) ? (
+                        // Interactive imported page: its inline scripts only run on a full load.
+                        <a href={l.href} className="font-semibold text-violet-700 hover:underline">
+                          {l.label}
+                        </a>
+                      ) : (
+                        <Link href={l.href} className="font-semibold text-violet-700 hover:underline">
+                          {l.label}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

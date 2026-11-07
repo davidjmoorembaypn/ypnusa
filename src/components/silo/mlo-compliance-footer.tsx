@@ -10,7 +10,7 @@ export function MloComplianceFooter() {
   return (
     <div className="border-t border-white/10 bg-[#050414] px-6 py-6 text-center text-[11px] leading-5 text-white/65">
       <p className="mx-auto max-w-3xl">
-        YPN USA (app.ypnus.com) is marketing technology used by licensed loan officers. It is not a
+        YPN USA (ypnus.com) is marketing technology used by licensed loan officers. It is not a
         lender, and nothing on this page is an offer of credit, a rate quote, or a commitment to
         lend. Each publishing loan officer&apos;s NMLS ID and state licensing appear on their own
         site. Equal Housing Opportunity. See{" "}

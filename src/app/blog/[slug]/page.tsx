@@ -6,10 +6,10 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ALL_BLOG_POSTS, getAnyBlogPost } from "@/content/blog-all";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
-import { socialImageFor } from "@/lib/seo";
+import { pageTitle, socialImageFor } from "@/lib/seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import { getSiteOrigin } from "@/lib/request-host";
 import { getPostCluster, getRelatedPosts, isThinPost } from "@/lib/seo/clusters";
+import { prepareWpHtml } from "@/lib/wp-html";
 
 export function generateStaticParams() {
   return ALL_BLOG_POSTS.map((post) => ({ slug: post.slug }));
@@ -23,14 +23,14 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = getAnyBlogPost(slug);
   if (!post) return {};
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const url = `${origin}/blog/${post.slug}`;
   if (isThinPost(post)) {
-    return { title: post.title, robots: { index: false, follow: true }, alternates: { canonical: url } };
+    return { title: pageTitle(post.title), robots: { index: false, follow: true }, alternates: { canonical: url } };
   }
   const image = socialImageFor(origin);
   return {
-    title: post.title,
+    title: pageTitle(post.title),
     description: post.description,
     alternates: { canonical: url },
     openGraph: {
@@ -63,7 +63,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = getAnyBlogPost(slug);
   if (!post) notFound();
 
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const cluster = getPostCluster(post.slug);
   const related = getRelatedPosts(post.slug, 5);
   const jsonLd = {
@@ -125,7 +125,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               [&_th]:border [&_th]:border-slate-200 [&_th]:px-4 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-semibold [&_th]:text-slate-900
               [&_td]:border [&_td]:border-slate-200 [&_td]:px-4 [&_td]:py-2.5 [&_td]:align-top [&_td]:text-slate-700
               [&_[style]]:![font-size:inherit] [&_[style]]:![color:inherit] [&_[style]]:![background:transparent]"
-            dangerouslySetInnerHTML={{ __html: post.html }}
+            dangerouslySetInnerHTML={{ __html: prepareWpHtml(post.html, true).html }}
           />
         </article>
         {cluster ? (

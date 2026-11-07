@@ -36,7 +36,7 @@ if [ -f "$DATA_DIR/store.json" ]; then
 fi
 echo "== backups";   ls -1t /var/backups/ypnusa/hourly 2>/dev/null | head -3 || true; [ -d /var/backups/ypnusa ] || echo "  no /var/backups/ypnusa (ops layer not installed)"
 echo "== timers";    systemctl list-timers --no-pager 2>/dev/null | grep -E 'ypnusa|certbot' || echo "  no ypnusa/certbot timers found"
-echo "== apache";    (apachectl -M 2>/dev/null | grep -E 'proxy_module|proxy_http|ssl_module|headers_module|rewrite_module') || echo "  could not list modules"
+echo "== apache";    (httpd -M 2>/dev/null | grep -E 'proxy_module|proxy_http|ssl_module|headers_module|rewrite_module') || echo "  could not list modules"
 grep -rhE '^\s*(ServerName|ServerAlias)' /etc/httpd/conf.d 2>/dev/null | sed 's/^\s*/  /' | sort -u
 echo "== tls certs";  ls /etc/letsencrypt/live 2>/dev/null | sed 's/^/  /'
 echo "== disk";      df -h / | tail -1

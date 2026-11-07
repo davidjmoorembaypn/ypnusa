@@ -164,6 +164,9 @@ V
 apachectl configtest
 EOF
 chmod 755 /usr/local/sbin/ypnusa-render-app-vhost
+# mod_ssl's stock ssl.conf points at localhost.crt, which AL2023 only creates the
+# first time httpd starts; without it `apachectl configtest` fails on first boot.
+[ -s /etc/pki/tls/certs/localhost.crt ] || /usr/libexec/httpd-ssl-gencerts
 /usr/local/sbin/ypnusa-render-app-vhost
 systemctl enable --now httpd
 systemctl reload httpd

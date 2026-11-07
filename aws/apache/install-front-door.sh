@@ -21,8 +21,11 @@ SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONF=/etc/httpd/conf.d/zz-ypnus-com.conf
 LIVE=/etc/letsencrypt/live/ypnus.com
 
+# AL2023's apachectl does not support -M, so ask httpd directly. Capture once so
+# `grep -q` closing the pipe early cannot trip pipefail.
+MODS="$(httpd -M 2>/dev/null || true)"
 for mod in proxy_module proxy_http_module ssl_module headers_module rewrite_module alias_module; do
-  apachectl -M 2>/dev/null | grep -q "$mod" || { echo "ERROR: Apache module $mod is not loaded" >&2; exit 1; }
+  grep -q "$mod" <<<"$MODS" || { echo "ERROR: Apache module $mod is not loaded" >&2; exit 1; }
 done
 
 install -d /var/www/letsencrypt/.well-known/acme-challenge

@@ -1,6 +1,7 @@
-import { recordInvoicePaid } from "@/lib/conversions";
+import { idOf, recordInvoicePaid, type InvoiceLike } from "@/lib/conversions";
 import { normalizeEmail, upsertAccount } from "@/lib/accounts";
-import { applyFulfillmentEvent } from "@/lib/fulfillment";
+import { ensureOfficerForAccount } from "@/lib/crm";
+import { applyFulfillmentEvent, lockZipOnPaidInvoice } from "@/lib/fulfillment";
 import { jsonError, jsonOk, logApiError } from "@/lib/http";
 import { mapStripeEventToFulfillmentPayload, verifyStripeWebhookEvent } from "@/lib/stripe-webhook";
 
@@ -44,8 +45,15 @@ export async function POST(request: Request) {
 
   try {
     if (event.type === "invoice.paid") {
+      const invoice = event.data.object as InvoiceLike;
+      // The first real payment is what locks a trial's ZIP code (never the $0 trial checkout).
+      const lock = lockZipOnPaidInvoice({
+        stripeSubscriptionId: idOf(invoice.parent?.subscription_details?.subscription) ?? idOf(invoice.subscription),
+        amountPaidCents: typeof invoice.amount_paid === "number" ? invoice.amount_paid : 0,
+        invoiceStatus: invoice.status,
+      });
       const outcome = recordInvoicePaid(event);
-      return jsonOk({ applied: outcome.recorded, reason: outcome.reason });
+      return jsonOk({ applied: outcome.recorded, reason: outcome.reason, zipLock: lock });
     }
     const payload = mapStripeEventToFulfillmentPayload(event);
     if (!payload) {
@@ -66,7 +74,19 @@ export async function POST(request: Request) {
     // Provision the sign-in account for whoever paid, so they can sign in with the same
     // email right away (replaces WordPress user creation on checkout).
     const paidEmail = normalizeEmail(payload.customerEmail);
-    if (paidEmail) upsertAccount({ email: paidEmail, source: "stripe_checkout" });
+    if (paidEmail) {
+      const account = upsertAccount({ email: paidEmail, source: "stripe_checkout" });
+      // Give the paying MLO an officer record keyed by their account id (= session sub), so leads
+      // routed to their ZIP show up in their dashboard. Best-effort: the payment is already applied.
+      try {
+        ensureOfficerForAccount(
+          account,
+          result.tier && result.status ? { tier: result.tier, status: result.status } : undefined,
+        );
+      } catch (error) {
+        logApiError("/api/webhooks/stripe ensureOfficerForAccount", error);
+      }
+    }
     return jsonOk({
       applied: true,
       subscriptionId: result.subscriptionId,

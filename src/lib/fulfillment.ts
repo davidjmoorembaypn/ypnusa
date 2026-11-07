@@ -101,6 +101,10 @@ export interface FulfillmentPayload {
   eventCreatedAt?: unknown;
   /** Optional Stripe event id — guards an exact-duplicate redelivery from reapplying. */
   eventId?: unknown;
+  /** Prepaid term in years (one-time "5-year" checkout). Sets expiresAt; the ZIP code locks at payment. */
+  termYears?: unknown;
+  /** PaymentIntent of a one-time prepaid checkout, kept so a refund can release the ZIP code. */
+  paymentIntentId?: unknown;
 }
 
 export type FulfillmentResult =
@@ -272,14 +276,29 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
   const requestedZip = normalizeZip(payload.zip);
   const zipToClaim = isValidZip(requestedZip) ? requestedZip : null;
 
+  // A trial checkout ($0 today, payment_status "no_payment_required") never locks a ZIP code:
+  // valuable territories must not be held for free. The chosen ZIP code is remembered as
+  // pendingZip and locked by the first paid invoice (lockZipOnPaidInvoice). A checkout that
+  // charged today ("pay now", payment_status "paid") locks it immediately.
+  const isTrialCheckout = payload.paymentStatus === "no_payment_required";
+  const termYears = typeof payload.termYears === "number" && payload.termYears > 0 && payload.termYears <= 10 ? payload.termYears : undefined;
+  const expiresAt = termYears
+    ? new Date(new Date(eventCreatedAt * 1000).setUTCFullYear(new Date(eventCreatedAt * 1000).getUTCFullYear() + termYears)).toISOString()
+    : existing?.expiresAt;
+  const stripePaymentIntentId = optionalText(payload.paymentIntentId, 200) ?? existing?.stripePaymentIntentId;
+  const status: RevenueSubscriptionRecord["status"] = isTrialCheckout ? "trialing" : "active";
+  const pendingZip = isTrialCheckout ? (zipToClaim ?? existing?.pendingZip) : undefined;
   const record: RevenueSubscriptionRecord = existing
     ? {
         ...existing,
         tier,
-        status: "active",
+        status,
         stripeCustomerId,
         ownerEmail: customerEmail ?? existing.ownerEmail,
         ownerLoId: userId ?? existing.ownerLoId,
+        pendingZip,
+        expiresAt,
+        stripePaymentIntentId,
         lastStripeEventId: eventId,
         lastStripeEventCreatedAt: eventCreatedAt,
       }
@@ -288,17 +307,20 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         createdAt: now,
         startedAt: now,
         tier,
-        status: "active",
+        status,
         source: "stripe_webhook",
         stripeCustomerId,
         stripeSubscriptionId,
         ownerEmail: customerEmail,
         ownerLoId: userId,
         claimedZips: [],
+        pendingZip,
+        expiresAt,
+        stripePaymentIntentId,
         lastStripeEventId: eventId,
         lastStripeEventCreatedAt: eventCreatedAt,
       };
-  const { zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(record, zipToClaim);
+  const { zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(record, isTrialCheckout ? null : zipToClaim);
   if (zipConflict) {
     logApiError(
       "fulfillment",
@@ -317,3 +339,44 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
     zipConflict,
   };
 }
+
+export interface PaidInvoiceLockResult {
+  applied: boolean;
+  reason?: string;
+  zip?: string;
+  zipClaimed?: boolean;
+  zipConflict?: boolean;
+}
+
+/**
+ * Locks a trial subscription's chosen ZIP code once its first real payment lands
+ * (invoice.paid with amount_paid > 0). Until then the ZIP code stays open: if another
+ * loan officer pays for it first, they get it and this record is flagged zipLockConflict.
+ * Idempotent: a repeat delivery after the lock is a no-op.
+ */
+export function lockZipOnPaidInvoice(input: {
+  stripeSubscriptionId: string | undefined;
+  amountPaidCents: number;
+  invoiceStatus: string | null | undefined;
+}): PaidInvoiceLockResult {
+  if (input.invoiceStatus !== "paid") return { applied: false, reason: "Invoice is not paid." };
+  if (!(input.amountPaidCents > 0)) return { applied: false, reason: "$0 invoice (trial) does not lock a ZIP code." };
+  if (!input.stripeSubscriptionId) return { applied: false, reason: "Invoice has no subscription." };
+  const existing = findRevenueSubscriptionByStripeSubscriptionId(input.stripeSubscriptionId);
+  if (!existing) return { applied: false, reason: "No subscription found for that invoice." };
+  if (existing.status === "cancelled") return { applied: false, reason: "Subscription is cancelled." };
+  const zip = existing.pendingZip;
+  if (!zip) return { applied: false, reason: "No pending ZIP code to lock." };
+
+  const paid: RevenueSubscriptionRecord = { ...existing, status: "active", pendingZip: undefined, zipLockConflict: undefined };
+  const { zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(paid, zip);
+  if (zipConflict) {
+    saveRevenueSubscriptionWithZipClaim({ ...paid, zipLockConflict: { zip, at: new Date().toISOString() } }, null);
+    logApiError(
+      "fulfillment",
+      new Error(`First payment for subscription ${existing.id} arrived, but ZIP ${zip} was already locked by another paid subscription.`),
+    );
+  }
+  return { applied: true, zip, zipClaimed, zipConflict };
+}
+

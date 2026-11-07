@@ -1,4 +1,5 @@
 import { readDb, writeDb } from "@/lib/db";
+import { isLiveSubscription } from "@/lib/subscription-live";
 import { generateId } from "@/lib/id";
 import { PRICING_TIER_ORDER, type PricingTierId } from "@/lib/pricing";
 import type { EntitlementStatus } from "@/lib/session";
@@ -93,7 +94,7 @@ export function entitlementForEmail(email: string): AccountEntitlement {
   const live = readDb().revenueSubscriptions.filter(
     (subscription) =>
       ENTITLING_SOURCES.has(subscription.source) &&
-      subscription.status !== "cancelled" &&
+      isLiveSubscription(subscription) &&
       normalizeEmail(subscription.ownerEmail) === normalized,
   );
   if (live.length === 0) return { tier: "free", subscriptionStatus: "none" };
@@ -101,4 +102,29 @@ export function entitlementForEmail(email: string): AccountEntitlement {
     PRICING_TIER_ORDER.indexOf(candidate.tier) > PRICING_TIER_ORDER.indexOf(top.tier) ? candidate : top,
   );
   return { tier: best.tier, subscriptionStatus: best.status === "trialing" ? "trialing" : "active" };
+}
+
+/** True when the ledger holds any Stripe/admin subscription record (live or cancelled) for this email. */
+export function hasLedgerRecordForEmail(email: string): boolean {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return false;
+  return readDb().revenueSubscriptions.some(
+    (subscription) =>
+      ENTITLING_SOURCES.has(subscription.source) && normalizeEmail(subscription.ownerEmail) === normalized,
+  );
+}
+
+/** ZIPs locked by this email's live (active/trialing) subscriptions, oldest first. */
+export function claimedZipsForEmail(email: string): string[] {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return [];
+  const zips = readDb()
+    .revenueSubscriptions.filter(
+      (subscription) =>
+        ENTITLING_SOURCES.has(subscription.source) &&
+        isLiveSubscription(subscription) &&
+        normalizeEmail(subscription.ownerEmail) === normalized,
+    )
+    .flatMap((subscription) => subscription.claimedZips);
+  return [...new Set(zips)];
 }

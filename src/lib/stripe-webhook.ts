@@ -54,6 +54,25 @@ export function mapStripeEventToFulfillmentPayload(event: Stripe.Event): Fulfill
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
+      const prepaid = prepaidTermFromMetadata(session.metadata);
+      if (session.mode === "payment" && prepaid && typeof session.customer === "string") {
+        const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+        if (!paymentIntentId) return null;
+        // One-time prepaid plan (e.g. 5 years): keyed by its PaymentIntent so a refund finds it.
+        return {
+          stripeCustomerId: session.customer,
+          stripeSubscriptionId: prepaidRecordKey(paymentIntentId),
+          paymentIntentId,
+          termYears: prepaid,
+          zip: session.client_reference_id ?? undefined,
+          eventType: "checkout.session.completed",
+          paymentStatus: session.payment_status,
+          tier: tierFromMetadata(session.metadata),
+          customerEmail: session.customer_details?.email ?? session.customer_email ?? undefined,
+          eventCreatedAt,
+          eventId,
+        };
+      }
       if (typeof session.subscription !== "string" || typeof session.customer !== "string") {
         // Not a subscription checkout (e.g. a one-time payment) — nothing for the
         // territory/tier ledger to do.
@@ -99,7 +118,34 @@ export function mapStripeEventToFulfillmentPayload(event: Stripe.Event): Fulfill
         eventId,
       };
     }
+    case "charge.refunded": {
+      // A full refund of a one-time prepaid plan cancels it and releases its ZIP code.
+      // (Monthly plans release on customer.subscription.deleted.)
+      const charge = event.data.object as Stripe.Charge;
+      const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
+      const customerId = typeof charge.customer === "string" ? charge.customer : charge.customer?.id;
+      if (!charge.refunded || !paymentIntentId || !customerId) return null;
+      return {
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: prepaidRecordKey(paymentIntentId),
+        eventType: "customer.subscription.deleted",
+        eventCreatedAt,
+        eventId,
+      };
+    }
     default:
       return null;
   }
+}
+
+/** Ledger key for a one-time prepaid purchase (there is no Stripe subscription id). */
+export function prepaidRecordKey(paymentIntentId: string): string {
+  return `prepaid_${paymentIntentId}`;
+}
+
+/** Years of a prepaid term from checkout metadata (`ypnus_term: "5y"`), else undefined. */
+export function prepaidTermFromMetadata(metadata: Stripe.Metadata | null | undefined): number | undefined {
+  const match = /^(\d{1,2})y$/.exec(metadata?.ypnus_term?.trim().toLowerCase() ?? "");
+  const years = match ? Number(match[1]) : NaN;
+  return years > 0 && years <= 10 ? years : undefined;
 }

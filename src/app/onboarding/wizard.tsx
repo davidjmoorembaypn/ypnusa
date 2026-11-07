@@ -25,14 +25,19 @@ const DEFAULT_STATE: FormState = {
   confidenceThreshold: 80,
 };
 
-export function OnboardingWizard({ email, initialProfile, tier, dailyLimit }: {
+export function OnboardingWizard({ email, initialProfile, purchasedZip, tier, dailyLimit }: {
   email: string;
   initialProfile: AgentOnboardingRecord | null;
+  /** The ZIP their paid plan locked, used to prefill step 1. */
+  purchasedZip?: string;
   tier: PricingTierId;
   dailyLimit: number;
 }) {
   const [step, setStep] = useState(Math.min(5, Math.max(1, initialProfile?.completedStep ?? 1)));
-  const [form, setForm] = useState<FormState>(initialProfile ?? DEFAULT_STATE);
+  const [form, setForm] = useState<FormState>(() => {
+    const base = initialProfile ?? DEFAULT_STATE;
+    return base.territoryZip ? base : { ...base, territoryZip: purchasedZip ?? "" };
+  });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [trace, setTrace] = useState<string[]>([]);
@@ -50,23 +55,39 @@ export function OnboardingWizard({ email, initialProfile, tier, dailyLimit }: {
 
   async function save(nextStep: number, action = "save") {
     setBusy(true); setNotice("");
-    const response = await fetch("/api/onboarding", {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...form, completedStep: nextStep, action, testPassedAt }),
-    });
-    const body = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) { setNotice(typeof body?.error === "string" ? body.error : "Unable to save."); return false; }
-    setStep(nextStep); return true;
+    try {
+      const response = await fetch("/api/onboarding", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...form, completedStep: nextStep, action, testPassedAt }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) { setNotice(typeof body?.error === "string" ? body.error : "Unable to save."); return false; }
+      setStep(nextStep); return true;
+    } catch {
+      setNotice("Network error. Check your connection and try again.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function runTest() {
     setBusy(true); setNotice(""); setTrace([]);
-    const response = await fetch("/api/onboarding", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "test" }) });
-    const body = await response.json(); setBusy(false);
-    if (!response.ok || !body.test?.passed) { setNotice("The safe test did not pass. Nothing was sent."); return; }
+    let body: { test?: { passed?: boolean; trace: string[] } } = {};
+    let ok = false;
+    try {
+      const response = await fetch("/api/onboarding", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "test" }) });
+      ok = response.ok;
+      body = await response.json().catch(() => ({}));
+    } catch {
+      setNotice("Network error. Check your connection and try again.");
+      return;
+    } finally {
+      setBusy(false);
+    }
+    if (!ok || !body.test?.passed) { setNotice("The safe test did not pass. Nothing was sent."); return; }
     const passedAt = new Date().toISOString();
-    setTrace(body.test.trace); setTestPassedAt(passedAt); setNotice("Safe test passed. No email, SMS, or calendar event was sent.");
+    setTrace(body.test?.trace ?? []); setTestPassedAt(passedAt); setNotice("Safe test passed. No email, SMS, or calendar event was sent.");
   }
 
   return (
@@ -153,7 +174,7 @@ export function OnboardingWizard({ email, initialProfile, tier, dailyLimit }: {
               <p className="mt-4 leading-7 text-[#536070]">Cerebro will follow the goal, channels, consent rules, and escalation threshold you approved.</p>
               <div className="mt-7 rounded-2xl border border-[#d8d0c1] bg-white p-5"><p className="text-sm font-bold">Plan capacity</p><p className="mt-2 text-3xl font-semibold">{Number.isFinite(dailyLimit) ? dailyLimit : "Unlimited"} <span className="text-sm font-medium text-[#647080]">agent actions / day</span></p></div>
               {!isPaid && <p className="mt-4 rounded-2xl border border-[#d6a94f] bg-[#fff6df] p-4 text-sm leading-6 text-[#6f4a0d]">Your safe test is complete. A paid plan is required before external automations can run.</p>}
-              <div className="mt-7 flex flex-wrap gap-3"><button onClick={() => setStep(4)} className="rounded-full border border-[#cfc5b4] px-5 py-3 text-sm font-bold">Back</button>{isPaid ? <button disabled={busy} onClick={async()=>{if(await save(5,"activate")) setNotice("Cerebro is active. Your guardrails are now the operating policy.");}} className="rounded-full bg-[#aa7a24] px-6 py-3 text-sm font-bold text-white">Activate Cerebro</button> : <Link href="/dashboard?upgrade=starter" className="rounded-full bg-[#aa7a24] px-6 py-3 text-sm font-bold text-white">See agent plans</Link>}<Link href="/dashboard" className="rounded-full px-5 py-3 text-sm font-bold text-[#536070]">Return to dashboard</Link></div>
+              <div className="mt-7 flex flex-wrap gap-3"><button onClick={() => setStep(4)} className="rounded-full border border-[#cfc5b4] px-5 py-3 text-sm font-bold">Back</button>{isPaid ? <button disabled={busy} onClick={async()=>{if(await save(5,"activate")) setNotice("Cerebro is active. Your guardrails are now the operating policy.");}} className="rounded-full bg-[#aa7a24] px-6 py-3 text-sm font-bold text-white">Activate Cerebro</button> : <Link href="/pricing" className="rounded-full bg-[#aa7a24] px-6 py-3 text-sm font-bold text-white">See agent plans</Link>}<Link href="/dashboard" className="rounded-full px-5 py-3 text-sm font-bold text-[#536070]">Return to dashboard</Link></div>
             </>}
             {notice && <p role="status" className="mt-5 text-sm font-semibold text-[#7a571b]">{notice}</p>}
           </section>

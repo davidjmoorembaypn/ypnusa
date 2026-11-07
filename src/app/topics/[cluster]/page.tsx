@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { TOPIC_CLUSTERS, getCluster, getClusterPosts } from "@/lib/seo/clusters";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import { getSiteOrigin } from "@/lib/request-host";
+import { needsFullPageLoad } from "@/lib/wp-html";
 
 export const dynamicParams = false;
 
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ cluster: 
   const { cluster: slug } = await params;
   const cluster = getCluster(slug);
   if (!cluster) return {};
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: cluster.title,
     description: cluster.description,
@@ -36,7 +36,7 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
   const cluster = getCluster(slug);
   if (!cluster) notFound();
 
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const posts = getClusterPosts(cluster.slug);
   const url = `${origin}/topics/${cluster.slug}`;
 
@@ -92,12 +92,22 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
           <ul className="mt-8 flex flex-wrap gap-3">
             {cluster.pillarLinks.map((l) => (
               <li key={l.href}>
-                <Link
-                  href={l.href}
-                  className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20"
-                >
-                  {l.label}
-                </Link>
+                {needsFullPageLoad(l.href) ? (
+                  // Interactive imported page: its inline scripts only run on a full load.
+                  <a
+                    href={l.href}
+                    className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20"
+                  >
+                    {l.label}
+                  </a>
+                ) : (
+                  <Link
+                    href={l.href}
+                    className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20"
+                  >
+                    {l.label}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

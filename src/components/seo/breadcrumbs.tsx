@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { appUrl } from "@/lib/site";
+import { marketingUrl } from "@/lib/site";
 
 export type BreadcrumbItem = {
   name: string;
@@ -19,7 +19,7 @@ export function BreadcrumbSchema({ items }: { items: BreadcrumbItem[] }) {
       "@type": "ListItem",
       position: index + 1,
       name: item.name,
-      item: appUrl(item.href),
+      item: marketingUrl(item.href),
     })),
   };
 

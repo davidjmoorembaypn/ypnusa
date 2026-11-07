@@ -84,7 +84,7 @@ export class GeminiProvider implements AiProvider {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(60_000),
+        signal: AbortSignal.timeout(Math.min(request.timeoutMs ?? 45_000, 45_000)),
       });
       if (response.ok) break;
       lastStatus = response.status;

@@ -5,8 +5,19 @@ import path from "node:path";
 import { after, afterEach, before, beforeEach, describe, it } from "node:test";
 import { generateId } from "../id";
 import type { AssistantMode, ChatSessionRecord } from "../types";
-import { readChatSession, readDb } from "../db";
-import { linkQualifiedLead, runAssistantTurn } from "./chat-agent";
+import { readChatSession, readDb, saveChatSession } from "../db";
+import {
+  countUserMessagesToday,
+  dailyMessageLimit,
+  FREE_DAILY_MESSAGE_LIMIT,
+  linkQualifiedLead,
+  matchesAutopilotCommand,
+  MODEL_HISTORY_LIMIT,
+  PAID_DAILY_MESSAGE_LIMIT,
+  runAssistantTurn,
+  transcriptForSession,
+  trimHistoryForModel,
+} from "./chat-agent";
 import { buildSystemPrompt } from "./prompts";
 import { resetAiProviderCache } from "./provider";
 
@@ -51,7 +62,8 @@ describe("runAssistantTurn — no provider configured", () => {
 
     assert.equal(result.providerConfigured, false);
     assert.ok(result.reply.length > 0);
-    assert.match(result.reply, /AI provider/i);
+    assert.match(result.reply, /Cerebro is offline/);
+    assert.doesNotMatch(result.reply, /provider|API key|operator|docs\//i);
     // No lead exists yet for a brand-new, unqualified session — the API/UI
     // must not show a "lead linked" state when nothing has been linked.
     assert.equal(result.borrowerLeadId, undefined);
@@ -121,20 +133,38 @@ describe("runAssistantTurn — no provider configured", () => {
 });
 
 describe("runAssistantTurn — website/profile autopilot trigger (mlo_dashboard)", () => {
-  it("acts as an operator and returns an autopilot summary without calling the AI provider", async () => {
+  it("runs only on an explicit command, and says honestly that the changes are drafts", async () => {
     const result = await runAssistantTurn({
       mode: "mlo_dashboard",
       userId: "user_lo_autopilot",
-      userMessage: "Improve my website/profile for me.",
+      userMessage: "Run website autopilot",
     });
 
-    assert.match(
-      result.reply,
-      /I can prepare and apply safe YPNUS-controlled improvements for you/,
-    );
+    assert.match(result.reply, /^I drafted \d+ changes?/);
+    assert.match(result.reply, /Nothing is live yet/);
+    assert.doesNotMatch(result.reply, /No manual work|improved your/i);
     assert.ok(result.autopilot);
-    assert.ok(result.autopilot!.autoAppliedCount >= 0);
     assert.ok(result.autopilot!.topChanges.length > 0);
+  });
+
+  it("does not create duplicate change records when the command is repeated", async () => {
+    const before = readDb().websiteAutopilotChanges.filter((c) => c.userId === "user_lo_autopilot_dupe").length;
+    await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_lo_autopilot_dupe", userMessage: "run the autopilot" });
+    const once = readDb().websiteAutopilotChanges.filter((c) => c.userId === "user_lo_autopilot_dupe").length;
+    await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_lo_autopilot_dupe", userMessage: "run the autopilot" });
+    const twice = readDb().websiteAutopilotChanges.filter((c) => c.userId === "user_lo_autopilot_dupe").length;
+    assert.equal(before, 0);
+    assert.ok(once > 0);
+    assert.equal(twice, once);
+  });
+
+  it("no longer hijacks loose phrases like 'get me more leads' (they go to the model)", async () => {
+    for (const userMessage of ["get me more leads", "Improve my website/profile for me."]) {
+      const result = await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_lo_loose", userMessage });
+      assert.equal(result.autopilot, undefined, userMessage);
+    }
+    assert.equal(matchesAutopilotCommand("please run website autopilot"), true);
+    assert.equal(matchesAutopilotCommand("how does the autopilot work?"), false);
   });
 
   it("does not trigger the autopilot for unrelated mlo_dashboard messages", async () => {
@@ -145,6 +175,71 @@ describe("runAssistantTurn — website/profile autopilot trigger (mlo_dashboard)
     });
 
     assert.equal(result.autopilot, undefined);
+  });
+});
+
+describe("runAssistantTurn — daily message cap and history trim (mlo_dashboard)", () => {
+  function seedUsage(userId: string, count: number) {
+    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date().toISOString();
+    saveChatSession({
+      id: generateId("chat"),
+      mode: "mlo_dashboard",
+      createdAt: now,
+      updatedAt: now,
+      userId,
+      messages: [],
+      capturedFields: {},
+      status: "active",
+      usageDay: today,
+      usageCount: count,
+    });
+  }
+
+  it("stops a free user at the free daily cap without calling the model", async () => {
+    seedUsage("user_cap_free", FREE_DAILY_MESSAGE_LIMIT);
+    const result = await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_cap_free", userMessage: "hi" });
+    assert.equal(result.limitReached, true);
+    assert.match(result.reply, /free Cerebro messages/);
+    assert.match(result.reply, /ZIP code/);
+  });
+
+  it("lets a paid user keep going past the free cap, up to the paid cap", async () => {
+    seedUsage("user_cap_paid", FREE_DAILY_MESSAGE_LIMIT);
+    const under = await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_cap_paid", paidPlan: true, userMessage: "hi" });
+    assert.equal(under.limitReached, undefined);
+
+    seedUsage("user_cap_paid_full", PAID_DAILY_MESSAGE_LIMIT);
+    const over = await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_cap_paid_full", paidPlan: true, userMessage: "hi" });
+    assert.equal(over.limitReached, true);
+  });
+
+  it("counts usage across all of a user's sessions for today", () => {
+    seedUsage("user_cap_count", 3);
+    seedUsage("user_cap_count", 4);
+    assert.equal(countUserMessagesToday("user_cap_count"), 7);
+    assert.equal(dailyMessageLimit(false), FREE_DAILY_MESSAGE_LIMIT);
+    assert.equal(dailyMessageLimit(true), PAID_DAILY_MESSAGE_LIMIT);
+  });
+
+  it("sends only the last MODEL_HISTORY_LIMIT messages, starting on a user turn", () => {
+    const messages = Array.from({ length: 45 }, (_, i) => ({
+      id: `m${i}`,
+      role: (i % 2 === 0 ? "user" : "assistant") as "user" | "assistant",
+      content: `message ${i}`,
+      createdAt: new Date().toISOString(),
+    }));
+    const trimmed = trimHistoryForModel(messages);
+    assert.ok(trimmed.length <= MODEL_HISTORY_LIMIT);
+    assert.equal(trimmed[0].role, "user");
+    assert.equal(trimmed.at(-1)?.content, "message 44");
+  });
+
+  it("returns a dashboard transcript only to the user who owns it", async () => {
+    const first = await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_owner", userMessage: "hello" });
+    assert.equal(transcriptForSession({ sessionId: first.sessionId, mode: "mlo_dashboard", userId: "user_owner" }).length, 2);
+    assert.deepEqual(transcriptForSession({ sessionId: first.sessionId, mode: "mlo_dashboard", userId: "user_other" }), []);
+    assert.deepEqual(transcriptForSession({ sessionId: first.sessionId, mode: "public_site" }), []);
   });
 });
 

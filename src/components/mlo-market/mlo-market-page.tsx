@@ -5,7 +5,7 @@ import { TerritoryClaim } from "@/components/territory-claim";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/seo/breadcrumbs";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
-import { faqJsonLd } from "@/lib/seo";
+import { faqJsonLd, monthlyOfferPriceSpecification } from "@/lib/seo";
 import { founderCredentialJsonLd } from "@/lib/seo/founder-credentials";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { MLO_MARKETS, marketFaq, type MloMarket } from "@/content/mlo-markets";
@@ -58,14 +58,18 @@ export function MloMarketPage({ market, origin }: { market?: MloMarket; origin: 
               geo: { "@type": "GeoCoordinates", latitude: market.latitude, longitude: market.longitude },
             }
           : { "@type": "Country", name: "United States" },
-        offers: PUBLIC_PRICING_TIERS.map((tier) => ({
-          "@type": "Offer",
-          name: tier.name,
+        offers: PUBLIC_PRICING_TIERS.map((tier) => {
           // The advertised price (e.g. "$99"), not the legacy billed cents kept for existing subscribers.
-          price: tier.price.replace(/[^0-9.]/g, ""),
-          priceCurrency: "USD",
-          url: `${origin}/pricing`,
-        })),
+          const price = tier.price.replace(/[^0-9.]/g, "");
+          return {
+            "@type": "Offer",
+            name: tier.name,
+            price,
+            priceCurrency: "USD",
+            ...(Number(price) > 0 ? { priceSpecification: monthlyOfferPriceSpecification(price) } : {}),
+            url: `${origin}/pricing`,
+          };
+        }),
       },
       founderCredentialJsonLd(),
     ],

@@ -4,12 +4,12 @@ import Link from "next/link";
 import { MarketingToolForm } from "@/components/marketing-tool-form";
 import { serializeJsonLd } from "@/lib/local-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import { getSiteOrigin } from "@/lib/request-host";
+import { pageTitle } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return {
-    title: "AI Social Media Marketing Writer for Mortgage & Real Estate",
+    title: pageTitle("AI Social Media Marketing Writer for Mortgage & Real Estate"),
     description:
       "Generate local social media post drafts, hooks, CTAs and campaign ideas for mortgage loan officers and real estate professionals.",
     alternates: { canonical: `${origin}/tools/social-writer` },
@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SocialWriterPage() {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",

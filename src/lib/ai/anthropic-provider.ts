@@ -7,26 +7,34 @@ import type { AiGenerateRequest, AiGenerateResult, AiProvider, AiToolCall } from
 export type AiBackend = { kind: "anthropic"; apiKey?: string } | { kind: "bedrock"; config: BedrockConfig };
 
 /**
- * Default model: claude-opus-5 (Anthropic's current flagship). Override with
- * ANTHROPIC_MODEL for cost/latency tuning once this sees real production traffic —
- * see docs/ai-assistant.md for the tradeoffs.
+ * Default model: claude-sonnet-5-5. Cerebro is a chat widget, so a fast, cheaper model
+ * fits better than the Opus tier. Override with ANTHROPIC_MODEL (e.g. claude-opus-5-5)
+ * — see docs/ai-assistant.md for the tradeoffs.
  */
-const DEFAULT_MODEL = "claude-opus-5";
+export const DEFAULT_MODEL = "claude-sonnet-5-5";
 /** Bedrock (Mantle endpoint) model ids carry an "anthropic." prefix. */
-const DEFAULT_BEDROCK_MODEL = "anthropic.claude-opus-5";
+export const DEFAULT_BEDROCK_MODEL = "anthropic.claude-sonnet-5-5";
 /**
  * Tried in order after the configured model when Bedrock answers 404 "model does not
  * exist". Which Claude models a Bedrock account can call varies by region and by which
  * models were enabled, so the provider finds one that works instead of failing the chat.
  */
-const BEDROCK_FALLBACK_MODELS = [
+export const BEDROCK_FALLBACK_MODELS = [
+  "anthropic.claude-opus-5-5",
+  "anthropic.claude-haiku-5-5",
   "anthropic.claude-sonnet-5",
-  "anthropic.claude-opus-4-8",
-  "anthropic.claude-opus-4-7",
+  "anthropic.claude-opus-5",
   "anthropic.claude-sonnet-4-6",
   "anthropic.claude-haiku-4-5",
 ];
 const DEFAULT_MAX_TOKENS = 4096;
+/**
+ * Per-request ceiling. app.ypnus.com sits behind Apache with a 60s ProxyTimeout, so a
+ * single model call must give up well before that (the chat loop in chat-agent.ts also
+ * caps the whole turn). One retry only: a second retry could push past the proxy limit.
+ */
+export const REQUEST_TIMEOUT_MS = 45_000;
+export const MAX_RETRIES = 1;
 
 export class AnthropicProvider implements AiProvider {
   readonly name: string;
@@ -46,6 +54,8 @@ export class AnthropicProvider implements AiProvider {
       this.name = "bedrock";
       this.client = new AnthropicBedrockMantle({
         awsRegion: config.region,
+        timeout: REQUEST_TIMEOUT_MS,
+        maxRetries: MAX_RETRIES,
         // An explicit Bedrock API key wins; otherwise the AWS key pair (+ optional session token);
         // if neither is set the SDK falls back to the default AWS credential chain.
         ...(config.apiKey ? { apiKey: config.apiKey } : {}),
@@ -61,13 +71,18 @@ export class AnthropicProvider implements AiProvider {
       return;
     }
     this.name = "anthropic";
-    this.client = new Anthropic(resolved.apiKey ? { apiKey: resolved.apiKey } : undefined);
+    this.client = new Anthropic({
+      ...(resolved.apiKey ? { apiKey: resolved.apiKey } : {}),
+      timeout: REQUEST_TIMEOUT_MS,
+      maxRetries: MAX_RETRIES,
+    });
     this.models = [process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL];
   }
 
   /** Calls the model, moving to the next candidate only on a 404 (model not available). */
   private async createWithModelFallback(
     build: (model: string) => Anthropic.MessageCreateParamsNonStreaming,
+    timeoutMs?: number,
   ): Promise<Anthropic.Message> {
     const order = this.activeModel
       ? [this.activeModel, ...this.models.filter((model) => model !== this.activeModel)]
@@ -75,7 +90,9 @@ export class AnthropicProvider implements AiProvider {
     let lastError: unknown;
     for (const model of order) {
       try {
-        const response = await this.client.messages.create(build(model));
+        const response = timeoutMs
+          ? await this.client.messages.create(build(model), { timeout: timeoutMs })
+          : await this.client.messages.create(build(model));
         if (this.activeModel !== model) {
           this.activeModel = model;
           if (this.models.length > 1) console.log(`[ai] ${this.name} model in use: ${model}`);
@@ -107,7 +124,7 @@ export class AnthropicProvider implements AiProvider {
         ...(index === all.length - 1 ? { cache_control: { type: "ephemeral" as const } } : {}),
       })),
       output_config: { effort: "medium" },
-    }));
+    }), request.timeoutMs);
 
     if (response.stop_reason === "refusal") {
       const category = response.stop_details?.category;

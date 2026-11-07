@@ -13,12 +13,12 @@ import type { PaymentConversionRecord } from "@/lib/types";
  * customers) and payments dated before CONVERSION_COUNT_FROM (ISO date).
  */
 
-type InvoiceLike = Stripe.Invoice & {
+export type InvoiceLike = Stripe.Invoice & {
   subscription?: string | { id: string } | null;
   parent?: { subscription_details?: { subscription?: string | { id: string } | null } | null } | null;
 };
 
-function idOf(value: string | { id: string } | null | undefined): string | undefined {
+export function idOf(value: string | { id: string } | null | undefined): string | undefined {
   if (!value) return undefined;
   return typeof value === "string" ? value : value.id;
 }

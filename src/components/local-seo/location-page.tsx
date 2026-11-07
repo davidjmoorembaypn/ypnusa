@@ -3,13 +3,13 @@ import { SiloNav } from "@/components/silo-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { FREE_SIGNUP_HREF } from "@/lib/checkout";
 import {
   LOCAL_SEO_PROFILES,
   LOCAL_SEO_PUBLIC_ORIGIN,
   buildGoogleReviewUrl,
   getLocalSeoPath,
   loadGbpReviews,
+  localIntakeHref,
   serializeJsonLd,
   type LocalSeoProfile,
   type PublicBusinessProfile,
@@ -29,16 +29,13 @@ function LocalMetrics({ metrics }: Pick<LocalSeoProfile, "metrics">) {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-700">
             {metric.label}
           </p>
+          {/* Only source-backed, dated values are shown; otherwise the card just links to the source. */}
           {metric.value && metric.asOf ? (
             <>
               <p className="mt-3 text-2xl font-semibold text-slate-950">{metric.value}</p>
               <p className="mt-1 text-xs text-slate-500">Source period: {metric.asOf}</p>
             </>
-          ) : (
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              No dated value is published here until a source-backed metric is configured.
-            </p>
-          )}
+          ) : null}
           <a
             href={metric.sourceUrl}
             className="mt-4 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-900"
@@ -75,8 +72,7 @@ function ServiceAreaMap({ profile }: { profile: LocalSeoProfile }) {
             {profile.city} service area
           </p>
           <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
-            The embedded map is disabled until a restricted Google Maps Embed key is configured.
-            Location links remain available without tracking the visitor.
+            {profile.city}, {profile.stateCode} {profile.zipCodes.join(", ")}
           </p>
           <a
             href={mapLink}
@@ -139,14 +135,12 @@ function NapCard({
             </dd>
           </div>
         ) : null}
-        <div>
-          <dt className="font-semibold text-white">Office address</dt>
-          <dd>
-            {addressParts.length > 0
-              ? addressParts.join(", ")
-              : "Service-area business; a public office address is not configured."}
-          </dd>
-        </div>
+        {addressParts.length > 0 ? (
+          <div>
+            <dt className="font-semibold text-white">Office address</dt>
+            <dd>{addressParts.join(", ")}</dd>
+          </div>
+        ) : null}
         {business.nmlsId ? (
           <div>
             <dt className="font-semibold text-white">NMLS ID</dt>
@@ -163,11 +157,7 @@ function NapCard({
         >
           View verified Google Business Profile ↗
         </a>
-      ) : (
-        <p className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-3 text-xs leading-5 text-white/65">
-          A verified Google Business Profile link has not been configured.
-        </p>
-      )}
+      ) : null}
     </aside>
   );
 }
@@ -179,6 +169,13 @@ function ReviewSection({
   feed: ReviewFeed;
   reviewUrl?: string;
 }) {
+  // Nothing public to show (no verified reviews, no review link): render nothing
+  // rather than the provider's setup/status message.
+  if (feed.reviews.length === 0 && !reviewUrl) return null;
+  const intro =
+    feed.reviews.length > 0
+      ? "Reviews from verified Google clients."
+      : "Worked with us? Share your experience on Google.";
   return (
     <section className="rounded-3xl border border-slate-200 bg-slate-50 p-7">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -187,7 +184,7 @@ function ReviewSection({
             Google reviews
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">What verified clients say</h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate-600">{feed.message}</p>
+          <p className="mt-2 max-w-2xl text-sm text-slate-600">{intro}</p>
         </div>
         {reviewUrl ? (
           <a
@@ -299,10 +296,9 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
     { name: "MLO Local SEO & ZIP Code Territory Claims", href: "/#territories" },
     { name: profile.kind === "city" ? `${profile.city}, ${profile.stateCode}` : profile.slug },
   ];
-  // This page already knows the visitor's ZIP (when profile.kind is "zip") —
-  // carry it into signup so the territory they're reading about is the one
-  // that gets locked, same reasoning as PricingCta/checkoutUrlForTier.
-  const signupHref = FREE_SIGNUP_HREF;
+  // Visitors here are borrowers: send them to the borrower intake (not the MLO
+  // sign-in), tagged with this page's ZIP or city so the lead keeps its source.
+  const intakeHref = localIntakeHref(profile);
   const relatedProfiles = LOCAL_SEO_PROFILES.filter(
     (candidate) =>
       candidate.slug !== profile.slug &&
@@ -420,11 +416,11 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
         <section className="bg-[#100d2c] px-6 py-16 text-center text-white">
           <h2 className="text-3xl font-semibold">Talk through your local financing goal</h2>
           <p className="mx-auto mt-3 max-w-2xl text-white/70">
-            Share your target ZIP and timeline. Your configured mortgage contact can confirm
+            Share your target ZIP and timeline. A licensed loan officer can confirm
             current availability and provide information for your specific scenario.
           </p>
           <a
-            href={signupHref}
+            href={intakeHref}
             className="mt-7 inline-flex rounded-full bg-amber-400 px-7 py-3 font-semibold text-[#09081b]"
           >
             Get local mortgage guidance

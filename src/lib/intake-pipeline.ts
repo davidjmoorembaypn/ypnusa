@@ -1,9 +1,9 @@
 import { appendAnalytics, persistSession, readDb } from "./db";
 import { processDueFollowUps, scheduleBorrowerJourney } from "./automation";
-import { logCrmActivity, routeLoanOfficer } from "./crm";
+import { logCrmActivity, routeLead } from "./crm";
 import { buildQualification, recommendPrograms } from "./qualification";
 import type { BorrowerAnswers, IntakeSessionRecord, LoanProgram } from "./types";
-import { notifyAssignedOfficer } from "./notifications";
+import { emailNewLeadAlert, notifyAssignedOfficer } from "./notifications";
 import { mirrorIntakeToExternalWebhook } from "./external-webhook";
 import { buildZipContext } from "./agents/zipContext";
 import { buildCountyEvents } from "./agents/countyEvents";
@@ -180,7 +180,9 @@ export async function finalizeIntakeArtifacts(
   }
 
   const qualification = buildQualification(answers);
-  const officerProfile = routeLoanOfficer(session.loanProgram);
+  // The ZIP owner (a paying MLO) gets the lead; otherwise the house account does.
+  const route = routeLead({ program: session.loanProgram, zip: answers.zip });
+  const officerProfile = route.officer;
 
   const crm = logCrmActivity(
     answers,
@@ -192,6 +194,14 @@ export async function finalizeIntakeArtifacts(
 
   notifyAssignedOfficer({
     loId: officerProfile.id,
+    borrowerLeadId: crm.borrowerLeadId,
+    loanProgram: session.loanProgram,
+    answers,
+    qualification,
+  });
+  void emailNewLeadAlert({
+    officer: officerProfile,
+    routeReason: route.reason,
     borrowerLeadId: crm.borrowerLeadId,
     loanProgram: session.loanProgram,
     answers,

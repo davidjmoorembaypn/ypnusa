@@ -4,10 +4,10 @@ import Link from "next/link";
 import { CopySnippet } from "@/components/copy-snippet";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: "Free Embeddable Tools for Loan Officers and Realtors",
     description:
@@ -28,7 +28,7 @@ function snippet(origin: string, path: string, height: number, title: string, cr
 }
 
 export default async function EmbedLandingPage() {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const equity = snippet(origin, "/embed/equity", 820, "Home equity snapshot", "/tools/equity", "Home equity calculator by YPN USA");
   const intake = snippet(origin, "/embed/intake", 760, "Mortgage borrower intake assistant", "/ai-platform", "Mortgage lead assistant by YPN USA");
 

@@ -2,7 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { generateId } from "@/lib/id";
 import { bookAppointment, listSyncedAvailableSlots } from "@/lib/calendar";
 import { readAgentOnboarding, readChatSession, readDb, saveChatSession } from "@/lib/db";
-import { logCrmActivity, routeLoanOfficer } from "@/lib/crm";
+import { normalizeEmail } from "@/lib/accounts";
+import { findZipOwnerSubscription, logCrmActivity, routeLead } from "@/lib/crm";
+import { emailNewLeadAlert, notifyAssignedOfficer } from "@/lib/notifications";
 import { marketingUrl } from "@/lib/site";
 import type {
   AssistantMode,
@@ -51,7 +53,8 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
       REQUEST_HUMAN_HANDOFF_TOOL,
     );
   }
-  if (mode === "mlo_dashboard") tools.push(...MLO_TOOLS);
+  // Signed-in officers can check ZIP codes too (their own is recognised as theirs).
+  if (mode === "mlo_dashboard") tools.push(...MLO_TOOLS, CHECK_TERRITORY_AVAILABILITY_TOOL);
   if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(CHECK_TERRITORY_AVAILABILITY_TOOL);
   return tools;
 }
@@ -108,6 +111,41 @@ function resolveHandoffPhone(): string {
   return process.env.MLO_PUBLIC_PHONE?.trim() || "+1-559-512-0372";
 }
 
+/** What every open-ZIP-code answer must make clear: a free account never reserves one. */
+export const ZIP_LOCK_NOTE =
+  "Only a paid plan locks a ZIP code. A free account does not reserve it, so another loan officer can claim it at any time.";
+
+/**
+ * check_territory_availability. Adds the lock rule and the Pro checkout / pricing links to
+ * an open ZIP code, and recognises a ZIP code the signed-in officer already holds.
+ */
+async function executeTerritoryCheck(zip: string, viewerEmail?: string): Promise<string> {
+  const result = await fetchLiveTerritory(zip);
+  if (!result) return JSON.stringify({ error: "Territory lookup is temporarily unavailable." });
+  if (!result.valid) return JSON.stringify({ available: false, message: result.message });
+
+  const viewer = normalizeEmail(viewerEmail);
+  const owner = viewer ? findZipOwnerSubscription(result.zip) : null;
+  if (viewer && owner && normalizeEmail(owner.ownerEmail) === viewer) {
+    return JSON.stringify({
+      available: false,
+      ownedByYou: true,
+      message: `ZIP code ${result.zip} is your exclusive territory. Leads from it route to you.`,
+    });
+  }
+  if (!result.available) return JSON.stringify({ available: false, message: result.message });
+
+  const pro = PUBLIC_PRICING_TIERS.find((tier) => tier.id === "growth");
+  return JSON.stringify({
+    available: true,
+    message: result.message,
+    lockNote: ZIP_LOCK_NOTE,
+    lockWithPlan: pro ? `${pro.name} (${pro.price}/mo, ${pro.trialDays}-day free trial)` : undefined,
+    lockCheckoutUrl: signupUrl({ plan: "growth", zip: result.zip }),
+    pricingUrl: marketingUrl("/pricing"),
+  });
+}
+
 /** Runs one real-world action tool and returns a plain-text result for the model. Never throws. */
 async function executeActionTool(
   call: AiToolCall,
@@ -122,10 +160,7 @@ async function executeActionTool(
     }
     if (call.toolName === "check_territory_availability") {
       const zip = typeof call.input.zip === "string" ? call.input.zip : "";
-      const result = await fetchLiveTerritory(zip);
-      return result
-        ? JSON.stringify({ available: result.available, message: result.message })
-        : JSON.stringify({ error: "Territory lookup is temporarily unavailable." });
+      return await executeTerritoryCheck(zip, session.mode === "mlo_dashboard" ? ctx.userEmail : undefined);
     }
     if (call.toolName === "find_explainer_video") {
       const topic = typeof call.input.topic === "string" ? call.input.topic : "";
@@ -148,7 +183,16 @@ async function executeActionTool(
       });
     }
     if (call.toolName === "start_signup") {
-      return JSON.stringify({ url: signupUrl(call.input) });
+      const plan = isPricingTierId(call.input.plan) ? call.input.plan : "free";
+      if (plan !== "free") return JSON.stringify({ url: signupUrl(call.input) });
+      // A free signup never reserves a ZIP code, so the free link carries none, and the model
+      // gets the lock rule plus the Pro checkout link to offer alongside it.
+      const zip = typeof call.input.zip === "string" && call.input.zip.trim() ? call.input.zip.trim() : undefined;
+      return JSON.stringify({
+        url: signupUrl({ plan: "free" }),
+        lockNote: ZIP_LOCK_NOTE,
+        lockCheckoutUrl: signupUrl({ plan: "growth", zip }),
+      });
     }
     if (call.toolName === "schedule_meeting") {
       return await executeScheduleMeeting(call, session);
@@ -164,13 +208,37 @@ async function executeActionTool(
 }
 
 const MAX_TOOL_ROUNDS = 5;
+/**
+ * Wall-clock budget for one whole turn (every model round plus tool runs). Apache's
+ * ProxyTimeout in front of app.ypnus.com is 60s; staying under ~50s leaves room for the
+ * route itself so the visitor gets an answer instead of a proxy error page.
+ */
+export const TURN_BUDGET_MS = 50_000;
+/** Per-call ceiling (matches the SDK client timeout in anthropic-provider.ts). */
+const MAX_CALL_MS = 45_000;
+/** Below this much budget left, don't start another model round. */
+const MIN_ROUND_MS = 5_000;
+const OUT_OF_TIME_REPLY =
+  "That took longer than expected on my end. Please send your message again, or ask me something a little narrower.";
+
+/**
+ * Wraps one tool result in a clearly delimited envelope. Tool output can include text that
+ * came from third parties (lead notes, page copy, lookups), so it is labelled as untrusted
+ * data and the system prompt (TOOL_DATA_SAFETY_RULE) tells the model never to follow
+ * instructions inside it. A result that tries to close the envelope early is defused.
+ */
+export function wrapToolData(toolName: string, output: string): string {
+  const safeName = toolName.replace(/[^a-z0-9_]/gi, "");
+  const safeOutput = output.replace(/<\s*\/?\s*tool_data/gi, "[tool_data");
+  return `<tool_data tool="${safeName}" trust="untrusted">\n${safeOutput}\n</tool_data>`;
+}
+
 const ACTION_TOOL_NAMES = new Set([
   "check_territory_availability",
   // get_pricing was missing here, so a "what do the plans cost?" question ended the turn on the
   // model's "let me pull that up" preface without ever running the tool.
   "get_pricing",
   "find_explainer_video",
-  "get_pricing",
   "start_signup",
   "schedule_meeting",
   "request_human_handoff",
@@ -202,13 +270,27 @@ export async function runWithTools(
   session: ChatSessionRecord,
   mergeCapture: (call: AiToolCall) => void,
   ctx: MloToolContext = {},
+  options: { budgetMs?: number } = {},
 ): Promise<{ text: string; captureCalls: AiToolCall[]; actionCalls: AiToolCall[] }> {
   const messages = [...history];
   const captureCalls: AiToolCall[] = [];
   const allActionCalls: AiToolCall[] = [];
+  const deadline = Date.now() + (options.budgetMs ?? TURN_BUDGET_MS);
+  const remaining = () => deadline - Date.now();
+  /** Text the model already wrote this turn - shown if the budget runs out before a final answer. */
+  let lastText = "";
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    const result = await provider.generate({ system, messages, tools });
+    if (remaining() < MIN_ROUND_MS) {
+      return { text: lastText || OUT_OF_TIME_REPLY, captureCalls, actionCalls: allActionCalls };
+    }
+    const result = await provider.generate({
+      system,
+      messages,
+      tools,
+      timeoutMs: Math.min(MAX_CALL_MS, remaining()),
+    });
+    if (result.text.trim()) lastText = result.text.trim();
     for (const call of result.toolCalls) {
       if (call.toolName === "capture_lead_qualification") {
         captureCalls.push(call);
@@ -233,13 +315,16 @@ export async function runWithTools(
 
     if (result.text.trim()) messages.push({ role: "assistant", content: result.text.trim() });
     const toolOutputs = await Promise.all(
-      actionCalls.map(async (call) => `[${call.toolName} result] ${await executeActionTool(call, session, ctx)}`),
+      actionCalls.map(async (call) => wrapToolData(call.toolName, await executeActionTool(call, session, ctx))),
     );
     messages.push({ role: "user", content: toolOutputs.join("\n") });
   }
 
   // Ran out of rounds — ask once more without tools so the model must answer in text.
-  const final = await provider.generate({ system, messages });
+  if (remaining() < MIN_ROUND_MS) {
+    return { text: lastText || OUT_OF_TIME_REPLY, captureCalls, actionCalls: allActionCalls };
+  }
+  const final = await provider.generate({ system, messages, timeoutMs: Math.min(MAX_CALL_MS, remaining()) });
   return { text: final.text, captureCalls, actionCalls: allActionCalls };
 }
 
@@ -254,6 +339,8 @@ export interface AssistantTurnInput {
   userId?: string;
   /** Signed-in session email - lets MLO tools find the officer's own record. Never taken from the client. */
   userEmail?: string;
+  /** True when the signed-in user has an active paid plan (or is an admin) — sets the daily message cap. */
+  paidPlan?: boolean;
   funnelSource?: string;
   userMessage: string;
 }
@@ -283,6 +370,8 @@ export interface AssistantTurnResult {
   };
   /** False whenever no AI provider is configured — the route surfaces this so the UI can show a setup notice instead of treating it as a normal outage. */
   providerConfigured: boolean;
+  /** Set when the signed-in user hit the daily message cap; the model was not called. */
+  limitReached?: boolean;
 }
 
 function nowIso(): string {
@@ -311,6 +400,21 @@ function loadOrCreateSession(input: AssistantTurnInput): ChatSessionRecord {
     capturedFields: {},
     status: "active",
   };
+}
+
+/**
+ * The saved transcript for one chat session, for re-rendering after a reload. Dashboard
+ * sessions are returned only to the user who owns them; anything else yields [].
+ */
+export function transcriptForSession(input: {
+  sessionId: string;
+  mode: AssistantMode;
+  userId?: string;
+}): Array<{ role: ChatMessageRecord["role"]; content: string }> {
+  const session = readChatSession(input.sessionId);
+  if (!session || session.mode !== input.mode) return [];
+  if (input.mode === "mlo_dashboard" && (!input.userId || session.userId !== input.userId)) return [];
+  return session.messages.map((message) => ({ role: message.role, content: message.content }));
 }
 
 function appendMessage(session: ChatSessionRecord, role: ChatMessageRecord["role"], content: string): void {
@@ -396,33 +500,46 @@ export function linkQualifiedLead(session: ChatSessionRecord): void {
     rationale: [session.summary ?? "Captured via the app.ypnus.com lead-qualification assistant."],
   };
 
-  const assignedLoId = routeLoanOfficer(answers.loanProgram).id;
-  const result = logCrmActivity(answers, qualification, assignedLoId, session.funnelSource, session.id);
+  // The chat doesn't capture a ZIP, so this routes to the house account unless one is added.
+  const route = routeLead({ program: answers.loanProgram, zip: answers.zip });
+  const result = logCrmActivity(answers, qualification, route.officer.id, session.funnelSource, session.id);
 
   session.borrowerLeadId = result.borrowerLeadId;
   session.crmLeadId = result.crmLeadId;
+
+  notifyAssignedOfficer({
+    loId: route.officer.id,
+    borrowerLeadId: result.borrowerLeadId,
+    loanProgram: answers.loanProgram,
+    answers,
+    qualification,
+  });
+  void emailNewLeadAlert({
+    officer: route.officer,
+    routeReason: route.reason,
+    borrowerLeadId: result.borrowerLeadId,
+    loanProgram: answers.loanProgram,
+    answers,
+    qualification,
+  });
 }
-
-const AUTOPILOT_TRIGGERS: RegExp[] = [
-  /improve my website/i,
-  /improve my profile/i,
-  /landing page better/i,
-  /get me more leads/i,
-  /website\s*\/?\s*profile/i,
-];
-
-function matchesAutopilotTrigger(message: string): boolean {
-  return AUTOPILOT_TRIGGERS.some((re) => re.test(message));
-}
-
-const AUTOPILOT_OPERATOR_STATEMENT =
-  "I can prepare and apply safe YPNUS-controlled improvements for you, then show you what changed. Risky or compliance-sensitive updates will be held for review.";
 
 /**
- * Runs the Website/Profile Autopilot for an mlo_dashboard session that asked
- * for help improving its website/profile — acting as an operator (it applies
- * safe changes itself) rather than just listing advice. Deterministic and
- * provider-independent, so it works even without an AI provider configured.
+ * Only an explicit command runs the autopilot without the model ("run website autopilot",
+ * "start the autopilot"). Looser phrases such as "get me more leads" used to match too,
+ * skipping the model and creating a batch of generic change records every time; those now
+ * go to the model, which can call run_website_autopilot itself when it fits.
+ */
+const AUTOPILOT_COMMAND = /^\s*(please\s+)?(run|start)\s+(the\s+|my\s+)?(website\s+)?autopilot\b/i;
+
+export function matchesAutopilotCommand(message: string): boolean {
+  return AUTOPILOT_COMMAND.test(message);
+}
+
+/**
+ * Runs the Website/Profile Autopilot for an mlo_dashboard session that explicitly asked for
+ * it. Deterministic and provider-independent, so it works even without an AI provider. It
+ * only drafts changes (deduplicated in runWebsiteAutopilot); nothing is published here.
  */
 function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput): AssistantTurnResult {
   const plan: WebsiteAutopilotPlan = runWebsiteAutopilot({
@@ -432,7 +549,7 @@ function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput)
     autonomy: input.userId ? readAgentOnboarding(input.userId)?.autonomy : undefined,
   });
 
-  const reply = `${AUTOPILOT_OPERATOR_STATEMENT} ${plan.summaryForMlo}`;
+  const reply = plan.summaryForMlo;
   appendMessage(session, "assistant", reply);
   session.updatedAt = nowIso();
   saveChatSession(session);
@@ -466,15 +583,62 @@ function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput)
  */
 function describeProviderError(error: unknown, mode: AssistantMode): string {
   if (mode === "mlo_dashboard") {
-    if (error instanceof Anthropic.AuthenticationError) {
-      return "The assistant's credentials are misconfigured — check the AI provider API key.";
+    if (error instanceof Anthropic.RateLimitError) {
+      return "I'm handling a lot of requests right now. Give me a minute and send that again.";
     }
-    return "The assistant couldn't reach its AI provider (check the key and billing balance). Please try again shortly.";
+    return "I couldn't finish that just now. Your message is saved — please try again in a minute. If it keeps happening, email support@ypnus.com and we'll sort it out.";
   }
   if (error instanceof Anthropic.RateLimitError) {
     return "I'm getting a lot of requests right now — please try again in a moment.";
   }
   return "Sorry, I'm having trouble connecting right now, and your message has been saved. You can book a free consultation at /consultation, or try again in a minute.";
+}
+
+/** Daily cap on model-answered dashboard messages per signed-in user (cost guard). */
+export const PAID_DAILY_MESSAGE_LIMIT = 200;
+export const FREE_DAILY_MESSAGE_LIMIT = 30;
+
+export function dailyMessageLimit(paidPlan: boolean): number {
+  return paidPlan ? PAID_DAILY_MESSAGE_LIMIT : FREE_DAILY_MESSAGE_LIMIT;
+}
+
+function utcDay(now: Date = new Date()): string {
+  return now.toISOString().slice(0, 10);
+}
+
+/** Model-answered mlo_dashboard messages this user has sent today, across all their sessions. */
+export function countUserMessagesToday(userId: string, now: Date = new Date()): number {
+  const today = utcDay(now);
+  return readDb()
+    .chatSessions.filter(
+      (session) => session.mode === "mlo_dashboard" && session.userId === userId && session.usageDay === today,
+    )
+    .reduce((total, session) => total + (session.usageCount ?? 0), 0);
+}
+
+function recordModelUsage(session: ChatSessionRecord): void {
+  const today = utcDay();
+  if (session.usageDay !== today) {
+    session.usageDay = today;
+    session.usageCount = 0;
+  }
+  session.usageCount = (session.usageCount ?? 0) + 1;
+}
+
+/** How many recent messages are sent to the model each turn (the full transcript stays saved). */
+export const MODEL_HISTORY_LIMIT = 20;
+
+/**
+ * The last MODEL_HISTORY_LIMIT messages, starting on a user message (the Messages API
+ * expects the conversation to open with the user).
+ */
+export function trimHistoryForModel(messages: ChatMessageRecord[]): AiMessage[] {
+  const recent = messages.slice(-MODEL_HISTORY_LIMIT);
+  const firstUser = recent.findIndex((message) => message.role === "user");
+  return (firstUser === -1 ? [] : recent.slice(firstUser)).map((message) => ({
+    role: message.role,
+    content: message.content,
+  }));
 }
 
 /**
@@ -492,17 +656,37 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
   const userMessage = input.userMessage.trim().slice(0, MAX_MESSAGE_LENGTH);
   appendMessage(session, "user", userMessage);
 
-  if (input.mode === "mlo_dashboard" && matchesAutopilotTrigger(userMessage)) {
+  if (input.mode === "mlo_dashboard" && matchesAutopilotCommand(userMessage)) {
     return runAutopilotTurn(session, input);
+  }
+
+  if (input.mode === "mlo_dashboard" && input.userId) {
+    const limit = dailyMessageLimit(input.paidPlan === true);
+    if (countUserMessagesToday(input.userId) >= limit) {
+      const reply = input.paidPlan
+        ? `You've reached today's limit of ${limit} Cerebro messages. It resets at midnight UTC — or email support@ypnus.com if you need more today.`
+        : `You've used today's ${limit} free Cerebro messages. They reset at midnight UTC. A paid plan raises that to ${PAID_DAILY_MESSAGE_LIMIT} a day and is the only way to lock your ZIP code: ${marketingUrl("/pricing")}`;
+      appendMessage(session, "assistant", reply);
+      session.updatedAt = nowIso();
+      saveChatSession(session);
+      return {
+        sessionId: session.id,
+        reply,
+        capturedFields: session.capturedFields,
+        status: session.status,
+        providerConfigured: getAiProvider() !== null,
+        limitReached: true,
+      };
+    }
   }
 
   const provider = getAiProvider();
   if (!provider) {
-    // TODO(ai-provider): once ANTHROPIC_API_KEY is set in the deployment
-    // environment, this branch stops firing automatically — nothing else to
-    // wire up. See docs/ai-assistant.md.
+    // Once an AI provider key is set in the deployment environment this branch stops
+    // firing automatically. The visitor-facing text never names keys or setup steps.
+    console.warn("[chat-agent] no AI provider configured; returning the offline reply.");
     const reply =
-      "The AI assistant isn't connected yet — an operator needs to configure the AI provider (see docs/ai-assistant.md). Your message has been saved.";
+      "Cerebro is offline for a moment. Your message has been saved — please try again shortly, or email support@ypnus.com if it's urgent.";
     appendMessage(session, "assistant", reply);
     session.updatedAt = nowIso();
     saveChatSession(session);
@@ -521,10 +705,8 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
   }
 
   const system = buildSystemPrompt(input.mode);
-  const history = session.messages.map((message) => ({
-    role: message.role,
-    content: message.content,
-  }));
+  const history = trimHistoryForModel(session.messages);
+  if (input.mode === "mlo_dashboard") recordModelUsage(session);
 
   let reply: string;
   let handoffPhone: string | undefined;

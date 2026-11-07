@@ -79,6 +79,24 @@ describe("loadGrowthPlanInput", async () => {
     assert.equal(input.paidPlan, true);
   });
 
+  it("counts a ZIP bought through Stripe checkout, matched by the session email (no ownerLoId)", () => {
+    saveRevenueSubscription({
+      id: "rev_email_only",
+      createdAt: new Date(now).toISOString(),
+      startedAt: new Date(now).toISOString(),
+      tier: "growth",
+      status: "trialing",
+      source: "stripe_webhook",
+      ownerEmail: "Real.MLO@Example.com",
+      claimedZips: ["93720"],
+    });
+    const input = loadGrowthPlanInput(
+      { sub: "acct_real_mlo", role: "mlo", email: "real.mlo@example.com", tier: "growth", subscriptionStatus: "trialing" },
+      now,
+    );
+    assert.equal(input.claimedZips, 1);
+  });
+
   it("treats a session with no paid claim as a free plan", () => {
     const input = loadGrowthPlanInput({ sub: "lo_jordan_lee", role: "mlo" }, now);
     assert.equal(input.paidPlan, false);

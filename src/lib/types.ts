@@ -324,6 +324,9 @@ export interface ChatSessionRecord {
   leadScore?: number;
   recommendedAction?: string;
   status: "active" | "qualified" | "closed";
+  /** UTC day (YYYY-MM-DD) that usageCount counts model-answered messages for — the daily cap in chat-agent.ts. */
+  usageDay?: string;
+  usageCount?: number;
 }
 
 export type AutopilotPageType = "profile" | "landing_page" | "seo" | "chatbot" | "lead_form";

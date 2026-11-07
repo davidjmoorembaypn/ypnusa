@@ -6,7 +6,8 @@ import { buildCountyEvents } from "@/lib/agents/countyEvents";
 import type { BorrowerProfile, BorrowerProfileBasics } from "@/lib/borrower/profileEngine";
 import type { FunnelStageName } from "@/lib/predictive/outcomeEngine";
 import { isRecord, jsonError, logApiError, parseJsonBody } from "@/lib/http";
-import { requireSessionOrSecret } from "@/lib/auth";
+import { getSession, requireSessionOrSecret } from "@/lib/auth";
+import { isPaidEntitlement, resolveEntitlement } from "@/lib/entitlements";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -34,6 +35,17 @@ const VALID_TASK_TYPES = new Set<AgentTaskType>([
 export async function POST(request: Request) {
   const unauthorized = await requireSessionOrSecret(request);
   if (unauthorized) return unauthorized;
+
+  // These tasks spend paid model calls. A signed-in free account can't run them; admins and
+  // server-to-server callers (shared secret, no session) are not plan-gated.
+  const session = await getSession();
+  if (session && session.role !== "admin" && !isPaidEntitlement(resolveEntitlement(session))) {
+    return jsonError(
+      "Cerebro's AI marketing tasks come with a paid plan. Lock your exclusive ZIP to unlock them.",
+      402,
+      "UPGRADE_REQUIRED",
+    );
+  }
 
   const limited = rateLimit(`agent:${clientKey(request)}`, 30, 60_000);
   if (!limited.ok) {
@@ -106,7 +118,9 @@ export async function POST(request: Request) {
       return jsonError("Body must include a known task type.", 400, "INVALID_TASK_TYPE");
     }
 
-    const result = await runAgent(body as unknown as AgentTask);
+    // viewerEmail (used to recognise the caller's own ZIP) comes only from the signed session,
+    // never from the request body.
+    const result = await runAgent({ ...body, viewerEmail: session?.email } as unknown as AgentTask);
     return NextResponse.json(result, { status: result.ok ? 200 : 502 });
   } catch (error) {
     logApiError("/api/agent", error);

@@ -40,9 +40,9 @@ export type AgentTask =
   | { type: "marketing-generate"; input: MarketingAgentInput }
   | { type: "gmb-generate"; input: GmbAgentInput }
   | { type: "website-build-page"; input: WebsiteBuilderInput }
-  | { type: "zip-suggest-territory"; zip: string }
-  | { type: "zip-score"; zip: string }
-  | { type: "zip-explain"; zip: string }
+  | { type: "zip-suggest-territory"; zip: string; viewerEmail?: string }
+  | { type: "zip-score"; zip: string; viewerEmail?: string }
+  | { type: "zip-explain"; zip: string; viewerEmail?: string }
   | { type: "marketing-social-post"; request: MarketingRequest }
   | { type: "marketing-email"; request: MarketingRequest }
   | { type: "marketing-ad-copy"; request: MarketingRequest }
@@ -83,11 +83,11 @@ export async function runAgent(task: AgentTask): Promise<AgentResult> {
       case "website-build-page":
         return okResult(task.type, await buildWebsitePage(task.input));
       case "zip-suggest-territory":
-        return okResult(task.type, await suggestTerritory(task.zip));
+        return okResult(task.type, await suggestTerritory(task.zip, { email: task.viewerEmail }));
       case "zip-score":
-        return okResult(task.type, await scoreZip(task.zip));
+        return okResult(task.type, await scoreZip(task.zip, { email: task.viewerEmail }));
       case "zip-explain":
-        return okResult(task.type, await explainZip(task.zip));
+        return okResult(task.type, await explainZip(task.zip, { email: task.viewerEmail }));
       case "marketing-social-post":
         return okResult(task.type, generateSocialPost(task.request));
       case "marketing-email":

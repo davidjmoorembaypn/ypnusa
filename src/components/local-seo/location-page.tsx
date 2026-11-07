@@ -3,7 +3,7 @@ import { SiloNav } from "@/components/silo-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { marketingUrl } from "@/lib/site";
+import { FREE_SIGNUP_HREF } from "@/lib/checkout";
 import {
   LOCAL_SEO_PROFILES,
   LOCAL_SEO_PUBLIC_ORIGIN,
@@ -302,9 +302,7 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
   // This page already knows the visitor's ZIP (when profile.kind is "zip") —
   // carry it into signup so the territory they're reading about is the one
   // that gets locked, same reasoning as PricingCta/checkoutUrlForTier.
-  const signupParams = new URLSearchParams({ plan: "free" });
-  if (profile.kind === "zip") signupParams.set("zip", profile.slug);
-  const signupHref = marketingUrl(`/lo-signup.html?${signupParams.toString()}`);
+  const signupHref = FREE_SIGNUP_HREF;
   const relatedProfiles = LOCAL_SEO_PROFILES.filter(
     (candidate) =>
       candidate.slug !== profile.slug &&

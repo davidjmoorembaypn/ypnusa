@@ -18,6 +18,11 @@ describe("checkoutUrlForTier", () => {
     assert.equal(checkoutUrlForTier("elite"), "https://buy.stripe.com/5kQdR8akagk1auld543AY0N");
   });
 
+  it("sends the free plan to the app's own emailed sign-in, never WordPress", () => {
+    assert.equal(checkoutUrlForTier("free"), "/login?next=%2Fonboarding");
+    assert.equal(checkoutUrlForTier("free", "93291"), "/login?next=%2Fonboarding");
+  });
+
   it("routes the retired starter tier to lo-signup.html with plan (and zip, when given)", () => {
     delete process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_STARTER;
     assert.match(checkoutUrlForTier("starter"), /lo-signup\.html\?plan=starter$/);

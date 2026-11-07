@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { marketingUrl } from "@/lib/site";
+import { FREE_SIGNUP_HREF } from "@/lib/checkout";
 
 /**
  * Unified header nav (Features | Pricing | Blog | Free Tools | Log In | Get Started).
@@ -20,7 +20,7 @@ const NAV: Array<{ href: string; label: string; internal?: boolean }> = [
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasSession, setHasSession] = useState(false);
-  const signupHref = marketingUrl("/lo-signup.html?plan=free");
+  const signupHref = FREE_SIGNUP_HREF;
   const loginHref = "/login";
 
   useEffect(() => {

@@ -57,7 +57,15 @@ function configuredPaymentLink(tier: PricingTierId): string | null {
  * `metadata.ypnus_zip` isn't set. Without this, a checkout through a direct
  * Payment Link would provision the customer without ever locking their territory.
  */
+/**
+ * Free accounts are created by the app's own emailed sign-in link (src/app/login):
+ * the first sign-in for a new email creates the free account, then onboarding runs.
+ * This replaced WordPress's lo-signup.html form, which can't create app logins.
+ */
+export const FREE_SIGNUP_HREF = "/login?next=%2Fonboarding";
+
 export function checkoutUrlForTier(tier: PricingTierId, zip?: string): string {
+  if (tier === "free") return FREE_SIGNUP_HREF;
   const direct = configuredPaymentLink(tier);
   if (direct) {
     if (!zip) return direct;

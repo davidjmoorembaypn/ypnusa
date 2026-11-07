@@ -3,18 +3,11 @@
 import { useEffect, useState } from "react";
 import { track } from "@/lib/track";
 import { checkoutUrlForTier } from "@/lib/checkout";
-import { marketingUrl } from "@/lib/site";
 import { ZIP_CHECKED_EVENT, ZIP_STORAGE_KEY } from "@/components/territory-claim";
 import type { PricingTierId } from "@/lib/pricing";
 
-function signupHrefForPlan(plan: string, zip?: string) {
-  const params = new URLSearchParams({ plan });
-  if (zip) params.set("zip", zip);
-  return marketingUrl(`/lo-signup.html?${params.toString()}`);
-}
-
 function hrefFor(tierId: PricingTierId, zip?: string) {
-  return tierId === "free" ? signupHrefForPlan(tierId, zip) : checkoutUrlForTier(tierId, zip);
+  return checkoutUrlForTier(tierId, zip);
 }
 
 /**

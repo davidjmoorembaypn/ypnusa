@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { track } from "@/lib/track";
 import { postJson } from "@/lib/client-api";
-import { marketingUrl } from "@/lib/site";
+import { FREE_SIGNUP_HREF } from "@/lib/checkout";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
 import { useCTAEngine } from "@/lib/hooks/useCTAEngine";
 
@@ -37,13 +37,7 @@ const VOLUME_OPTIONS = [
   "Whole brokerage / branch",
 ];
 
-const MARKETING_SIGNUP = marketingUrl("/lo-signup.html");
 
-function signupHrefFor(zip?: string, plan = "free") {
-  const params = new URLSearchParams({ plan });
-  if (zip) params.set("zip", zip);
-  return `${MARKETING_SIGNUP}?${params.toString()}`;
-}
 
 /** Fired on `window` whenever a ZIP check resolves, so PricingCta can react live. */
 export const ZIP_CHECKED_EVENT = "ypnus:zip-checked";
@@ -213,10 +207,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       : check.status === "result"
         ? `ZIP ${check.zip}`
         : "";
-  const signupHref =
-    check.status === "result" && check.available
-      ? signupHrefFor(check.zip)
-      : signupHrefFor();
+  // A free account doesn't lock a ZIP (only a paid plan does), so no ZIP rides along.
+  const signupHref = FREE_SIGNUP_HREF;
   const resultTitle =
     check.status === "result"
       ? check.available

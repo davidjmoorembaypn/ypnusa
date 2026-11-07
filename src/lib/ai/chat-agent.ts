@@ -15,7 +15,8 @@ import type {
   QualificationSummary,
 } from "@/lib/types";
 import { fetchLiveTerritory } from "@/lib/live-territory";
-import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
+import { isPricingTierId, PUBLIC_PRICING_TIERS } from "@/lib/pricing";
+import { checkoutUrlForTier } from "@/lib/checkout";
 import { executeMloTool, MLO_TOOL_NAMES, MLO_TOOLS, type MloToolContext } from "./cerebro-tools";
 import { findExplainerVideo } from "./explainer-videos";
 import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
@@ -56,10 +57,11 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
 }
 
 function signupUrl(input: { plan?: unknown; zip?: unknown }): string {
-  const plan = typeof input.plan === "string" ? input.plan : "free";
-  const params = new URLSearchParams({ plan });
-  if (typeof input.zip === "string" && input.zip.trim()) params.set("zip", input.zip.trim());
-  return marketingUrl(`/lo-signup.html?${params.toString()}`);
+  const plan = isPricingTierId(input.plan) ? input.plan : "free";
+  const zip = typeof input.zip === "string" && input.zip.trim() ? input.zip.trim() : undefined;
+  const href = checkoutUrlForTier(plan, zip);
+  // Relative app paths (the free sign-in) become absolute so the link works anywhere.
+  return href.startsWith("/") ? marketingUrl(href) : href;
 }
 
 /** Runs schedule_meeting: lists open slots (no startIso) or books one (startIso given). */

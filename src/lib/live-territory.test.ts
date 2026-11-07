@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
-import { afterEach, describe, it, mock } from "node:test";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { after, afterEach, describe, it, mock } from "node:test";
 
 process.env.YPNUS_WP_API_BASE = "https://wp.test/wp-json/ypnus/v1";
+const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "loanpilot-live-territory-"));
+process.env.LOANPILOT_DATA_DIR = dataDir;
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -13,9 +18,17 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
 
 describe("live territory lookup", async () => {
   const { fetchLiveTerritory } = await import("./live-territory");
+  const { writeDb } = await import("./db");
 
   afterEach(() => {
     mock.restoreAll();
+    writeDb((db) => {
+      db.revenueSubscriptions.length = 0;
+    });
+  });
+
+  after(() => {
+    fs.rmSync(dataDir, { recursive: true, force: true });
   });
 
   function stubFetch(handler: (url: string) => Response | Promise<Response>) {
@@ -37,6 +50,34 @@ describe("live territory lookup", async () => {
       assert.match(result?.message ?? "", /valid 5-digit ZIP/);
     }
     assert.deepEqual(calls, []);
+  });
+
+  it("reports a ZIP sold through this app's own checkout as locked even when WordPress says open", async () => {
+    writeDb((db) => {
+      db.revenueSubscriptions.push({
+        id: "sub_local",
+        createdAt: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
+        tier: "growth",
+        status: "trialing",
+        source: "stripe_webhook",
+        stripeSubscriptionId: "stripe_sub_local",
+        stripeCustomerId: "cus_local",
+        claimedZips: ["93291"],
+      });
+    });
+    stubFetch(() =>
+      jsonResponse({ available: true, city: "Visalia", state: "CA", demand: { total: 515, window_days: 60 } }),
+    );
+
+    const locked = await fetchLiveTerritory("93291");
+    assert.equal(locked?.available, false);
+    assert.equal(locked?.message, "Visalia, CA is exclusively locked.");
+    assert.equal(locked?.live?.city, "Visalia");
+    assert.equal(locked?.live?.demand?.total, 515);
+
+    const other = await fetchLiveTerritory("93277");
+    assert.equal(other?.available, true);
   });
 
   it("queries the configured WordPress ledger with the normalized ZIP", async () => {

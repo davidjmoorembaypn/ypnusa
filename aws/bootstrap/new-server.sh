@@ -101,7 +101,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/var/lib/ypnusa /opt/ypnusa/current/.next/cache
+ReadWritePaths=/var/lib/ypnusa /opt/ypnusa/releases
 
 [Install]
 WantedBy=multi-user.target

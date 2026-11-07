@@ -2,7 +2,8 @@ import Link from "next/link";
 import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
-import { appUrl, marketingUrl } from "@/lib/site";
+import { appUrl } from "@/lib/site";
+import { FREE_SIGNUP_HREF } from "@/lib/checkout";
 
 export function SiteFooter() {
   return (
@@ -99,7 +100,7 @@ export function SiteFooter() {
             <li><Link href="/about" className="transition hover:text-white">About David</Link></li>
             <li><Link href="/book" className="transition hover:text-white">The book</Link></li>
             <li><Link href="/consultation" className="transition hover:text-white">Book a consultation</Link></li>
-            <li><a href={marketingUrl("/lo-signup.html?plan=free")} className="transition hover:text-white">Free LO signup</a></li>
+            <li><a href={FREE_SIGNUP_HREF} className="transition hover:text-white">Free LO signup</a></li>
             <li><Link href="/embed" className="transition hover:text-white">Free embeddable tools</Link></li>
           </ul>
         </div>

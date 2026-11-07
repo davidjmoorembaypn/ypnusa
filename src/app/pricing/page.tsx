@@ -77,7 +77,7 @@ export default function PricingPage() {
               Start free. Lock your territory when you&apos;re ready.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-lg text-white/85">
-              Run Cerebro and the AI borrower intake assistant free, no credit card. Upgrade to reserve an
+              Run Cerebro and the AI borrower intake assistant free, no credit card. The Free plan does not lock a ZIP code; upgrade to reserve an
               exclusive ZIP territory and turn local demand into leads you own for life.
             </p>
             <div className="mx-auto mt-8 max-w-md text-left">
@@ -142,7 +142,7 @@ export default function PricingPage() {
               ))}
             </div>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-600">
-              {["Start free — no credit card", "Cancel anytime", "You keep every lead you capture"].map((item) => (
+              {["Free plan needs no card (no ZIP code lock)", "Cancel anytime", "You keep every lead you capture"].map((item) => (
                 <span key={item} className="flex items-center gap-1.5">
                   <span aria-hidden className="text-emerald-600">✓</span>
                   {item}

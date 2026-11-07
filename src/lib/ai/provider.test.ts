@@ -75,6 +75,32 @@ describe("FailoverAiProvider", () => {
     mock.method(console, "error", () => {});
     await assert.rejects(new FailoverAiProvider([failing("a"), failing("b")]).generate(request), /b down/);
   });
+
+  it("shares one deadline across the chain instead of giving each backup the full timeout", async () => {
+    mock.method(console, "error", () => {});
+    const seen: Array<number | undefined> = [];
+    const slowFail: AiProvider = {
+      name: "slow",
+      async generate(req) {
+        seen.push(req.timeoutMs);
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        throw new Error("slow down");
+      },
+    };
+    const backup: AiProvider = {
+      name: "backup",
+      async generate(req) {
+        seen.push(req.timeoutMs);
+        return { text: "late", toolCalls: [], stopReason: "end_turn" };
+      },
+    };
+    // 3,030ms budget: after the 40ms failure, less than the 3s minimum remains, so the backup is skipped.
+    await assert.rejects(
+      new FailoverAiProvider([slowFail, backup]).generate({ ...request, timeoutMs: 3_030 }),
+      /slow down/,
+    );
+    assert.deepEqual(seen, [3_030]);
+  });
 });
 
 describe("GeminiProvider", () => {

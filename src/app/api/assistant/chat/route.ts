@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { runAssistantTurn } from "@/lib/ai/chat-agent";
+import { runAssistantTurn, transcriptForSession } from "@/lib/ai/chat-agent";
+import { isPaidEntitlement, resolveEntitlement } from "@/lib/entitlements";
 import { isRecord, jsonError, logApiError, parseJsonBody } from "@/lib/http";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import type { AssistantMode } from "@/lib/types";
@@ -70,11 +71,13 @@ export async function POST(request: Request) {
 
     let userId: string | undefined;
     let userEmail: string | undefined;
+    let paidPlan: boolean | undefined;
     if (mode === "mlo_dashboard") {
       const session = await getSession();
       if (!session) return jsonError("Sign in to use the dashboard assistant.", 401, "UNAUTHENTICATED");
       userId = session.sub;
       userEmail = session.email;
+      paidPlan = session.role === "admin" || isPaidEntitlement(resolveEntitlement(session));
     }
 
     const result = await runAssistantTurn({
@@ -82,6 +85,7 @@ export async function POST(request: Request) {
       sessionId,
       userId,
       userEmail,
+      paidPlan,
       funnelSource,
       userMessage: message,
     });
@@ -90,5 +94,37 @@ export async function POST(request: Request) {
   } catch (error) {
     logApiError("/api/assistant/chat", error);
     return jsonError("The assistant is temporarily unavailable. Please try again.", 500, "ASSISTANT_FAILED");
+  }
+}
+
+/**
+ * GET /api/assistant/chat?mode=…&sessionId=… — the saved transcript, so the chat can show
+ * earlier messages after a reload. Dashboard transcripts are returned only to the signed-in
+ * user who owns them; an unknown or foreign session returns an empty list.
+ */
+export async function GET(request: Request) {
+  const limited = rateLimit(`assistant-history:${clientKey(request)}`, 30, 60_000);
+  if (!limited.ok) {
+    return jsonError("Too many requests — please slow down and try again shortly.", 429, "RATE_LIMITED");
+  }
+  try {
+    const url = new URL(request.url);
+    const mode = url.searchParams.get("mode") as AssistantMode | null;
+    if (!mode || !MODES.has(mode)) {
+      return jsonError("mode must be one of public_site, mlo_dashboard, lead_qualification.", 400, "INVALID_MODE");
+    }
+    const sessionId = optionalString(url.searchParams.get("sessionId"), MAX_SESSION_ID_LENGTH);
+    if (!sessionId) return NextResponse.json({ ok: true, messages: [] });
+
+    let userId: string | undefined;
+    if (mode === "mlo_dashboard") {
+      const session = await getSession();
+      if (!session) return jsonError("Sign in to use the dashboard assistant.", 401, "UNAUTHENTICATED");
+      userId = session.sub;
+    }
+    return NextResponse.json({ ok: true, messages: transcriptForSession({ sessionId, mode, userId }) });
+  } catch (error) {
+    logApiError("/api/assistant/chat GET", error);
+    return jsonError("Couldn't load the conversation.", 500, "ASSISTANT_HISTORY_FAILED");
   }
 }

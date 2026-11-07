@@ -27,7 +27,7 @@ export interface BedrockConfig {
   sessionToken?: string;
   /** A Bedrock API key (bearer token). Takes precedence over the AWS key pair. */
   apiKey?: string;
-  /** Bedrock model id, e.g. "anthropic.claude-opus-5". Falls back to the provider default. */
+  /** Bedrock model id, e.g. "anthropic.claude-sonnet-5-5". Falls back to the provider default. */
   model?: string;
 }
 

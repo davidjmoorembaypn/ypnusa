@@ -41,9 +41,10 @@ describe("weekly growth plan", () => {
     assert.ok(!plan.some((item) => item.id === "claim_zip"));
   });
 
-  it("suggests sharing the borrower link when there has never been a borrower", () => {
+  it("suggests a first local post when there has never been a borrower", () => {
     const plan = buildWeeklyPlan({ ...base, leadsEver: 0, leadsLast7Days: 0, leadsPrevious7Days: 0 });
-    assert.ok(plan.some((action) => action.id === "share_borrower_link"));
+    assert.ok(plan.some((action) => action.id === "first_local_post"));
+    assert.ok(!plan.some((action) => /borrower link/i.test(action.title)));
   });
 
   it("states the real week-over-week numbers when borrowers dip", () => {

@@ -7,39 +7,19 @@ import type { DemoRequestRecord, RevenueSubscriptionRecord } from "./types";
  *
  * A territory is a 5-digit ZIP that a single loan officer owns exclusively —
  * every borrower lead generated in that ZIP routes only to them. Availability is
- * computed from two sources:
- *   1. A seeded set of already-claimed metro ZIPs (creates realistic scarcity).
- *   2. Live reservations captured through the marketing site (demo requests that
+ * computed only from real claims:
+ *   1. Live paid subscriptions (active or trialing) that hold the ZIP.
+ *   2. Reservations captured through the marketing site (demo requests that
  *      named a ZIP).
+ *
+ * There is deliberately no seeded list of "taken" ZIPs: showing a ZIP as owned when
+ * nobody owns it is false scarcity. Seeded demo subscriptions (source "seed") never
+ * count either.
  *
  * This intentionally does not depend on an external ZIP database: it validates
  * format and answers "is this territory still open?" — which is the question a
  * prospective subscriber actually asks.
  */
-
-/** Pre-claimed ZIPs across major metros so popular areas read as "taken". */
-const SEED_CLAIMED = new Set<string>([
-  // Los Angeles / SoCal
-  "90001", "90012", "90210", "90402", "91001", "92101", "92660", "92672",
-  // SF Bay Area
-  "94103", "94301", "94538", "95014", "95112",
-  // Phoenix / AZ
-  "85001", "85251", "85254", "85281",
-  // Las Vegas / NV
-  "89101", "89109", "89135", "89148",
-  // Dallas / Austin / Houston TX
-  "75201", "75204", "77002", "78701", "78704",
-  // Miami / Orlando FL
-  "33101", "33139", "33301", "32801",
-  // Atlanta GA
-  "30301", "30305", "30309",
-  // NYC metro
-  "10001", "10011", "10016", "11201",
-  // Chicago
-  "60601", "60614",
-  // Seattle / Denver
-  "98101", "98004", "80202", "80206",
-]);
 
 export interface TerritoryCheckResult {
   ok: boolean;
@@ -82,7 +62,11 @@ function mergeClaimedZips(
     if (isValidZip(zip)) claimed.add(zip);
   });
   revenueSubscriptions
-    .filter((subscription) => subscription.status === "active")
+    .filter(
+      (subscription) =>
+        // Seeded demo subscriptions are not real claims.
+        subscription.source !== "seed" && subscription.status === "active",
+    )
     .forEach((subscription) => {
       subscription.claimedZips.forEach((rawZip) => {
         const zip = normalizeZip(rawZip);
@@ -93,13 +77,13 @@ function mergeClaimedZips(
 }
 
 export function totalClaimedTerritories(): number {
-  const merged = new Set<string>([...SEED_CLAIMED, ...liveClaimedZips()]);
+  const merged = liveClaimedZips();
   return merged.size;
 }
 
 /** Build a territory result from an already-computed set of live claims. */
 function buildResult(zip: string, claimedZips: Set<string>): TerritoryCheckResult {
-  const totalClaimed = new Set<string>([...SEED_CLAIMED, ...claimedZips]).size;
+  const totalClaimed = claimedZips.size;
 
   if (!isValidZip(zip)) {
     return {
@@ -112,7 +96,7 @@ function buildResult(zip: string, claimedZips: Set<string>): TerritoryCheckResul
     };
   }
 
-  const claimed = SEED_CLAIMED.has(zip) || claimedZips.has(zip);
+  const claimed = claimedZips.has(zip);
   return {
     ok: true,
     zip,

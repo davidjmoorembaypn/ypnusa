@@ -2,11 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { track } from "@/lib/track";
-import { checkoutUrlForTier } from "@/lib/checkout";
+import { checkoutUrlForTier, payNowUrlForTier, prepaid5yUrlForTier } from "@/lib/checkout";
 import { ZIP_CHECKED_EVENT, ZIP_STORAGE_KEY } from "@/components/territory-claim";
 import type { PricingTierId } from "@/lib/pricing";
 
-function hrefFor(tierId: PricingTierId, zip?: string) {
+/**
+ * Which checkout a CTA opens:
+ * - "trial": 15-day trial to try the tools; the ZIP code locks at the first payment.
+ * - "pay_now": same monthly price, no trial; the ZIP code locks at checkout.
+ * - "prepaid_5y": one payment; the ZIP code locks for 5 years from payment.
+ */
+export type PricingCtaVariant = "trial" | "pay_now" | "prepaid_5y";
+
+function hrefFor(tierId: PricingTierId, variant: PricingCtaVariant, zip?: string): string | null {
+  if (variant === "pay_now") return payNowUrlForTier(tierId, zip);
+  if (variant === "prepaid_5y") return prepaid5yUrlForTier(tierId, zip);
   return checkoutUrlForTier(tierId, zip);
 }
 
@@ -18,21 +28,28 @@ function hrefFor(tierId: PricingTierId, zip?: string) {
  * home page still applies after navigating to /pricing — so a paid signup
  * locks the same territory they just confirmed was available, instead of
  * making them re-enter it on ypnus.com.
+ *
+ * Renders nothing for a variant the tier doesn't offer (pay_now / prepaid_5y on free or
+ * the retired starter tier), rather than silently falling back to another checkout.
  */
 export function PricingCta({
   tierId,
+  variant = "trial",
   className,
   children,
+  "aria-describedby": ariaDescribedBy,
 }: {
   tierId: PricingTierId;
+  variant?: PricingCtaVariant;
   className?: string;
   children: React.ReactNode;
+  "aria-describedby"?: string;
 }) {
-  const [href, setHref] = useState(() => hrefFor(tierId));
+  const [href, setHref] = useState(() => hrefFor(tierId, variant));
 
   useEffect(() => {
     function applyZip(zip: string | null | undefined) {
-      setHref(hrefFor(tierId, zip && /^\d{5}$/.test(zip) ? zip : undefined));
+      setHref(hrefFor(tierId, variant, zip && /^\d{5}$/.test(zip) ? zip : undefined));
     }
 
     try {
@@ -47,13 +64,21 @@ export function PricingCta({
     }
     window.addEventListener(ZIP_CHECKED_EVENT, onZipChecked);
     return () => window.removeEventListener(ZIP_CHECKED_EVENT, onZipChecked);
-  }, [tierId]);
+  }, [tierId, variant]);
+
+  if (!href) return null;
 
   return (
     <a
       href={href}
       className={className}
-      onClick={() => track(tierId === "free" ? "sign_up_click" : "begin_checkout", { plan: tierId })}
+      aria-describedby={ariaDescribedBy}
+      onClick={() =>
+        track(
+          tierId === "free" ? "sign_up_click" : "begin_checkout",
+          tierId === "free" ? { plan: tierId } : { plan: tierId, checkout: variant },
+        )
+      }
     >
       {children}
     </a>

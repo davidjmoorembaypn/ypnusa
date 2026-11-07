@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
-import { checkoutUrlForTier, hasDirectCheckoutLink } from "./checkout";
+import { checkoutUrlForTier, hasDirectCheckoutLink, payNowUrlForTier, prepaid5yUrlForTier } from "./checkout";
 
 const ENV_KEY = "NEXT_PUBLIC_STRIPE_PAYMENT_LINK_PRO";
 const saved = process.env[ENV_KEY];
@@ -62,5 +62,45 @@ describe("hasDirectCheckoutLink", () => {
   it("is always false for the free tier", () => {
     process.env[ENV_KEY] = "https://buy.stripe.com/test_abc123";
     assert.equal(hasDirectCheckoutLink("free"), false);
+  });
+});
+
+describe("payNowUrlForTier", () => {
+  it("uses the no-trial Payment Links (id growth = Pro, pro = Growth, elite = Exclusive)", () => {
+    assert.equal(payNowUrlForTier("growth"), "https://buy.stripe.com/14A00idwm3xf9qhe983AY0O");
+    assert.equal(payNowUrlForTier("pro"), "https://buy.stripe.com/aFa7sK9g6aZHgSJ0ii3AY0P");
+    assert.equal(payNowUrlForTier("elite"), "https://buy.stripe.com/28E8wO4ZQ3xf31T7KK3AY0Q");
+  });
+
+  it("carries a checked ZIP code as client_reference_id", () => {
+    assert.equal(payNowUrlForTier("growth", "93618"), "https://buy.stripe.com/14A00idwm3xf9qhe983AY0O?client_reference_id=93618");
+  });
+
+  it("is never the trial link, even when a trial env override is set", () => {
+    process.env[ENV_KEY] = "https://buy.stripe.com/test_abc123";
+    assert.notEqual(payNowUrlForTier("pro"), checkoutUrlForTier("pro"));
+  });
+
+  it("offers nothing for free or the retired starter tier", () => {
+    assert.equal(payNowUrlForTier("free"), null);
+    assert.equal(payNowUrlForTier("starter", "90210"), null);
+  });
+});
+
+describe("prepaid5yUrlForTier", () => {
+  it("uses the one-time 5-year Payment Links", () => {
+    assert.equal(prepaid5yUrlForTier("growth"), "https://buy.stripe.com/3cI28q63UebT1XP7KK3AY0R");
+    assert.equal(prepaid5yUrlForTier("pro"), "https://buy.stripe.com/14A8wO2RI3xf45Xghg3AY0S");
+    assert.equal(prepaid5yUrlForTier("elite"), "https://buy.stripe.com/7sY28qfEuaZH31T3uu3AY0T");
+  });
+
+  it("carries a checked ZIP code as client_reference_id", () => {
+    const url = new URL(prepaid5yUrlForTier("elite", "90210") ?? "");
+    assert.equal(url.searchParams.get("client_reference_id"), "90210");
+  });
+
+  it("offers nothing for free or the retired starter tier", () => {
+    assert.equal(prepaid5yUrlForTier("free"), null);
+    assert.equal(prepaid5yUrlForTier("starter"), null);
   });
 });

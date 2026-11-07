@@ -138,7 +138,7 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
+    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. Paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo, and every paid plan offers a 15-day free trial so you can try the tools. Neither the Free plan nor the trial locks a ZIP code: it locks at your first payment. Pay now, or choose a 5-year plan, to lock it today.",
   },
 ];
 
@@ -217,11 +217,11 @@ export default function Home() {
           <div className="w-full lg:max-w-md">
             <TerritoryClaim source="hero" />
             <p className="mt-3 text-center text-xs text-white/70">
-              Checking availability is free &mdash; locking a territory requires a paid plan.{" "}
+              Checking availability is free &mdash; your ZIP code locks at your first payment.{" "}
               <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
                 Plans from $99/mo
-              </Link>{" "}
-              with a 15-day free trial.
+              </Link>
+              : pay now to lock it today, or try the tools free for 15 days first.
             </p>
           </div>
         </div>
@@ -536,7 +536,7 @@ export default function Home() {
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">Pricing</p>
             <h2 className="mt-3 text-3xl font-semibold lg:text-4xl">Start free. Upgrade when you&apos;re ready.</h2>
-            <p className="mt-4 text-slate-600">Check your ZIP free, then lock it on any paid plan and own the pipeline it builds.</p>
+            <p className="mt-4 text-slate-600">Check your ZIP code free, then lock it with your first payment on any paid plan and own the pipeline it builds.</p>
           </div>
 
           <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">

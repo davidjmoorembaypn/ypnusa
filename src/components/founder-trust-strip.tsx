@@ -23,7 +23,7 @@ export function FounderTrustStrip() {
             Built by a licensed loan officer, not a marketing agency
           </p>
           <p className="mt-2 text-base text-white/85">
-            <span className="font-semibold text-white">{AUTHOR_NAME}</span> &mdash; 25 years as a
+            <span className="font-semibold text-white">{AUTHOR_NAME}</span> &mdash; 25+ years as a
             loan officer, formerly with Wells Fargo and JPMorgan Chase, 2,000+ loans closed, Fresno
             State MBA, and author of several books on mortgage and real estate. Licensed NMLS #{NMLS_ID} &middot; CA DRE #{CA_DRE_ID}.
           </p>

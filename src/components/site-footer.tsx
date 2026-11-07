@@ -22,7 +22,7 @@ export function SiteFooter() {
             intake, and leads you own for life.
           </p>
           <p className="mt-4 max-w-sm text-xs text-white/50">
-            Founded by David J. Moore, MBA (Fresno State) — 25 years as a loan officer, 2,000+
+            Founded by David J. Moore, MBA (Fresno State) — 25+ years as a loan officer, 2,000+
             loans closed, formerly with Wells Fargo and JPMorgan Chase.{" "}
             <a
               href="https://orcid.org/0009-0008-8069-8897"

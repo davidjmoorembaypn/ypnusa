@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return marketingMetadata({
     title: "David J. Moore, MBA: Mortgage Expert & Author",
     description:
-      "Meet David J. Moore, MBA: 25 years as a loan officer, 2,000+ home loans closed, formerly with Wells Fargo and JPMorgan Chase, author, and founder of YPN USA.",
+      "Meet David J. Moore, MBA: 25+ years as a loan officer, 2,000+ home loans closed, formerly with Wells Fargo and JPMorgan Chase, author, and founder of YPN USA.",
     path: "/about",
     origin,
   });
@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const CREDENTIALS: Array<[string, string]> = [
   ["Education", "MBA, California State University, Fresno"],
-  ["Experience", "25 years as a loan officer, formerly with Wells Fargo and JPMorgan Chase; 2,000+ home loans closed"],
+  ["Experience", "25+ years as a loan officer, formerly with Wells Fargo and JPMorgan Chase; 2,000+ home loans closed"],
   ["Licensing", `NMLS #${NMLS_ID} · California DRE #${CA_DRE_ID}`],
   ["Author", `Author of several books on mortgage and real estate, including ${AI_BOOK.shortTitle} (2026)`],
   ["Founder", "YPN Inc. (YPN USA) and ToInvested.com"],
@@ -78,7 +78,7 @@ export default async function AboutPage() {
               {AUTHOR_NAME} — mortgage expert, author &amp; founder of YPN USA
             </h1>
             <p className="mt-5 text-lg text-white/85">
-              With 25 years as a loan officer, David built YPN USA to give loan officers what he
+              With 25+ years as a loan officer, David built YPN USA to give loan officers what he
               wished he had during his own years in production: exclusive local demand, an AI assistant that
               never lets a borrower bounce, and a pipeline that belongs to the loan officer, not the employer.
             </p>

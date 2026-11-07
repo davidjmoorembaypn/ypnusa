@@ -43,7 +43,7 @@ export default function ClaimTerritoryPage() {
           </p>
           <div className="mt-6 max-w-xl rounded-2xl border border-white/15 bg-white/[0.06] p-4 text-sm text-white/85">
             <p>
-              <strong className="text-white">David Moore, MBA</strong> &middot; 25-year loan officer &middot; NMLS
+              <strong className="text-white">David Moore, MBA</strong> &middot; 25+ year loan officer &middot; NMLS
               #787257
             </p>
             <p className="mt-1">

@@ -609,7 +609,7 @@ export default function Home() {
           <div className="flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">Built by a loan officer</p>
             <h2 className="mt-2 text-2xl font-semibold text-white lg:text-3xl">
-              Founded by {AUTHOR_NAME}, a loan officer for 25 years
+              Founded by {AUTHOR_NAME}, a loan officer for 25+ years
             </h2>
             <p className="mt-3 text-white/75">
               Former loan officer at JPMorgan Chase and Wells Fargo, 2,000+ loans closed, Fresno State MBA.

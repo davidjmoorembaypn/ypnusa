@@ -62,7 +62,7 @@ export default async function BookPage() {
             <p className="mt-2 text-sm text-white/60">by {AUTHOR_NAME}</p>
             <p className="mt-5 text-lg text-white/85">
               A practical guide to nine online lead sources that most real estate and mortgage professionals
-              never use. Written by a loan officer with 25 years in the industry.
+              never use. Written by a loan officer with 25+ years in the industry.
             </p>
             <div className="mt-8 flex flex-wrap gap-4 text-sm font-semibold">
               <a

@@ -10,7 +10,7 @@ import { marketingUrl } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Mortgage Loan Programs",
   description:
-    "FHA, VA, conventional, DSCR, HELOC, refinance, and jumbo — program overviews from a licensed loan officer with 25 years in mortgage lending.",
+    "FHA, VA, conventional, DSCR, HELOC, refinance, and jumbo — program overviews from a licensed loan officer with 25+ years in mortgage lending.",
   alternates: { canonical: marketingUrl("/mortgage-loans") },
   robots: { index: true, follow: true },
 };

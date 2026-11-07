@@ -99,7 +99,7 @@ const jsonLd = {
         credentialCategory: "MBA",
       },
       description:
-        "Loan officer for 25 years with 2,000+ loans closed, formerly with Wells Fargo and JPMorgan Chase. Fresno State MBA. CA DRE #01852847, NMLS #787257.",
+        "Loan officer for 25+ years with 2,000+ loans closed, formerly with Wells Fargo and JPMorgan Chase. Fresno State MBA. CA DRE #01852847, NMLS #787257.",
       sameAs: [
         "https://orcid.org/0009-0008-8069-8897",
         "https://www.linkedin.com/in/davidjmoorembaypninc/",

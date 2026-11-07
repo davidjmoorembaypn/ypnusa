@@ -124,6 +124,52 @@ function buildResult(zip: string, claimedZips: Set<string>): TerritoryCheckResul
   };
 }
 
+/**
+ * Availability from this app's own paid ledger only: ZIPs held by active or trialing subscriptions that
+ * came from Stripe, an admin adjustment or the WordPress import. Demo seeds and soft
+ * demo-request holds are ignored. Used when TERRITORY_SOURCE=local, i.e. once WordPress is
+ * retired and this app is the system of record for territories.
+ */
+export function checkPaidLedgerTerritory(rawZip: unknown): TerritoryCheckResult {
+  const zip = normalizeZip(rawZip);
+  const claimed = new Set<string>();
+  readDb()
+    .revenueSubscriptions.filter(
+      (subscription) =>
+        // Trialing counts: the ZIP is locked at checkout, the same as WordPress did.
+        (subscription.status === "active" || subscription.status === "trialing") &&
+        (subscription.source === "stripe_webhook" || subscription.source === "admin_adjustment"),
+    )
+    .forEach((subscription) =>
+      subscription.claimedZips.forEach((rawClaim) => {
+        const claim = normalizeZip(rawClaim);
+        if (isValidZip(claim)) claimed.add(claim);
+      }),
+    );
+
+  if (!isValidZip(zip)) {
+    return {
+      ok: true,
+      zip,
+      valid: false,
+      available: false,
+      totalClaimed: claimed.size,
+      message: "Enter a valid 5-digit ZIP code to check territory availability.",
+    };
+  }
+  const taken = claimed.has(zip);
+  return {
+    ok: true,
+    zip,
+    valid: true,
+    available: !taken,
+    totalClaimed: claimed.size,
+    message: taken
+      ? `Territory ${zip} is already owned. Join the waitlist and we'll alert you the moment it reopens.`
+      : `Territory ${zip} is available. Reserve it before another officer does.`,
+  };
+}
+
 export function checkTerritory(rawZip: unknown): TerritoryCheckResult {
   // Read the live claim set once (readDb deep-clones the store, so avoid doing it twice).
   return buildResult(normalizeZip(rawZip), liveClaimedZips());

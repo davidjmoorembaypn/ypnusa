@@ -457,6 +457,29 @@ export interface PaymentConversionRecord {
   billingReason?: string;
 }
 
+/** A YPN USA sign-in identity, owned by this app since the move off WordPress. */
+export interface AccountRecord {
+  id: string;
+  /** Lowercased, trimmed. The sign-in identifier: accounts sign in with emailed one-time links, never passwords. */
+  email: string;
+  role: "mlo" | "admin";
+  createdAt: string;
+  lastLoginAt?: string;
+  /** How the account first appeared: self-serve sign-up or a Stripe checkout. */
+  source: "email_signup" | "stripe_checkout";
+  name?: string;
+}
+
+/** A single-use emailed sign-in link. Only the SHA-256 of the token is stored. */
+export interface LoginTokenRecord {
+  tokenHash: string;
+  email: string;
+  next: string;
+  createdAt: string;
+  expiresAt: string;
+  usedAt?: string;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -474,4 +497,6 @@ export interface DbShape {
   autopilotRuns: AutopilotRunRecord[];
   paymentConversions: PaymentConversionRecord[];
   agentOnboarding: AgentOnboardingRecord[];
+  accounts: AccountRecord[];
+  loginTokens: LoginTokenRecord[];
 }

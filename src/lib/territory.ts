@@ -138,9 +138,7 @@ export function checkPaidLedgerTerritory(rawZip: unknown): TerritoryCheckResult 
       (subscription) =>
         // Trialing counts: the ZIP is locked at checkout, the same as WordPress did.
         (subscription.status === "active" || subscription.status === "trialing") &&
-        (subscription.source === "stripe_webhook" ||
-          subscription.source === "admin_adjustment" ||
-          subscription.source === "wordpress_import"),
+        (subscription.source === "stripe_webhook" || subscription.source === "admin_adjustment"),
     )
     .forEach((subscription) =>
       subscription.claimedZips.forEach((rawClaim) => {

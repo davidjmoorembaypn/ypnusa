@@ -20,10 +20,10 @@ describe("accounts", () => {
 
   it("creates once, then updates the same account", () => {
     const first = upsertAccount({ email: "New@Example.com", source: "email_signup", markLogin: true });
-    const second = upsertAccount({ email: "new@example.com", source: "stripe_checkout", wpUserId: "42" });
+    const second = upsertAccount({ email: "new@example.com", source: "stripe_checkout", name: "New User" });
     assert.equal(first.id, second.id);
     assert.equal(second.source, "email_signup");
-    assert.equal(second.wpUserId, "42");
+    assert.equal(second.name, "New User");
     assert.equal(findAccountByEmail("NEW@example.com")?.id, first.id);
     assert.equal(first.role, "mlo");
   });

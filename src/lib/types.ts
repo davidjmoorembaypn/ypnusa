@@ -248,7 +248,7 @@ export interface RevenueSubscriptionRecord {
   startedAt: string;
   tier: PricingTierId;
   status: "trialing" | "active" | "cancelled";
-  source: "seed" | "demo_request" | "admin_adjustment" | "stripe_webhook" | "wordpress_import";
+  source: "seed" | "demo_request" | "admin_adjustment" | "stripe_webhook";
   ownerLoId?: string;
   ownerEmail?: string;
   company?: string;
@@ -465,10 +465,8 @@ export interface AccountRecord {
   role: "mlo" | "admin";
   createdAt: string;
   lastLoginAt?: string;
-  /** How the account first appeared: self-serve sign-up, a Stripe checkout, or the WordPress import. */
-  source: "email_signup" | "stripe_checkout" | "wordpress_import";
-  /** WordPress user id, kept so imported accounts and old SSO subjects stay linked. */
-  wpUserId?: string;
+  /** How the account first appeared: self-serve sign-up or a Stripe checkout. */
+  source: "email_signup" | "stripe_checkout";
   name?: string;
 }
 

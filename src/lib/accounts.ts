@@ -42,7 +42,6 @@ export function findAccountByEmail(email: string): AccountRecord | null {
 export function upsertAccount(input: {
   email: string;
   source: AccountRecord["source"];
-  wpUserId?: string;
   name?: string;
   markLogin?: boolean;
 }): AccountRecord {
@@ -53,7 +52,6 @@ export function upsertAccount(input: {
     const existing = db.accounts.find((account) => account.email === email);
     if (existing) {
       existing.role = roleForEmail(email);
-      if (input.wpUserId && !existing.wpUserId) existing.wpUserId = input.wpUserId;
       if (input.name && !existing.name) existing.name = input.name;
       if (input.markLogin) existing.lastLoginAt = now;
       return;
@@ -64,7 +62,6 @@ export function upsertAccount(input: {
       role: roleForEmail(email),
       createdAt: now,
       source: input.source,
-      ...(input.wpUserId ? { wpUserId: input.wpUserId } : {}),
       ...(input.name ? { name: input.name } : {}),
       ...(input.markLogin ? { lastLoginAt: now } : {}),
     };
@@ -79,7 +76,6 @@ export function upsertAccount(input: {
 const ENTITLING_SOURCES = new Set<RevenueSubscriptionRecord["source"]>([
   "stripe_webhook",
   "admin_adjustment",
-  "wordpress_import",
 ]);
 
 export interface AccountEntitlement {

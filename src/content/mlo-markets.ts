@@ -39,7 +39,7 @@ export const MLO_MARKETS: readonly MloMarket[] = [
       "For loan officers in Visalia and Tulare County: claim a protected ZIP, let Cerebro AI answer and qualify your borrowers 24/7, and own every lead. Plans from $99. Check your ZIP free.",
     h1: "Visalia loan officers: own your ZIP and let Cerebro work your borrowers",
     intro:
-      "YPN USA was built in the Central Valley by a loan officer with 25 years in production. In Visalia, that means one loan officer per protected ZIP, an AI assistant that answers borrower questions on your own site at any hour, and leads that stay yours if you change companies.",
+      "YPN USA was built in the Central Valley by a loan officer with 25+ years in production. In Visalia, that means one loan officer per protected ZIP, an AI assistant that answers borrower questions on your own site at any hour, and leads that stay yours if you change companies.",
     whyHere:
       "Visalia buyers often compare city neighborhoods with nearby towns and rural properties, so the first conversation matters. Cerebro captures the borrower's goal, timeline and price range up front and routes them to you, so you spend your time on the conversations that can close.",
     latitude: 36.3302,

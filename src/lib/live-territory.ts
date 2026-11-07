@@ -69,6 +69,23 @@ export async function fetchLiveTerritory(
 
     const place =
       data.city && data.state ? `${data.city}, ${data.state}` : `ZIP ${zip}`;
+
+    // While WordPress still answers ZIP checks, a checkout through this app's own
+    // Stripe webhook locks the ZIP only in this app's paid ledger. Honor that lock
+    // too, so a ZIP sold here never shows as open (WordPress keeps supplying the
+    // city and demand numbers).
+    const lockedHere = data.available && !checkPaidLedgerTerritory(zip).available;
+    if (lockedHere) {
+      return {
+        ok: true,
+        zip,
+        valid: true,
+        available: false,
+        totalClaimed: 0,
+        message: `${place} is exclusively locked.`,
+        live: { ...data, available: false },
+      };
+    }
     const demand =
       typeof data.demand?.total === "number"
         ? ` ~${data.demand.total} people buying, selling, or moving in the next ${data.demand.window_days ?? 60} days.`

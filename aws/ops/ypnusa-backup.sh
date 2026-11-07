@@ -56,6 +56,12 @@ if ! ls "$BACKUP_DIR/daily/store-$day"*.json.gz >/dev/null 2>&1; then
   cp "$out" "$BACKUP_DIR/daily/store-$day.json.gz"
 fi
 
+# Officer headshots live beside store.json; keep one archive of them per UTC day.
+PHOTOS="$DATA_DIR/officer-photos"
+if [ -d "$PHOTOS" ] && ! ls "$BACKUP_DIR/daily/officer-photos-$day.tar.gz" >/dev/null 2>&1; then
+  tar -czf "$BACKUP_DIR/daily/officer-photos-$day.tar.gz" -C "$DATA_DIR" officer-photos
+fi
+
 # Rotation: hourly copies for 3 days, pre-deploy copies for 30 days, daily copies for 90 days.
 find "$BACKUP_DIR/hourly"     -type f -mtime +3  -delete
 find "$BACKUP_DIR/pre-deploy" -type f -mtime +30 -delete

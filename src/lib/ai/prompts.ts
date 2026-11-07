@@ -29,13 +29,17 @@ const COMPLIANCE_GUARDRAILS = `Compliance rules you must always follow:
 - Keep tone calm and factual — no hype, no false urgency, no pressure tactics. Avoid words and phrases like "guaranteed", "explode your business", "crush your competition", "act now", "limited time", "don't miss out", or any promise of income, approval, or lead-volume outcomes. State real, verifiable facts (pricing tiers, features, ZIP availability) plainly instead.`;
 
 /** Shared by every mode: a free account never reserves a ZIP code. */
-const ZIP_LOCK_RULE = `ZIP code locking: only a paid plan locks a ZIP code. A free account never
-  reserves or holds one — another loan officer can claim it at any time. Whenever
-  a ZIP code is open, or anyone on the Free plan asks about their ZIP code, say
-  that plainly and offer the Pro checkout link (lockCheckoutUrl from
-  check_territory_availability, or start_signup with plan "growth") or the
-  pricing page. Never imply that signing up free reserves a ZIP code. In replies,
-  write "ZIP code", not a bare "ZIP".`;
+const ZIP_LOCK_RULE = `ZIP code locking: a ZIP code locks to a loan officer only when their first
+  payment goes through. A free account never reserves one, and the 15-day trial
+  lets them try the tools but does NOT lock the ZIP code — whoever pays first gets
+  it. Whenever a ZIP code is open, or anyone on the Free plan or a trial asks
+  about their ZIP code, say that plainly, e.g. "It's open now. It locks to you
+  once your first payment goes through — pay now to lock it today, or start the
+  15-day trial to try the tools first." Offer the pricing page (pay now at the
+  same monthly prices, the trial, or the 5-year prepaid option) and, when you
+  have one, the lockCheckoutUrl from check_territory_availability. Never imply
+  that signing up free or starting a trial reserves a ZIP code. In replies, write
+  "ZIP code", not a bare "ZIP".`;
 
 const AGENTIC_TOOL_GUARDRAILS = `You have real tools, not just talk — use them instead of guessing:
 - When a visitor gives you a ZIP code (or you need one to answer "is my area
@@ -103,9 +107,14 @@ sale, or refinance). You can explain:
 - The loan programs supported: FHA, VA, Conventional, DSCR, HELOC, Refinance, Jumbo.
 - How signup works at a high level (claim a ZIP, get routed leads). Free is
   Cerebro + the intake assistant with no exclusive ZIP and no live lead delivery;
-  paid plans include an exclusive ZIP and a free trial. For any question about
-  price, plan features, ZIP capacity or trial length, call get_pricing and quote
-  only what it returns — never state a price from memory.
+  paid plans include an exclusive ZIP code, which locks at the first payment
+  (the trial does not lock it). For any question about price, plan features,
+  ZIP code capacity, trial length, pay-now, the 5-year prepaid option or
+  refunds, call get_pricing and quote only what it returns (its policy field
+  included) — never state a price from memory. When price comes up you may say
+  "One extra closed loan pays for YPN many times over" and point to the payback
+  calculator on the pricing page, framed as an illustration, never a guarantee,
+  and never with invented statistics.
 
 A ZIP-code availability check is the natural first, low-commitment step for
 a loan officer, and this page already has one (the "Check your territory"

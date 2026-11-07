@@ -9,7 +9,7 @@ import type { ChatSessionRecord } from "../types";
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-chat-agent-tools-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
-import { runWithTools, toolsForMode, wrapToolData, ZIP_LOCK_NOTE } from "./chat-agent";
+import { OPEN_ZIP_REPLY_HINT, runWithTools, toolsForMode, wrapToolData, ZIP_LOCK_NOTE } from "./chat-agent";
 import { findExplainerVideo, type ExplainerVideo } from "./explainer-videos";
 import * as explainerVideos from "./explainer-videos";
 import {
@@ -133,7 +133,7 @@ describe("toolsForMode", () => {
     );
   });
 
-  it("gives mlo_dashboard the operator toolset plus the ZIP code check, and no customer-facing tools", () => {
+  it("gives mlo_dashboard the operator toolset plus ZIP code and pricing lookups, and no customer-facing tools", () => {
     const names = new Set(toolsForMode("mlo_dashboard").map((t) => t.name));
     assert.deepEqual(
       names,
@@ -146,6 +146,7 @@ describe("toolsForMode", () => {
         "draft_marketing_content",
         "draft_landing_page",
         CHECK_TERRITORY_AVAILABILITY_TOOL.name,
+        GET_PRICING_TOOL.name,
       ]),
     );
   });
@@ -265,6 +266,9 @@ describe("runWithTools", () => {
     };
     const result = await runWithTools(provider, "sys", [], [GET_PRICING_TOOL], fakeSession(), noopMerge);
     assert.match(fedBack, /<tool_data tool="get_pricing" trust="untrusted">/);
+    assert.match(fedBack, /Pay now & lock my ZIP code today/);
+    assert.match(fedBack, /\$3,999/);
+    assert.match(fedBack, /payback calculator/);
     assert.equal(result.text, "Plans start at $99.99/mo.");
     assert.equal(result.actionCalls[0]?.toolName, "get_pricing");
   });
@@ -468,6 +472,9 @@ describe("ZIP code lock messaging", () => {
     assert.equal(json.lockNote, ZIP_LOCK_NOTE);
     assert.match(json.lockCheckoutUrl, /growth|client_reference_id/);
     assert.match(json.pricingUrl, /\/pricing$/);
+    assert.equal(json.suggestedReply, OPEN_ZIP_REPLY_HINT);
+    assert.match(json.lockNote, /first payment/);
+    assert.match(json.lockNote, /trial[^.]*does not lock/);
   });
 
   it("a free signup link carries no ZIP code and comes with the lock note", async () => {

@@ -182,8 +182,9 @@ export default async function DashboardHubPage({
                 <>
                   <h2 className="text-lg font-semibold text-amber-950">Your ZIP code isn&rsquo;t locked</h2>
                   <p className="mt-1 text-sm text-amber-900">
-                    On the Free plan, another loan officer can claim it at any time — only a paid plan locks your ZIP
-                    code to you. Lock it now: {TRIAL_DAYS}-day free trial, from {lowestPaid.price}/mo.
+                    On the Free plan, another loan officer can claim it at any time. Your ZIP code locks to you when
+                    your first payment goes through — pay now from {lowestPaid.price}/mo to lock it today, or start
+                    the {TRIAL_DAYS}-day trial to try the tools first (the trial doesn&rsquo;t lock it).
                   </p>
                 </>
               )}
@@ -192,7 +193,7 @@ export default async function DashboardHubPage({
               href="/pricing"
               className="inline-flex shrink-0 items-center justify-center rounded-full bg-violet-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-800"
             >
-              {upgradeTier && paid ? `See ${upgradeTier.name}` : "Lock my ZIP code"}
+              {upgradeTier && paid ? `See ${upgradeTier.name}` : "Lock my ZIP code today"}
             </Link>
           </section>
         ) : null}

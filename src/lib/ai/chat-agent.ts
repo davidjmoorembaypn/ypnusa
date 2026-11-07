@@ -53,8 +53,8 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
       REQUEST_HUMAN_HANDOFF_TOOL,
     );
   }
-  // Signed-in officers can check ZIP codes too (their own is recognised as theirs).
-  if (mode === "mlo_dashboard") tools.push(...MLO_TOOLS, CHECK_TERRITORY_AVAILABILITY_TOOL);
+  // Signed-in officers can check ZIP codes (their own is recognised as theirs) and plans too.
+  if (mode === "mlo_dashboard") tools.push(...MLO_TOOLS, CHECK_TERRITORY_AVAILABILITY_TOOL, GET_PRICING_TOOL);
   if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(CHECK_TERRITORY_AVAILABILITY_TOOL);
   return tools;
 }
@@ -111,9 +111,33 @@ function resolveHandoffPhone(): string {
   return process.env.MLO_PUBLIC_PHONE?.trim() || "+1-559-512-0372";
 }
 
-/** What every open-ZIP-code answer must make clear: a free account never reserves one. */
+/**
+ * The lock rule every ZIP code answer must reflect: a ZIP code locks only at the first real
+ * payment. Free never locks it, and the 15-day trial lets someone try the tools without
+ * locking it — whoever pays first gets it.
+ */
 export const ZIP_LOCK_NOTE =
-  "Only a paid plan locks a ZIP code. A free account does not reserve it, so another loan officer can claim it at any time.";
+  "A ZIP code locks to a loan officer only when their first payment goes through. A free account never reserves it, and the 15-day trial lets them try the tools but does not lock it — whoever pays first gets the ZIP code.";
+
+/** Suggested wording for an open ZIP code (owner-approved). */
+export const OPEN_ZIP_REPLY_HINT =
+  "It's open now. It locks to you once your first payment goes through — pay now to lock it today, or start the 15-day trial to try the tools first.";
+
+/**
+ * Plan facts beyond the monthly list in pricing.ts, as the owner set them. Text only: the
+ * links live on /pricing (pay-now and prepaid checkout URLs belong to checkout.ts).
+ * TODO: read the prepaid prices from pricing.ts once its PREPAID_5Y data lands.
+ */
+export const PRICING_POLICY = {
+  zipLock: ZIP_LOCK_NOTE,
+  payNow:
+    "Pay now & lock my ZIP code today: no trial, same monthly prices (Pro $99, Growth $199, Exclusive $299). The ZIP code locks as soon as the payment goes through.",
+  prepaid5Year:
+    "5-year prepaid, one-time payment: Pro $3,999, Growth $7,999, Exclusive $11,999 (about a third off paying monthly). The ZIP code is locked for 5 years from payment. Full refund within 30 days of purchase, no refunds after that; a refund releases the ZIP code.",
+  trial: "15-day trial: try the tools first. The trial does not lock the ZIP code.",
+  value:
+    "Illustration only, never a promise: one extra closed loan pays for YPN many times over. The payback calculator on the pricing page lets them run their own numbers.",
+} as const;
 
 /**
  * check_territory_availability. Adds the lock rule and the Pro checkout / pricing links to
@@ -135,12 +159,13 @@ async function executeTerritoryCheck(zip: string, viewerEmail?: string): Promise
   }
   if (!result.available) return JSON.stringify({ available: false, message: result.message });
 
-  const pro = PUBLIC_PRICING_TIERS.find((tier) => tier.id === "growth");
   return JSON.stringify({
     available: true,
     message: result.message,
     lockNote: ZIP_LOCK_NOTE,
-    lockWithPlan: pro ? `${pro.name} (${pro.price}/mo, ${pro.trialDays}-day free trial)` : undefined,
+    suggestedReply: OPEN_ZIP_REPLY_HINT,
+    payNowOption: PRICING_POLICY.payNow,
+    // Pro signup for this ZIP code; /pricing has pay-now, trial and 5-year prepaid options.
     lockCheckoutUrl: signupUrl({ plan: "growth", zip: result.zip }),
     pricingUrl: marketingUrl("/pricing"),
   });
@@ -180,6 +205,8 @@ async function executeActionTool(
           tagline: tier.tagline,
           features: tier.features,
         })),
+        policy: PRICING_POLICY,
+        pricingUrl: marketingUrl("/pricing"),
       });
     }
     if (call.toolName === "start_signup") {

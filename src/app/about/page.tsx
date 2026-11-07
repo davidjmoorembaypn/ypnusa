@@ -8,6 +8,8 @@ import { SiteFooter } from "@/components/site-footer";
 import {
   AUTHOR_NAME,
   AUTHOR_PROFILES,
+  AI_BOOK,
+  AMAZON_ASSOCIATE_DISCLOSURE,
   BOOK_AMAZON_URL,
   CA_DRE_ID,
   NMLS_CONSUMER_ACCESS_URL,
@@ -30,7 +32,7 @@ const CREDENTIALS: Array<[string, string]> = [
   ["Education", "MBA, California State University, Fresno"],
   ["Experience", "25 years as a loan officer, formerly with Wells Fargo and JPMorgan Chase; 2,000+ home loans closed"],
   ["Licensing", `NMLS #${NMLS_ID} · California DRE #${CA_DRE_ID}`],
-  ["Author", "Author of a guide to online real estate lead sources"],
+  ["Author", `Author of several books on mortgage and real estate, including ${AI_BOOK.shortTitle} (2026)`],
   ["Founder", "YPN Inc. (YPN USA) and ToInvested.com"],
 ];
 
@@ -46,12 +48,29 @@ export default async function AboutPage() {
     // the canonical Person node regardless of which host served this page.
     mainEntity: { "@id": FOUNDER_ID },
   };
+  const bookJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Book",
+    "@id": `${origin}/about#book-ai-powered-real-estate`,
+    name: AI_BOOK.title,
+    alternateName: AI_BOOK.shortTitle,
+    author: { "@id": FOUNDER_ID },
+    publisher: { "@type": "Organization", name: AI_BOOK.publisher },
+    datePublished: AI_BOOK.datePublished,
+    inLanguage: "en",
+    bookFormat: "https://schema.org/EBook",
+    isPartOf: { "@type": "BookSeries", name: AI_BOOK.series },
+    image: `${origin}${AI_BOOK.cover}`,
+    url: `https://www.amazon.com/dp/${AI_BOOK.asin}`,
+    identifier: { "@type": "PropertyValue", propertyID: "ASIN", value: AI_BOOK.asin },
+  };
   return (
     <>
       <SiteHeader />
       <main id="main-content" className="bg-[#09081b] text-white">
         <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "About", href: "/about" }]} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(bookJsonLd) }} />
         <div className="mx-auto grid w-full max-w-5xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-[minmax(0,1fr)_260px] md:py-20">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">About the founder</p>
@@ -96,7 +115,11 @@ export default async function AboutPage() {
 
             <h2 className="mt-12 text-2xl font-semibold">Author &amp; speaker</h2>
             <p className="mt-4 text-white/80">
-              David is the author of{" "}
+              David is the author of several books on mortgage and real estate. His newest is{" "}
+              <a href={AI_BOOK.url} target="_blank" rel="sponsored noopener noreferrer" className="text-violet-300 underline hover:text-violet-200">
+                <cite>{AI_BOOK.title}</cite>
+              </a>{" "}
+              (Kindle, {AI_BOOK.publisher}, October 2026), part of the {AI_BOOK.series} series. He also wrote{" "}
               <Link href="/book" className="text-violet-300 underline hover:text-violet-200">
                 Top 9 Online Real Estate Leads Even the Gurus Do Not Know About
               </Link>{" "}
@@ -106,6 +129,7 @@ export default async function AboutPage() {
               </a>
               ) and speaks nationwide on mortgage marketing and real estate lead generation.
             </p>
+            <p className="mt-2 text-xs text-white/45">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
 
             <div className="mt-10 flex flex-wrap gap-4 text-sm font-semibold">
               <Link

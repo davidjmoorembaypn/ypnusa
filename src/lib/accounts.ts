@@ -102,3 +102,28 @@ export function entitlementForEmail(email: string): AccountEntitlement {
   );
   return { tier: best.tier, subscriptionStatus: best.status === "trialing" ? "trialing" : "active" };
 }
+
+/** True when the ledger holds any Stripe/admin subscription record (live or cancelled) for this email. */
+export function hasLedgerRecordForEmail(email: string): boolean {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return false;
+  return readDb().revenueSubscriptions.some(
+    (subscription) =>
+      ENTITLING_SOURCES.has(subscription.source) && normalizeEmail(subscription.ownerEmail) === normalized,
+  );
+}
+
+/** ZIPs locked by this email's live (active/trialing) subscriptions, oldest first. */
+export function claimedZipsForEmail(email: string): string[] {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return [];
+  const zips = readDb()
+    .revenueSubscriptions.filter(
+      (subscription) =>
+        ENTITLING_SOURCES.has(subscription.source) &&
+        subscription.status !== "cancelled" &&
+        normalizeEmail(subscription.ownerEmail) === normalized,
+    )
+    .flatMap((subscription) => subscription.claimedZips);
+  return [...new Set(zips)];
+}

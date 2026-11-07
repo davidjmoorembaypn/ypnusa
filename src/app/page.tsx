@@ -12,7 +12,6 @@ import { SiteFooter } from "@/components/site-footer";
 import { FounderTrustStrip } from "@/components/founder-trust-strip";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
-import { checkoutUrlForTier } from "@/lib/checkout";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
 import { getSiteOrigin } from "@/lib/request-host";
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
@@ -177,12 +176,12 @@ export default function Home() {
               <OpenAssistantButton className="inline-flex items-center justify-center rounded-full bg-violet-600 px-6 py-3.5 text-white shadow-xl shadow-violet-900/40 transition duration-200 hover:-translate-y-0.5 hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
                 Talk to Cerebro
               </OpenAssistantButton>
-              <a
-                href={checkoutUrlForTier("growth")}
+              <PricingCta
+                tierId="growth"
                 className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3.5 text-white backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
               >
                 Start 15-day free trial · Pro $99/mo
-              </a>
+              </PricingCta>
             </div>
             <p className="mt-3 text-xs text-white/70">
               Built by licensed loan officer {AUTHOR_NAME} · NMLS #{NMLS_ID} · CA DRE #{CA_DRE_ID}
@@ -510,7 +509,7 @@ export default function Home() {
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">Pricing</p>
             <h2 className="mt-3 text-3xl font-semibold lg:text-4xl">Start free. Upgrade when you&apos;re ready.</h2>
-            <p className="mt-4 text-slate-600">Reserve a ZIP, deploy your AI, and own the pipeline it builds.</p>
+            <p className="mt-4 text-slate-600">Check your ZIP free, then lock it on any paid plan and own the pipeline it builds.</p>
           </div>
 
           <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -564,7 +563,7 @@ export default function Home() {
             ))}
           </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-600">
-            {["Start free — no credit card", "Cancel anytime", "You keep every lead you capture"].map((item) => (
+            {["Free plan — no credit card", "Cancel anytime", "You keep every lead you capture"].map((item) => (
               <span key={item} className="flex items-center gap-1.5">
                 <span aria-hidden className="text-emerald-600">✓</span>
                 {item}
@@ -583,11 +582,11 @@ export default function Home() {
           <div className="flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">Built by a loan officer</p>
             <h2 className="mt-2 text-2xl font-semibold text-white lg:text-3xl">
-              Founded by {AUTHOR_NAME}, with nearly 30 years in mortgage
+              Founded by {AUTHOR_NAME}, a loan officer for 25 years
             </h2>
             <p className="mt-3 text-white/75">
-              Former top-producing loan officer at Chase Bank and Wells Fargo Home Mortgage, Amazon-published author
-              and nationwide speaker. NMLS #{NMLS_ID} · California DRE #{CA_DRE_ID}.
+              Former loan officer at JPMorgan Chase and Wells Fargo, 2,000+ loans closed, Fresno State MBA.
+              NMLS #{NMLS_ID} · California DRE #{CA_DRE_ID}.
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-3 text-sm font-semibold">
@@ -636,9 +635,6 @@ export default function Home() {
           >
             Claim your ZIP territory
           </a>
-          <p className="mt-4 text-xs text-white/60">
-            Prefer analytics? <Link href="/analytics" className="underline hover:text-white">View the live intake ledger →</Link>
-          </p>
         </div>
       </section>
       </main>

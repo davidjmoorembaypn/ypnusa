@@ -1,9 +1,9 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { track } from "@/lib/track";
 import { postJson } from "@/lib/client-api";
-import { FREE_SIGNUP_HREF } from "@/lib/checkout";
+import { FREE_SIGNUP_HREF, checkoutUrlForTier } from "@/lib/checkout";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
 import { useCTAEngine } from "@/lib/hooks/useCTAEngine";
 
@@ -79,7 +79,9 @@ function syncZipToPageUrl(zip: string | null) {
 
 export function TerritoryClaim({ source = "territory_section" }: { source?: string }) {
   const zipInputId = useId();
+  const zipInputRef = useRef<HTMLInputElement>(null);
   const [zip, setZip] = useState("");
+  const autoChecked = useRef(false);
   const [check, setCheck] = useState<CheckState>({ status: "idle" });
   const [submit, setSubmit] = useState<SubmitState>({ status: "idle" });
   const [consent, setConsent] = useState(false);
@@ -96,9 +98,34 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     message: "",
   });
 
-  async function runCheck() {
+  // A ZIP handed over in the URL (e.g. /claim-territory?zip=93720 from the ZIP demand
+  // check) is prefilled and checked right away, so the visitor never types it twice.
+  useEffect(() => {
+    if (autoChecked.current) return;
+    autoChecked.current = true;
+    try {
+      const fromUrl = new URLSearchParams(window.location.search).get("zip");
+      const remembered = sessionStorage.getItem(ZIP_STORAGE_KEY);
+      const handed = fromUrl && /^\d{5}$/.test(fromUrl) ? fromUrl : remembered && /^\d{5}$/.test(remembered) ? remembered : null;
+      // runCheck fills the input and re-checks live availability for the handed-over ZIP.
+      if (handed) void runCheck(handed);
+    } catch {
+      /** noop — prefill is a convenience only. */
+    }
+    // runCheck is stable enough for a one-time mount effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function tryAnotherZip() {
+    setCheck({ status: "idle" });
+    setSubmit({ status: "idle" });
+    setZip("");
+    zipInputRef.current?.focus();
+  }
+
+  async function runCheck(override?: string) {
     if (check.status === "checking") return;
-    const clean = zip.replace(/\D/g, "").slice(0, 5);
+    const clean = (override ?? zip).replace(/\D/g, "").slice(0, 5);
     syncZipToPageUrl(null);
     setZip(clean);
     if (clean.length !== 5) {
@@ -205,7 +232,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     check.status === "result" && check.city && check.state
       ? `${check.city}, ${check.state}`
       : check.status === "result"
-        ? `ZIP ${check.zip}`
+        ? `ZIP code ${check.zip}`
         : "";
   // A free account doesn't lock a ZIP (only a paid plan does), so no ZIP rides along.
   const signupHref = FREE_SIGNUP_HREF;
@@ -224,6 +251,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       <div className="mt-3 flex flex-col gap-3 sm:flex-row">
         <input
           id={zipInputId}
+          ref={zipInputRef}
           inputMode="numeric"
           autoComplete="postal-code"
           placeholder="Enter ZIP code (e.g. 92672)"
@@ -251,9 +279,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       <div aria-live="polite" role="status" className="mt-4 min-h-[172px]">
         {check.status === "idle" ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/70">
-            <p className="font-medium text-white">Instant ZIP availability</p>
+            <p className="font-medium text-white">Instant ZIP code availability</p>
             <p className="mt-1 text-[13px]">
-              Enter a 5-digit ZIP to check availability. Free signup does not reserve a ZIP; exclusivity begins with a paid plan.
+              Enter a 5-digit ZIP code to check availability. Free signup does not reserve a ZIP code; exclusivity begins with a paid plan.
             </p>
           </div>
         ) : null}
@@ -271,7 +299,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
 
         {check.status === "error" ? (
           <div className="rounded-2xl border border-rose-300/30 bg-rose-400/10 px-4 py-4 text-sm text-rose-100">
-            <p className="font-semibold">We could not check that ZIP.</p>
+            <p className="font-semibold">We could not check that ZIP code.</p>
             <p className="mt-1 text-rose-100/80">{check.message}</p>
             <button
               type="button"
@@ -311,14 +339,36 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 {check.totalClaimed} territories claimed nationwide
               </p>
             ) : null}
-            <a
-              href={signupHref}
-              className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-            >
-              {check.available ? "Start free with this ZIP →" : "Explore other ZIPs →"}
-            </a>
+            {check.available ? (
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <a
+                  href={checkoutUrlForTier("growth", check.zip)}
+                  onClick={() => track("begin_checkout", { plan: "growth", zip: check.zip, source })}
+                  className="inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+                >
+                  Lock ZIP code {check.zip} · 15-day free trial →
+                </a>
+                <a
+                  href={signupHref}
+                  onClick={() => track("sign_up_click", { plan: "free", source })}
+                  className="text-xs font-semibold text-white/80 underline underline-offset-2 hover:text-white"
+                >
+                  or start on the Free plan
+                </a>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={tryAnotherZip}
+                className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+              >
+                Check another ZIP code →
+              </button>
+            )}
             <p className="mt-2 text-[12px] text-white/70">
-              Availability can change. A free account or inquiry does not lock this territory.
+              {check.available
+                ? "Pro plan, $99/mo after the 15-day trial (card required, cancel anytime). Only a paid plan locks this ZIP code; availability can change until you check out."
+                : "Join the waitlist below and we'll tell you if this ZIP code opens up."}
             </p>
             {cta.data?.microNudges?.length ? (
               <ul className="mt-3 space-y-1 text-[12px] leading-5 text-white/70">
@@ -337,7 +387,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       {showForm && submit.status !== "done" ? (
         <form onSubmit={submitReservation} className="mt-6 grid gap-3 sm:grid-cols-2">
           <p className="sm:col-span-2 text-sm font-semibold text-white">
-            {claimed ? "Join the waitlist for this territory" : `Ask about ZIP ${check.zip}`}
+            {claimed ? "Join the waitlist for this territory" : `Ask about ZIP code ${check.zip}`}
           </p>
 
           <Field
@@ -433,9 +483,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           <p className="sm:col-span-2 text-[11px] text-white/50">
             Prefer the full signup?{" "}
             <a href={signupHref} className="underline hover:text-white">
-              Continue on ypnus.com
+              Create your free account
             </a>
-            . No credit card required.
+            . No credit card required for the Free plan.
           </p>
         </form>
       ) : null}

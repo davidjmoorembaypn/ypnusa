@@ -1,6 +1,6 @@
-import { recordInvoicePaid } from "@/lib/conversions";
+import { idOf, recordInvoicePaid, type InvoiceLike } from "@/lib/conversions";
 import { normalizeEmail, upsertAccount } from "@/lib/accounts";
-import { applyFulfillmentEvent } from "@/lib/fulfillment";
+import { applyFulfillmentEvent, lockZipOnPaidInvoice } from "@/lib/fulfillment";
 import { jsonError, jsonOk, logApiError } from "@/lib/http";
 import { mapStripeEventToFulfillmentPayload, verifyStripeWebhookEvent } from "@/lib/stripe-webhook";
 
@@ -44,8 +44,15 @@ export async function POST(request: Request) {
 
   try {
     if (event.type === "invoice.paid") {
+      const invoice = event.data.object as InvoiceLike;
+      // The first real payment is what locks a trial's ZIP code (never the $0 trial checkout).
+      const lock = lockZipOnPaidInvoice({
+        stripeSubscriptionId: idOf(invoice.parent?.subscription_details?.subscription) ?? idOf(invoice.subscription),
+        amountPaidCents: typeof invoice.amount_paid === "number" ? invoice.amount_paid : 0,
+        invoiceStatus: invoice.status,
+      });
       const outcome = recordInvoicePaid(event);
-      return jsonOk({ applied: outcome.recorded, reason: outcome.reason });
+      return jsonOk({ applied: outcome.recorded, reason: outcome.reason, zipLock: lock });
     }
     const payload = mapStripeEventToFulfillmentPayload(event);
     if (!payload) {

@@ -271,6 +271,13 @@ export interface RevenueSubscriptionRecord {
   lastStripeEventId?: string;
   /** Unix seconds (Stripe event.created) of the last applied event — an older/out-of-order event is rejected rather than overwriting newer state. */
   lastStripeEventCreatedAt?: number;
+  /**
+   * ZIP code chosen at a trial checkout. It is NOT locked (not in claimedZips, so it stays
+   * open to others) until the first paid invoice (amount > 0) arrives; see lockZipOnPaidInvoice.
+   */
+  pendingZip?: string;
+  /** Set when the first payment arrived but another loan officer had already paid for pendingZip. */
+  zipLockConflict?: { zip: string; at: string };
 }
 
 /** The three surfaces the AI assistant runs on — see src/lib/ai/prompts.ts. */

@@ -6,7 +6,9 @@ import { VisibilityScoreCard } from "@/components/visibility-score-card";
 import { computeVisibilityScore } from "@/lib/visibility-score";
 import { requireSession } from "@/lib/auth";
 import { isPaidEntitlement, resolveEntitlement } from "@/lib/entitlements";
+import { officerPagePath, publicOfficerPageForUser } from "@/lib/officer-profile";
 import { getPricingTier, isPricingTierId, TRIAL_DAYS } from "@/lib/pricing";
+import { MARKETING_SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -148,6 +150,7 @@ export default async function DashboardHubPage({
   const plan = getPricingTier(entitlement.tier);
   const statusLabel = STATUS_LABEL[entitlement.status] ?? "";
   const sections = SECTIONS.filter((section) => !section.adminOnly || isAdmin);
+  const borrowerPage = publicOfficerPageForUser(session.sub);
 
   return (
     <main className="min-h-full bg-slate-50 px-4 py-10 text-slate-900 sm:px-6 sm:py-12">
@@ -197,6 +200,27 @@ export default async function DashboardHubPage({
             >
               {upgradeTier && paid ? `See ${upgradeTier.name}` : "Lock my ZIP code today"}
             </Link>
+          </section>
+        ) : null}
+
+        {borrowerPage ? (
+          <section
+            aria-label="Your borrower page"
+            className="mt-8 flex flex-col gap-3 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+          >
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold text-emerald-950">Your borrower page</h2>
+              <p className="mt-1 break-all text-sm text-emerald-900">{`${MARKETING_SITE_URL}${officerPagePath(borrowerPage.slug)}`}</p>
+              <p className="mt-1 text-xs text-emerald-800">Share it anywhere: requests started there go straight to you.</p>
+            </div>
+            <a
+              href={officerPagePath(borrowerPage.slug)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
+            >
+              View my page<span className="sr-only"> (opens in a new tab)</span>
+            </a>
           </section>
         ) : null}
 

@@ -2,6 +2,8 @@ import { findAccountByEmail, normalizeEmail, upsertAccount } from "./accounts";
 import { BUSINESS_EMAIL } from "./author";
 import { appendBorrowerLead, appendCrmLead, readDb, writeDb } from "./db";
 import { generateId } from "./id";
+import { findPublicOfficerPage, officerSlug } from "./officer-profile";
+import { isLiveSubscription } from "./subscription-live";
 import { isValidZip, normalizeZip } from "./territory";
 import type {
   AccountRecord,
@@ -17,9 +19,11 @@ import type {
 /**
  * Lead routing.
  *
- * A borrower lead goes to the paying loan officer who owns the lead's ZIP (an active or
- * trialing subscription from Stripe or an admin adjustment that claims it). Every other
- * lead goes to the house account, the owner's own book. Seeded demo officers (the
+ * A borrower who started on a paying loan officer's own page (/lo/[slug], passed to the
+ * intake as ?lo=) goes to that officer while their page is live. Otherwise a lead goes to
+ * the paying loan officer who owns the lead's ZIP code (an active or trialing subscription
+ * from Stripe or an admin adjustment that claims it). Every other lead goes to the house
+ * account, the owner's own book. Seeded demo officers (the
  * @loanapilot.ai roster in db.ts) never receive a lead: their names would otherwise reach
  * real borrowers through outreach.ts ("virtual assistant for <officer>").
  */
@@ -71,23 +75,41 @@ export function borrowerFacingOfficer(officer: LoanOfficerRecord): LoanOfficerRe
   return officer;
 }
 
+/** Officer fields that come from the officer's own onboarding profile. */
+type ProfileMirror = Pick<LoanOfficerRecord, "nmlsId" | "phone" | "company" | "publicSlug"> & { profileName?: string };
+
+function profileMirrorFor(accountId: string): ProfileMirror {
+  const profile = readDb().agentOnboarding.find((record) => record.userId === accountId)?.officerProfile;
+  if (!profile) return {};
+  return {
+    profileName: profile.fullName,
+    nmlsId: profile.nmlsId,
+    phone: profile.phone,
+    company: profile.company,
+    publicSlug: officerSlug(profile.fullName, accountId),
+  };
+}
+
 /** Inserts or refreshes an officer record (matched by id) in the store. */
-function upsertOfficer(record: LoanOfficerRecord): LoanOfficerRecord {
+function upsertOfficer(record: LoanOfficerRecord, mirror: ProfileMirror = {}): LoanOfficerRecord {
+  const { profileName, ...profileFields } = mirror;
   writeDb((db) => {
     const index = db.loanOfficers.findIndex((officer) => officer.id === record.id);
     if (index === -1) {
-      db.loanOfficers.push(record);
+      db.loanOfficers.push({ ...record, ...(profileName ? { name: profileName } : {}), ...profileFields });
       return;
     }
     const current = db.loanOfficers[index];
     // Keep anything the officer configured (calendar, windows, specialties); refresh identity
-    // and the entitlement snapshot that server-side automation reads.
+    // and the entitlement snapshot that server-side automation reads. A name the officer
+    // gave in their own profile always wins.
     db.loanOfficers[index] = {
       ...current,
-      name: current.name && current.name !== PLACEHOLDER_OFFICER_NAME ? current.name : record.name,
+      name: profileName || (current.name && current.name !== PLACEHOLDER_OFFICER_NAME ? current.name : record.name),
       email: record.email,
       entitlementTier: record.entitlementTier,
       entitlementStatus: record.entitlementStatus,
+      ...(profileName ? profileFields : {}),
     };
   });
   return readDb().loanOfficers.find((officer) => officer.id === record.id) ?? record;
@@ -107,19 +129,64 @@ export function ensureOfficerForAccount(
   account: Pick<AccountRecord, "id" | "email" | "name">,
   subscription?: Pick<RevenueSubscriptionRecord, "tier" | "status" | "company">,
 ): LoanOfficerRecord {
-  return upsertOfficer({
-    id: account.id,
-    name: account.name?.trim() || subscription?.company?.trim() || PLACEHOLDER_OFFICER_NAME,
-    email: account.email,
-    specialties: [...ALL_PROGRAMS],
-    weeklyWindows: DEFAULT_WEEKLY_WINDOWS,
-    ...(subscription && subscription.status !== "cancelled"
-      ? { entitlementTier: subscription.tier, entitlementStatus: subscription.status }
-      : {}),
-  });
+  return upsertOfficer(
+    {
+      id: account.id,
+      name: account.name?.trim() || subscription?.company?.trim() || PLACEHOLDER_OFFICER_NAME,
+      email: account.email,
+      specialties: [...ALL_PROGRAMS],
+      weeklyWindows: DEFAULT_WEEKLY_WINDOWS,
+      ...(subscription && subscription.status !== "cancelled"
+        ? { entitlementTier: subscription.tier, entitlementStatus: subscription.status }
+        : {}),
+    },
+    profileMirrorFor(account.id),
+  );
 }
 
 const ROUTING_SOURCES = new Set<RevenueSubscriptionRecord["source"]>(["stripe_webhook", "admin_adjustment"]);
+
+/** The live paid subscription that locks at least one ZIP code for this email, oldest first. */
+function liveZipSubscriptionForEmail(rawEmail: unknown): RevenueSubscriptionRecord | null {
+  const email = normalizeEmail(rawEmail);
+  if (!email) return null;
+  return (
+    readDb()
+      .revenueSubscriptions.filter(
+        (subscription) =>
+          ROUTING_SOURCES.has(subscription.source) &&
+          (subscription.status === "active" || subscription.status === "trialing") &&
+          isLiveSubscription(subscription) &&
+          subscription.claimedZips.length > 0 &&
+          normalizeEmail(subscription.ownerEmail) === email,
+      )
+      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))[0] ?? null
+  );
+}
+
+/**
+ * Copies the officer's onboarding profile (name, NMLS ID, phone, company, page slug) onto
+ * their CRM officer record. An officer record is created only for an account with a live
+ * paid plan; for anyone else the profile simply waits on the onboarding record and is
+ * picked up by ensureOfficerForAccount when they subscribe.
+ */
+export function syncOfficerProfile(accountId: string): LoanOfficerRecord | null {
+  const db = readDb();
+  const account = db.accounts.find((entry) => entry.id === accountId);
+  const existing = db.loanOfficers.find((officer) => officer.id === accountId);
+  if (!account) return null;
+  const subscription = liveZipSubscriptionForEmail(account.email);
+  if (subscription) return ensureOfficerForAccount(account, subscription);
+  if (!existing) return null;
+  // No live plan: refresh only the profile fields and leave the entitlement snapshot alone.
+  const { profileName, ...profileFields } = profileMirrorFor(accountId);
+  if (!profileName) return existing;
+  writeDb((store) => {
+    const officer = store.loanOfficers.find((entry) => entry.id === accountId);
+    if (officer) Object.assign(officer, { name: profileName, ...profileFields });
+  });
+  return readDb().loanOfficers.find((officer) => officer.id === accountId) ?? null;
+}
 
 /** The live paid subscription that holds this ZIP, if any (oldest claim wins). */
 export function findZipOwnerSubscription(rawZip: unknown): RevenueSubscriptionRecord | null {
@@ -130,6 +197,8 @@ export function findZipOwnerSubscription(rawZip: unknown): RevenueSubscriptionRe
       (subscription) =>
         ROUTING_SOURCES.has(subscription.source) &&
         (subscription.status === "active" || subscription.status === "trialing") &&
+        // A prepaid term past its expiresAt no longer holds its ZIP code (same rule as the ledger).
+        isLiveSubscription(subscription) &&
         subscription.claimedZips.some((claim) => normalizeZip(claim) === zip),
     )
     .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
@@ -138,8 +207,23 @@ export function findZipOwnerSubscription(rawZip: unknown): RevenueSubscriptionRe
 
 export interface LeadRoute {
   officer: LoanOfficerRecord;
-  /** zip_owner: the paying MLO who holds the lead's ZIP. house: no owner, so the owner's own book. */
-  reason: "zip_owner" | "house";
+  /**
+   * officer_page: the borrower started from a paying MLO's own /lo/[slug] page.
+   * zip_owner: the paying MLO who holds the lead's ZIP code. house: no owner, so the owner's own book.
+   */
+  reason: "officer_page" | "zip_owner" | "house";
+}
+
+/** The paying officer behind a /lo/[slug] page, when that page is live (profile + a locked ZIP code). */
+function officerForPageSlug(slug: unknown): LoanOfficerRecord | null {
+  const page = findPublicOfficerPage(slug);
+  if (!page) return null;
+  const account = readDb().accounts.find((entry) => entry.id === page.userId);
+  if (!account) return null;
+  const subscription = liveZipSubscriptionForEmail(account.email);
+  if (!subscription) return null;
+  const officer = ensureOfficerForAccount(account, subscription);
+  return isDemoOfficer(officer) ? null : officer;
 }
 
 function officerForSubscription(subscription: RevenueSubscriptionRecord): LoanOfficerRecord | null {
@@ -155,7 +239,11 @@ function officerForSubscription(subscription: RevenueSubscriptionRecord): LoanOf
 }
 
 /** Picks who receives a new borrower lead. See the module comment for the rules. */
-export function routeLead(input: { program: LoanProgram; zip?: unknown }): LeadRoute {
+export function routeLead(input: { program: LoanProgram; zip?: unknown; officerSlug?: unknown }): LeadRoute {
+  if (input.officerSlug) {
+    const pageOfficer = officerForPageSlug(input.officerSlug);
+    if (pageOfficer) return { officer: pageOfficer, reason: "officer_page" };
+  }
   const subscription = findZipOwnerSubscription(input.zip);
   if (subscription) {
     const officer = officerForSubscription(subscription);

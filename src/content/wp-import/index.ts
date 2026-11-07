@@ -13,9 +13,12 @@
  *   - drops WordPress's own /about, /features and /blog page content where this app
  *     already has a hand-built native page at that path (native wins; WP's old URL
  *     just redirects there) — see AGENTS.md's "additive, ypnus.com stays live" rule
- *   - remaps /onboarding (a WP marketing page, "Set Up Your YPN USA Mortgage
+ *   - moves /onboarding (a WP marketing page, "Set Up Your YPN USA Mortgage
  *     Website") to /website-setup, since /onboarding is this app's own logged-in
- *     account-setup flow, not marketing copy
+ *     account-setup flow, not marketing copy. There is deliberately no
+ *     /onboarding -> /website-setup redirect: next.config redirects run before
+ *     routes, so one would hide the app's own onboarding wizard (it did until
+ *     2026-11-07, sending "Activate Cerebro" and sign-up to the marketing page)
  *
  * This is additive: nothing here touches ypnus.com, which remains the live,
  * authoritative site until DNS actually cuts over (not yet — see AWS_MIGRATION.md).

@@ -416,7 +416,7 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
         <section className="bg-[#100d2c] px-6 py-16 text-center text-white">
           <h2 className="text-3xl font-semibold">Talk through your local financing goal</h2>
           <p className="mx-auto mt-3 max-w-2xl text-white/70">
-            Share your target ZIP and timeline. A licensed loan officer can confirm
+            Share your target ZIP code and timeline. A licensed loan officer can confirm
             current availability and provide information for your specific scenario.
           </p>
           <a

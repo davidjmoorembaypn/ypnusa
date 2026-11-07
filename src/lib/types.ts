@@ -33,7 +33,7 @@ export interface BorrowerAnswers {
   email?: string;
   phone?: string;
   contactConsent?: boolean;
-  /** ZIP the borrower is transacting in — not currently collected by the intake flow; optional until it is. */
+  /** 5-digit ZIP code of the property. Asked early in the intake; routes the lead (src/lib/crm.ts routeLead). */
   zip?: string;
   /** e.g. 620-679, prefer numeric midpoint for scoring when possible */
   estimatedCreditBand?: string;
@@ -85,6 +85,12 @@ export interface LoanOfficerRecord {
   id: string;
   name: string;
   email: string;
+  /** Mirrored from the officer's onboarding profile (AgentOnboardingRecord.officerProfile). */
+  nmlsId?: string;
+  phone?: string;
+  company?: string;
+  /** Public page slug (/lo/[slug]), set once the officer saves a profile. */
+  publicSlug?: string;
   specialties: LoanProgram[];
   /** Simple weekly availability placeholders (minutes from midnight UTC) */
   weeklyWindows: Array<{ dow: number; startMin: number; endMin: number }>;
@@ -186,6 +192,10 @@ export interface IntakeSessionRecord {
   status: "collecting" | "qualified" | "crm_synced";
   borrowerLeadId?: string;
   crmLeadId?: string;
+  /** ZIP code passed as ?zip= by the page that opened the intake; offered as a one-tap answer. */
+  prefillZip?: string;
+  /** Officer page slug passed as ?lo= (from /lo/[slug]); a live officer it names receives the lead. */
+  officerSlug?: string;
 }
 
 export interface AnalyticsEventRecord {
@@ -435,6 +445,26 @@ export interface AutopilotRunRecord {
 export type AgentOnboardingGoal = "speed_to_lead" | "nurture_to_booking" | "partner_growth";
 export type AgentOnboardingStatus = "draft" | "ready" | "active";
 
+/** The officer's headshot, stored at data/officer-photos/<userId>.<ext> (see src/lib/officer-profile.ts). */
+export interface OfficerPhotoRecord {
+  ext: "jpg" | "png" | "webp";
+  bytes: number;
+  updatedAt: string;
+}
+
+/** Who the loan officer is: collected in onboarding step 1 and shown on their /lo/[slug] page. */
+export interface OfficerProfileRecord {
+  fullName: string;
+  /** NMLS ID, digits only (4-10). */
+  nmlsId: string;
+  /** US phone number as 10 digits (no country code). */
+  phone: string;
+  company?: string;
+  /** Public page slug: the name plus a short id derived from the account id. */
+  slug: string;
+  updatedAt: string;
+}
+
 /** Per-MLO activation policy for Cerebro's real lead-follow-up agent. */
 export interface AgentOnboardingRecord {
   userId: string;
@@ -454,6 +484,10 @@ export interface AgentOnboardingRecord {
   confidenceThreshold: number;
   testPassedAt?: string;
   activatedAt?: string;
+  /** Loan officer profile (name, NMLS ID, phone, company, headshot). Optional for accounts onboarded before it existed. */
+  officerProfile?: OfficerProfileRecord;
+  /** Headshot metadata. Set only by the server after a validated upload (POST /api/onboarding/photo). */
+  officerPhoto?: OfficerPhotoRecord;
   createdAt: string;
   updatedAt: string;
 }

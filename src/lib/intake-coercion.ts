@@ -63,6 +63,15 @@ export function mergeStructuredAnswer(
     };
   }
 
+  if (step.kind === "zip") {
+    // 5 digits, optionally ZIP+4 ("93720-1234"); only the 5-digit ZIP code is stored.
+    const match = /^(\d{5})(?:[-\s]?\d{4})?$/.exec(trimmed);
+    if (!match) {
+      return { ok: false, error: "Enter the property's 5-digit ZIP code, like 93720." };
+    }
+    return { ok: true, answers: { ...answers, [step.fieldPath]: match[1] } as BorrowerAnswers };
+  }
+
   if (step.kind === "email") {
     /**
      * Extremely lightweight heuristic—wire to your validation library later

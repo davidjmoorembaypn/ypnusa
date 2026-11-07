@@ -226,9 +226,15 @@ export function localFunnelSource(profile: Pick<LocalSeoProfile, "kind" | "slug"
   return `${profile.kind}-${profile.slug}`;
 }
 
-/** Borrower intake URL tagged with this local page as the lead source. */
+/**
+ * Borrower intake URL tagged with this local page as the lead source. A ZIP code page also
+ * passes its ZIP code (?zip=), which the intake offers as a one-tap answer so the lead
+ * routes to the loan officer who holds that ZIP code.
+ */
 export function localIntakeHref(profile: Pick<LocalSeoProfile, "kind" | "slug">): string {
-  return `${BORROWER_INTAKE_PATH}?funnelSource=${encodeURIComponent(localFunnelSource(profile))}`;
+  const source = `funnelSource=${encodeURIComponent(localFunnelSource(profile))}`;
+  const zip = profile.kind === "zip" && /^\d{5}$/.test(profile.slug) ? `&zip=${profile.slug}` : "";
+  return `${BORROWER_INTAKE_PATH}?${source}${zip}`;
 }
 
 /**

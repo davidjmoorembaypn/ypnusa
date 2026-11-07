@@ -51,14 +51,23 @@ export function MortgageIntakeChat(props: {
   funnelSource?: string;
   brand?: IntakeBrand;
   variant?: IntakeVariant;
+  /** ?zip= from the opening page (validated server-side); offered as a one-tap answer. */
+  prefillZip?: string;
+  /** ?lo= from a loan officer's /lo/[slug] page, so the lead routes to that officer. */
+  officerSlug?: string;
 }) {
   const brand = props.brand ?? "loanpilot";
   const variant = props.variant ?? "fab";
   const funnel =
     props.funnelSource ??
     (brand === "ypn" ? "ypn_embed_canonical" : "loanpilot_ai_surface");
+  const { prefillZip, officerSlug } = props;
 
-  const STORAGE_KEY = brand === "ypn" ? "ypn_intake_sess_v1" : "loanpilot_session_v2";
+  // An officer's page keeps its own session, so a borrower who started elsewhere doesn't
+  // resume a conversation that would route somewhere else.
+  const STORAGE_KEY = `${brand === "ypn" ? "ypn_intake_sess_v1" : "loanpilot_session_v2"}${
+    officerSlug ? `_lo_${officerSlug}` : ""
+  }`;
   const LANE_STORAGE_KEY = `${STORAGE_KEY}_lane`;
 
   const [loanProgram, setLoanProgram] = useState<LoanProgram>("FHA");
@@ -263,10 +272,13 @@ export function MortgageIntakeChat(props: {
     setBusy(true);
     if (!opts?.silent) setLastError(null);
     try {
+      const sessionId = sessionIdRef.current ?? undefined;
       const { response, data } = await postJson<IntakeTickResponse>("/api/intake/tick", {
-        sessionId: sessionIdRef.current ?? undefined,
+        sessionId,
         loanProgram: opts?.programOverride ?? loanProgramRef.current,
         funnelSource: funnel,
+        // Only a new session reads page context; the server re-validates both values.
+        prefill: !sessionId && (prefillZip || officerSlug) ? { zip: prefillZip, officerSlug } : undefined,
         incoming: payload,
       });
 
@@ -975,7 +987,10 @@ function InnerChrome(props: {
                 }
               }}
               type={inputKind}
-              inputMode={step?.kind === "number" ? "decimal" : undefined}
+              inputMode={step?.kind === "number" ? "decimal" : step?.kind === "zip" ? "numeric" : undefined}
+              autoComplete={step?.kind === "zip" ? "postal-code" : undefined}
+              maxLength={step?.kind === "zip" ? 10 : undefined}
+              aria-label={step?.prompt ?? "Your answer"}
               className={`min-h-[48px] flex-1 rounded-2xl border bg-white/90 px-3 py-2 text-sm ${ringFocus}`}
               placeholder={step?.placeholder ?? "Answer the intake assistant"}
             />
@@ -1022,6 +1037,14 @@ export function LoanPilotFloatingIntake(props: { funnelSource?: string }) {
   return <MortgageIntakeChat brand="loanpilot" variant="fab" funnelSource={props.funnelSource} />;
 }
 
-export function YpnEmbedIntake(props: { funnelSource?: string }) {
-  return <MortgageIntakeChat brand="ypn" variant="embed" funnelSource={props.funnelSource} />;
+export function YpnEmbedIntake(props: { funnelSource?: string; prefillZip?: string; officerSlug?: string }) {
+  return (
+    <MortgageIntakeChat
+      brand="ypn"
+      variant="embed"
+      funnelSource={props.funnelSource}
+      prefillZip={props.prefillZip}
+      officerSlug={props.officerSlug}
+    />
+  );
 }

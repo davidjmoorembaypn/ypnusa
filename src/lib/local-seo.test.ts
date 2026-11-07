@@ -11,7 +11,7 @@ import {
 } from "./local-seo";
 
 test("local pages send borrowers to the intake tagged with their ZIP or city", () => {
-  assert.equal(localIntakeHref({ kind: "zip", slug: "93720" }), "/embed/intake?funnelSource=zip-93720");
+  assert.equal(localIntakeHref({ kind: "zip", slug: "93720" }), "/embed/intake?funnelSource=zip-93720&zip=93720");
   assert.equal(localIntakeHref({ kind: "city", slug: "fresno-ca" }), "/embed/intake?funnelSource=city-fresno-ca");
   assert.equal(parseFunnelSourceParam("zip-93720"), "zip-93720");
   assert.equal(parseFunnelSourceParam(["city-fresno-ca", "x"]), "city-fresno-ca");

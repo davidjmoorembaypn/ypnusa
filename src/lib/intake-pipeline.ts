@@ -41,9 +41,10 @@ function goalFromAnswers(answers: BorrowerAnswers): string {
 /**
  * Best-effort ZIP/predictive intelligence for a just-completed lead — additive
  * to the CRM sync above. Never throws: zipContext.ts/countyEvents.ts return
- * neutral placeholders without live provider env vars, and BorrowerAnswers.zip
- * isn't currently collected by the intake flow, so this quietly no-ops
- * whenever a ZIP isn't available rather than blocking intake completion.
+ * neutral placeholders without live provider env vars. The intake asks for the
+ * property ZIP code, but sessions started before that step existed (and other
+ * lead sources) may lack one, so this quietly no-ops without a ZIP code rather
+ * than blocking intake completion.
  */
 async function connectLeadIntelligence(input: {
   answers: BorrowerAnswers;
@@ -180,8 +181,9 @@ export async function finalizeIntakeArtifacts(
   }
 
   const qualification = buildQualification(answers);
-  // The ZIP owner (a paying MLO) gets the lead; otherwise the house account does.
-  const route = routeLead({ program: session.loanProgram, zip: answers.zip });
+  // A live officer page the borrower came from wins, then the ZIP code owner (a paying
+  // MLO); otherwise the house account gets the lead.
+  const route = routeLead({ program: session.loanProgram, zip: answers.zip, officerSlug: session.officerSlug });
   const officerProfile = route.officer;
 
   const crm = logCrmActivity(

@@ -60,6 +60,11 @@ function dbPath(): string {
   return path.join(dataDir(), "store.json");
 }
 
+/** Loan officer headshots live beside the store: <data dir>/officer-photos/<accountId>.<ext>. */
+export function officerPhotoDir(): string {
+  return path.join(/*turbopackIgnore: true*/ dataDir(), "officer-photos");
+}
+
 const defaultLoanOfficers: LoanOfficerRecord[] = [
   {
     id: "lo_jordan_lee",
@@ -710,12 +715,45 @@ export function readAgentOnboarding(userId: string): AgentOnboardingRecord | nul
   return readDb().agentOnboarding.find((record) => record.userId === userId) ?? null;
 }
 
+/**
+ * Saves the onboarding record. `officerPhoto` is owned by setOfficerPhoto: the stored value
+ * is always kept here, so a save racing a photo upload can't drop or forge it.
+ */
 export function saveAgentOnboarding(record: AgentOnboardingRecord): void {
   writeDb((db) => {
     const idx = db.agentOnboarding.findIndex((item) => item.userId === record.userId);
-    if (idx >= 0) db.agentOnboarding[idx] = record;
-    else db.agentOnboarding.push(record);
+    const { officerPhoto: _ignored, ...rest } = record;
+    void _ignored;
+    if (idx >= 0) {
+      const storedPhoto = db.agentOnboarding[idx].officerPhoto;
+      db.agentOnboarding[idx] = { ...rest, ...(storedPhoto ? { officerPhoto: storedPhoto } : {}) };
+    } else db.agentOnboarding.push(rest);
   });
+}
+
+/**
+ * Records (or clears, with null) the officer's headshot metadata, creating a draft
+ * onboarding record from `draft` when the officer has none yet. Atomic inside writeDb.
+ */
+export function setOfficerPhoto(
+  userId: string,
+  photo: AgentOnboardingRecord["officerPhoto"] | null,
+  draft: () => AgentOnboardingRecord,
+): AgentOnboardingRecord {
+  let saved: AgentOnboardingRecord | undefined;
+  writeDb((db) => {
+    let record = db.agentOnboarding.find((item) => item.userId === userId);
+    if (!record) {
+      record = draft();
+      db.agentOnboarding.push(record);
+    }
+    if (photo) record.officerPhoto = photo;
+    else delete record.officerPhoto;
+    record.updatedAt = new Date().toISOString();
+    saved = structuredClone(record);
+  });
+  if (!saved) throw new Error("Officer photo was not saved.");
+  return saved;
 }
 
 export function appendDemoRequest(record: DemoRequestRecord): void {

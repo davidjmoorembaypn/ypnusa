@@ -15,14 +15,20 @@ function resolveFunnel(candidate?: string): string {
   return trimmed && trimmed.length > 0 ? trimmed : "loanpilot_ai_surface";
 }
 
-function toSerializable(step: FlowStepDescriptor): AssistantStep {
+function toSerializable(step: FlowStepDescriptor, session?: Pick<IntakeSessionRecord, "prefillZip">): AssistantStep {
+  // A page that opened the intake with ?zip= gets that ZIP code as a one-tap answer;
+  // the borrower can still type a different one.
+  const chips =
+    step.kind === "zip" && session?.prefillZip
+      ? [{ label: `Yes, ${session.prefillZip}`, value: session.prefillZip }]
+      : step.chips;
   return {
     id: step.id,
     field: step.fieldPath,
     prompt: step.prompt,
     placeholder: step.placeholder,
     hint: step.hint,
-    chips: step.chips,
+    chips,
     kind: step.kind,
   };
 }
@@ -125,6 +131,8 @@ export async function intakeTick(payload: IntakeTickRequest): Promise<IntakeTick
       loanProgram: program,
       status: "collecting",
       answers: { loanProgram: program },
+      ...(payload.prefill?.zip && /^\d{5}$/.test(payload.prefill.zip) ? { prefillZip: payload.prefill.zip } : {}),
+      ...(payload.prefill?.officerSlug ? { officerSlug: payload.prefill.officerSlug } : {}),
     };
     persistSession(session);
 
@@ -184,7 +192,7 @@ export async function intakeTick(payload: IntakeTickRequest): Promise<IntakeTick
         answers: workingAnswers,
         progress: summarizeFlowProgress(session.loanProgram, workingAnswers),
         assistantMessage: "Please react to the latest assistant prompt.",
-        activeStep: active ? toSerializable(active) : null,
+        activeStep: active ? toSerializable(active, session) : null,
       });
     }
 
@@ -196,7 +204,7 @@ export async function intakeTick(payload: IntakeTickRequest): Promise<IntakeTick
         answers: workingAnswers,
         progress: summarizeFlowProgress(session.loanProgram, workingAnswers),
         assistantMessage: merged.error,
-        activeStep: toSerializable(awaiting),
+        activeStep: toSerializable(awaiting, session),
       });
     }
 
@@ -264,6 +272,6 @@ export async function intakeTick(payload: IntakeTickRequest): Promise<IntakeTick
     assistantMessage: assistantBubble,
     answers: workingAnswers,
     loanProgram: session.loanProgram,
-    activeStep: toSerializable(nextPrompt),
+    activeStep: toSerializable(nextPrompt, session),
   };
 }

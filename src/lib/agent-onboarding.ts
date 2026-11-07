@@ -1,6 +1,6 @@
 import { planAgentTurn } from "./agent-runtime";
 import type { LeadState } from "./agent-types";
-import type { AgentOnboardingGoal } from "./types";
+import type { AgentOnboardingGoal, AgentOnboardingRecord } from "./types";
 
 export const GOAL_COPY: Record<AgentOnboardingGoal, { label: string; description: string }> = {
   speed_to_lead: {
@@ -16,6 +16,23 @@ export const GOAL_COPY: Record<AgentOnboardingGoal, { label: string; description
     description: "Organize partner opportunities and surface the moments that need a human relationship.",
   },
 };
+
+/** A step-1 draft with the wizard's defaults, for when something (a photo upload) is saved before the first step. */
+export function draftOnboardingRecord(userId: string, email: string, now = new Date().toISOString()): AgentOnboardingRecord {
+  return {
+    userId,
+    email,
+    status: "draft",
+    completedStep: 1,
+    goal: "speed_to_lead",
+    goalDescription: GOAL_COPY.speed_to_lead.description,
+    connections: { email: true, sms: false, calendar: false, crm: true },
+    autonomy: "approval_first",
+    confidenceThreshold: 80,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
 
 export function createSafeAgentTest() {
   const state: LeadState = {

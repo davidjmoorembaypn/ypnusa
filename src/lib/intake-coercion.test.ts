@@ -118,3 +118,21 @@ describe("mergeStructuredAnswer — email, text, and empty input", () => {
     assert.deepEqual(answers, { loanProgram: "FHA" });
   });
 });
+
+describe("mergeStructuredAnswer — ZIP code steps", () => {
+  const zip = step({ id: "property_zip", fieldPath: "zip", kind: "zip", placeholder: "e.g. 93720" });
+
+  it("stores the 5-digit ZIP code, including from ZIP+4", () => {
+    for (const raw of ["93720", " 93720 ", "93720-1234", "93720 1234", "937201234"]) {
+      const result = mergeStructuredAnswer(base, zip, raw);
+      assert.ok(result.ok && result.answers.zip === "93720", `accepts ${JSON.stringify(raw)}`);
+    }
+  });
+
+  it("rejects anything that is not a ZIP code", () => {
+    for (const raw of ["9372", "937201", "abcde", "93720-12", "Fresno", "93 720"]) {
+      const result = mergeStructuredAnswer(base, zip, raw);
+      assert.ok(!result.ok && /5-digit ZIP code/.test(result.error), `rejects ${JSON.stringify(raw)}`);
+    }
+  });
+});

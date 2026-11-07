@@ -23,6 +23,7 @@ const ALL_PROGRAMS: LoanProgram[] = [
 
 const STEP_IDS = [
   "borrower_goal",
+  "property_zip",
   "target_amount",
   "timeline",
   "credit_band",
@@ -111,6 +112,10 @@ describe("flow progress and next-step resolution", () => {
     assert.equal(findNextStep("FHA", answers)?.id, "borrower_goal");
     assert.equal(
       findNextStep("FHA", { ...answers, purchaseRefiIntent: "purchase" })?.id,
+      "property_zip",
+    );
+    assert.equal(
+      findNextStep("FHA", { ...answers, purchaseRefiIntent: "purchase", zip: "93720" })?.id,
       "target_amount",
     );
   });
@@ -118,6 +123,7 @@ describe("flow progress and next-step resolution", () => {
   it("returns null and 100% once every step is answered", () => {
     const complete = answersFor("CONVENTIONAL", {
       purchaseRefiIntent: "refinance",
+      zip: "93720",
       targetLoanAmountUsd: 400_000,
       timeline: "lt_30",
       estimatedCreditBand: "740-850",
@@ -146,7 +152,7 @@ describe("flow progress and next-step resolution", () => {
         "CONVENTIONAL",
         answersFor("CONVENTIONAL", { purchaseRefiIntent: "refinance", targetLoanAmountUsd: 400_000 }),
       ),
-      { pct: 25, completed: 2, totalApplicable: STEP_IDS.length },
+      { pct: 22, completed: 2, totalApplicable: STEP_IDS.length },
     );
   });
 });
@@ -159,5 +165,16 @@ describe("greetingForProgram", () => {
       assert.match(greeting, /YPN USA intake assistant/);
     }
     assert.equal(new Set(greetings).size, 1);
+  });
+});
+
+describe("property ZIP code step", () => {
+  it("asks for the property ZIP code right after the borrower's goal, and never skips it", () => {
+    const zipStep = composeFlow("FHA")[1];
+    assert.equal(zipStep.id, "property_zip");
+    assert.equal(zipStep.fieldPath, "zip");
+    assert.equal(zipStep.kind, "zip");
+    assert.equal(zipStep.when, undefined);
+    assert.match(zipStep.prompt, /ZIP code/);
   });
 });

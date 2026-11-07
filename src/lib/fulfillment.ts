@@ -101,6 +101,10 @@ export interface FulfillmentPayload {
   eventCreatedAt?: unknown;
   /** Optional Stripe event id — guards an exact-duplicate redelivery from reapplying. */
   eventId?: unknown;
+  /** Prepaid term in years (one-time "5-year" checkout). Sets expiresAt; the ZIP code locks at payment. */
+  termYears?: unknown;
+  /** PaymentIntent of a one-time prepaid checkout, kept so a refund can release the ZIP code. */
+  paymentIntentId?: unknown;
 }
 
 export type FulfillmentResult =
@@ -277,6 +281,11 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
   // pendingZip and locked by the first paid invoice (lockZipOnPaidInvoice). A checkout that
   // charged today ("pay now", payment_status "paid") locks it immediately.
   const isTrialCheckout = payload.paymentStatus === "no_payment_required";
+  const termYears = typeof payload.termYears === "number" && payload.termYears > 0 && payload.termYears <= 10 ? payload.termYears : undefined;
+  const expiresAt = termYears
+    ? new Date(new Date(eventCreatedAt * 1000).setUTCFullYear(new Date(eventCreatedAt * 1000).getUTCFullYear() + termYears)).toISOString()
+    : existing?.expiresAt;
+  const stripePaymentIntentId = optionalText(payload.paymentIntentId, 200) ?? existing?.stripePaymentIntentId;
   const status: RevenueSubscriptionRecord["status"] = isTrialCheckout ? "trialing" : "active";
   const pendingZip = isTrialCheckout ? (zipToClaim ?? existing?.pendingZip) : undefined;
   const record: RevenueSubscriptionRecord = existing
@@ -288,6 +297,8 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         ownerEmail: customerEmail ?? existing.ownerEmail,
         ownerLoId: userId ?? existing.ownerLoId,
         pendingZip,
+        expiresAt,
+        stripePaymentIntentId,
         lastStripeEventId: eventId,
         lastStripeEventCreatedAt: eventCreatedAt,
       }
@@ -304,6 +315,8 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         ownerLoId: userId,
         claimedZips: [],
         pendingZip,
+        expiresAt,
+        stripePaymentIntentId,
         lastStripeEventId: eventId,
         lastStripeEventCreatedAt: eventCreatedAt,
       };

@@ -70,4 +70,45 @@ describe("ZIP code locks only on the first real payment", async () => {
     assert.equal(record("sub_trial").zipLockConflict?.zip, "93720");
     assert.deepEqual(record("sub_now").claimedZips, ["93720"]);
   });
+
+  it("a 5-year prepaid purchase locks now, expires in 5 years, and a full refund releases it", async () => {
+    const { mapStripeEventToFulfillmentPayload } = await import("./stripe-webhook");
+    const { isLiveSubscription } = await import("./subscription-live");
+    const created = 1_800_100_000;
+    const checkoutEvent = {
+      id: "evt_prepaid",
+      created,
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "payment",
+          customer: "cus_p",
+          payment_intent: "pi_123",
+          subscription: null,
+          client_reference_id: "93612",
+          payment_status: "paid",
+          metadata: { ypnus_tier: "pro", ypnus_term: "5y", pricing: "2026-11" },
+          customer_details: { email: "prepaid@example.com" },
+        },
+      },
+    } as never;
+    const payload = mapStripeEventToFulfillmentPayload(checkoutEvent)!;
+    const applied = applyFulfillmentEvent(payload);
+    assert.equal(applied.ok && applied.applied && applied.zipClaimed, true);
+    const rec = record("prepaid_pi_123");
+    assert.equal(rec.tier, "growth"); // public "Pro" = tier id growth
+    assert.deepEqual(rec.claimedZips, ["93612"]);
+    assert.equal(new Date(rec.expiresAt!).getUTCFullYear(), new Date(created * 1000).getUTCFullYear() + 5);
+    assert.equal(isLiveSubscription(rec, created * 1000 + 1000), true);
+    assert.equal(isLiveSubscription(rec, Date.parse(rec.expiresAt!) + 1), false);
+
+    const refund = mapStripeEventToFulfillmentPayload({
+      id: "evt_refund",
+      created: created + 100,
+      type: "charge.refunded",
+      data: { object: { refunded: true, payment_intent: "pi_123", customer: "cus_p" } },
+    } as never)!;
+    applyFulfillmentEvent(refund);
+    assert.equal(record("prepaid_pi_123").status, "cancelled");
+  });
 });

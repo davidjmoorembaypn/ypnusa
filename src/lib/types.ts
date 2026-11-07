@@ -276,6 +276,10 @@ export interface RevenueSubscriptionRecord {
    * open to others) until the first paid invoice (amount > 0) arrives; see lockZipOnPaidInvoice.
    */
   pendingZip?: string;
+  /** End of a prepaid term (e.g. the 5-year plan). Past this date the plan and its ZIP code locks lapse. */
+  expiresAt?: string;
+  /** Stripe PaymentIntent behind a one-time prepaid purchase, so a refund can find and release it. */
+  stripePaymentIntentId?: string;
   /** Set when the first payment arrived but another loan officer had already paid for pendingZip. */
   zipLockConflict?: { zip: string; at: string };
 }

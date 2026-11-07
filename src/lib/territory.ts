@@ -1,4 +1,5 @@
 import { readDb, writeDb } from "./db";
+import { isLiveSubscription } from "@/lib/subscription-live";
 import type { DemoRequestRecord, RevenueSubscriptionRecord } from "./types";
 
 /**
@@ -136,8 +137,9 @@ export function checkPaidLedgerTerritory(rawZip: unknown): TerritoryCheckResult 
   readDb()
     .revenueSubscriptions.filter(
       (subscription) =>
-        // Trialing counts: the ZIP is locked at checkout, the same as WordPress did.
-        (subscription.status === "active" || subscription.status === "trialing") &&
+        // Only paid records hold claimedZips now (a trial's ZIP code waits in pendingZip
+        // until the first payment); expired prepaid terms and cancellations release it.
+        isLiveSubscription(subscription) &&
         (subscription.source === "stripe_webhook" || subscription.source === "admin_adjustment"),
     )
     .forEach((subscription) =>

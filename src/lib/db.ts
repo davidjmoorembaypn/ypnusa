@@ -1,4 +1,5 @@
 import fs from "fs";
+import { isLiveSubscription } from "@/lib/subscription-live";
 import type { Stats } from "fs";
 import path from "path";
 import type {
@@ -639,7 +640,7 @@ export function saveRevenueSubscriptionWithZipClaim(
         (s) =>
           s.id !== subscription.id &&
           s.stripeCustomerId !== subscription.stripeCustomerId &&
-          (s.status === "active" || s.status === "trialing") &&
+          isLiveSubscription(s) &&
           s.claimedZips.includes(zip),
       );
     const zipClaimed = zip !== null && !zipConflict && !subscription.claimedZips.includes(zip);

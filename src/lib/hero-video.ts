@@ -3,11 +3,23 @@
  * (ypnus.com/wp-content/uploads) and are referenced by absolute URL so the same
  * markup works on ypnus.com, app.ypnus.com and preview deployments. The
  * AWS front door keeps /wp-content/ routed to the WordPress origin
- * (see aws/apache/ypnus-com.conf), so these URLs must keep resolving.
+ * (see aws/apache/ypnus-com.conf), so these URLs must keep resolving until the
+ * videos are rehosted too (WordPress cannot be retired before then).
  */
 const UPLOADS = "https://ypnus.com/wp-content/uploads";
 
-export const HERO_POSTER_URL = `${UPLOADS}/2026/09/hero-poster-1600.webp`;
+/**
+ * The poster is served from this app (public/assets/hero, immutable-cached) rather than
+ * from WordPress: it is the page's LCP image, and going through the WordPress origin
+ * plus the on-demand image optimizer made cold loads slow. Bump the "v1" in the file
+ * names if the artwork ever changes (the /assets/ path is cached for a year).
+ */
+export const HERO_POSTER_SRCSET = [
+  "/assets/hero/hero-poster-v1-640.webp 640w",
+  "/assets/hero/hero-poster-v1-1024.webp 1024w",
+  "/assets/hero/hero-poster-v1-1600.webp 1600w",
+].join(", ");
+export const HERO_POSTER_URL = "/assets/hero/hero-poster-v1-1600.webp";
 
 export interface HeroVideoSource {
   url: string;

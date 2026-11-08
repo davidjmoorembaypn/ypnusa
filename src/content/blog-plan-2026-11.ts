@@ -12,7 +12,7 @@ const BYLINE = "By David J. Moore, MBA · 25+ years as a loan officer, 2,000+ lo
 export const MORTGAGE_MARKETING_IDEAS: BlogPost = {
   slug: "mortgage-marketing-ideas-for-loan-officers",
   title: "27 Mortgage Marketing Ideas for Loan Officers That Cost Nothing",
-  metaTitle: "27 Mortgage Marketing Ideas for Loan Officers (Free) | YPN USA",
+  metaTitle: "27 Mortgage Marketing Ideas for Loan Officers | YPN USA",
   description:
     "27 free mortgage marketing ideas for loan officers: local search, video, referral partners, past clients and community, from a 25-year loan officer.",
   date: "2026-11-08",
@@ -106,7 +106,7 @@ export const MORTGAGE_MARKETING_IDEAS: BlogPost = {
 export const MORTGAGE_CRM_VS_AI_ASSISTANT: BlogPost = {
   slug: "mortgage-crm-vs-ai-assistant",
   title: "Mortgage CRM vs AI Assistant: What Loan Officers Actually Need in 2026",
-  metaTitle: "Mortgage CRM vs AI Assistant: What Loan Officers Need in 2026",
+  metaTitle: "Mortgage CRM vs AI Assistant for Loan Officers | YPN USA",
   description:
     "A loan officer CRM tracks your pipeline; an AI assistant answers borrowers in minutes. What each does, where each falls short, and when you need both.",
   date: "2026-11-08",

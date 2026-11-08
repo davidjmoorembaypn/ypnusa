@@ -57,7 +57,7 @@ export function FounderTrustStrip() {
           <span className="max-w-[11rem] text-xs leading-5 text-white/70">
             <span className="block font-semibold text-white">Author of {AI_BOOK.shortTitle}</span>
             Now on Amazon Kindle &rarr;
-            <span className="mt-1 block text-[10px] text-white/45">{AMAZON_ASSOCIATE_DISCLOSURE}</span>
+            <span className="mt-1 block text-[11px] text-white/70">{AMAZON_ASSOCIATE_DISCLOSURE}</span>
           </span>
         </a>
       </div>

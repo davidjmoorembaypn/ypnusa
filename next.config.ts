@@ -57,6 +57,8 @@ const nextConfig: NextConfig = {
   experimental: { cpus: 2, workerThreads: false },
   images: {
     formats: ["image/avif", "image/webp"],
+    // Homepage hero poster lives in the media library under ypnus.com/wp-content/uploads.
+    remotePatterns: [{ protocol: "https", hostname: "ypnus.com", pathname: "/wp-content/uploads/**" }],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   async redirects() {

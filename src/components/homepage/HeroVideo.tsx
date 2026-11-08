@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { HERO_POSTER_URL, pickHeroVideoSource } from "@/lib/hero-video";
+import { HERO_POSTER_SRCSET, HERO_POSTER_URL, pickHeroVideoSource } from "@/lib/hero-video";
 
 /**
  * Decorative looping background video for the homepage hero (same behaviour as
@@ -45,14 +44,20 @@ export function HeroVideo() {
 
   return (
     <>
-      <Image
+      {/* Plain <img>: the poster is a small static file served by this app, so it skips the
+          on-demand image optimizer. srcSet lets phones fetch the ~30 KB rendition. */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- static LCP poster, see hero-video.ts */}
+      <img
         src={HERO_POSTER_URL}
+        srcSet={HERO_POSTER_SRCSET}
+        sizes="100vw"
         alt=""
         aria-hidden="true"
-        fill
-        priority
-        sizes="100vw"
-        className="pointer-events-none object-cover"
+        width={1600}
+        height={900}
+        fetchPriority="high"
+        decoding="async"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
       />
       <video
         ref={ref}

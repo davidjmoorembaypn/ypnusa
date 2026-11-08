@@ -3,12 +3,12 @@
 Single place for any session (Claude Code, ChatGPT review, a person) to see where the
 build stands and resume. Update it with every change that ships.
 
-Last updated: 2026-11-07.
+Last updated: 2026-11-08.
 
 ## Live
 
 - Host: AWS EC2 `i-0fc561aea198051bb` (us-east-2), reached with SSM. See `aws/README.md`.
-- Live build: `9e13647` (PR #127), installed 2026-11-07 with `scripts/aws-install-release.sh`.
+- Live build: `62124e8` (PR #128), installed 2026-11-08 by David with `scripts/aws-install-release.sh`.
 - Plans (fixed, match Stripe): Pro $99/mo, Growth $199/mo, Exclusive $299/mo
   (internal tier ids `growth`, `pro`, `elite`). 15-day trial. One included ZIP code per
   paid plan. 5-year prepaid: $3,999 / $7,999 / $11,999, full refund within 30 days.
@@ -42,20 +42,20 @@ Last updated: 2026-11-07.
 - A real Stripe cancellation (`customer.subscription.deleted`) from the Stripe side.
 - Browser console check on the new onboarding, intake and `/lo/[slug]` pages.
 
-## Built, waiting to go live (PR #128)
+## Built, waiting to go live (optimization release)
 
-- Fix: `/onboarding` was redirected to an imported WordPress page, so free signup and
-  "Activate Cerebro" never reached the wizard. A test now fails if any redirect covers
-  an app route.
-- Fix: `/register` now goes to the free-account sign-in (WordPress `lo-signup.html` is
-  gone). Demo seed subscriptions never count as live in production.
-- Loan officer profile at onboarding: name, NMLS ID, phone, company, headshot.
-- Borrower intake asks for the property ZIP code (`?zip=` prefill) and routes the lead:
-  officer page (`?lo=`) first, then the paid ZIP code owner, then the house account.
-- Hosted page per loan officer at `/lo/[slug]`, shown only with a live paid plan and a
-  locked ZIP code.
-- Daily backup now also archives `officer-photos/`.
-- Checks: `tsc` clean, `eslint src` 0 errors, `npm test` all pass, `npm run build` OK.
+- Hero: poster and videos served from this app (`public/assets/hero`). Videos re-encoded
+  to about half size; phones get the poster only. Video starts after load and idle.
+- 148 WordPress images rehosted in `public/media/uploads` (manifest with sizes in
+  `src/content/wp-import/media-manifest.json`), lazy-loaded with width/height.
+- Internal links in imported pages resolve to their final URL (posts under /blog, no
+  redirect hops, no .html). Local crawl of 330 sitemap pages: 0 broken internal links.
+- Floating Cerebro widget loads after the page is idle. Root `loading.tsx` moved to
+  `/dashboard` so marketing pages aren't wrapped in a streaming fallback.
+- Contrast fixes, WebPage JSON-LD on home, book block with Kindle $9.99 / Kindle Unlimited.
+- Lighthouse, local production build, mobile: home 84 -> 91 (2.4 MB -> 371 KB, LCP
+  3.8 s -> 3.2 s simulated; observed paint about 0.2 s), desktop 100. About 95, pricing 93,
+  check-zip 95. Accessibility and SEO 100 on all public pages checked.
 
 ## Blockers
 
@@ -63,7 +63,7 @@ Last updated: 2026-11-07.
 
 ## Exact next step
 
-1. On David's yes: merge PR #128, wait for release `app-build-<sha7>`, then on the
+1. On David's yes: merge the optimization PR, wait for release `app-build-<sha7>`, then on the
    server run `scripts/aws-install-release.sh app-build-<sha7>` and
    `bash aws/ops/install-ops.sh` (picks up the photo backup).
 2. Smoke-test `/onboarding` (signed in), `/embed/intake?zip=93618`, and a `/lo/...` page

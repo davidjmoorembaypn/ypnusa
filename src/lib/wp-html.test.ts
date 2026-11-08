@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { describe, it } from "node:test";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import mediaManifest from "@/content/wp-import/media-manifest.json";
 import { enforceSingleH1, needsFullPageLoad, normalizeWpHref, normalizeWpHtml, prepareWpHtml } from "./wp-html";
 
 test("same-site hrefs lose trailing slashes and absolute ypnus.com hosts", () => {
@@ -17,7 +20,7 @@ test("same-site hrefs lose trailing slashes and absolute ypnus.com hosts", () =>
 test("query strings and fragments are kept", () => {
   assert.equal(normalizeWpHref("https://ypnus.com/pricing/?plan=pro#faq"), "/pricing?plan=pro#faq");
   assert.equal(normalizeWpHref("/blog/?utm_source=x"), "/blog?utm_source=x");
-  assert.equal(normalizeWpHref("https://ypnus.com/lo-signup.html?plan=free"), "/lo-signup.html?plan=free");
+  assert.equal(normalizeWpHref("https://ypnus.com/lo-signup.html?plan=free"), "/login?next=%2Fonboarding");
 });
 
 test("retired WordPress paths are rewritten to their replacements", () => {
@@ -110,4 +113,28 @@ test("interactive imported pages need a full page load", () => {
   assert.equal(needsFullPageLoad("/mlo-marketing?x=1"), true);
   assert.equal(needsFullPageLoad("/mlo-marketing/local-seo-for-loan-officers"), false);
   assert.equal(needsFullPageLoad("/pricing"), false);
+});
+
+describe("rehosted WordPress media", () => {
+  it("rewrites known uploads to /media and leaves unknown files alone", () => {
+    const html =
+      '<p>x</p><img src="https://ypnus.com/wp-content/uploads/2026/05/real-estate-property-for-sale.jpg" srcset="https://ypnus.com/wp-content/uploads/2026/05/real-estate-property-for-sale-768x419.jpg 768w"><img src="/wp-content/uploads/2099/01/not-here.jpg">';
+    const out = normalizeWpHtml(html);
+    assert.ok(out.includes('src="/media/uploads/2026/05/real-estate-property-for-sale.jpg"'));
+    assert.ok(out.includes("/media/uploads/2026/05/real-estate-property-for-sale-768x419.jpg 768w"));
+    assert.ok(out.includes("/wp-content/uploads/2099/01/not-here.jpg"));
+    assert.match(out, /<img width="\d+" height="\d+" decoding="async" src="\/media\/uploads\/2026\/05\/real-estate-property-for-sale\.jpg"/);
+    assert.match(out, /<img decoding="async" loading="lazy" src="\/wp-content\/uploads\/2099/);
+  });
+
+  it("has every manifest file on disk", () => {
+    for (const rel of Object.keys(mediaManifest)) {
+      assert.ok(existsSync(path.join(process.cwd(), "public/media/uploads", rel)), rel);
+    }
+  });
+});
+
+test("root-level post links go to /blog and redirected slugs skip the hop", () => {
+  assert.equal(normalizeWpHref("/local-zip-code-market-intelligence/"), "/blog/local-zip-code-market-intelligence");
+  assert.equal(normalizeWpHref("https://ypnus.com/onboarding.html"), "/onboarding");
 });

@@ -9,6 +9,7 @@ import {
   AUTHOR_NAME,
   AUTHOR_PROFILES,
   AI_BOOK,
+  AI_BOOK_PRICE_LINE,
   AMAZON_ASSOCIATE_DISCLOSURE,
   BOOK_AMAZON_URL,
   CA_DRE_ID,
@@ -63,6 +64,13 @@ export default async function AboutPage() {
     image: `${origin}${AI_BOOK.cover}`,
     url: `https://www.amazon.com/dp/${AI_BOOK.asin}`,
     identifier: { "@type": "PropertyValue", propertyID: "ASIN", value: AI_BOOK.asin },
+    offers: {
+      "@type": "Offer",
+      price: AI_BOOK.kindlePrice,
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      url: `https://www.amazon.com/dp/${AI_BOOK.asin}`,
+    },
   };
   return (
     <>
@@ -119,7 +127,7 @@ export default async function AboutPage() {
               <a href={AI_BOOK.url} target="_blank" rel="sponsored noopener noreferrer" className="text-violet-300 underline hover:text-violet-200">
                 <cite>{AI_BOOK.title}</cite>
               </a>{" "}
-              (Kindle, {AI_BOOK.publisher}, October 2026), part of the {AI_BOOK.series} series. He also wrote{" "}
+              ({AI_BOOK.publisher}, October 31, 2026; {AI_BOOK_PRICE_LINE}), part of the {AI_BOOK.series} series. He also wrote{" "}
               <Link href="/book" className="text-violet-300 underline hover:text-violet-200">
                 Top 9 Online Real Estate Leads Even the Gurus Do Not Know About
               </Link>{" "}
@@ -129,7 +137,7 @@ export default async function AboutPage() {
               </a>
               ) and speaks nationwide on mortgage marketing and real estate lead generation.
             </p>
-            <p className="mt-2 text-xs text-white/45">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
+            <p className="mt-2 text-xs text-white/60">{AMAZON_ASSOCIATE_DISCLOSURE}</p>
 
             <div className="mt-10 flex flex-wrap gap-4 text-sm font-semibold">
               <Link

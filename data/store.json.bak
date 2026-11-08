@@ -1,0 +1,311 @@
+{
+  "loanOfficers": [
+    {
+      "id": "lo_jordan_lee",
+      "name": "Jordan Lee",
+      "email": "jordan.lee@loanapilot.ai",
+      "specialties": [
+        "FHA",
+        "VA",
+        "CONVENTIONAL",
+        "REFI"
+      ],
+      "weeklyWindows": [
+        {
+          "dow": 1,
+          "startMin": 540,
+          "endMin": 1020
+        },
+        {
+          "dow": 2,
+          "startMin": 540,
+          "endMin": 1020
+        },
+        {
+          "dow": 3,
+          "startMin": 540,
+          "endMin": 1020
+        },
+        {
+          "dow": 4,
+          "startMin": 540,
+          "endMin": 1020
+        },
+        {
+          "dow": 5,
+          "startMin": 540,
+          "endMin": 900
+        }
+      ]
+    },
+    {
+      "id": "lo_priya_nandakumar",
+      "name": "Priya Nandakumar",
+      "email": "priya.n@loanapilot.ai",
+      "specialties": [
+        "DSCR",
+        "JUMBO"
+      ],
+      "weeklyWindows": [
+        {
+          "dow": 1,
+          "startMin": 600,
+          "endMin": 1080
+        },
+        {
+          "dow": 2,
+          "startMin": 600,
+          "endMin": 1080
+        },
+        {
+          "dow": 3,
+          "startMin": 600,
+          "endMin": 1080
+        },
+        {
+          "dow": 4,
+          "startMin": 600,
+          "endMin": 1080
+        },
+        {
+          "dow": 5,
+          "startMin": 600,
+          "endMin": 960
+        }
+      ]
+    },
+    {
+      "id": "lo_mateo_rosales",
+      "name": "Mateo Rosales",
+      "email": "mateo.r@loanapilot.ai",
+      "specialties": [
+        "HELOC",
+        "REFI",
+        "FHA"
+      ],
+      "weeklyWindows": [
+        {
+          "dow": 2,
+          "startMin": 540,
+          "endMin": 1020
+        },
+        {
+          "dow": 3,
+          "startMin": 540,
+          "endMin": 1020
+        },
+        {
+          "dow": 4,
+          "startMin": 540,
+          "endMin": 1020
+        },
+        {
+          "dow": 5,
+          "startMin": 540,
+          "endMin": 1020
+        },
+        {
+          "dow": 6,
+          "startMin": 600,
+          "endMin": 840
+        }
+      ]
+    }
+  ],
+  "sessions": [
+    {
+      "id": "sess_022ec1fa-8af9-4330-bfc6-b055f6e59d2d",
+      "createdAt": "2026-11-08T11:47:20.972Z",
+      "funnelSource": "homepage_live_demo",
+      "loanProgram": "FHA",
+      "status": "collecting",
+      "answers": {
+        "loanProgram": "FHA"
+      }
+    },
+    {
+      "id": "sess_77d49cc0-578e-4793-93ff-ba0b2a9ca8eb",
+      "createdAt": "2026-11-08T11:49:14.724Z",
+      "funnelSource": "homepage_live_demo",
+      "loanProgram": "FHA",
+      "status": "collecting",
+      "answers": {
+        "loanProgram": "FHA"
+      }
+    },
+    {
+      "id": "sess_2313ad40-a0ca-44f4-9472-ac8fde8886b1",
+      "createdAt": "2026-11-08T11:50:10.526Z",
+      "funnelSource": "homepage_live_demo",
+      "loanProgram": "FHA",
+      "status": "collecting",
+      "answers": {
+        "loanProgram": "FHA"
+      }
+    },
+    {
+      "id": "sess_d533ba7e-9f7d-4192-899b-0140f4918021",
+      "createdAt": "2026-11-08T11:52:32.867Z",
+      "funnelSource": "homepage_live_demo",
+      "loanProgram": "FHA",
+      "status": "collecting",
+      "answers": {
+        "loanProgram": "FHA"
+      }
+    }
+  ],
+  "borrowerLeads": [],
+  "crmLeads": [],
+  "loAlerts": [],
+  "followUps": [],
+  "appointments": [],
+  "analyticsEvents": [
+    {
+      "type": "intake_started",
+      "payload": {
+        "program": "FHA",
+        "funnel": "homepage_live_demo"
+      },
+      "id": "evt_1794138441028_0",
+      "createdAt": "2026-11-08T11:47:21.028Z"
+    },
+    {
+      "type": "funnel_stage_viewed",
+      "payload": {
+        "id": "anon_091a3496-3543-4c56-9285-615a2ef6a321",
+        "stage": "viewed_borrower_page"
+      },
+      "id": "evt_1794138441056_1",
+      "createdAt": "2026-11-08T11:47:21.056Z"
+    },
+    {
+      "type": "intake_started",
+      "payload": {
+        "program": "FHA",
+        "funnel": "homepage_live_demo"
+      },
+      "id": "evt_1794138554727_2",
+      "createdAt": "2026-11-08T11:49:14.727Z"
+    },
+    {
+      "type": "funnel_stage_viewed",
+      "payload": {
+        "id": "anon_8e3a1d6e-2a0d-4448-af5b-c0b6a3ff2946",
+        "stage": "viewed_borrower_page"
+      },
+      "id": "evt_1794138554755_3",
+      "createdAt": "2026-11-08T11:49:14.755Z"
+    },
+    {
+      "type": "intake_started",
+      "payload": {
+        "program": "FHA",
+        "funnel": "homepage_live_demo"
+      },
+      "id": "evt_1794138610529_4",
+      "createdAt": "2026-11-08T11:50:10.529Z"
+    },
+    {
+      "type": "funnel_stage_viewed",
+      "payload": {
+        "id": "anon_10ce3196-05d1-4743-bb7b-5cb5091d6fac",
+        "stage": "viewed_borrower_page"
+      },
+      "id": "evt_1794138610543_5",
+      "createdAt": "2026-11-08T11:50:10.543Z"
+    },
+    {
+      "type": "intake_started",
+      "payload": {
+        "program": "FHA",
+        "funnel": "homepage_live_demo"
+      },
+      "id": "evt_1794138752898_6",
+      "createdAt": "2026-11-08T11:52:32.898Z"
+    },
+    {
+      "type": "funnel_stage_viewed",
+      "payload": {
+        "id": "anon_66c0ae8d-9882-4779-abd4-dcabcaa81ea4",
+        "stage": "viewed_borrower_page"
+      },
+      "id": "evt_1794138752920_7",
+      "createdAt": "2026-11-08T11:52:32.920Z"
+    }
+  ],
+  "demoRequests": [],
+  "propertyEvaluations": [],
+  "revenueSubscriptions": [
+    {
+      "id": "sub_seed_jordan_starter",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "startedAt": "2026-01-01T00:00:00.000Z",
+      "tier": "starter",
+      "status": "active",
+      "source": "seed",
+      "ownerLoId": "lo_jordan_lee",
+      "ownerEmail": "jordan.lee@loanapilot.ai",
+      "company": "Jordan Lee Lending",
+      "claimedZips": [
+        "78701",
+        "78702"
+      ],
+      "monthlyPriceCents": 2999,
+      "lifetimeMonths": 14
+    },
+    {
+      "id": "sub_seed_priya_pro",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "startedAt": "2026-01-01T00:00:00.000Z",
+      "tier": "pro",
+      "status": "active",
+      "source": "seed",
+      "ownerLoId": "lo_priya_nandakumar",
+      "ownerEmail": "priya.n@loanapilot.ai",
+      "company": "Nandakumar Capital",
+      "claimedZips": [
+        "33131",
+        "33132",
+        "33133",
+        "33134"
+      ],
+      "countyTerritories": [
+        "Miami-Dade County, FL"
+      ],
+      "monthlyPriceCents": 9999,
+      "lifetimeMonths": 18
+    },
+    {
+      "id": "sub_seed_mateo_elite",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "startedAt": "2026-01-01T00:00:00.000Z",
+      "tier": "elite",
+      "status": "active",
+      "source": "seed",
+      "ownerLoId": "lo_mateo_rosales",
+      "ownerEmail": "mateo.r@loanapilot.ai",
+      "company": "Rosales Home Finance",
+      "claimedZips": [
+        "85004",
+        "85006",
+        "85251",
+        "85257",
+        "85281",
+        "85282"
+      ],
+      "countyTerritories": [
+        "Maricopa County, AZ",
+        "Pima County, AZ"
+      ],
+      "monthlyPriceCents": 29999,
+      "lifetimeMonths": 20
+    }
+  ],
+  "chatSessions": [],
+  "websiteAutopilotChanges": [],
+  "autopilotRuns": [],
+  "paymentConversions": [],
+  "agentOnboarding": [],
+  "accounts": [],
+  "loginTokens": []
+}

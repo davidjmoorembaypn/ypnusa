@@ -107,7 +107,7 @@ export default async function EquitySnapshotPage() {
 
         <SiloNav silo="mortgage" currentPath="/tools/equity" className="mt-10" />
 
-        <footer className="mt-10 border-t border-white/10 py-8 text-center text-xs leading-5 text-white/35">
+        <footer className="mt-10 border-t border-white/10 py-8 text-center text-xs leading-5 text-white/60">
           Educational estimate only. YPN USA does not perform an appraisal, determine eligibility,
           or promise proceeds through this calculator.
         </footer>

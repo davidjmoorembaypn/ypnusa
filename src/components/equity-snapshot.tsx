@@ -143,7 +143,7 @@ export function EquitySnapshot() {
           <label className="grid gap-2 text-sm font-semibold text-white/80">
             Estimated home value
             <span className="relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/60">
                 $
               </span>
               <input
@@ -162,7 +162,7 @@ export function EquitySnapshot() {
           <label className="grid gap-2 text-sm font-semibold text-white/80">
             Current mortgage balance
             <span className="relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/60">
                 $
               </span>
               <input
@@ -217,13 +217,13 @@ export function EquitySnapshot() {
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <article className="rounded-2xl bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-[0.12em] text-white/45">Estimated equity</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-white/60">Estimated equity</p>
                 <p className={`mt-2 text-2xl font-semibold ${snapshot.estimatedEquityUsd < 0 ? "text-rose-300" : "text-white"}`}>
                   {formatUsd(snapshot.estimatedEquityUsd)}
                 </p>
               </article>
               <article className="rounded-2xl bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-[0.12em] text-white/45">Estimated LTV</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-white/60">Estimated LTV</p>
                 <p className="mt-2 text-2xl font-semibold">{snapshot.estimatedLtvPct}%</p>
               </article>
               <article className="rounded-2xl bg-amber-400 p-4 text-[#09081b] sm:col-span-2">
@@ -234,7 +234,7 @@ export function EquitySnapshot() {
               </article>
             </div>
 
-            <p className="mt-4 text-xs leading-5 text-white/45">
+            <p className="mt-4 text-xs leading-5 text-white/60">
               Based only on values you entered. This is not an appraisal, credit decision,
               commitment to lend, or offer of loan terms. Actual limits vary by program,
               occupancy, credit, property, and lender requirements.
@@ -268,7 +268,7 @@ export function EquitySnapshot() {
                     placeholder="Full name"
                     autoComplete="name"
                     required
-                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-violet-400"
+                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/60 focus:border-violet-400"
                   />
                   <input
                     value={email}
@@ -277,7 +277,7 @@ export function EquitySnapshot() {
                     type="email"
                     autoComplete="email"
                     required
-                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-violet-400"
+                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/60 focus:border-violet-400"
                   />
                   <input
                     value={phone}
@@ -285,7 +285,7 @@ export function EquitySnapshot() {
                     placeholder="Mobile phone (optional)"
                     type="tel"
                     autoComplete="tel"
-                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-violet-400 sm:col-span-2"
+                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/60 focus:border-violet-400 sm:col-span-2"
                   />
                 </div>
                 <label className="mt-4 flex items-start gap-3 text-xs leading-5 text-white/55">

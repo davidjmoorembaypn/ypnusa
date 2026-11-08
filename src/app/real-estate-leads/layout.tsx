@@ -13,7 +13,7 @@ export default function RealEstateLeadsLayout({ children }: { children: ReactNod
     <>
       <SiteHeader />
       <main id="main-content" className="min-h-screen bg-[#09081b] text-white">{children}</main>
-      <div className="border-t border-white/10 bg-[#050414] px-6 py-6 text-center text-[11px] leading-5 text-white/40">
+      <div className="border-t border-white/10 bg-[#050414] px-6 py-6 text-center text-[11px] leading-5 text-white/60">
         <p className="mx-auto max-w-3xl">
           Some book and affiliate links in this section are not yet live.
           Nothing here is a guarantee of leads, income, or results. See{" "}

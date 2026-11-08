@@ -25,7 +25,7 @@ export function MarketingToolForm({ tool }: { tool: Tool }) {
     finally { setBusy(false); }
   }
 
-  const inputClass = "mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-white/30 focus:border-violet-400";
+  const inputClass = "mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-white/60 focus:border-violet-400";
   return <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
     <form onSubmit={submit} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -42,7 +42,7 @@ export function MarketingToolForm({ tool }: { tool: Tool }) {
     <section aria-live="polite" className="min-h-[28rem] rounded-3xl border border-white/10 bg-black/20 p-5 sm:p-7">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">Your output</p>
       {error && <p className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{error}</p>}
-      {output ? <pre className="mt-5 whitespace-pre-wrap font-sans text-sm leading-7 text-white/80">{output}</pre> : <p className="mt-5 text-sm leading-7 text-white/45">{tool === "gbp" ? "Your readiness score, profile copy, Google Post ideas and local SEO actions will appear here." : "Your post drafts, hooks, CTAs and follow-up ideas will appear here."}</p>}
+      {output ? <pre className="mt-5 whitespace-pre-wrap font-sans text-sm leading-7 text-white/80">{output}</pre> : <p className="mt-5 text-sm leading-7 text-white/60">{tool === "gbp" ? "Your readiness score, profile copy, Google Post ideas and local SEO actions will appear here." : "Your post drafts, hooks, CTAs and follow-up ideas will appear here."}</p>}
     </section>
   </div>;
 }

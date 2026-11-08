@@ -35,8 +35,8 @@ type View = "launcher" | "greeting" | "chat";
  * in the root layout: it should not follow a signed-in MLO into
  * /dashboard, /login, etc., where other assistant surfaces already exist.
  */
-export function FloatingAssistantWidget() {
-  const [view, setView] = useState<View>("launcher");
+export function FloatingAssistantWidget({ startInChat = false }: { startInChat?: boolean } = {}) {
+  const [view, setView] = useState<View>(startInChat ? "chat" : "launcher");
   const router = useRouter();
 
   useEffect(() => {

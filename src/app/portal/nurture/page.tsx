@@ -55,7 +55,7 @@ export default async function LeadNurturePortalPage() {
               key={label}
               className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 shadow-2xl shadow-black/20"
             >
-              <p className="text-xs uppercase tracking-[0.16em] text-white/45">{label}</p>
+              <p className="text-xs uppercase tracking-[0.16em] text-white/60">{label}</p>
               <p className="mt-4 text-4xl font-semibold">{value}</p>
             </article>
           ))}
@@ -75,7 +75,7 @@ export default async function LeadNurturePortalPage() {
           </div>
 
           {dashboard.equityReviews.length === 0 ? (
-            <div className="mt-5 rounded-2xl border border-dashed border-white/10 px-5 py-8 text-center text-sm text-white/45">
+            <div className="mt-5 rounded-2xl border border-dashed border-white/10 px-5 py-8 text-center text-sm text-white/60">
               No equity review requests yet.
             </div>
           ) : (
@@ -85,7 +85,7 @@ export default async function LeadNurturePortalPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">{review.borrowerName}</p>
-                      <p className="mt-1 text-xs text-white/40">
+                      <p className="mt-1 text-xs text-white/60">
                         ZIP {review.zip} · {formatDateTime(review.createdAt)}
                       </p>
                     </div>
@@ -95,11 +95,11 @@ export default async function LeadNurturePortalPage() {
                   </div>
                   <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <dt className="text-xs text-white/40">Estimated equity</dt>
+                      <dt className="text-xs text-white/60">Estimated equity</dt>
                       <dd className="mt-1 font-semibold">{formatUsd(review.estimatedEquityUsd)}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-white/40">Cash-out illustration</dt>
+                      <dt className="text-xs text-white/60">Cash-out illustration</dt>
                       <dd className="mt-1 font-semibold">{formatUsd(review.illustrativeCashOutUsd)}</dd>
                     </div>
                   </dl>
@@ -137,7 +137,7 @@ export default async function LeadNurturePortalPage() {
                     aria-label={connection.connected ? "Connected" : "Needs configuration"}
                   />
                 </div>
-                <p className="mt-2 text-xs uppercase tracking-[0.15em] text-white/40">
+                <p className="mt-2 text-xs uppercase tracking-[0.15em] text-white/60">
                   {connection.provider} · {connection.timeZone}
                 </p>
               </article>

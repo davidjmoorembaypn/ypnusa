@@ -5,7 +5,7 @@ import { MortgageIntakeChat } from "@/components/lazy-loanpilot-assistant";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepageEngine";
 import { HeroVideo } from "@/components/homepage/HeroVideo";
-import { FloatingAssistantWidget } from "@/components/assistant/floating-assistant-widget";
+import { FloatingAssistantLazy } from "@/components/assistant/floating-assistant-lazy";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -14,7 +14,7 @@ import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
 import { YouTubeFacade } from "@/components/youtube-facade";
 import { EXPLAINER_VIDEO, explainerVideoJsonLd } from "@/lib/explainer-video";
-import { faqJsonLd, marketingMetadata } from "@/lib/seo";
+import { FOUNDER_ID, faqJsonLd, marketingMetadata } from "@/lib/seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
 
@@ -142,6 +142,20 @@ const FAQ = [
   },
 ];
 
+/** WebPage node for the homepage, tied to the site-wide Organization, WebSite and founder nodes in layout.tsx. */
+const HOME_WEBPAGE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": `${MARKETING_SITE_URL}/#webpage`,
+  url: `${MARKETING_SITE_URL}/`,
+  name: "YPN USA: exclusive ZIP code territories and AI borrower intake for loan officers",
+  isPartOf: { "@id": `${MARKETING_SITE_URL}/#website` },
+  about: { "@id": `${MARKETING_SITE_URL}/#organization` },
+  author: { "@id": FOUNDER_ID },
+  primaryImageOfPage: { "@type": "ImageObject", url: `${MARKETING_SITE_URL}/assets/hero/hero-poster-v1-1600.webp` },
+  inLanguage: "en-US",
+};
+
 export default function Home() {
   return (
     <div className="flex min-h-full flex-col overflow-x-clip bg-[#09081b] pb-24 text-white md:pb-0">
@@ -149,6 +163,7 @@ export default function Home() {
 
       <main id="main-content">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(FAQ)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(HOME_WEBPAGE_JSON_LD) }} />
 
       {/* HERO */}
       <section className="relative isolate overflow-hidden">
@@ -478,7 +493,7 @@ export default function Home() {
               </article>
             ))}
           </div>
-          <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-white/45">
+          <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-white/60">
             Availability, permitted use, and freshness of public-record data vary by county and plan. Users remain responsible for privacy, licensing, and outreach compliance. Read our{" "}
             <Link href="/licensing-disclosures" className="underline hover:text-white">
               licensing &amp; disclosures
@@ -678,7 +693,7 @@ export default function Home() {
         </a>
       </div>
 
-      <FloatingAssistantWidget />
+      <FloatingAssistantLazy />
     </div>
   );
 }

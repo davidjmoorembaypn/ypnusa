@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const limited = enforceRateLimit(request, {
     scope: "territory-check",
     limit: 60,
-    message: "Too many ZIP checks - please slow down and try again shortly.",
+    message: "Too many ZIP code checks - please slow down and try again shortly.",
   });
   if (limited) return limited;
 
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     // Demo inventory is not authoritative and must never drive a paid signup.
     if (process.env.NODE_ENV === "production") {
       return jsonError(
-        "Live ZIP availability is temporarily unavailable. Please try again shortly.",
+        "Live ZIP code availability is temporarily unavailable. Please try again shortly.",
         503,
         "TERRITORY_UNAVAILABLE",
         { headers: { "Cache-Control": "no-store", "Retry-After": "30" } },

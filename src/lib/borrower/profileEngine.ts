@@ -99,7 +99,7 @@ function whyThisMattersFor(input: BorrowerProfileInput): string {
 
 function ctaRecommendationsFor(input: BorrowerProfileInput, confidenceScore: number): string[] {
   const ctas: string[] = [];
-  ctas.push(confidenceScore >= 65 ? `Lock ZIP ${input.borrower.zip}.` : "Get your free borrower profile.");
+  ctas.push(confidenceScore >= 65 ? `Lock ZIP code ${input.borrower.zip}.` : "Get your free borrower profile.");
   if (input.predictive && input.predictive.lifeEventLikelihood >= 25) {
     ctas.push("See your local life-event insights.");
   }

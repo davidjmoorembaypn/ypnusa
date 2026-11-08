@@ -3,21 +3,28 @@
  * ("mortgage leads for loan officers in Visalia", "loan officer marketing Visalia CA"), not
  * borrowers; borrower-facing local pages live in src/lib/local-seo.ts.
  *
- * To add a market, copy one entry and edit the text. Keep every statement something you can
- * stand behind: no invented statistics, rankings or lead volumes.
+ * To add a market (Tulare, Hanford, Kingsburg and Fresno are next), copy one entry and write
+ * unique local copy. Keep every statement something you can stand behind: no invented
+ * statistics, rankings or lead volumes. Titles ≤ 60 characters, descriptions ≤ 155.
  */
+import { PAGE_SEO } from "@/lib/seo/page-seo";
+
 export interface MloMarket {
   slug: string;
   city: string;
   stateCode: string;
   stateName: string;
   county: string;
-  /** Residential delivery ZIPs a loan officer would realistically claim in this market. */
+  /** Residential delivery ZIP codes a loan officer would realistically claim in this market. */
   zipCodes: string[];
   /** Nearby communities worth naming so the page answers "near me" searches honestly. */
   nearby: string[];
+  /** Full <title>, used as-is. */
   title: string;
+  /** Meta description. */
   description: string;
+  /** One line for the market's card on the /loan-officers hub. */
+  cardBlurb: string;
   h1: string;
   intro: string;
   whyHere: string;
@@ -34,12 +41,12 @@ export const MLO_MARKETS: readonly MloMarket[] = [
     county: "Tulare County",
     zipCodes: ["93277", "93291", "93292"],
     nearby: ["Tulare", "Exeter", "Farmersville", "Hanford", "Dinuba"],
-    title: "Mortgage Leads & AI Marketing for Loan Officers in Visalia, CA",
-    description:
-      "For loan officers in Visalia and Tulare County: claim a protected ZIP, let Cerebro AI answer and qualify your borrowers 24/7, and own every lead. Plans from $99. Check your ZIP free.",
-    h1: "Visalia loan officers: own your ZIP and let Cerebro work your borrowers",
+    title: PAGE_SEO.visalia.title,
+    description: PAGE_SEO.visalia.description,
+    cardBlurb: "Visalia and Tulare County, with Tulare, Exeter and Hanford nearby.",
+    h1: "Visalia loan officers: own your ZIP code and let Cerebro work your borrowers",
     intro:
-      "YPN USA was built in the Central Valley by a loan officer with 25+ years in production. In Visalia, that means one loan officer per protected ZIP, an AI assistant that answers borrower questions on your own site at any hour, and leads that stay yours if you change companies.",
+      "YPN USA was built in the Central Valley by a loan officer with 25+ years in production. In Visalia, that means one YPN USA loan officer per ZIP code, a local page for your market, and an AI assistant that answers borrower questions at any hour and hands the ready ones to you.",
     whyHere:
       "Visalia buyers often compare city neighborhoods with nearby towns and rural properties, so the first conversation matters. Cerebro captures the borrower's goal, timeline and price range up front and routes them to you, so you spend your time on the conversations that can close.",
     latitude: 36.3302,
@@ -56,12 +63,12 @@ export function marketFaq(market?: MloMarket): Array<{ q: string; a: string }> {
   const place = market ? `${market.city}, ${market.stateCode}` : "your market";
   return [
     {
-      q: `How do exclusive ZIP territories work in ${place}?`,
-      a: "Each ZIP can be held by one YPN USA loan officer at a time. Every paid plan (Pro $99, Growth $199, Exclusive $299 per month) includes one protected ZIP, and borrower inquiries from that ZIP route to you, not to a competing loan officer. Checking a ZIP is free and does not reserve it.",
+      q: `How do exclusive ZIP codes work in ${place}?`,
+      a: "Each ZIP code can be held by one YPN USA loan officer at a time. Every paid plan (Pro $99, Growth $199, Exclusive $299 per month) includes one ZIP code, and borrower inquiries from YPN USA pages for that ZIP code route to you, not to another YPN USA loan officer. Exclusivity applies within YPN USA. Checking a ZIP code is free and does not reserve it; it locks at your first payment.",
     },
     {
       q: "What does Cerebro do for a loan officer?",
-      a: "Cerebro is an agentic AI assistant. For you, it builds a growth plan for your market, surfaces who needs follow-up and drafts local marketing for your review. For your borrowers, it answers questions 24/7 on your site, qualifies the inquiry and books time with you.",
+      a: "Cerebro is YPN USA's AI assistant. For you, it builds a growth plan for your market, surfaces who needs follow-up and drafts local marketing for your review. For your borrowers, it answers questions 24/7, qualifies the inquiry and hands the ready ones to you.",
     },
     {
       q: "Do I keep my leads if I change brokerages?",

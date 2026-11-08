@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const session = await getSession();
   if (session && session.role !== "admin" && !isPaidEntitlement(resolveEntitlement(session))) {
     return jsonError(
-      "Cerebro's AI marketing tasks come with a paid plan. Lock your exclusive ZIP to unlock them.",
+      "Cerebro's AI marketing tasks come with a paid plan. Lock your exclusive ZIP code to unlock them.",
       402,
       "UPGRADE_REQUIRED",
     );

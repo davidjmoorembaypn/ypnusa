@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TOPIC_CLUSTERS, getCluster, getClusterPosts } from "@/lib/seo/clusters";
-import { faqJsonLd, marketingMetadata } from "@/lib/seo";
+import { faqJsonLd, jsonLdScript, marketingMetadata } from "@/lib/seo";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { topicTrail } from "@/lib/seo/breadcrumbs";
+import { TOPIC_GUIDES } from "@/content/topic-guides";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { needsFullPageLoad } from "@/lib/wp-html";
 
@@ -23,6 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ cluster: 
     title: cluster.title,
     description: cluster.description,
     path: `/topics/${cluster.slug}`,
+    absoluteTitle: true,
     origin,
   });
 }
@@ -39,6 +43,7 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
   const origin = MARKETING_SITE_URL;
   const posts = getClusterPosts(cluster.slug);
   const url = `${origin}/topics/${cluster.slug}`;
+  const guide = TOPIC_GUIDES[cluster.slug] ?? [];
 
   const jsonLd = [
     {
@@ -61,15 +66,6 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
         })),
       },
     },
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { name: "Home", item: origin },
-        { name: "Topics", item: `${origin}/topics` },
-        { name: cluster.name, item: url },
-      ].map((b, i) => ({ "@type": "ListItem", position: i + 1, name: b.name, item: b.item })),
-    },
     faqJsonLd(cluster.faq),
   ];
 
@@ -77,14 +73,11 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
       <SiteHeader />
       {jsonLd.map((block, i) => (
-        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(block) }} />
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(block) }} />
       ))}
       <main id="main-content" className="flex-1">
         <section className="mx-auto w-full max-w-4xl px-6 py-14 sm:py-20">
-          <nav aria-label="Breadcrumb" className="text-xs text-white/60">
-            <Link href="/" className="hover:underline">Home</Link> /{" "}
-            <Link href="/topics" className="hover:underline">Topics</Link> / {cluster.name}
-          </nav>
+          <Breadcrumbs items={topicTrail(cluster)} />
           <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.1] lg:text-5xl">{cluster.h1}</h1>
           {cluster.intro.map((p) => (
             <p key={p} className="mt-5 text-lg leading-8 text-white/85">{p}</p>
@@ -115,6 +108,19 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
 
         <section className="bg-white py-14 text-slate-900">
           <div className="mx-auto w-full max-w-4xl px-6">
+            {guide.length > 0 ? (
+              <div className="mb-14 space-y-10">
+                {guide.map((section) => (
+                  <section key={section.heading}>
+                    <h2 className="text-2xl font-semibold">{section.heading}</h2>
+                    <div
+                      className="mt-4 space-y-4 text-[16px] leading-7 text-slate-700 [&_a]:font-semibold [&_a]:text-violet-700 [&_a]:underline [&_a:hover]:text-violet-900 [&_strong]:font-semibold [&_strong]:text-slate-900"
+                      dangerouslySetInnerHTML={{ __html: section.html }}
+                    />
+                  </section>
+                ))}
+              </div>
+            ) : null}
             <h2 className="text-2xl font-semibold">All {posts.length} guides in this topic</h2>
             <ul className="mt-6 space-y-4">
               {posts.map((post) => (

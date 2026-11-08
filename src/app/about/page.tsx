@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
-import { FOUNDER_ID, marketingMetadata } from "@/lib/seo";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { FOUNDER_ID, jsonLdScript, marketingMetadata } from "@/lib/seo";
+import { PAGE_SEO } from "@/lib/seo/page-seo";
+import { homeTrail } from "@/lib/seo/breadcrumbs";
+import { founderPersonJsonLd } from "@/lib/seo/founder-credentials";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import {
@@ -21,9 +24,8 @@ import { MARKETING_SITE_URL } from "@/lib/site";
 export async function generateMetadata(): Promise<Metadata> {
   const origin = MARKETING_SITE_URL;
   return marketingMetadata({
-    title: "David J. Moore, MBA: Mortgage Expert & Author",
-    description:
-      "Meet David J. Moore, MBA: 25+ years as a loan officer, 2,000+ home loans closed, formerly with Wells Fargo and JPMorgan Chase, author, and founder of YPN USA.",
+    ...PAGE_SEO.about,
+    absoluteTitle: true,
     path: "/about",
     origin,
   });
@@ -76,11 +78,12 @@ export default async function AboutPage() {
     <>
       <SiteHeader />
       <main id="main-content" className="bg-[#09081b] text-white">
-        <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "About", href: "/about" }]} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(founderPersonJsonLd()) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(bookJsonLd) }} />
         <div className="mx-auto grid w-full max-w-5xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-[minmax(0,1fr)_260px] md:py-20">
           <div>
+            <Breadcrumbs items={homeTrail({ name: "About", href: "/about" })} className="mb-6" />
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">About the founder</p>
             <h1 className="mt-3 text-balance text-3xl font-semibold leading-tight sm:text-4xl">
               {AUTHOR_NAME} — mortgage expert, author &amp; founder of YPN USA
@@ -95,12 +98,12 @@ export default async function AboutPage() {
             <dl className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/5">
               {CREDENTIALS.map(([label, value]) => (
                 <div key={label} className="grid gap-1 px-5 py-4 sm:grid-cols-[140px_1fr]">
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-white/50">{label}</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-white/70">{label}</dt>
                   <dd className="text-sm text-white/85">{value}</dd>
                 </div>
               ))}
             </dl>
-            <p className="mt-3 text-xs text-white/50">
+            <p className="mt-3 text-xs text-white/70">
               Verify licensing at{" "}
               <a
                 href={NMLS_CONSUMER_ACCESS_URL}
@@ -116,7 +119,7 @@ export default async function AboutPage() {
             <h2 className="mt-12 text-2xl font-semibold">Why YPN USA exists</h2>
             <p className="mt-4 text-white/80">
               Most loan officers rent attention from Realtors and shared lead vendors, then lose their book
-              every time they change companies. YPN USA reverses that: one loan officer per ZIP territory,
+              every time they change companies. YPN USA reverses that: one loan officer per ZIP code within YPN USA,
               24/7 AI borrower intake across FHA, VA, conventional, DSCR, HELOC, refinance and jumbo, and
               leads and websites that stay with you for your career.
             </p>
@@ -127,10 +130,12 @@ export default async function AboutPage() {
               <a href={AI_BOOK.url} target="_blank" rel="sponsored noopener noreferrer" className="text-violet-300 underline hover:text-violet-200">
                 <cite>{AI_BOOK.title}</cite>
               </a>{" "}
-              ({AI_BOOK.publisher}, October 31, 2026; {AI_BOOK_PRICE_LINE}), part of the {AI_BOOK.series} series. He also wrote{" "}
+              ({AI_BOOK.publisher}, October 31, 2026; {AI_BOOK_PRICE_LINE}), part of the {AI_BOOK.series} series (
               <Link href="/book" className="text-violet-300 underline hover:text-violet-200">
-                Top 9 Online Real Estate Leads Even the Gurus Do Not Know About
-              </Link>{" "}
+                about the book
+              </Link>
+              ). He also wrote{" "}
+              <cite>Top 9 Online Real Estate Leads Even the Gurus Do Not Know About</cite>{" "}
               (also on{" "}
               <a href={BOOK_AMAZON_URL} target="_blank" rel="noopener noreferrer" className="text-violet-300 underline hover:text-violet-200">
                 Amazon

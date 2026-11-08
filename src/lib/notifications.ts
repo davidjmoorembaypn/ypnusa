@@ -46,7 +46,7 @@ export async function emailNewLeadAlert(payload: {
     ["Borrower", payload.answers.name ?? "Name pending"],
     ["Email", payload.answers.email ?? "—"],
     ["Phone", payload.answers.phone ?? "—"],
-    ["ZIP", payload.answers.zip ?? "—"],
+    ["ZIP code", payload.answers.zip ?? "—"],
     ["Program", payload.loanProgram],
     ["Quality", `${payload.qualification.leadQuality} · ${payload.qualification.urgency} urgency`],
     ["Next step", payload.qualification.recommendedNextStep],
@@ -54,9 +54,9 @@ export async function emailNewLeadAlert(payload: {
       "Routed to",
       paidRoute
         ? `${payload.officer.name} <${payload.officer.email}> (${
-            payload.routeReason === "officer_page" ? "their borrower page" : "ZIP owner"
+            payload.routeReason === "officer_page" ? "their borrower page" : "ZIP code owner"
           })`
-        : "House account (no paid owner for this ZIP)",
+        : "House account (no paid owner for this ZIP code)",
     ],
     ["Lead ID", payload.borrowerLeadId],
   ];

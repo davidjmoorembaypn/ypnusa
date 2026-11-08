@@ -21,7 +21,7 @@ export default function LicensingDisclosuresPage() {
       <p>
         YPN USA (app.ypnus.com and ypnus.com) is marketing technology used by licensed loan
         officers. It is not a lender, mortgage broker, or loan servicer, and nothing on this
-        platform &mdash; including a ZIP-territory listing, an AI chat response, or an equity
+        platform &mdash; including a ZIP code territory listing, an AI chat response, or an equity
         estimate &mdash; is an offer of credit, a pre-approval, or a commitment to lend. Actual
         loan origination, underwriting, and credit decisions are made solely by the licensed loan
         officer and their sponsoring lender.

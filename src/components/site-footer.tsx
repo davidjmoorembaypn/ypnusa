@@ -18,10 +18,10 @@ export function SiteFooter() {
             </span>
           </div>
           <p className="mt-4 max-w-sm text-sm">
-            The mortgage growth platform for loan officers: exclusive ZIP territories, AI borrower
-            intake, and leads you own for life.
+            The mortgage growth platform for loan officers: an exclusive ZIP code, local pages, and an AI
+            assistant that answers, qualifies and follows up for you.
           </p>
-          <p className="mt-4 max-w-sm text-xs text-white/50">
+          <p className="mt-4 max-w-sm text-xs text-white/70">
             Founded by David J. Moore, MBA (Fresno State) — 25+ years as a loan officer, 2,000+
             loans closed, formerly with Wells Fargo and JPMorgan Chase.{" "}
             <a
@@ -54,17 +54,18 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">Product</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">Product</p>
           <ul className="mt-4 space-y-2 text-sm">
             <li><Link href="/features" className="transition hover:text-white">Features</Link></li>
-            <li><Link href="/#how" className="transition hover:text-white">How it works</Link></li>
-            <li><Link href="/#territories" className="transition hover:text-white">Territories</Link></li>
-            <li><Link href="/#demo" className="transition hover:text-white">Live demo</Link></li>
+            <li><Link href="/cerebro" className="transition hover:text-white">Cerebro AI assistant</Link></li>
+            <li><Link href="/teams" className="transition hover:text-white">For teams</Link></li>
+            <li><Link href="/roi" className="transition hover:text-white">ROI calculator</Link></li>
+            <li><Link href="/claim-territory" className="transition hover:text-white">Claim your ZIP code</Link></li>
           </ul>
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">Loan programs</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">Loan programs</p>
           <ul className="mt-4 space-y-2 text-sm">
             {PROGRAM_LIST.map((program) => (
               <li key={program}>
@@ -84,10 +85,10 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">Resources</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">Resources</p>
           <ul className="mt-4 space-y-2 text-sm">
             <li><Link href="/pricing" className="transition hover:text-white">Pricing</Link></li>
-            <li><Link href="/loan-officers" className="transition hover:text-white">For loan officers</Link></li>
+            <li><Link href="/loan-officers" className="transition hover:text-white">Loan officer markets</Link></li>
             <li><Link href="/loan-officers/visalia-ca" className="transition hover:text-white">Visalia loan officers</Link></li>
             <li><Link href="/blog" className="transition hover:text-white">Blog</Link></li>
             <li><Link href="/about" className="transition hover:text-white">About David</Link></li>
@@ -100,7 +101,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 py-5 text-xs text-white/50">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 py-5 text-xs text-white/70">
           <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
             <p>© {new Date().getFullYear()} YPN Inc. / YPN USA. All rights reserved.</p>
             <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-1">

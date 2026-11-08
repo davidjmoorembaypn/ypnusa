@@ -81,3 +81,68 @@ export function formatCoverage(ratio: number): string {
   if (ratio >= 10) return `${Math.floor(ratio)}×`;
   return `${(Math.floor(ratio * 10) / 10).toFixed(1)}×`;
 }
+
+/* ------------------------------------------------------------------------------------------
+ * /roi: "How many extra loans pay for YPN?" — loans per year needed to cover a plan, from the
+ * visitor's own loan size and compensation. Same rule as above: only their numbers and our
+ * prices go in.
+ * ---------------------------------------------------------------------------------------- */
+
+export type CompensationMode = "bps" | "flat";
+
+/** Plan choices on /roi: each current plan billed monthly, or the 5-year prepaid price per year. */
+export interface RoiPlanOption {
+  id: string;
+  label: string;
+  yearlyCents: number;
+}
+
+export function roiPlanOptions(): RoiPlanOption[] {
+  return planYearlyCosts().flatMap((row) => [
+    { id: `${row.tierId}-monthly`, label: `${row.name}, monthly`, yearlyCents: row.monthlyPlanYearlyCents },
+    { id: `${row.tierId}-5y`, label: `${row.name}, 5-year prepaid`, yearlyCents: row.prepaidYearlyCents },
+  ]);
+}
+
+/** Parses a typed number like "100", "87.5" or "1,000"; null when it isn't a non-negative number. */
+export function parseNumberInput(raw: string): number | null {
+  const cleaned = raw.replace(/[,\s]/g, "");
+  if (!cleaned || !/^\d+(\.\d+)?$/.test(cleaned)) return null;
+  const value = Number(cleaned);
+  return Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Compensation for one closed loan, in cents. Basis points: loan amount × bps ÷ 10,000
+ * (100 bps = 1%). Flat: the per-loan amount as typed. Null until the inputs make a positive amount.
+ */
+export function compensationPerLoanCents(input: {
+  mode: CompensationMode;
+  loanAmountDollars: number | null;
+  bps: number | null;
+  flatDollars: number | null;
+}): number | null {
+  if (input.mode === "flat") {
+    if (input.flatDollars === null || !(input.flatDollars > 0)) return null;
+    return Math.round(input.flatDollars * 100);
+  }
+  if (input.loanAmountDollars === null || input.bps === null) return null;
+  if (!(input.loanAmountDollars > 0) || !(input.bps > 0)) return null;
+  return Math.round((input.loanAmountDollars * 100 * input.bps) / 10_000);
+}
+
+export interface LoansToCover {
+  /** Exact ratio: plan cost per year ÷ compensation per loan. */
+  exact: number;
+  /** Whole loans needed (you can't close part of a loan), rounded up. */
+  wholeLoans: number;
+}
+
+/** Loans needed per year to cover a plan's yearly cost; null without a positive compensation. */
+export function loansToCoverPlan(compPerLoanCents: number | null, planYearlyCents: number): LoansToCover | null {
+  if (compPerLoanCents === null || !(compPerLoanCents > 0) || !(planYearlyCents > 0)) return null;
+  const exact = planYearlyCents / compPerLoanCents;
+  // Guard against float noise (e.g. 2.0000000001) before rounding up.
+  const wholeLoans = Math.max(1, Math.ceil(Math.round(exact * 1e6) / 1e6));
+  return { exact, wholeLoans };
+}

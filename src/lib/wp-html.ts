@@ -9,6 +9,7 @@
  *   - ship zero or several <h1>s.
  */
 
+import { zipCodeCopyHtml } from "@/lib/zip-copy";
 import mediaManifest from "@/content/wp-import/media-manifest.json";
 import postsData from "@/content/wp-import/posts.json";
 import redirectsData from "@/content/wp-import/redirects.json";
@@ -188,6 +189,9 @@ export function normalizeWpHtml(html: string): string {
   out = out.replace(/(<a\b[^>]*?\bhref=)(["'])([^"']*)\2/gi, (_m, pre: string, q: string, href: string) => {
     return `${pre}${q}${normalizeWpHref(href)}${q}`;
   });
+
+  // Copy rule: "ZIP code", never a bare "ZIP" (visible text only; see zip-copy.ts).
+  out = zipCodeCopyHtml(out);
   return out;
 }
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MARKETING_SITE_URL } from "@/lib/site";
+import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 
 const SITE_NAME = "YPN USA";
 
@@ -8,13 +9,19 @@ const SOCIAL_IMAGE = {
   url: `${MARKETING_SITE_URL}/opengraph-image`,
   width: 1200,
   height: 630,
-  alt: "YPN USA — Exclusive mortgage ZIP territories",
+  alt: "YPN USA — Exclusive mortgage ZIP code territories",
 };
 
 export { SOCIAL_IMAGE };
 
 /** The single schema.org @id for the founder's Person node (defined in the root layout's @graph). */
 export const FOUNDER_ID = `${MARKETING_SITE_URL}/#person-david-moore`;
+
+/** schema.org @id of the product node (SoftwareApplication) on home, /cerebro and /pricing. */
+export const APP_ID = `${MARKETING_SITE_URL}/#app`;
+
+/** schema.org @id of the site-wide Organization node (root layout). */
+export const ORGANIZATION_ID = `${MARKETING_SITE_URL}/#organization`;
 
 /** schema.org priceSpecification for a monthly subscription Offer. */
 export function monthlyOfferPriceSpecification(price: number | string) {
@@ -83,6 +90,48 @@ export function marketingMetadata({
     openGraph: { type: "website", url, siteName: SITE_NAME, title: socialTitle, description, images: [image] },
     twitter: { card: "summary_large_image", title: socialTitle, description, images: [image.url] },
   };
+}
+
+/**
+ * The product as a schema.org SoftwareApplication with the public plans as offers
+ * (Free, Pro $99, Growth $199, Exclusive $299 a month). Emitted on the home page,
+ * /cerebro and /pricing only; every copy shares APP_ID so they describe one product.
+ */
+export function softwareApplicationJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "@id": APP_ID,
+    name: "YPN USA with Cerebro",
+    alternateName: "Cerebro",
+    url: MARKETING_SITE_URL,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description:
+      "Marketing software for licensed mortgage loan officers: an AI assistant (Cerebro) that answers and qualifies borrowers 24/7, local pages, and one exclusive ZIP code per paid plan within YPN USA.",
+    audience: {
+      "@type": "BusinessAudience",
+      audienceType: "Licensed mortgage loan officers, branch managers and mortgage teams",
+    },
+    publisher: { "@id": ORGANIZATION_ID },
+    offers: PUBLIC_PRICING_TIERS.map((tier) => {
+      // The advertised whole-dollar price ("$99"), not the legacy billed cents.
+      const price = tier.price.replace(/[^0-9.]/g, "");
+      return {
+        "@type": "Offer",
+        name: tier.name,
+        price,
+        priceCurrency: "USD",
+        url: `${MARKETING_SITE_URL}/pricing`,
+        ...(Number(price) > 0 ? { priceSpecification: monthlyOfferPriceSpecification(price) } : {}),
+      };
+    }),
+  };
+}
+
+/** Serialized JSON-LD for a script tag, with "<" escaped so content can never close the tag. */
+export function jsonLdScript(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
 /** FAQPage JSON-LD from question/answer pairs that are also rendered visibly on the page. */

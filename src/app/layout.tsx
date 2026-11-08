@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Script from "next/script";
 import { MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
-import { FOUNDER_ID, monthlyOfferPriceSpecification } from "@/lib/seo";
+import { FOUNDER_ID } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     template: "%s | YPN USA",
   },
   description:
-    "YPN USA is the mortgage growth platform for loan officers: claim exclusive ZIP territories, capture borrowers with AI intake, and turn local demand into owned leads.",
+    "The mortgage growth platform for loan officers: claim an exclusive ZIP code, capture borrowers with Cerebro AI intake, and turn local demand into leads.",
   applicationName: "YPN USA App",
   authors: [{ name: "David J. Moore, MBA" }],
   creator: "YPN Inc.",
@@ -45,13 +45,13 @@ export const metadata: Metadata = {
     siteName: "YPN USA App",
     title: "YPN USA App — Mortgage Growth Platform for Loan Officers",
     description:
-      "Claim exclusive ZIP territories, capture borrowers with AI intake, and build an owned mortgage lead pipeline.",
+      "Claim exclusive ZIP code territories, capture borrowers with AI intake, and build an owned mortgage lead pipeline.",
   },
   twitter: {
     card: "summary_large_image",
     title: "YPN USA App — Mortgage Growth Platform for Loan Officers",
     description:
-      "Exclusive ZIP territories and AI borrower intake for mortgage loan officers.",
+      "Exclusive ZIP code territories and AI borrower intake for mortgage loan officers.",
   },
 };
 
@@ -75,35 +75,11 @@ const jsonLd = {
         addressCountry: "US",
       },
       areaServed: centralValleyAreaServed(),
-      founder: { "@id": FOUNDER_ID },
+      // Full Person node (credentials) lives on /about and in post author boxes.
+      founder: { "@type": "Person", "@id": FOUNDER_ID, name: "David J. Moore, MBA" },
       sameAs: [
         "https://www.linkedin.com/in/davidjmooreypn",
         "https://www.facebook.com/YPN.Incorporated/",
-      ],
-    },
-    {
-      "@type": "Person",
-      "@id": FOUNDER_ID,
-      name: "David J. Moore, MBA",
-      jobTitle: "CEO & Founder",
-      worksFor: [
-        { "@id": `${MARKETING_SITE_URL}/#organization` },
-        { "@type": "Organization", name: "ToInvested.com" },
-      ],
-      alumniOf: {
-        "@type": "CollegeOrUniversity",
-        name: "California State University, Fresno",
-      },
-      hasCredential: {
-        "@type": "EducationalOccupationalCredential",
-        credentialCategory: "MBA",
-      },
-      description:
-        "Loan officer for 25+ years with 2,000+ loans closed, formerly with Wells Fargo and JPMorgan Chase. Fresno State MBA. CA DRE #01852847, NMLS #787257.",
-      sameAs: [
-        "https://orcid.org/0009-0008-8069-8897",
-        "https://www.linkedin.com/in/davidjmoorembaypninc/",
-        "https://www.facebook.com/DavidjMooreMBA/about/",
       ],
     },
     {
@@ -112,23 +88,6 @@ const jsonLd = {
       name: "YPN USA",
       url: MARKETING_SITE_URL,
       publisher: { "@id": `${MARKETING_SITE_URL}/#organization` },
-    },
-    {
-      "@type": "WebApplication",
-      "@id": `${MARKETING_SITE_URL}/#app`,
-      name: "YPN USA App",
-      url: MARKETING_SITE_URL,
-      applicationCategory: "BusinessApplication",
-      operatingSystem: "Web",
-      isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
-      offers: [
-        { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Pro", price: "99", priceCurrency: "USD", priceSpecification: monthlyOfferPriceSpecification(99) },
-        { "@type": "Offer", name: "Growth", price: "199", priceCurrency: "USD", priceSpecification: monthlyOfferPriceSpecification(199) },
-        { "@type": "Offer", name: "Exclusive", price: "299", priceCurrency: "USD", priceSpecification: monthlyOfferPriceSpecification(299) },
-      ],
-      description:
-        "Mortgage growth platform for licensed loan officers with exclusive ZIP territories, AI borrower intake, qualification, and nurture.",
     },
   ],
 };

@@ -86,7 +86,7 @@ export default async function LeadNurturePortalPage() {
                     <div>
                       <p className="font-semibold">{review.borrowerName}</p>
                       <p className="mt-1 text-xs text-white/60">
-                        ZIP {review.zip} · {formatDateTime(review.createdAt)}
+                        ZIP code {review.zip} · {formatDateTime(review.createdAt)}
                       </p>
                     </div>
                     <span className="rounded-full bg-amber-400/15 px-2.5 py-1 text-xs font-semibold text-amber-100">

@@ -181,7 +181,7 @@ test("resolveDynamicHeroCopy: trust_first always shows the default acquisition h
 test("resolveDynamicHeroCopy: conversion_first + mlo intent points at ZIP availability", () => {
   const persisted: PersistedBehavior = { state: createInitialBehaviorState(0), visitorIntent: "mlo", returningVisitor: true };
   const copy = resolveDynamicHeroCopy(persisted, "conversion_first");
-  assert.equal(copy.primaryCtaLabel, "Check your ZIP");
+  assert.equal(copy.primaryCtaLabel, "Check your ZIP code");
   assert.equal(copy.primaryCtaHref, "#territories");
 });
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { marketingMetadata } from "@/lib/seo";
+import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
@@ -17,9 +18,8 @@ import { MARKETING_SITE_URL } from "@/lib/site";
 export async function generateMetadata(): Promise<Metadata> {
   const origin = MARKETING_SITE_URL;
   return marketingMetadata({
-    title: "Book a Strategy Consultation",
-    description:
-      "Talk to the YPN USA team about exclusive ZIP territories, AI borrower intake, and building a mortgage lead pipeline you own. Book a consultation today.",
+    ...PAGE_SEO.consultation,
+    absoluteTitle: true,
     path: "/consultation",
     origin,
   });
@@ -54,7 +54,7 @@ export default async function ConsultationPage() {
             Book a strategy consultation
           </h1>
           <p className="mt-5 text-lg text-white/85">
-            Talk with the team behind YPN USA, founded by {AUTHOR_NAME}, about claiming an exclusive ZIP
+            Talk with the team behind YPN USA, founded by {AUTHOR_NAME}, about claiming an exclusive ZIP code
             territory, putting an AI assistant on your site, and owning your mortgage pipeline.
           </p>
 

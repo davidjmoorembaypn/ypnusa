@@ -118,7 +118,7 @@ describe("live territory lookup", async () => {
 
     assert.equal(
       result?.message,
-      "ZIP 93618 is open. ~7 people buying, selling, or moving in the next 60 days.",
+      "ZIP code 93618 is open. ~7 people buying, selling, or moving in the next 60 days.",
     );
   });
 

@@ -43,7 +43,7 @@ export function BorrowerIntelligencePanel() {
     <>
       <Card title="Borrower profile + outcome prediction">
         <p className="text-sm text-slate-600">
-          Combines borrower-stated intent with ZIP/county context into a persona, confidence score, and
+          Combines borrower-stated intent with ZIP code/county context into a persona, confidence score, and
           signup/insight-request/conversion/follow-up likelihoods.
         </p>
 

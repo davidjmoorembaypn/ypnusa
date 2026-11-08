@@ -12,7 +12,7 @@ interface SelfSelectOption {
 const OPTIONS: SelfSelectOption[] = [
   { intent: "buying", icon: "🏡", label: "I'm buying a home", sub: "See buyer pre-approval steps" },
   { intent: "refinancing", icon: "🔄", label: "I'm refinancing", sub: "Check today's refi options" },
-  { intent: "mlo", icon: "🤝", label: "I'm a mortgage officer", sub: "Claim your exclusive ZIP" },
+  { intent: "mlo", icon: "🤝", label: "I'm a mortgage officer", sub: "Claim your exclusive ZIP code" },
 ];
 
 export function SelfSelectCards({

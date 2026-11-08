@@ -123,7 +123,7 @@ async function handlePost(request: Request) {
         <p><strong>${escapeHtml(record.name)}</strong> (${escapeHtml(record.company)})</p>
         <p>Email: ${escapeHtml(record.workEmail)}</p>
         ${record.phone ? `<p>Phone: ${escapeHtml(record.phone)}</p>` : ""}
-        ${record.zip ? `<p>ZIP: ${escapeHtml(record.zip)} — ${territory?.available ? "available" : territory ? "already claimed" : "not checked"}</p>` : ""}
+        ${record.zip ? `<p>ZIP code: ${escapeHtml(record.zip)} — ${territory?.available ? "available" : territory ? "already claimed" : "not checked"}</p>` : ""}
         ${record.role ? `<p>Role: ${escapeHtml(record.role)}</p>` : ""}
         ${record.monthlyLeadVolume ? `<p>Team size: ${escapeHtml(record.monthlyLeadVolume)}</p>` : ""}
         ${record.message ? `<p>Message: ${escapeHtml(record.message)}</p>` : ""}
@@ -139,7 +139,7 @@ async function handlePost(request: Request) {
       message:
         territory && !territory.available
           ? "We've logged your request and added you to the waitlist for that territory."
-          : "Your inquiry is saved. This does not reserve a ZIP. Availability and paid-plan activation must be confirmed before exclusivity begins.",
+          : "Your inquiry is saved. This does not reserve a ZIP code. Availability and paid-plan activation must be confirmed before exclusivity begins.",
     });
   } catch (error) {
     logApiError("/api/demo-request", error);

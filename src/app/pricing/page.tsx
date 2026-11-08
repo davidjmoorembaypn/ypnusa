@@ -15,16 +15,17 @@ import { formatUsd } from "@/lib/format";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { PricingCta } from "@/components/pricing-cta";
 import { PricingRoiCalculator } from "@/components/pricing-roi-calculator";
-import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
-import { faqJsonLd, marketingMetadata } from "@/lib/seo";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { faqJsonLd, jsonLdScript, marketingMetadata, softwareApplicationJsonLd } from "@/lib/seo";
+import { PAGE_SEO } from "@/lib/seo/page-seo";
+import { homeTrail } from "@/lib/seo/breadcrumbs";
 import { MARKETING_SITE_URL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   const origin = MARKETING_SITE_URL;
   return marketingMetadata({
-    title: "Pricing: Free, Pro, Growth & Exclusive Plans",
-    description:
-      "Start free, then lock an exclusive ZIP code on Pro ($99), Growth ($199) or Exclusive ($299). Try any paid plan free for 15 days, or pay now to lock your ZIP code today.",
+    ...PAGE_SEO.pricing,
+    absoluteTitle: true,
     path: "/pricing",
     origin,
   });
@@ -40,7 +41,7 @@ const COMPARE_ROWS: Array<{ label: string; free: string; growth: string; pro: st
   { label: "Portable MLO website", free: "—", growth: "—", pro: "✓", elite: "✓" },
   { label: "Priority lead delivery", free: "—", growth: "—", pro: "✓", elite: "✓" },
   { label: "Advanced life-event signals", free: "—", growth: "—", pro: "✓", elite: "✓" },
-  { label: "Priority ZIP add-on access", free: "—", growth: "—", pro: "—", elite: "✓" },
+  { label: "Priority ZIP code add-on access", free: "—", growth: "—", pro: "—", elite: "✓" },
   { label: "Unlimited automation runs", free: "—", growth: "—", pro: "—", elite: "✓" },
   { label: "White-glove onboarding", free: "—", growth: "—", pro: "—", elite: "✓" },
 ];
@@ -68,11 +69,11 @@ const PRICING_FAQ = [
   },
   {
     q: "Do I keep my leads if I cancel?",
-    a: "Yes. Every borrower your AI captures belongs to you, exported and portable, on every plan. Canceling stops new capture and ZIP exclusivity — it never takes back what you already own.",
+    a: "Yes. Every borrower your AI captures belongs to you, exported and portable, on every plan. Canceling stops new capture and your ZIP code exclusivity — it never takes back what you already own.",
   },
   {
     q: "What's an exclusive ZIP code?",
-    a: "One loan officer owns the borrower demand in a given ZIP code at a time. Each paid plan includes one ZIP code; additional ZIP codes are available as paid add-ons, subject to availability.",
+    a: "One YPN USA loan officer holds a given ZIP code at a time, and borrower inquiries from YPN USA pages for that ZIP code route to them. Exclusivity applies within YPN USA. Each paid plan includes one ZIP code; additional ZIP codes are available as paid add-ons, subject to availability.",
   },
 ];
 
@@ -86,11 +87,12 @@ export default function PricingPage() {
       <SiteHeader />
 
       <main id="main-content" className="flex-1">
-        <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Pricing", href: "/pricing" }]} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(PRICING_FAQ)) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(softwareApplicationJsonLd()) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(PRICING_FAQ)) }} />
         <section className="relative isolate overflow-hidden">
           <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative z-10 mx-auto w-full max-w-4xl px-6 py-16 text-center sm:py-20">
+            <Breadcrumbs items={homeTrail({ name: "Pricing", href: "/pricing" })} className="mb-8 flex justify-center" />
             <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
               Pricing
             </span>
@@ -271,6 +273,13 @@ export default function PricingPage() {
             <div className="mt-10">
               <PricingRoiCalculator />
             </div>
+            <p className="mt-6 text-center text-sm text-slate-700">
+              Prefer to start from loan size and basis points?{" "}
+              <Link href="/roi" className="font-semibold text-violet-700 underline">
+                Use the loans-to-cover calculator
+              </Link>
+              .
+            </p>
           </div>
         </section>
 
@@ -341,7 +350,7 @@ export default function PricingPage() {
               href="/#territories"
               className="mt-8 inline-flex items-center justify-center rounded-full bg-amber-400 px-8 py-4 text-base font-semibold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             >
-              Check ZIP availability — free
+              Check your ZIP code — free
             </Link>
           </div>
         </section>

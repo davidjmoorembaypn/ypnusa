@@ -70,7 +70,7 @@ function whyThisMattersForYou(zipCtx: ZipContext, predictive: PredictiveResult |
   if (zipCtx.census.mobilityRate >= 0.2) {
     return "Households in this area are moving more than average — worth exploring your options now.";
   }
-  return "Every ZIP is different — we'll walk you through exactly what applies to your situation.";
+  return "Every ZIP code is different — we'll walk you through exactly what applies to your situation.";
 }
 
 export function buildPersonalization(input: PersonalizationInput): PersonalizationSummary {

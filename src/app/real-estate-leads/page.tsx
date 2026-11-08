@@ -28,7 +28,7 @@ export default function RealEstateLeadsPage() {
         Real estate lead generation
       </h1>
       <p className="mt-4 max-w-2xl text-sm leading-7 text-white/60">
-        Entry point for the real-estate-leads content silo: local demand tools, the ZIP-territory
+        Entry point for the real-estate-leads content silo: local demand tools, the ZIP code territory
         product, and the author&apos;s book funnel.
       </p>
       <StubNotice>Hub layout only &mdash; section copy below is placeholder.</StubNotice>
@@ -48,7 +48,7 @@ export default function RealEstateLeadsPage() {
             href="/check-zip"
             className="block rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:bg-white/10"
           >
-            <p className="text-sm font-semibold text-white">ZIP demand check</p>
+            <p className="text-sm font-semibold text-white">ZIP code demand check</p>
             <p className="mt-1 text-xs text-white/50">Live territory-availability tool &rarr;</p>
           </Link>
         </li>

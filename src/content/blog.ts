@@ -6,6 +6,16 @@ export interface BlogPost {
   author: string;
   readingMinutes: number;
   html: string;
+  /** Full <title> when it differs from the H1 (used as-is, no brand suffix added). */
+  metaTitle?: string;
+  /** Credentials line shown under the H1. */
+  byline?: string;
+  /** Pillar slug (src/lib/seo/clusters.ts) when the post's cluster is fixed by the plan, not keyword-scored. */
+  cluster?: string;
+  /** Visible FAQ (rendered after the body and mirrored as FAQPage JSON-LD). `html` may add links to `a`. */
+  faq?: ReadonlyArray<{ q: string; a: string; html?: string }>;
+  /** HTML shown after the FAQ, e.g. the closing call to action. */
+  closingHtml?: string;
 }
 
 export const BLOG_POSTS: readonly BlogPost[] = [
@@ -154,7 +164,7 @@ export const BLOG_POSTS: readonly BlogPost[] = [
 
 <p>Co-marketing gets a Realtor's referral to call or text you. What happens in the next sixty seconds decides whether it becomes a funded loan or a cold trail. That's the part YPN USA actually handles: the AI borrower intake agent captures and qualifies that referral the moment they reach out — day or night — and starts the nurture sequence automatically, so a referral never goes cold waiting on a callback.</p>
 
-<p>And because your exclusive ZIP territory and every lead it produces are yours, not your brokerage's, the relationships you build in this playbook stay your relationships even if you change companies.</p>
+<p>And because your exclusive ZIP code territory and every lead it produces are yours, not your brokerage's, the relationships you build in this playbook stay your relationships even if you change companies.</p>
 
 <p><a href="/pricing" class="btn-primary">See plans and pricing →</a></p>
 
@@ -338,7 +348,7 @@ A: This is where a strong pre-qualification step pays off — an AI intake assis
 
 <p>Answer that question for 10 Realtors, and you'll never buy a lead again.</p>
 
-<p>And once those referrals are coming in, an exclusive ZIP territory and an AI intake agent that never misses an after-hours inquiry make sure none of that hard-won goodwill goes to waste on a slow follow-up.</p>
+<p>And once those referrals are coming in, an exclusive ZIP code territory and an AI intake agent that never misses an after-hours inquiry make sure none of that hard-won goodwill goes to waste on a slow follow-up.</p>
 
 <p><a href="/features" class="btn-primary">See how the AI agent works →</a> &nbsp; <a href="/pricing">View plans and pricing →</a></p>`,
   },

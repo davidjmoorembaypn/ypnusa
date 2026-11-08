@@ -85,7 +85,7 @@ function TierPanel({ tier }: { tier: RevenueTierSummary }) {
 
       <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-2xl bg-slate-50 p-3">
-          <dt className="text-slate-500">ZIP bookings</dt>
+          <dt className="text-slate-500">ZIP code bookings</dt>
           <dd className="mt-1 font-semibold text-slate-950">
             {tier.zipBookingCount} / {money(tier.zipRevenueCents)}
           </dd>
@@ -250,7 +250,7 @@ export function RevenueBreakdown({ initialData }: RevenueBreakdownProps) {
             />
             <MetricCard
               label="Territory coverage"
-              value={`${summary.totals.claimedZipCount} ZIPs`}
+              value={`${summary.totals.claimedZipCount} ZIP codes`}
               detail={`${summary.totals.countyTerritoryCount} county territories booked`}
             />
             <MetricCard
@@ -276,10 +276,10 @@ export function RevenueBreakdown({ initialData }: RevenueBreakdownProps) {
       <section className="rounded-[2rem] bg-white p-6 shadow-xl shadow-cyan-100/70 ring-1 ring-slate-100">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-cyan-600">County / ZIP bookings</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-cyan-600">County / ZIP code bookings</p>
             <h2 className="mt-2 text-2xl font-semibold text-slate-950">Tier revenue mix</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Revenue is allocated across ZIP and county coverage units inside each subscription.
+              Revenue is allocated across ZIP code and county coverage units inside each subscription.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

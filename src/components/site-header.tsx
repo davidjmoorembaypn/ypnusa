@@ -5,13 +5,15 @@ import { useEffect, useState } from "react";
 import { FREE_SIGNUP_HREF } from "@/lib/checkout";
 
 /**
- * Unified header nav (Features | Pricing | Blog | Free Tools | Log In | Get Started).
+ * Unified header nav (Cerebro | Features | Pricing | Teams | Blog | Free Tools | Log In | Get Started).
  * ypnus.com and app.ypnus.com are the same Next.js app, so every item is an
  * internal route.
  */
 const NAV: Array<{ href: string; label: string; internal?: boolean }> = [
+  { href: "/cerebro", label: "Cerebro", internal: true },
   { href: "/features", label: "Features", internal: true },
   { href: "/pricing", label: "Pricing", internal: true },
+  { href: "/teams", label: "Teams", internal: true },
   { href: "/about", label: "About", internal: true },
   { href: "/blog", label: "Blog", internal: true },
   { href: "/tools/equity", label: "Free Tools", internal: true },
@@ -59,7 +61,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-7 text-sm font-medium text-white/75 md:flex">
+        <nav className="hidden items-center gap-5 text-sm font-medium text-white/80 xl:gap-7 lg:flex">
           {NAV.map((item) =>
             item.internal ? (
               <Link key={item.href} href={item.href} className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300">
@@ -96,7 +98,7 @@ export function SiteHeader() {
           )}
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 lg:hidden"
             aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={mobileOpen}
             aria-controls="mobile-navigation"
@@ -114,7 +116,7 @@ export function SiteHeader() {
 
       <div
         id="mobile-navigation"
-        className={`md:hidden ${mobileOpen ? "block" : "hidden"}`}
+        className={`lg:hidden ${mobileOpen ? "block" : "hidden"}`}
       >
         <nav className="mx-4 mb-4 rounded-3xl border border-white/10 bg-[#120f2a]/95 p-4 shadow-2xl shadow-black/30">
           <div className="grid gap-1 text-sm font-medium text-white/80">

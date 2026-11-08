@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "YPN USA — Exclusive mortgage ZIP territories";
+export const alt = "YPN USA — Exclusive mortgage ZIP code territories";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const dynamic = "force-static";
@@ -42,7 +42,7 @@ export default function OGImage() {
             marginBottom: 20,
           }}
         >
-          Own your ZIP. Capture every borrower.
+          Own your ZIP code. Capture every borrower.
         </div>
         <div style={{ fontSize: 24, color: "rgba(255,255,255,0.78)", maxWidth: 820 }}>
           Exclusive territories · AI intake · Free → $99 → $199 → $299

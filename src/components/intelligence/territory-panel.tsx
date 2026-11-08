@@ -18,9 +18,9 @@ export function TerritoryPanel() {
   }
 
   return (
-    <Card title="ZIP territory scoring">
+    <Card title="ZIP code territory scoring">
       <p className="text-sm text-slate-600">
-        Wraps the same territory logic used by the live ZIP checker — availability, an opportunity score, and a
+        Wraps the same territory logic used by the live ZIP code checker — availability, an opportunity score, and a
         plain-language explanation.
       </p>
 

@@ -15,7 +15,7 @@ export default async function TerritoriesDashboardPage() {
     <DashboardShell
       eyebrow="Platform brain"
       title="Territory intelligence"
-      description="ZIP-level availability, opportunity scoring, and plain-language explanations, powered by the same territory logic behind the live ZIP checker."
+      description="ZIP-code-level availability, opportunity scoring, and plain-language explanations, powered by the same territory logic behind the live ZIP code checker."
     >
       <TerritoryPanel />
     </DashboardShell>

@@ -15,7 +15,7 @@ export default async function ConversionDashboardPage() {
     <DashboardShell
       eyebrow="Platform brain"
       title="Conversion insights"
-      description="ZIP demand, life-event likelihood, and CTA output from the personalization and CTA engines that power the homepage territory claim flow."
+      description="ZIP code demand, life-event likelihood, and CTA output from the personalization and CTA engines that power the homepage territory claim flow."
     >
       <ConversionInsightsPanel />
     </DashboardShell>

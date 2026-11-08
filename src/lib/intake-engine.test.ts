@@ -16,6 +16,7 @@ delete process.env.MLO_CALENDAR_CONFIG_JSON;
 /** Canned borrower replies keyed by the field the assistant asks for. */
 const replies: Partial<Record<keyof BorrowerAnswers, string>> = {
   purchaseRefiIntent: "refinance",
+  zip: "93720",
   targetLoanAmountUsd: "500000",
   estimatedCreditBand: "670-739",
   timeline: "1_3_months",
@@ -28,7 +29,7 @@ const replies: Partial<Record<keyof BorrowerAnswers, string>> = {
 describe("intake engine tick loop", async () => {
   const { intakeTick } = await import("./intake-engine");
   const { hydrateAnswers } = await import("./intake-engine");
-  const { readDb } = await import("./db");
+  const { readDb, writeDb } = await import("./db");
 
   after(() => {
     fs.rmSync(dataDir, { recursive: true, force: true });
@@ -66,6 +67,7 @@ describe("intake engine tick loop", async () => {
     assert.equal(response.progress.pct, 100);
     assert.deepEqual(prompts, [
       "borrower_goal",
+      "property_zip",
       "target_amount",
       "timeline",
       "credit_band",
@@ -101,7 +103,7 @@ describe("intake engine tick loop", async () => {
     assert.equal(opening.ok, true);
     assert.match(opening.assistantMessage, /YPN USA intake assistant/);
     assert.equal(opening.activeStep?.id, "borrower_goal");
-    assert.deepEqual(opening.progress, { pct: 0, completed: 0, totalApplicable: 8 });
+    assert.deepEqual(opening.progress, { pct: 0, completed: 0, totalApplicable: 9 });
 
     const second = await intakeTick({
       sessionId: opening.sessionId,
@@ -110,7 +112,8 @@ describe("intake engine tick loop", async () => {
     });
 
     assert.ok(!second.assistantMessage.includes("intake assistant"));
-    assert.equal(second.activeStep?.id, "target_amount");
+    assert.equal(second.activeStep?.id, "property_zip");
+    assert.equal(second.activeStep?.kind, "zip");
   });
 
   it("replays booking artifacts without duplicating the lead once synced", async () => {
@@ -193,7 +196,25 @@ describe("intake engine tick loop", async () => {
     });
 
     assert.equal(response.ok, true);
-    assert.equal(response.activeStep?.id, "target_amount");
+    assert.equal(response.activeStep?.id, "property_zip");
+
+    const badZip = await intakeTick({
+      sessionId: opening.sessionId,
+      loanProgram: "CONVENTIONAL",
+      incoming: { field: "zip", rawValue: "Fresno" },
+    });
+    assert.equal(badZip.ok, false);
+    assert.equal(badZip.activeStep?.id, "property_zip");
+    assert.equal(badZip.answers.zip, undefined);
+
+    const zipped = await intakeTick({
+      sessionId: opening.sessionId,
+      loanProgram: "CONVENTIONAL",
+      incoming: { field: "zip", rawValue: "93720-1234" },
+    });
+    assert.equal(zipped.ok, true);
+    assert.equal(zipped.answers.zip, "93720");
+    assert.equal(zipped.activeStep?.id, "target_amount");
 
     const invalid = await intakeTick({
       sessionId: opening.sessionId,
@@ -230,5 +251,46 @@ describe("intake engine tick loop", async () => {
     assert.equal(answers.loanProgram, "JUMBO");
     assert.equal(answers.funnelSource, "session_funnel");
     assert.equal(answers.name, "Taylor");
+  });
+
+  it("offers a ?zip= prefill as a one-tap answer and keeps it on the session", async () => {
+    const opening = await intakeTick({ loanProgram: "FHA", prefill: { zip: "93720", officerSlug: "jane-doe-1a2b3c4d" } });
+    const stored = readDb().sessions.find((entry) => entry.id === opening.sessionId);
+    assert.equal(stored?.prefillZip, "93720");
+    assert.equal(stored?.officerSlug, "jane-doe-1a2b3c4d");
+    assert.equal(stored?.answers.zip, undefined, "the borrower still answers the ZIP code step");
+
+    const zipStep = await intakeTick({
+      sessionId: opening.sessionId,
+      loanProgram: "FHA",
+      incoming: { field: "purchaseRefiIntent", rawValue: "purchase" },
+    });
+    assert.equal(zipStep.activeStep?.id, "property_zip");
+    assert.deepEqual(zipStep.activeStep?.chips, [{ label: "Yes, 93720", value: "93720" }]);
+
+    const plain = await intakeTick({ loanProgram: "FHA", prefill: { zip: "9372" } });
+    assert.equal(readDb().sessions.find((entry) => entry.id === plain.sessionId)?.prefillZip, undefined);
+  });
+
+  it("routes a completed lead to the paying loan officer who holds the borrower's ZIP code", async () => {
+    const now = new Date().toISOString();
+    writeDb((db) => {
+      db.revenueSubscriptions.push({
+        id: "sub_zip_owner",
+        createdAt: now,
+        startedAt: now,
+        tier: "pro",
+        status: "active",
+        source: "stripe_webhook",
+        ownerEmail: "zip.owner@example.com",
+        claimedZips: ["93720"],
+      });
+    });
+    const { response } = await runSession("FHA");
+    assert.equal(response.phase, "crm_synced");
+    assert.equal(response.crmArtifacts?.assignedOfficer?.email, "zip.owner@example.com");
+    writeDb((db) => {
+      db.revenueSubscriptions = db.revenueSubscriptions.filter((entry) => entry.id !== "sub_zip_owner");
+    });
   });
 });

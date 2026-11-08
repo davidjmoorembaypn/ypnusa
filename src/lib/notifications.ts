@@ -35,12 +35,13 @@ export function notifyAssignedOfficer(payload: {
  */
 export async function emailNewLeadAlert(payload: {
   officer: Pick<LoanOfficerRecord, "id" | "name" | "email">;
-  routeReason: "zip_owner" | "house";
+  routeReason: "officer_page" | "zip_owner" | "house";
   borrowerLeadId: string;
   loanProgram: LoanProgram;
   answers: BorrowerAnswers;
   qualification: QualificationSummary;
 }): Promise<{ ownerNotified: boolean; mloNotified: boolean }> {
+  const paidRoute = payload.routeReason === "zip_owner" || payload.routeReason === "officer_page";
   const rows: Array<[string, string]> = [
     ["Borrower", payload.answers.name ?? "Name pending"],
     ["Email", payload.answers.email ?? "—"],
@@ -51,8 +52,10 @@ export async function emailNewLeadAlert(payload: {
     ["Next step", payload.qualification.recommendedNextStep],
     [
       "Routed to",
-      payload.routeReason === "zip_owner"
-        ? `${payload.officer.name} <${payload.officer.email}> (ZIP owner)`
+      paidRoute
+        ? `${payload.officer.name} <${payload.officer.email}> (${
+            payload.routeReason === "officer_page" ? "their borrower page" : "ZIP owner"
+          })`
         : "House account (no paid owner for this ZIP)",
     ],
     ["Lead ID", payload.borrowerLeadId],
@@ -73,7 +76,7 @@ export async function emailNewLeadAlert(payload: {
   const mloEmailsOn = process.env.LEAD_ALERT_MLO_EMAILS?.trim().toLowerCase() === "true";
   if (
     mloEmailsOn &&
-    payload.routeReason === "zip_owner" &&
+    paidRoute &&
     payload.officer.id !== HOUSE_OFFICER_ID &&
     !isDemoOfficer(payload.officer)
   ) {
@@ -81,7 +84,10 @@ export async function emailNewLeadAlert(payload: {
       mloNotified = (
         await sendEmail({
           to: payload.officer.email,
-          subject: "New borrower lead in your ZIP — YPN USA",
+          subject:
+            payload.routeReason === "officer_page"
+              ? "New borrower lead from your borrower page — YPN USA"
+              : "New borrower lead in your ZIP code — YPN USA",
           html,
           replyTo: payload.answers.email,
         })

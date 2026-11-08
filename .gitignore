@@ -41,3 +41,4 @@ next-env.d.ts
 # loanpilot local persistence
 /data/store.json
 /data/session-secret.key
+/data/officer-photos/

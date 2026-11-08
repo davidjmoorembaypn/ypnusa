@@ -6,7 +6,8 @@ export type InputKind =
   | "tel"
   | "number"
   | "select"
-  | "boolean";
+  | "boolean"
+  | "zip";
 
 export interface FlowChip {
   label: string;
@@ -59,6 +60,15 @@ const baseFlow: FlowStepDescriptor[] = [
     kind: "select",
     chips: intentChips,
     placeholder: "Select your goal",
+  },
+  {
+    // Required: the property's ZIP code routes the lead to the loan officer who holds it.
+    id: "property_zip",
+    prompt: "What is the 5-digit ZIP code of the property (or the area where you're buying)?",
+    fieldPath: "zip",
+    kind: "zip",
+    placeholder: "e.g. 93720",
+    hint: "This connects you with a loan officer who serves that ZIP code.",
   },
   {
     id: "target_amount",

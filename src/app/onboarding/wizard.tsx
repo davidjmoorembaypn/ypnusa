@@ -16,6 +16,33 @@ const CHANNELS = [
 
 type FormState = Pick<AgentOnboardingRecord, "goal" | "goalDescription" | "territoryZip" | "connections" | "autonomy" | "confidenceThreshold">;
 
+type ProfileForm = { fullName: string; nmlsId: string; phone: string; company: string };
+type ProfileField = keyof ProfileForm | "photo";
+
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+
+function formatPhoneInput(digits: string): string {
+  if (digits.length !== 10) return digits;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+/** Mirrors the server's checks (src/lib/officer-profile.ts) so the button only enables for input the server accepts. */
+function profileProblems(profile: ProfileForm): Partial<Record<keyof ProfileForm, string>> {
+  const problems: Partial<Record<keyof ProfileForm, string>> = {};
+  const name = profile.fullName.trim();
+  if (name.length < 2 || name.length > 80 || !/^\p{L}[\p{L}\p{M} .'’-]*$/u.test(name)) {
+    problems.fullName = "Enter your full name (letters, spaces, hyphens and apostrophes).";
+  }
+  const nmls = profile.nmlsId.trim().replace(/^nmls\s*/i, "").replace(/^#/, "").replace(/\s+/g, "");
+  if (!/^\d{4,10}$/.test(nmls)) problems.nmlsId = "Enter your NMLS ID: 4 to 10 digits.";
+  let digits = profile.phone.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+  if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) problems.phone = "Enter a US phone number with area code, like (559) 512-0372.";
+  if (profile.company.trim().length > 100) problems.company = "Company name must be 100 characters or fewer.";
+  return problems;
+}
+
 const DEFAULT_STATE: FormState = {
   goal: "speed_to_lead",
   goalDescription: GOAL_COPY.speed_to_lead.description,
@@ -25,15 +52,49 @@ const DEFAULT_STATE: FormState = {
   confidenceThreshold: 80,
 };
 
-export function OnboardingWizard({ email, initialProfile, purchasedZip, tier, dailyLimit }: {
+export function OnboardingWizard({
+  email,
+  initialProfile,
+  purchasedZip,
+  tier,
+  dailyLimit,
+  startAtProfile = false,
+  initialPhotoUrl = null,
+  initialBorrowerPagePath = null,
+}: {
   email: string;
   initialProfile: AgentOnboardingRecord | null;
   /** The ZIP their paid plan locked, used to prefill step 1. */
   purchasedZip?: string;
   tier: PricingTierId;
   dailyLimit: number;
+  /** Open on step 1 regardless of progress (dashboard "Complete your profile"). */
+  startAtProfile?: boolean;
+  initialPhotoUrl?: string | null;
+  /** /lo/[slug] when the officer's borrower page is live. */
+  initialBorrowerPagePath?: string | null;
 }) {
-  const [step, setStep] = useState(Math.min(5, Math.max(1, initialProfile?.completedStep ?? 1)));
+  const [step, setStep] = useState(
+    startAtProfile ? 1 : Math.min(5, Math.max(1, initialProfile?.completedStep ?? 1)),
+  );
+  const [profile, setProfile] = useState<ProfileForm>(() => {
+    const saved = initialProfile?.officerProfile;
+    return {
+      fullName: saved?.fullName ?? "",
+      nmlsId: saved?.nmlsId ?? "",
+      phone: saved?.phone ? formatPhoneInput(saved.phone) : "",
+      company: saved?.company ?? "",
+    };
+  });
+  const [touched, setTouched] = useState<Partial<Record<keyof ProfileForm, boolean>>>({});
+  const [fieldError, setFieldError] = useState<{ field: ProfileField; message: string } | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(initialPhotoUrl);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [borrowerPagePath, setBorrowerPagePath] = useState<string | null>(initialBorrowerPagePath);
+  const problems = profileProblems(profile);
+  const profileValid = Object.keys(problems).length === 0;
+  // After a profile save, officers who already finished later steps go back to where they were.
+  const resumeStep = Math.min(5, Math.max(2, initialProfile?.completedStep ?? 1));
   const [form, setForm] = useState<FormState>(() => {
     const base = initialProfile ?? DEFAULT_STATE;
     return base.territoryZip ? base : { ...base, territoryZip: purchasedZip ?? "" };
@@ -54,14 +115,33 @@ export function OnboardingWizard({ email, initialProfile, purchasedZip, tier, da
   ], [form]);
 
   async function save(nextStep: number, action = "save") {
-    setBusy(true); setNotice("");
+    setBusy(true); setNotice(""); setFieldError(null);
     try {
       const response = await fetch("/api/onboarding", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...form, completedStep: nextStep, action, testPassedAt }),
+        // The profile is resent on every save while it is valid; officers who onboarded
+        // before profiles existed can still finish later steps without one.
+        body: JSON.stringify({
+          ...form,
+          completedStep: nextStep,
+          action,
+          testPassedAt,
+          profile: action === "profile" || profileValid ? profile : undefined,
+        }),
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) { setNotice(typeof body?.error === "string" ? body.error : "Unable to save."); return false; }
+      if (!response.ok) {
+        const message = typeof body?.error === "string" ? body.error : "Unable to save.";
+        if (body?.code === "INVALID_PROFILE" && typeof body?.field === "string") {
+          setFieldError({ field: body.field as ProfileField, message });
+          setStep(1);
+        }
+        setNotice(message);
+        return false;
+      }
+      if (body && "borrowerPagePath" in body) {
+        setBorrowerPagePath(typeof body.borrowerPagePath === "string" ? body.borrowerPagePath : null);
+      }
       setStep(nextStep); return true;
     } catch {
       setNotice("Network error. Check your connection and try again.");
@@ -90,6 +170,57 @@ export function OnboardingWizard({ email, initialProfile, purchasedZip, tier, da
     setTrace(body.test?.trace ?? []); setTestPassedAt(passedAt); setNotice("Safe test passed. No email, SMS, or calendar event was sent.");
   }
 
+  async function uploadPhoto(file: File | undefined) {
+    if (!file) return;
+    setFieldError(null);
+    // Quick client checks; the server re-checks the size and reads the real type from the file's bytes.
+    if (!PHOTO_TYPES.includes(file.type)) {
+      setFieldError({ field: "photo", message: "Upload a JPEG, PNG or WebP image." });
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setFieldError({ field: "photo", message: "Photos must be 2 MB or smaller." });
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const data = new FormData();
+      data.append("photo", file);
+      const response = await fetch("/api/onboarding/photo", { method: "POST", body: data });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || typeof body?.photoUrl !== "string") {
+        setFieldError({ field: "photo", message: typeof body?.error === "string" ? body.error : "Unable to upload your photo." });
+        return;
+      }
+      setPhotoUrl(body.photoUrl);
+    } catch {
+      setFieldError({ field: "photo", message: "Network error. Check your connection and try again." });
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function removePhoto() {
+    setPhotoBusy(true); setFieldError(null);
+    try {
+      const response = await fetch("/api/onboarding/photo", { method: "DELETE" });
+      if (response.ok) setPhotoUrl(null);
+      else setFieldError({ field: "photo", message: "Unable to remove your photo." });
+    } catch {
+      setFieldError({ field: "photo", message: "Network error. Check your connection and try again." });
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  /** The message to show under a profile field: a server error first, else a client check once touched. */
+  function errorFor(field: keyof ProfileForm): string | undefined {
+    if (fieldError?.field === field) return fieldError.message;
+    return touched[field] ? problems[field] : undefined;
+  }
+
+  const inputClass = "mt-2 w-full rounded-2xl border border-[#cfc5b4] bg-white px-4 py-3.5 text-base outline-none focus:border-[#9a6b19] focus:ring-2 focus:ring-[#e9d7b3] aria-[invalid=true]:border-[#b4532a]";
+
   return (
     <main className="min-h-screen bg-[#f6f2e9] text-[#102239]">
       <header className="border-b border-[#d8d0c1] bg-[#fbf8f1]/95 px-5 py-4">
@@ -113,9 +244,9 @@ export function OnboardingWizard({ email, initialProfile, purchasedZip, tier, da
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.08fr_.92fr]">
           <section className="rounded-[28px] border border-[#d8d0c1] bg-[#fffdf8] p-6 shadow-[0_18px_55px_rgba(30,38,48,.08)] md:p-10">
             {step === 1 && <>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#9a6b19]">Step 1 · Confirm your workspace</p>
-              <h1 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-[-0.045em] md:text-5xl">Give Cerebro a territory to work.</h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-[#536070]">Your ZIP anchors local context and routing. You can compare and claim territories later; onboarding only saves your working ZIP.</p>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#9a6b19]">Step 1 · Your profile</p>
+              <h1 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-[-0.045em] md:text-5xl">Tell borrowers who you are.</h1>
+              <p className="mt-5 max-w-xl text-base leading-7 text-[#536070]">Your name, NMLS ID, phone and photo appear on your borrower page and in lead follow-up. Your ZIP code anchors local context and routing; onboarding only saves your working ZIP code and doesn&rsquo;t claim it.</p>
               <details className="mt-7 overflow-hidden rounded-2xl border border-[#d8d0c1] bg-white">
                 <summary className="cursor-pointer list-none px-5 py-4 text-sm font-bold text-[#102239] marker:hidden">
                   See how YPN USA and Cerebro work <span className="ml-2 font-medium text-[#9a6b19]">Optional video</span>
@@ -135,9 +266,71 @@ export function OnboardingWizard({ email, initialProfile, purchasedZip, tier, da
                   <p className="px-2 pb-1 pt-3 text-xs leading-5 text-[#647080]">Watch for context, then continue when you are ready. The video is never required to activate your agent.</p>
                 </div>
               </details>
-              <label className="mt-8 block text-sm font-bold" htmlFor="zip">Primary ZIP code</label>
-              <input id="zip" inputMode="numeric" maxLength={5} value={form.territoryZip ?? ""} onChange={e => setForm({ ...form, territoryZip: e.target.value.replace(/\D/g, "").slice(0,5) })} placeholder="e.g. 78701" className="mt-2 w-full rounded-2xl border border-[#cfc5b4] bg-white px-4 py-4 text-lg outline-none focus:border-[#9a6b19] focus:ring-2 focus:ring-[#e9d7b3]" />
-              <button disabled={busy || !/^\d{5}$/.test(form.territoryZip ?? "")} onClick={() => save(2)} className="mt-7 rounded-full bg-[#102239] px-6 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Continue to goal</button>
+              <div className="mt-8 grid gap-5 sm:grid-cols-2">
+                {([
+                  ["fullName", "Full name", "text", "name", "Jane Doe", undefined],
+                  ["nmlsId", "NMLS ID", "text", "off", "e.g. 1234567", "numeric"],
+                  ["phone", "Phone", "tel", "tel", "(555) 123-4567", "tel"],
+                  ["company", "Company or brokerage (optional)", "text", "organization", "e.g. Valley Home Loans", undefined],
+                ] as const).map(([field, label, type, autoComplete, placeholder, inputMode]) => {
+                  const error = errorFor(field);
+                  return (
+                    <div key={field} className={field === "fullName" || field === "company" ? "sm:col-span-2" : undefined}>
+                      <label className="block text-sm font-bold" htmlFor={`profile-${field}`}>{label}</label>
+                      <input
+                        id={`profile-${field}`}
+                        type={type}
+                        autoComplete={autoComplete}
+                        inputMode={inputMode}
+                        required={field !== "company"}
+                        maxLength={field === "company" ? 100 : field === "fullName" ? 80 : 20}
+                        value={profile[field]}
+                        onChange={e => { setProfile({ ...profile, [field]: e.target.value }); if (fieldError?.field === field) setFieldError(null); }}
+                        onBlur={() => setTouched({ ...touched, [field]: true })}
+                        placeholder={placeholder}
+                        aria-invalid={error ? true : undefined}
+                        aria-describedby={error ? `profile-${field}-error` : undefined}
+                        className={inputClass}
+                      />
+                      {error ? <p id={`profile-${field}-error`} className="mt-1.5 text-xs font-semibold text-[#9a3b16]">{error}</p> : null}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <fieldset className="mt-6">
+                <legend className="text-sm font-bold">Headshot <span className="font-medium text-[#647080]">(recommended)</span></legend>
+                <div className="mt-2 flex flex-wrap items-center gap-4 rounded-2xl border border-[#d8d0c1] bg-white p-4">
+                  {photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- a private, per-officer API image; nothing to optimize.
+                    <img src={photoUrl} alt="Your headshot" width={72} height={72} className="h-[72px] w-[72px] rounded-full object-cover" />
+                  ) : (
+                    <span aria-hidden className="grid h-[72px] w-[72px] place-items-center rounded-full bg-[#f4ead5] text-xs font-bold text-[#8a6421]">Photo</span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <label htmlFor="profile-photo" className="inline-flex cursor-pointer rounded-full border border-[#cfc5b4] px-4 py-2 text-sm font-bold focus-within:ring-2 focus-within:ring-[#e9d7b3]">
+                      {photoBusy ? "Uploading…" : photoUrl ? "Replace photo" : "Upload photo"}
+                      <input
+                        id="profile-photo"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="sr-only"
+                        disabled={photoBusy}
+                        aria-describedby="profile-photo-help"
+                        onChange={e => { void uploadPhoto(e.target.files?.[0]); e.target.value = ""; }}
+                      />
+                    </label>
+                    {photoUrl ? <button type="button" disabled={photoBusy} onClick={() => void removePhoto()} className="ml-3 text-sm font-semibold text-[#536070] underline underline-offset-4 disabled:opacity-40">Remove</button> : null}
+                    <p id="profile-photo-help" className="mt-2 text-xs text-[#647080]">JPEG, PNG or WebP, up to 2 MB. A clear, front-facing photo works best.</p>
+                    {fieldError?.field === "photo" ? <p role="alert" className="mt-1.5 text-xs font-semibold text-[#9a3b16]">{fieldError.message}</p> : null}
+                  </div>
+                </div>
+              </fieldset>
+
+              <label className="mt-6 block text-sm font-bold" htmlFor="zip">Primary ZIP code</label>
+              <input id="zip" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={form.territoryZip ?? ""} onChange={e => setForm({ ...form, territoryZip: e.target.value.replace(/\D/g, "").slice(0,5) })} placeholder="e.g. 78701" className={inputClass} />
+              <button disabled={busy || photoBusy || !profileValid || !/^\d{5}$/.test(form.territoryZip ?? "")} onClick={() => { setTouched({ fullName: true, nmlsId: true, phone: true, company: true }); void save(resumeStep, "profile"); }} className="mt-7 rounded-full bg-[#102239] px-6 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Save profile and continue</button>
+              {!profileValid ? <p className="mt-3 text-xs text-[#647080]">Add your full name, NMLS ID and phone to continue.</p> : null}
             </>}
 
             {step === 2 && <>
@@ -174,6 +367,25 @@ export function OnboardingWizard({ email, initialProfile, purchasedZip, tier, da
               <p className="mt-4 leading-7 text-[#536070]">Cerebro will follow the goal, channels, consent rules, and escalation threshold you approved.</p>
               <div className="mt-7 rounded-2xl border border-[#d8d0c1] bg-white p-5"><p className="text-sm font-bold">Plan capacity</p><p className="mt-2 text-3xl font-semibold">{Number.isFinite(dailyLimit) ? dailyLimit : "Unlimited"} <span className="text-sm font-medium text-[#647080]">agent actions / day</span></p></div>
               {!isPaid && <p className="mt-4 rounded-2xl border border-[#d6a94f] bg-[#fff6df] p-4 text-sm leading-6 text-[#6f4a0d]">Your safe test is complete. A paid plan is required before external automations can run.</p>}
+              <div className="mt-4 rounded-2xl border border-[#d8d0c1] bg-white p-5">
+                <p className="text-sm font-bold">Your borrower page</p>
+                {borrowerPagePath ? (
+                  <p className="mt-2 text-sm leading-6 text-[#536070]">
+                    Live at{" "}
+                    <a href={borrowerPagePath} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#7a571b] underline underline-offset-4">
+                      {borrowerPagePath}<span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                    . Share it anywhere; requests started there go to you.
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm leading-6 text-[#536070]">
+                    It goes live once your profile is saved and a paid plan has locked your ZIP code.{" "}
+                    {profileValid
+                      ? <Link href="/pricing" className="font-semibold text-[#7a571b] underline underline-offset-4">Lock my ZIP code</Link>
+                      : <button type="button" onClick={() => setStep(1)} className="font-semibold text-[#7a571b] underline underline-offset-4">Complete my profile</button>}
+                  </p>
+                )}
+              </div>
               <div className="mt-7 flex flex-wrap gap-3"><button onClick={() => setStep(4)} className="rounded-full border border-[#cfc5b4] px-5 py-3 text-sm font-bold">Back</button>{isPaid ? <button disabled={busy} onClick={async()=>{if(await save(5,"activate")) setNotice("Cerebro is active. Your guardrails are now the operating policy.");}} className="rounded-full bg-[#aa7a24] px-6 py-3 text-sm font-bold text-white">Activate Cerebro</button> : <Link href="/pricing" className="rounded-full bg-[#aa7a24] px-6 py-3 text-sm font-bold text-white">See agent plans</Link>}<Link href="/dashboard" className="rounded-full px-5 py-3 text-sm font-bold text-[#536070]">Return to dashboard</Link></div>
             </>}
             {notice && <p role="status" className="mt-5 text-sm font-semibold text-[#7a571b]">{notice}</p>}

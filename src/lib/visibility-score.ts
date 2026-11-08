@@ -1,5 +1,6 @@
 import { claimedZipsForEmail } from "@/lib/accounts";
 import { readDb } from "@/lib/db";
+import { isOfficerProfileComplete, publicOfficerPageFor } from "@/lib/officer-profile";
 
 /**
  * Local Visibility Score: a setup checklist for a loan officer, computed only from
@@ -45,6 +46,7 @@ export function computeVisibilityScore(input: { userId: string; email: string })
   const asked = (prompt: string) =>
     mySessions.some((session) => session.messages.some((message) => message.role === "user" && message.content.trim() === prompt));
   const leads = db.crmLeads.filter((lead) => lead.assignedLoId === input.userId).length;
+  const borrowerPage = publicOfficerPageFor(onboarding);
 
   const steps: VisibilityStep[] = [
     {
@@ -53,6 +55,13 @@ export function computeVisibilityScore(input: { userId: string; email: string })
       done: lockedZips.length > 0,
       href: "/pricing",
       hrefLabel: "Lock my ZIP code",
+    },
+    {
+      id: "profile",
+      label: "Complete your profile: name, NMLS ID, phone and headshot",
+      done: isOfficerProfileComplete(onboarding),
+      href: "/onboarding?step=profile",
+      hrefLabel: "Complete my profile",
     },
     {
       id: "onboarding",
@@ -90,7 +99,15 @@ export function computeVisibilityScore(input: { userId: string; email: string })
       label: "Receive your first borrower lead",
       done: leads > 0,
     },
-    { id: "borrower-page", label: "Your branded borrower page goes live", done: false, comingSoon: true },
+    {
+      id: "borrower-page",
+      label: borrowerPage
+        ? "Your borrower page is live"
+        : "Publish your borrower page (needs your profile and a locked ZIP code)",
+      done: borrowerPage !== null,
+      href: lockedZips.length ? "/onboarding?step=profile" : "/pricing",
+      hrefLabel: lockedZips.length ? "Set up my page" : "Lock my ZIP code",
+    },
     { id: "zip-pages", label: "Local ZIP code pages published for your territory", done: false, comingSoon: true },
     { id: "gbp-connect", label: "Connect Google Business Profile so Cerebro can post for you", done: false, comingSoon: true },
   ];

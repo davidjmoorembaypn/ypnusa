@@ -33,9 +33,18 @@ const qualification: QualificationSummary = {
 
 describe("crm routing and activity log", async () => {
   const { readDb, writeDb } = await import("./db");
-  const { borrowerFacingOfficer, HOUSE_OFFICER_ID, isDemoOfficer, logCrmActivity, routeLead, routeLoanOfficer } =
-    await import("./crm");
-  const { findAccountByEmail } = await import("./accounts");
+  const {
+    borrowerFacingOfficer,
+    HOUSE_OFFICER_ID,
+    isDemoOfficer,
+    logCrmActivity,
+    routeLead,
+    routeLoanOfficer,
+    syncOfficerProfile,
+  } = await import("./crm");
+  const { findAccountByEmail, upsertAccount } = await import("./accounts");
+  const { draftOnboardingRecord } = await import("./agent-onboarding");
+  const { officerSlug } = await import("./officer-profile");
   const { buildNurtureDashboard } = await import("./nurture-dashboard");
 
   after(() => {
@@ -46,6 +55,7 @@ describe("crm routing and activity log", async () => {
     writeDb((db) => {
       db.loanOfficers = officers.map((officer) => ({ ...officer }));
       db.revenueSubscriptions = [];
+      db.agentOnboarding = [];
       db.borrowerLeads = [];
       db.crmLeads = [];
     });
@@ -116,6 +126,76 @@ describe("crm routing and activity log", async () => {
     assert.equal(route.reason, "zip_owner");
     assert.notEqual(route.officer.id, "lo_jordan_lee");
     assert.equal(route.officer.email, "owner2@example.com");
+  });
+
+  it("no longer routes a ZIP code held by a prepaid plan past its expiry date", () => {
+    writeDb((db) => {
+      db.revenueSubscriptions = [
+        paidSub({ ownerEmail: "lapsed@example.com", expiresAt: new Date(Date.now() - 60_000).toISOString() }),
+      ];
+    });
+    assert.equal(routeLead({ program: "FHA", zip: "93720" }).reason, "house");
+  });
+
+  describe("officer pages (?lo=)", () => {
+    function seedOfficer(email: string, fullName: string, zips: string[], status: RevenueSubscriptionRecord["status"] = "active") {
+      const account = upsertAccount({ email, source: "stripe_checkout" });
+      const now = new Date().toISOString();
+      writeDb((db) => {
+        db.revenueSubscriptions.push(paidSub({ ownerEmail: email, claimedZips: zips, status }));
+        db.agentOnboarding = db.agentOnboarding.filter((record) => record.userId !== account.id);
+        db.agentOnboarding.push({
+          ...draftOnboardingRecord(account.id, email, now),
+          officerProfile: {
+            fullName,
+            nmlsId: "1234567",
+            phone: "5595550100",
+            company: "Valley Home Loans",
+            slug: officerSlug(fullName, account.id),
+            updatedAt: now,
+          },
+        });
+      });
+      return { account, slug: officerSlug(fullName, account.id) };
+    }
+
+    it("routes a lead from a live officer page to that officer, even for another officer's ZIP code", () => {
+      seedOfficer("zip.holder@example.com", "Zed Holder", ["93720"]);
+      const { account, slug } = seedOfficer("page.owner@example.com", "Paula Page", ["93611"]);
+      const route = routeLead({ program: "FHA", zip: "93720", officerSlug: slug });
+      assert.equal(route.reason, "officer_page");
+      assert.equal(route.officer.id, account.id);
+      assert.equal(route.officer.name, "Paula Page", "the profile name reaches the officer record");
+      assert.equal(route.officer.nmlsId, "1234567");
+      assert.equal(route.officer.publicSlug, slug);
+    });
+
+    it("falls back to ZIP code routing when the officer page isn't live", () => {
+      const { slug } = seedOfficer("cancelled.lo@example.com", "Cass Cancel", ["93611"], "cancelled");
+      seedOfficer("zip.holder2@example.com", "Zoe Holder", ["93720"]);
+      const route = routeLead({ program: "FHA", zip: "93720", officerSlug: slug });
+      assert.equal(route.reason, "zip_owner");
+      assert.equal(route.officer.email, "zip.holder2@example.com");
+      assert.equal(routeLead({ program: "FHA", zip: "00000", officerSlug: "not-a-real-officer-ffffffff" }).reason, "house");
+    });
+
+    it("mirrors a saved profile onto the officer record only for an officer with a live plan", () => {
+      const { account } = seedOfficer("mirror.lo@example.com", "Mia Mirror", ["93611"]);
+      const officer = syncOfficerProfile(account.id);
+      assert.equal(officer?.name, "Mia Mirror");
+      assert.equal(officer?.phone, "5595550100");
+      assert.equal(officer?.company, "Valley Home Loans");
+
+      const free = upsertAccount({ email: "free.lo@example.com", source: "email_signup" });
+      writeDb((db) => {
+        db.agentOnboarding.push({
+          ...draftOnboardingRecord(free.id, free.email),
+          officerProfile: { fullName: "Fran Free", nmlsId: "7654321", phone: "5595550101", slug: officerSlug("Fran Free", free.id), updatedAt: new Date().toISOString() },
+        });
+      });
+      assert.equal(syncOfficerProfile(free.id), null, "no officer record is created for a free account");
+      assert.equal(readDb().loanOfficers.some((entry) => entry.id === free.id), false);
+    });
   });
 
   it("hides demo officer names from borrowers in production", () => {

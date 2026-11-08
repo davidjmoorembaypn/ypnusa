@@ -3,6 +3,7 @@ import type { IntakeTickRequest } from "@/lib/intake-contracts";
 import { intakeTick } from "@/lib/intake-engine";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { isRecord, logApiError, parseJsonBody } from "@/lib/http";
+import { shortIdFromSlug } from "@/lib/officer-profile";
 import type { BorrowerAnswers } from "@/lib/types";
 import { optionalText } from "@/lib/validation";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const BORROWER_FIELDS = new Set<string>([
   "name",
-  // Optional: lets the lead route to the paying MLO who owns that ZIP (src/lib/crm.ts routeLead).
+  // The property ZIP code: routes the lead to the paying MLO who owns it (src/lib/crm.ts routeLead).
   "zip",
   "email",
   "phone",
@@ -71,6 +72,18 @@ function validateTickBody(data: unknown):
     sessionId: optionalText(data.sessionId, 160),
     funnelSource: optionalText(data.funnelSource, 160),
   };
+
+  // Page context (?zip= / ?lo=). Malformed values are dropped, never stored.
+  if (isRecord(data.prefill)) {
+    const zip = typeof data.prefill.zip === "string" ? data.prefill.zip.trim() : "";
+    const officerSlug =
+      typeof data.prefill.officerSlug === "string" ? data.prefill.officerSlug.trim().toLowerCase() : "";
+    const prefill: NonNullable<IntakeTickRequest["prefill"]> = {
+      ...(/^\d{5}$/.test(zip) ? { zip } : {}),
+      ...(shortIdFromSlug(officerSlug) ? { officerSlug } : {}),
+    };
+    if (prefill.zip || prefill.officerSlug) body.prefill = prefill;
+  }
 
   if (data.incoming !== undefined) {
     if (!isRecord(data.incoming)) {

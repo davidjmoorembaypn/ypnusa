@@ -10,7 +10,8 @@ export type IntakeAssistantInputKind =
   | "tel"
   | "number"
   | "select"
-  | "boolean";
+  | "boolean"
+  | "zip";
 
 export interface IntakeAssistantChip {
   label: string;
@@ -31,6 +32,14 @@ export interface IntakeTickRequest {
   sessionId?: string;
   loanProgram: LoanProgram | string;
   funnelSource?: string;
+  /**
+   * Context from the page that opened the intake (?zip= and ?lo=). Read only when a new
+   * session starts; the route handler has already validated the shapes.
+   */
+  prefill?: {
+    zip?: string;
+    officerSlug?: string;
+  };
   incoming?: {
     field: keyof BorrowerAnswers;
     rawValue: string;

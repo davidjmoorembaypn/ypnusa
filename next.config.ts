@@ -65,13 +65,11 @@ const nextConfig: NextConfig = {
     return [
       {
         // Marketing copy, Stripe success URLs and prior deploy docs point at
-        // app.ypnus.com/register, but account creation lives on ypnus.com
-        // (see docs/sso-handoff.md). Send sign-up intent straight to the MLO
-        // signup page — one hop, no /login detour. 308 (permanent: true)
-        // preserves method and lets crawlers consolidate the old URL; the
-        // incoming query string (utm_*, plan, etc.) is carried over.
+        // /register. WordPress's lo-signup.html is gone now that ypnus.com runs this
+        // app, so send sign-up intent to the free-account sign-in (FREE_SIGNUP_HREF
+        // in src/lib/checkout.ts). The incoming query string is carried over.
         source: "/register",
-        destination: "https://ypnus.com/lo-signup.html",
+        destination: "/login?next=%2Fonboarding",
         permanent: true,
       },
       // The imported WordPress /terms and /privacy pages duplicate the native legal

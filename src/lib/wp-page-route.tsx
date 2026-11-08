@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 import { getWpPage, type WpImportedPage } from "@/content/wp-import";
 import { WpImportedPageView } from "@/components/wp-imported-page";
 
@@ -30,7 +30,7 @@ export function makeWpSectionRoute(
     const { slug } = await params;
     const page = getWpPage(list, slug);
     if (!page) return {};
-    const origin = await getSiteOrigin();
+    const origin = MARKETING_SITE_URL;
     return marketingMetadata({
       title: page.seoTitle ?? page.title,
       absoluteTitle: Boolean(page.seoTitle && /YPN USA/.test(page.seoTitle)),
@@ -44,7 +44,7 @@ export function makeWpSectionRoute(
     const { slug } = await params;
     const page = getWpPage(list, slug);
     if (!page) notFound();
-    const origin = await getSiteOrigin();
+    const origin = MARKETING_SITE_URL;
     return (
       <WpImportedPageView page={page} path={`${sectionPath}/${slug}`} breadcrumbLabel={breadcrumbLabel} origin={origin} />
     );

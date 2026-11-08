@@ -1,4 +1,5 @@
 import { resolveEntitlement, isPaidEntitlement } from "@/lib/entitlements";
+import { normalizeEmail } from "@/lib/accounts";
 import { readDb } from "@/lib/db";
 import { buildNurtureDashboard } from "@/lib/nurture-dashboard";
 import type { SessionPayload } from "@/lib/session";
@@ -79,9 +80,9 @@ export function buildWeeklyPlan(input: GrowthPlanInput): PlanAction[] {
 
   if (input.leadsEver === 0) {
     actions.push({
-      id: "share_borrower_link",
-      title: "Share your borrower link this week",
-      why: "No borrower has used your intake yet. One post or one message to a Realtor is the first step.",
+      id: "first_local_post",
+      title: "Publish your first local post this week",
+      why: "No borrower has come in yet. One helpful local post, or one message to a Realtor partner, is the first step to getting seen in your market.",
       href: "/tools/social-writer",
       cta: "Draft a post",
       priority: 70,
@@ -120,11 +121,12 @@ export function buildWeeklyPlan(input: GrowthPlanInput): PlanAction[] {
 
 /** Reads this officer's real numbers. Admins see the whole book. */
 export function loadGrowthPlanInput(
-  session: Pick<SessionPayload, "sub" | "role" | "tier" | "subscriptionStatus">,
+  session: Pick<SessionPayload, "sub" | "role" | "tier" | "subscriptionStatus"> & { email?: string },
   now: number = Date.now(),
 ): GrowthPlanInput {
   const db = readDb();
   const loId = session.role === "admin" ? undefined : session.sub;
+  const ownerEmail = normalizeEmail(session.email);
   const leads = db.borrowerLeads.filter((lead) => loId === undefined || lead.assignedLoId === loId);
   const stamp = (iso: string) => Date.parse(iso);
 
@@ -143,7 +145,10 @@ export function loadGrowthPlanInput(
       (subscription) =>
         // Seeded demo records are not anyone's real territory.
         subscription.source !== "seed" &&
-        (loId === undefined || subscription.ownerLoId === loId) &&
+        (loId === undefined ||
+          subscription.ownerLoId === loId ||
+          // The Stripe checkout path records the buyer by email and never sets ownerLoId.
+          (ownerEmail !== null && normalizeEmail(subscription.ownerEmail) === ownerEmail)) &&
         (subscription.status === "active" || subscription.status === "trialing"),
     )
     .reduce((total, subscription) => total + subscription.claimedZips.length, 0);

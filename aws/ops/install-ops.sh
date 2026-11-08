@@ -14,6 +14,7 @@ DATA_DIR="$(env_value LOANPILOT_DATA_DIR)"; DATA_DIR="${DATA_DIR:-/var/lib/ypnus
 install -m 755 "$SRC/ypnusa-backup.sh"    /usr/local/sbin/ypnusa-backup
 install -m 755 "$SRC/ypnusa-restore.sh"   /usr/local/sbin/ypnusa-restore
 install -m 755 "$SRC/ypnusa-followups.sh" /usr/local/sbin/ypnusa-followups
+install -m 755 "$SRC/ypnusa-load-secrets.sh" /usr/local/sbin/ypnusa-load-secrets
 install -d -m 700 /var/backups/ypnusa
 
 # The backup unit must be allowed to read wherever the data really lives.

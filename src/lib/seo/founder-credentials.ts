@@ -1,5 +1,6 @@
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_CONSUMER_ACCESS_URL, NMLS_ID } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
+import { FOUNDER_ID } from "@/lib/seo";
 
 /**
  * Person JSON-LD for the founder with his professional licenses as
@@ -9,7 +10,7 @@ import { MARKETING_SITE_URL } from "@/lib/site";
 export function founderCredentialJsonLd() {
   return {
     "@type": "Person",
-    "@id": `${MARKETING_SITE_URL}/#founder`,
+    "@id": FOUNDER_ID,
     name: AUTHOR_NAME,
     jobTitle: "Founder, YPN USA",
     worksFor: { "@id": `${MARKETING_SITE_URL}/#organization` },

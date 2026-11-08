@@ -11,6 +11,8 @@ export const dynamic = "force-dynamic";
 
 const BORROWER_FIELDS = new Set<string>([
   "name",
+  // Optional: lets the lead route to the paying MLO who owns that ZIP (src/lib/crm.ts routeLead).
+  "zip",
   "email",
   "phone",
   "contactConsent",

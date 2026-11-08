@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { MloMarketPage } from "@/components/mlo-market/mlo-market-page";
 import { MLO_MARKETS, getMloMarket } from "@/content/mlo-markets";
 import { marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 
 export const dynamicParams = false;
 
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ market: s
   const { market: slug } = await params;
   const market = getMloMarket(slug);
   if (!market) notFound();
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: market.title,
     description: market.description,
@@ -29,6 +29,6 @@ export default async function LoanOfficerMarketPage({ params }: { params: Promis
   const { market: slug } = await params;
   const market = getMloMarket(slug);
   if (!market) notFound();
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return <MloMarketPage market={market} origin={origin} />;
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireSession } from "@/lib/auth";
 import { readAgentOnboarding } from "@/lib/db";
 import { resolveEntitlement, automationDailyLimitFor } from "@/lib/entitlements";
+import { claimedZipsForEmail } from "@/lib/accounts";
 import { OnboardingWizard } from "./wizard";
 
 export const metadata: Metadata = { title: "Activate Cerebro", robots: { index: false, follow: false } };
@@ -13,6 +14,7 @@ export default async function OnboardingPage() {
     <OnboardingWizard
       email={session.email}
       initialProfile={readAgentOnboarding(session.sub)}
+      purchasedZip={session.email ? claimedZipsForEmail(session.email)[0] : undefined}
       tier={entitlement.tier}
       dailyLimit={automationDailyLimitFor(entitlement)}
     />

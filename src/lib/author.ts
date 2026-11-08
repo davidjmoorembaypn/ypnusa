@@ -10,6 +10,22 @@ export const BOOK_COVER_TITLE = "Top 9 Secret Online Real Estate Leads";
 export const BOOK_AMAZON_URL =
   "https://www.amazon.ca/Online-Estate-Leads-Gurus-About/dp/1548169889";
 
+/** David's newest book (Kindle, published Oct 31, 2026 by YPN USA). */
+export const AI_BOOK = {
+  shortTitle: "AI Powered Real Estate",
+  title:
+    "AI Powered Real Estate: 10 Secret AI-Powered Real Estate Tricks for Investors Who Want to Build Wealth in Today's Data-Driven Market",
+  series: "AI Powered Real Estate Advantage",
+  asin: "B0HPY5DNFX",
+  datePublished: "2026-10-31",
+  publisher: "YPN USA",
+  /** Amazon Associates link (SiteStripe tag); pages using it show the associate disclosure. */
+  url: "https://www.amazon.com/dp/B0HPY5DNFX?tag=amazondis04a9-20",
+  cover: "/images/book-ai-powered-real-estate.webp",
+} as const;
+
+export const AMAZON_ASSOCIATE_DISCLOSURE = "As an Amazon Associate, YPN USA earns from qualifying purchases.";
+
 export const BUSINESS_PHONE_E164 = "+15595120372";
 export const BUSINESS_PHONE_DISPLAY = "(559) 512-0372";
 export const BUSINESS_EMAIL = "support@ypnus.com";

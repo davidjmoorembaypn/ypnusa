@@ -74,6 +74,10 @@ const nextConfig: NextConfig = {
         destination: "https://ypnus.com/lo-signup.html",
         permanent: true,
       },
+      // The imported WordPress /terms and /privacy pages duplicate the native legal
+      // pages (same titles); consolidate on the long forms.
+      { source: "/terms", destination: "/terms-of-service", permanent: true },
+      { source: "/privacy", destination: "/privacy-policy", permanent: true },
       // Migrated from ypnus.com's WordPress (docs/AWS_MIGRATION.md item 1): duplicate
       // post URLs redirecting to their canonical post, plus the handful of page slugs
       // remapped or dropped in favor of an existing native page. See

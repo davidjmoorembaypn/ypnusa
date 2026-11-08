@@ -4,6 +4,7 @@ import { type ApiErrorEnvelope, jsonError } from "@/lib/http";
 import { getPricingTier, PRICING_TIER_ORDER, type PricingTierId } from "@/lib/pricing";
 import type { EntitlementStatus, SessionPayload } from "@/lib/session";
 import type { LoanOfficerRecord } from "@/lib/types";
+import { entitlementForEmail, hasLedgerRecordForEmail } from "@/lib/accounts";
 
 /**
  * Server-side entitlement resolution for app.ypnus.com.
@@ -34,6 +35,17 @@ const ACTIVE_STATUSES: ReadonlySet<EntitlementStatus> = new Set(["active", "tria
 export const FREE_ENTITLEMENT: Entitlement = { tier: "free", status: "none", hasVerifiedClaim: false };
 
 export function resolveEntitlement(session: SessionPayload | null | undefined): Entitlement {
+  // The Stripe-fed subscription ledger is the live source of truth for email sessions:
+  // a plan bought (or cancelled) after sign-in takes effect immediately instead of
+  // waiting up to 12 hours for the session cookie to be re-issued.
+  if (session?.email && hasLedgerRecordForEmail(session.email)) {
+    const live = entitlementForEmail(session.email);
+    return {
+      tier: ACTIVE_STATUSES.has(live.subscriptionStatus) ? live.tier : "free",
+      status: live.subscriptionStatus,
+      hasVerifiedClaim: true,
+    };
+  }
   if (!session?.tier) return FREE_ENTITLEMENT;
 
   const status = session.subscriptionStatus ?? "none";

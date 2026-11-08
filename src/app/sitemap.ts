@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { INDEXABLE_POSTS, TOPIC_CLUSTERS } from "@/lib/seo/clusters";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 import { MLO_MARKETS } from "@/content/mlo-markets";
 import {
   WP_TOP_PAGES,
@@ -21,11 +21,28 @@ import {
  * Do NOT regenerate tens of thousands of city/ZIP URLs here — that pattern on
  * app.ypnus.com is already flooding Google's "Not indexed" queue.
  *
- * Host-aware: ypnus.com and app.ypnus.com serve the same deployment (see
- * docs/AWS_MIGRATION.md), so this reads the request's Host header and emits
- * URLs for whichever host asked, rather than hardcoding one origin into both
- * sitemaps and confusing crawlers about which host is canonical.
+ * Every URL is on the canonical ypnus.com origin (app.ypnus.com 301s there). It is a
+ * constant rather than the request's Host header so the sitemap stays static.
  */
+/**
+ * Imported WordPress top-level pages that are not landing pages (old portal and
+ * invoicing stubs, WP's own sitemap/directory, post-checkout pages) or that duplicate
+ * a native page (/terms and /privacy redirect to /terms-of-service and /privacy-policy).
+ */
+const SITEMAP_EXCLUDED_TOP_SLUGS = new Set([
+  "doublescale-booking",
+  "doublescale-invoice",
+  "doublescale-proposal",
+  "doublescale-support-portal",
+  "client-portal",
+  "welcome",
+  "sitemap",
+  "site-directory",
+  "terms",
+  "privacy",
+  "thank-you",
+  "checkout-cancel",
+]);
 // Bump this when a legal page's content actually changes, so lastModified
 // reflects a real revision date instead of every sitemap regeneration.
 // Same rule for marketing pages: a lastmod that changes on every request is ignored by crawlers.
@@ -41,8 +58,8 @@ function wpPageEntries(origin: string, sectionPath: string, pages: readonly WpIm
   }));
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const origin = await getSiteOrigin();
+export default function sitemap(): MetadataRoute.Sitemap {
+  const origin = MARKETING_SITE_URL;
   return [
     { url: `${origin}/`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "weekly", priority: 1 },
     { url: `${origin}/features`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
@@ -94,7 +111,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Migrated from ypnus.com's WordPress (docs/AWS_MIGRATION.md item 1) — real,
     // unique landing-page content, not the programmatic city/ZIP pages the
     // warning above is about.
-    ...wpPageEntries(origin, "", WP_TOP_PAGES),
+    ...wpPageEntries(origin, "", WP_TOP_PAGES.filter((page) => !SITEMAP_EXCLUDED_TOP_SLUGS.has(page.slug))),
     ...wpPageEntries(origin, "/markets", WP_MARKET_PAGES),
     ...wpPageEntries(origin, "/loan-types", WP_LOAN_TYPE_PAGES),
     ...wpPageEntries(origin, "/vs", WP_VS_PAGES),

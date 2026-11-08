@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { appUrl } from "@/lib/site";
+import { marketingUrl } from "@/lib/site";
 import type { AssistantMode, ChatCapturedFields } from "@/lib/types";
+import { RichText } from "./rich-text";
 
 type BubbleRole = "user" | "assistant" | "system";
 
@@ -66,6 +67,18 @@ function formatCapturedValue(value: string | boolean | undefined): string {
   return value;
 }
 
+/** Window event other dashboard widgets fire to send Cerebro a message: detail = { prompt }. */
+export const CEREBRO_ASK_EVENT = "ypn:cerebro-ask";
+
+const DEFAULT_MLO_STARTERS = [
+  "Help me get visible in my ZIP code",
+  "Write my Google Business Profile post",
+  "Draft a follow-up text for a new lead",
+  "What should I do first?",
+] as const;
+
+const RETRY_NOTICE = "Cerebro didn't get a reply through just now. Tap Retry to send it again.";
+
 /** Per-mode localStorage key so the three tabs on /assistant never cross-resume each other's session. */
 function storageKeyFor(mode: AssistantMode): string {
   return `ypn_assistant_session_${mode}`;
@@ -76,10 +89,14 @@ export function AssistantChat(props: {
   funnelSource?: string;
   title?: string;
   placeholder?: string;
+  /** One-tap first messages shown while the conversation is empty. */
+  starterPrompts?: readonly string[];
 }) {
   const { mode, funnelSource } = props;
   const title = props.title ?? "Assistant";
   const placeholder = props.placeholder ?? "Type a message…";
+  const starterPrompts = props.starterPrompts ?? (mode === "mlo_dashboard" ? DEFAULT_MLO_STARTERS : []);
+  const [lastFailed, setLastFailed] = useState<string | null>(null);
 
   const [msgs, setMsgs] = useState<Bubble[]>([]);
   const [draft, setDraft] = useState("");
@@ -104,12 +121,32 @@ export function AssistantChat(props: {
   useEffect(() => {
     if (hasHydratedRef.current) return;
     hasHydratedRef.current = true;
+    let stored: string | null = null;
     try {
-      const stored = window.localStorage.getItem(storageKeyFor(mode));
+      stored = window.localStorage.getItem(storageKeyFor(mode));
       if (stored) sessionIdRef.current = stored;
     } catch {
       /** noop — private browsing / disabled storage just means no resume */
     }
+    if (!stored) return;
+
+    // Show the earlier conversation after a reload. Failure just means a blank chat.
+    const params = new URLSearchParams({ mode, sessionId: stored });
+    // No abort on cleanup: the hydrate guard above means a StrictMode re-run would never refetch.
+    fetch(`/api/assistant/chat?${params.toString()}`)
+      .then(async (res) => {
+        if (!res.ok) return;
+        const body = (await res.json()) as { ok?: boolean; messages?: Array<{ role: string; content: string }> };
+        if (!body.ok || !Array.isArray(body.messages) || body.messages.length === 0) return;
+        const restored: Bubble[] = body.messages
+          .filter((message) => (message.role === "user" || message.role === "assistant") && message.content.trim())
+          .map((message) => ({ id: makeId("hi"), role: message.role as BubbleRole, body: message.content.trim() }));
+        // Only fill an empty chat, so a message sent while this loaded isn't overwritten.
+        setMsgs((prev) => (prev.length === 0 ? restored : prev));
+      })
+      .catch(() => {
+        /** noop */
+      });
   }, [mode]);
 
   useEffect(() => {
@@ -138,11 +175,24 @@ export function AssistantChat(props: {
     setMsgs((prev) => [...prev, { id: makeId(role.slice(0, 2)), role, body: trimmed }]);
   }
 
-  async function sendMessage(message: string) {
+  // Lets other widgets on the page (e.g. the Local Visibility Score) hand Cerebro a task.
+  const sendMessageRef = useRef<(message: string) => void>(() => undefined);
+  useEffect(() => {
+    if (mode !== "mlo_dashboard") return;
+    function onAsk(event: Event) {
+      const prompt = (event as CustomEvent<{ prompt?: string }>).detail?.prompt;
+      if (typeof prompt === "string" && prompt.trim()) sendMessageRef.current(prompt.trim());
+    }
+    window.addEventListener(CEREBRO_ASK_EVENT, onAsk);
+    return () => window.removeEventListener(CEREBRO_ASK_EVENT, onAsk);
+  }, [mode]);
+
+  async function sendMessage(message: string, options: { retry?: boolean } = {}) {
     if (!message || busy || authRequired) return;
 
-    pushBubble("user", message);
+    if (!options.retry) pushBubble("user", message);
     setDraft("");
+    setLastFailed(null);
     setBusy(true);
 
     try {
@@ -157,18 +207,28 @@ export function AssistantChat(props: {
         }),
       });
 
-      const body = (await res.json()) as ChatApiResponse;
+      // A proxy timeout or crash returns an HTML error page, not JSON — check before parsing.
+      let body: ChatApiResponse | null = null;
+      if (res.headers.get("content-type")?.includes("application/json")) {
+        try {
+          body = (await res.json()) as ChatApiResponse;
+        } catch {
+          body = null;
+        }
+      }
 
-      if (!body.ok) {
-        if (res.status === 401 && body.code === "UNAUTHENTICATED") {
-          setAuthRequired(true);
-          return;
-        }
-        if (res.status === 429) {
-          pushBubble("system", "You're sending messages a little fast — please slow down and try again.");
-          return;
-        }
-        pushBubble("system", body.error || "Something went wrong. Please try again.");
+      if (res.status === 401 && body && !body.ok && body.code === "UNAUTHENTICATED") {
+        setAuthRequired(true);
+        return;
+      }
+      if (res.status === 429) {
+        pushBubble("system", "You're sending messages a little fast — give it a few seconds, then tap Retry.");
+        setLastFailed(message);
+        return;
+      }
+      if (!res.ok || !body || !body.ok) {
+        pushBubble("system", RETRY_NOTICE);
+        setLastFailed(message);
         return;
       }
 
@@ -189,7 +249,8 @@ export function AssistantChat(props: {
         setAutopilot(body.autopilot);
       }
     } catch {
-      pushBubble("system", "Network error — please check your connection and try again.");
+      pushBubble("system", "Couldn't reach Cerebro — check your connection, then tap Retry.");
+      setLastFailed(message);
     } finally {
       setBusy(false);
     }
@@ -203,8 +264,15 @@ export function AssistantChat(props: {
 
   const showCapturedPanel = mode === "lead_qualification";
 
+  useEffect(() => {
+    sendMessageRef.current = (message: string) => {
+      if (!busy) void sendMessage(message);
+    };
+  });
+
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-4 shadow-2xl shadow-black/20 sm:p-6">
+    // Solid background: the floating widget places this over page content.
+    <div className="rounded-3xl border border-white/10 bg-slate-950 p-4 shadow-2xl shadow-black/20 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-lg font-semibold text-white">{title}</h3>
         {status ? (
@@ -216,8 +284,7 @@ export function AssistantChat(props: {
 
       {providerConfigured === false ? (
         <p className="mt-2 text-xs leading-5 text-amber-200/70">
-          Running without an AI provider connected yet — replies are canned until{" "}
-          <code className="text-amber-200/90">ANTHROPIC_API_KEY</code> is configured.
+          Cerebro is offline for a moment. Your messages are saved — please try again shortly.
         </p>
       ) : null}
 
@@ -225,7 +292,7 @@ export function AssistantChat(props: {
         <div className="flex min-w-0 flex-col gap-3">
           <div
             ref={scrollerRef}
-            className="flex h-80 flex-col gap-3 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-4"
+            className="flex h-[55vh] max-h-[34rem] min-h-[14rem] flex-col gap-3 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-4"
           >
             {msgs.length === 0 ? (
               <p className="m-auto max-w-xs text-center text-sm text-white/40">
@@ -236,15 +303,19 @@ export function AssistantChat(props: {
             {msgs.map((bubble) => (
               <article
                 key={bubble.id}
-                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`max-w-[85%] break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                   bubble.role === "assistant"
                     ? "self-start rounded-bl-[4px] bg-white/10 text-white ring-1 ring-white/10"
                     : bubble.role === "user"
-                      ? "self-end rounded-br-[4px] bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-md shadow-violet-950/30"
+                      ? "self-end whitespace-pre-wrap rounded-br-[4px] bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-md shadow-violet-950/30"
                       : "self-center text-center text-xs italic text-white/45"
                 }`}
               >
-                {bubble.body}
+                {bubble.role === "assistant" ? (
+                  <RichText text={bubble.body} linkClassName="font-semibold text-violet-200 underline underline-offset-2" />
+                ) : (
+                  bubble.body
+                )}
               </article>
             ))}
 
@@ -269,14 +340,30 @@ export function AssistantChat(props: {
             </div>
           ) : null}
 
-          {mode === "mlo_dashboard" && msgs.length === 0 && !authRequired ? (
+          {lastFailed && !busy ? (
             <button
               type="button"
-              onClick={() => sendMessage("Improve my website/profile for me.")}
-              className="self-start rounded-full border border-violet-400/40 bg-violet-500/10 px-4 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+              onClick={() => sendMessage(lastFailed, { retry: true })}
+              className="self-start rounded-full border border-amber-300/40 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-100 transition hover:bg-amber-400/20"
             >
-              Improve my website/profile for me.
+              Retry
             </button>
+          ) : null}
+
+          {starterPrompts.length > 0 && msgs.length === 0 && !authRequired ? (
+            <div className="flex flex-wrap gap-2">
+              {starterPrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => sendMessage(prompt)}
+                  className="rounded-full border border-violet-400/40 bg-violet-500/10 px-4 py-2 text-left text-sm font-semibold text-violet-100 transition hover:bg-violet-500/20 disabled:opacity-50"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
           ) : null}
 
           <form onSubmit={submit} className="flex gap-2">
@@ -290,7 +377,7 @@ export function AssistantChat(props: {
               disabled={busy || authRequired}
               type="text"
               placeholder={placeholder}
-              className="h-11 flex-1 rounded-full border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 disabled:opacity-50"
+              className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-black/20 px-4 text-base text-white outline-none placeholder:text-white/30 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 disabled:opacity-50"
             />
             <button
               type="submit"
@@ -306,7 +393,7 @@ export function AssistantChat(props: {
               Chats are answered by AI and saved so we can respond. Please don&rsquo;t share sensitive
               personal or financial details.{" "}
               <a
-                href={appUrl("/privacy-policy")}
+                href={marketingUrl("/privacy-policy")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-white/70"
@@ -330,10 +417,13 @@ export function AssistantChat(props: {
               </div>
               <p className="text-white/85">{autopilot.summaryForMlo}</p>
               <p className="text-white/60">
-                <span className="font-semibold text-emerald-300">{autopilot.autoAppliedCount}</span> applied
-                automatically ·{" "}
-                <span className="font-semibold text-amber-300">{autopilot.needsApprovalCount}</span> held for
-                review
+                <span className="font-semibold text-emerald-300">{autopilot.autoAppliedCount}</span> ready to
+                approve ·{" "}
+                <span className="font-semibold text-amber-300">{autopilot.needsApprovalCount}</span> need a careful
+                compliance read ·{" "}
+                <Link href="/dashboard/autopilot" className="font-semibold text-violet-200 underline underline-offset-2">
+                  Review drafts
+                </Link>
               </p>
               {autopilot.topChanges.length > 0 ? (
                 <ul className="mt-1 space-y-1">

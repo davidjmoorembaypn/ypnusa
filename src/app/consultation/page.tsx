@@ -13,10 +13,9 @@ import {
   BUSINESS_PHONE_E164,
 } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import { getSiteOrigin } from "@/lib/request-host";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: "Book a Strategy Consultation",
     description:
@@ -32,7 +31,7 @@ const BUTTON_SECONDARY =
   "inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3.5 transition hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300";
 
 export default async function ConsultationPage() {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ContactPage",

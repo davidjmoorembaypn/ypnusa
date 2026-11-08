@@ -70,6 +70,8 @@ export function buildNurtureDashboard(loId?: string, predictiveByZip?: Record<st
     ? db.loanOfficers.filter((officer) => officer.id === loId)
     : db.loanOfficers;
   const officerIds = new Set(officers.map((officer) => officer.id));
+  // A signed-in MLO sees leads assigned to their account id even before an officer record exists for it.
+  if (loId !== undefined) officerIds.add(loId);
   const leads = db.borrowerLeads.filter((lead) => officerIds.has(lead.assignedLoId));
   const now = Date.now();
 

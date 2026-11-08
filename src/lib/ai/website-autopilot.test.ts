@@ -63,11 +63,13 @@ describe("generateWebsiteAutopilotPlan — pure planning, no side effects", () =
     assert.ok(types.includes("lead_form_helper_text"));
   });
 
-  it("produces a simple, done-for-you MLO summary requiring no manual work when nothing needs review", () => {
+  it("says honestly that changes are drafts awaiting approval, not live", () => {
     const plan = generateWebsiteAutopilotPlan(BASE_INPUT);
     assert.equal(plan.needsApprovalCount, 0);
     assert.match(plan.summaryForMlo, /Dallas/);
-    assert.match(plan.summaryForMlo, /No manual work is required/);
+    assert.match(plan.summaryForMlo, /^I drafted \d+ changes/);
+    assert.match(plan.summaryForMlo, /Nothing is live yet/);
+    assert.doesNotMatch(plan.summaryForMlo, /No manual work|improved your/i);
     assert.equal(plan.safeToShowMloSummary, true);
   });
 
@@ -99,6 +101,18 @@ describe("runWebsiteAutopilot — persistence wrapper", () => {
     const stored = listWebsiteAutopilotChanges("user_lo_1");
     assert.equal(stored.length, plan.changes.length);
     assert.ok(stored.every((c) => c.userId === "user_lo_1"));
+  });
+
+  it("does not pile up duplicate change records when run again with the same inputs", () => {
+    const input = { ...BASE_INPUT, userId: "user_lo_dedupe" };
+    const first = runWebsiteAutopilot(input);
+    const second = runWebsiteAutopilot(input);
+    const stored = listWebsiteAutopilotChanges("user_lo_dedupe");
+    assert.equal(stored.length, first.changes.length);
+    assert.deepEqual(
+      second.changes.map((c) => c.id),
+      first.changes.map((c) => c.id),
+    );
   });
 });
 

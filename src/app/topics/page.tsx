@@ -4,10 +4,10 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TOPIC_CLUSTERS, getClusterPosts } from "@/lib/seo/clusters";
 import { marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: "Loan Officer Growth Topics: Guides by Subject",
     description:
@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TopicsIndexPage() {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",

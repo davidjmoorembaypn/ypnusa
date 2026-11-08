@@ -49,6 +49,8 @@ export interface AiGenerateRequest {
   messages: AiMessage[];
   tools?: AiToolDefinition[];
   maxTokens?: number;
+  /** Optional per-request deadline in ms (providers that support it cap the HTTP call to this). */
+  timeoutMs?: number;
 }
 
 export interface AiGenerateResult {
@@ -99,6 +101,9 @@ export function resolveAnthropicApiKey(): string | null {
  * single exhausted account no longer takes the assistant down. The caller only sees an error
  * when every provider has failed (the last error is rethrown).
  */
+/** Below this much time left, a backup provider isn't tried: it couldn't answer in time anyway. */
+const MIN_FAILOVER_ATTEMPT_MS = 3_000;
+
 export class FailoverAiProvider implements AiProvider {
   readonly name: string;
 
@@ -109,15 +114,20 @@ export class FailoverAiProvider implements AiProvider {
 
   async generate(request: AiGenerateRequest): Promise<AiGenerateResult> {
     let lastError: unknown;
+    // A caller deadline covers the whole chain, not each provider: trying three providers
+    // one after another must not multiply the wait past the web proxy's timeout.
+    const deadline = request.timeoutMs ? Date.now() + request.timeoutMs : undefined;
     for (const provider of this.providers) {
+      const remaining = deadline === undefined ? undefined : deadline - Date.now();
+      if (remaining !== undefined && remaining < MIN_FAILOVER_ATTEMPT_MS) break;
       try {
-        return await provider.generate(request);
+        return await provider.generate(remaining === undefined ? request : { ...request, timeoutMs: remaining });
       } catch (error) {
         lastError = error;
         console.error(`[ai-provider] ${provider.name} failed`, error);
       }
     }
-    throw lastError;
+    throw lastError ?? new Error("The AI request ran out of time.");
   }
 }
 

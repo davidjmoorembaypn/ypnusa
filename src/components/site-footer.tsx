@@ -2,7 +2,6 @@ import Link from "next/link";
 import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
-import { appUrl } from "@/lib/site";
 import { FREE_SIGNUP_HREF } from "@/lib/checkout";
 
 export function SiteFooter() {
@@ -20,16 +19,11 @@ export function SiteFooter() {
           </div>
           <p className="mt-4 max-w-sm text-sm">
             The mortgage growth platform for loan officers: exclusive ZIP territories, AI borrower
-            intake, and leads you own for life. Also at{" "}
-            <a href={appUrl("/")} className="inline-block py-1 underline hover:text-white">
-              app.ypnus.com
-            </a>
-            .
+            intake, and leads you own for life.
           </p>
           <p className="mt-4 max-w-sm text-xs text-white/50">
-            Founded by David J. Moore, MBA (Cal State Fresno) — former top-producing loan officer
-            at Chase Bank and Wells Fargo Home Mortgage, Amazon-published real estate author, and
-            nationwide speaker.{" "}
+            Founded by David J. Moore, MBA (Fresno State) — 25+ years as a loan officer, 2,000+
+            loans closed, formerly with Wells Fargo and JPMorgan Chase.{" "}
             <a
               href="https://orcid.org/0009-0008-8069-8897"
               target="_blank"
@@ -66,7 +60,6 @@ export function SiteFooter() {
             <li><Link href="/#how" className="transition hover:text-white">How it works</Link></li>
             <li><Link href="/#territories" className="transition hover:text-white">Territories</Link></li>
             <li><Link href="/#demo" className="transition hover:text-white">Live demo</Link></li>
-            <li><Link href="/analytics" className="transition hover:text-white">Analytics</Link></li>
           </ul>
         </div>
 
@@ -137,6 +130,7 @@ export function SiteFooter() {
               NMLS Consumer Access
             </a>
           </p>
+          <p>YPN Inc. · 247 N L Street, Dinuba, CA 93618</p>
         </div>
       </div>
     </footer>

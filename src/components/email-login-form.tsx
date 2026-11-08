@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { postJson } from "@/lib/client-api";
+import { track } from "@/lib/track";
 
 export function EmailLoginForm({ next }: { next: string }) {
   const [email, setEmail] = useState("");
@@ -13,14 +14,20 @@ export function EmailLoginForm({ next }: { next: string }) {
     event.preventDefault();
     setError(null);
     setState("sending");
-    const { response, data } = await postJson<{ error?: string; devLink?: string }>("/api/auth/email-link", { email, next });
-    if (!response.ok) {
-      setError(data?.error ?? "Something went wrong. Please try again.");
+    try {
+      const { response, data } = await postJson<{ error?: string; devLink?: string }>("/api/auth/email-link", { email, next });
+      if (!response.ok) {
+        setError(data?.error ?? "Something went wrong. Please try again.");
+        setState("idle");
+        return;
+      }
+      setDevLink(data?.devLink ?? null);
+      setState("sent");
+      track("login_link_requested", { method: "email_link", next });
+    } catch {
+      setError("Network error. Check your connection and try again.");
       setState("idle");
-      return;
     }
-    setDevLink(data?.devLink ?? null);
-    setState("sent");
   }
 
   if (state === "sent") {
@@ -28,6 +35,13 @@ export function EmailLoginForm({ next }: { next: string }) {
       <div role="status" className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
         <p className="font-semibold">Check your email.</p>
         <p className="mt-1">We sent a sign-in link to {email}. It works once and expires in 15 minutes.</p>
+        <p className="mt-2 text-xs text-emerald-800">
+          Not seeing it? Check spam, or{" "}
+          <button type="button" className="font-semibold underline" onClick={() => setState("idle")}>
+            use a different email
+          </button>
+          .
+        </p>
         {devLink && (
           <p className="mt-3 break-all text-xs">
             Dev only: <a href={devLink} className="underline">{devLink}</a>

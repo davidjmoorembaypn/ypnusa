@@ -1,4 +1,5 @@
 import { readDb } from "./db";
+import { isLiveSubscription } from "@/lib/subscription-live";
 import { getPricingTier, PRICING_TIERS, type PricingTierId } from "./pricing";
 import type {
   BorrowerLeadRecord,
@@ -124,7 +125,7 @@ function subscriptionMonthlyCents(subscription: RevenueSubscriptionRecord): numb
 }
 
 function isRevenueSubscriptionActive(subscription: RevenueSubscriptionRecord): boolean {
-  return subscription.status === "active" || subscription.status === "trialing";
+  return isLiveSubscription(subscription);
 }
 
 function leadPipelineValue(lead: BorrowerLeadRecord): number {

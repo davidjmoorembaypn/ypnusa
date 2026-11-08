@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { MloMarketPage } from "@/components/mlo-market/mlo-market-page";
 import { marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: "AI Assistant & Exclusive Mortgage Leads for Loan Officers",
     description:
@@ -15,6 +15,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LoanOfficersHubPage() {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return <MloMarketPage origin={origin} />;
 }

@@ -12,9 +12,10 @@ import { SiteFooter } from "@/components/site-footer";
 import { FounderTrustStrip } from "@/components/founder-trust-strip";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { PricingCta } from "@/components/pricing-cta";
-import { checkoutUrlForTier } from "@/lib/checkout";
+import { YouTubeFacade } from "@/components/youtube-facade";
+import { EXPLAINER_VIDEO, explainerVideoJsonLd } from "@/lib/explainer-video";
 import { faqJsonLd, marketingMetadata } from "@/lib/seo";
-import { getSiteOrigin } from "@/lib/request-host";
+import { MARKETING_SITE_URL } from "@/lib/site";
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
 
 // Below the fold: split it out of the first-load bundle, and reserve its height to avoid layout shift.
@@ -24,7 +25,7 @@ const MortgageCalculator = dynamic(
 );
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getSiteOrigin();
+  const origin = MARKETING_SITE_URL;
   return marketingMetadata({
     title: "Cerebro AI for Mortgage Loan Officers + Exclusive ZIP Leads | YPN USA",
     description:
@@ -137,7 +138,7 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. When you're ready to lock exclusive ZIP capacity, paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo — every paid plan includes a 15-day free trial. Free signup does not reserve a ZIP.",
+    a: "Nothing. Run Cerebro — our free AI growth diagnostic — plus the AI intake assistant, no credit card. Paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo, and every paid plan offers a 15-day free trial so you can try the tools. Neither the Free plan nor the trial locks a ZIP code: it locks at your first payment. Pay now, or choose a 5-year plan, to lock it today.",
   },
 ];
 
@@ -177,19 +178,19 @@ export default function Home() {
               <OpenAssistantButton className="inline-flex items-center justify-center rounded-full bg-violet-600 px-6 py-3.5 text-white shadow-xl shadow-violet-900/40 transition duration-200 hover:-translate-y-0.5 hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
                 Talk to Cerebro
               </OpenAssistantButton>
-              <a
-                href={checkoutUrlForTier("growth")}
+              <PricingCta
+                tierId="growth"
                 className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3.5 text-white backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
               >
                 Start 15-day free trial · Pro $99/mo
-              </a>
+              </PricingCta>
             </div>
             <p className="mt-3 text-xs text-white/70">
               Built by licensed loan officer {AUTHOR_NAME} · NMLS #{NMLS_ID} · CA DRE #{CA_DRE_ID}
             </p>
 
             <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-white/70">
-              {["Free to start", "No credit card", "You keep every lead"].map((item) => (
+              {["Free to start", "Free plan needs no card", "You keep every lead"].map((item) => (
                 <li key={item} className="flex items-center gap-1.5">
                   <span aria-hidden className="text-emerald-400">✓</span>
                   {item}
@@ -216,12 +217,37 @@ export default function Home() {
           <div className="w-full lg:max-w-md">
             <TerritoryClaim source="hero" />
             <p className="mt-3 text-center text-xs text-white/70">
-              Checking availability is free &mdash; locking a territory requires a paid plan.{" "}
+              Checking availability is free &mdash; your ZIP code locks at your first payment.{" "}
               <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
                 Plans from $99/mo
-              </Link>{" "}
-              with a 15-day free trial.
+              </Link>
+              : pay now to lock it today, or try the tools free for 15 days first.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* SEE HOW IT WORKS */}
+      <section id="how-it-works-video" className="border-b border-white/10 bg-[#09081b] py-14 md:py-16">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(explainerVideoJsonLd()).replace(/</g, "\\u003c") }}
+        />
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:gap-12">
+          <YouTubeFacade videoId={EXPLAINER_VIDEO.id} title={EXPLAINER_VIDEO.title} />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">See how it works</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white lg:text-3xl">{EXPLAINER_VIDEO.title}</h2>
+            <p className="mt-3 text-white/75">
+              David J. Moore explains why owning your local ZIP code beats renting clicks and shared leads, and how
+              AI follow-up answers borrowers while you&rsquo;re busy closing loans.
+            </p>
+            <a
+              href="#territories"
+              className="mt-6 inline-flex items-center justify-center rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-[#09081b] transition hover:-translate-y-0.5 hover:brightness-105"
+            >
+              Check if my ZIP code is open
+            </a>
           </div>
         </div>
       </section>
@@ -510,7 +536,7 @@ export default function Home() {
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">Pricing</p>
             <h2 className="mt-3 text-3xl font-semibold lg:text-4xl">Start free. Upgrade when you&apos;re ready.</h2>
-            <p className="mt-4 text-slate-600">Reserve a ZIP, deploy your AI, and own the pipeline it builds.</p>
+            <p className="mt-4 text-slate-600">Check your ZIP code free, then lock it with your first payment on any paid plan and own the pipeline it builds.</p>
           </div>
 
           <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -564,7 +590,7 @@ export default function Home() {
             ))}
           </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-600">
-            {["Start free — no credit card", "Cancel anytime", "You keep every lead you capture"].map((item) => (
+            {["Free plan — no credit card", "Cancel anytime", "You keep every lead you capture"].map((item) => (
               <span key={item} className="flex items-center gap-1.5">
                 <span aria-hidden className="text-emerald-600">✓</span>
                 {item}
@@ -583,11 +609,11 @@ export default function Home() {
           <div className="flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-300">Built by a loan officer</p>
             <h2 className="mt-2 text-2xl font-semibold text-white lg:text-3xl">
-              Founded by {AUTHOR_NAME}, with nearly 30 years in mortgage
+              Founded by {AUTHOR_NAME}, a loan officer for 25+ years
             </h2>
             <p className="mt-3 text-white/75">
-              Former top-producing loan officer at Chase Bank and Wells Fargo Home Mortgage, Amazon-published author
-              and nationwide speaker. NMLS #{NMLS_ID} · California DRE #{CA_DRE_ID}.
+              Former loan officer at JPMorgan Chase and Wells Fargo, 2,000+ loans closed, Fresno State MBA.
+              NMLS #{NMLS_ID} · California DRE #{CA_DRE_ID}.
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-3 text-sm font-semibold">
@@ -636,9 +662,6 @@ export default function Home() {
           >
             Claim your ZIP territory
           </a>
-          <p className="mt-4 text-xs text-white/60">
-            Prefer analytics? <Link href="/analytics" className="underline hover:text-white">View the live intake ledger →</Link>
-          </p>
         </div>
       </section>
       </main>

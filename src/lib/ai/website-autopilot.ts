@@ -1,5 +1,5 @@
 import { generateId } from "@/lib/id";
-import { saveWebsiteAutopilotChange } from "@/lib/db";
+import { listWebsiteAutopilotChanges, saveWebsiteAutopilotChange } from "@/lib/db";
 import type {
   AutopilotChangeStatus,
   AutopilotChangeType,
@@ -325,15 +325,19 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
     Math.min(100, 55 + autoApplied.length * 4 - needsApproval.length * 5),
   );
 
-  const appliedTitles = autoApplied.map((c) => c.title.replace(/^(Strengthen|Improve|Prepare|Clarify)\s/, "").toLowerCase());
+  // Nothing here is published: changes are saved as drafts and go live only through the
+  // separate, approval-first WordPress path (src/lib/wordpress.ts). Say exactly that.
+  const draftTitles = autoApplied.map((c) => c.title.replace(/^(Strengthen|Improve|Prepare|Clarify)\s/, "").toLowerCase());
+  const page = input.pageType.replace("_", " ");
   const summaryForMlo =
     changes.length === 0
-      ? `No safe YPNUS-controlled improvements were found for ${location} right now.`
-      : `YPNUS improved your ${input.pageType.replace("_", " ")} to help capture more ${location} ${goalLabel} leads.` +
-        (appliedTitles.length > 0 ? ` We ${joinNaturally(appliedTitles)}.` : "") +
+      ? `I didn't find any safe improvements to draft for ${location} right now.`
+      : `I drafted ${changes.length} change${changes.length === 1 ? "" : "s"} to your ${page} to help capture more ${location} ${goalLabel} leads` +
+        (draftTitles.length > 0 ? ` (${joinNaturally(draftTitles)})` : "") +
+        `. Nothing is live yet — review them below and approve what you want published.` +
         (needsApproval.length > 0
-          ? ` ${needsApproval.length} item${needsApproval.length === 1 ? "" : "s"} ${needsApproval.length === 1 ? "was" : "were"} held for your quick review.`
-          : " No manual work is required.");
+          ? ` ${needsApproval.length} touch${needsApproval.length === 1 ? "es" : ""} compliance-sensitive wording, so give ${needsApproval.length === 1 ? "that one" : "those"} a careful read.`
+          : "");
 
   return {
     score,
@@ -345,14 +349,29 @@ export function generateWebsiteAutopilotPlan(input: WebsiteAutopilotPlanInput): 
   };
 }
 
-/** Generates a plan and persists every change via db.ts, stamping userId/mloProfileId onto each. */
+/**
+ * Generates a plan and persists every change via db.ts, stamping userId/mloProfileId onto each.
+ * Re-running with the same inputs doesn't pile up duplicates: a change whose page, type and
+ * after-text match one this user already has (and hasn't rejected) reuses that record.
+ */
 export function runWebsiteAutopilot(input: WebsiteAutopilotPlanInput): WebsiteAutopilotPlan {
   const plan = generateWebsiteAutopilotPlan(input);
-  for (const change of plan.changes) {
+  const existing = input.userId
+    ? listWebsiteAutopilotChanges(input.userId).filter((change) => change.status !== "rejected")
+    : [];
+  plan.changes = plan.changes.map((change) => {
+    const duplicate = existing.find(
+      (prior) =>
+        prior.pageType === change.pageType &&
+        prior.changeType === change.changeType &&
+        prior.afterText === change.afterText,
+    );
+    if (duplicate) return duplicate;
     change.userId = input.userId;
     change.mloProfileId = input.mloProfileId;
     saveWebsiteAutopilotChange(change);
-  }
+    return change;
+  });
   return plan;
 }
 

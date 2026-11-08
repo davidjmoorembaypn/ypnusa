@@ -7,6 +7,7 @@ import type {
 import type { PersonalizationSummary } from "./personalization/personalizationEngine";
 import { OUTBOUND_TIMEOUT_MS } from "./outbound";
 import { escapeHtml, sendEmail } from "./email";
+import { borrowerFacingOfficer } from "./crm";
 
 export interface OutreachContext {
   lead: BorrowerLeadRecord;
@@ -64,11 +65,13 @@ export function composeOutreach(
   plan: FollowUpPlan,
   context: OutreachContext,
 ): { subject: string; body: string } {
-  const base = outreachCopy[plan](firstName(context.lead.answers.name), context.officer.name);
+  // A seeded demo officer never reaches a real borrower by name (see crm.ts borrowerFacingOfficer).
+  const officer = borrowerFacingOfficer(context.officer);
+  const base = outreachCopy[plan](firstName(context.lead.answers.name), officer.name);
   const body = context.personalization ? `${base}${formatPersonalizationLine(context.personalization)}` : base;
 
   return {
-    subject: `Your mortgage next steps with ${context.officer.name}`,
+    subject: `Your mortgage next steps with ${officer.name}`,
     body,
   };
 }
@@ -197,6 +200,7 @@ export async function deliverOutreach(
   job: ScheduledFollowUpRecord,
   context: OutreachContext,
 ): Promise<OutreachDeliveryResult> {
+  context = { ...context, officer: borrowerFacingOfficer(context.officer) };
   const { subject, body } = composeOutreach(job.plan, context);
   const webhookUrl = process.env.OUTREACH_WEBHOOK_URL?.trim();
   if (webhookUrl) {

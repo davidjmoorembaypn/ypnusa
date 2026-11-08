@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPageLayout } from "@/components/legal-page-layout";
-import { PUBLIC_PRICING_TIERS, TRIAL_DAYS } from "@/lib/pricing";
+import { PREPAID_5Y_REFUND_WINDOW_DAYS, PREPAID_5Y_YEARS, PUBLIC_PRICING_TIERS, TRIAL_DAYS } from "@/lib/pricing";
 import { CUSTOMER_PORTAL_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/terms-of-service" },
 };
 
-const LAST_UPDATED = "September 24, 2026";
+const LAST_UPDATED = "November 7, 2026";
 
 const PAID_PLAN_PRICES = PUBLIC_PRICING_TIERS.filter((tier) => tier.priceMonthlyCents > 0)
   .map((tier) => `${tier.name} ${tier.price}/month`)
@@ -79,7 +79,7 @@ export default function TermsOfServicePage() {
         <li>
           <strong>How to cancel.</strong> You can cancel online at any time, with no phone call or
           cancellation fee, from Billing in your account (
-          <Link href="/billing">app.ypnus.com/billing</Link>) or through the{" "}
+          <Link href="/billing">ypnus.com/billing</Link>) or through the{" "}
           <a href={CUSTOMER_PORTAL_URL}>Stripe billing portal</a>, or by emailing{" "}
           <a href="mailto:support@ypnus.com">support@ypnus.com</a>. Cancelling stops all future
           charges; your access, including any territory claim, continues through the end of the
@@ -92,8 +92,23 @@ export default function TermsOfServicePage() {
           specific volume, quality, or continuity of leads.
         </li>
         <li>
-          <strong>Refunds.</strong> Fees already charged are non-refundable except as required by law
-          or as expressly stated at the time of purchase. You will not be charged after you cancel.
+          <strong>When a ZIP code locks.</strong> A ZIP code locks to you only when your first
+          payment for a paid plan goes through. A free trial lets you try the tools but does not lock
+          a ZIP code, and the Free plan never does; if another Subscriber pays for the same ZIP code
+          first, it is theirs.
+        </li>
+        <li>
+          <strong>5-year prepaid plans.</strong> A 5-year prepaid plan is a single up-front payment.
+          It locks your ZIP code, and keeps your plan active, for {PREPAID_5Y_YEARS} years from the
+          payment date. It does not renew automatically.
+        </li>
+        <li>
+          <strong>Refunds.</strong> Monthly subscription fees already charged are non-refundable
+          except as required by law; you can cancel at any time and you will not be charged after
+          you cancel. A 5-year prepaid plan can be refunded in full if you ask within{" "}
+          {PREPAID_5Y_REFUND_WINDOW_DAYS} days of purchase; no refunds are given after{" "}
+          {PREPAID_5Y_REFUND_WINDOW_DAYS} days. A refund ends the plan and releases your ZIP code
+          lock.
         </li>
       </ul>
 

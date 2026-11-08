@@ -1,4 +1,4 @@
-import { APP_SITE_URL } from "./site";
+import { MARKETING_SITE_URL } from "./site";
 
 export type LocalSeoPageKind = "city" | "zip";
 
@@ -72,7 +72,7 @@ const CITY_PROFILES: LocalSeoProfile[] = [
     neighborhoods: ["Tower District", "Woodward Park", "Sunnyside"],
     headline: "Mortgage guidance built around Fresno buyers",
     introduction:
-      "Fresno borrowers balance established neighborhoods, newer north-side inventory, and nearby rural properties. This page routes local questions to the configured mortgage contact serving Fresno rather than presenting a generic national lead form.",
+      "Fresno borrowers balance established neighborhoods, newer north-side inventory, and nearby rural properties. This page routes local questions to a licensed loan officer serving Fresno rather than presenting a generic national lead form.",
     marketContext:
       "Loan structure can change with property type, occupancy, down-payment resources, and whether a home sits inside city limits or an eligible surrounding area. A local review helps separate those details before a borrower compares programs.",
     localProcess:
@@ -105,7 +105,7 @@ const CITY_PROFILES: LocalSeoProfile[] = [
     neighborhoods: ["Old Town Clovis", "Loma Vista", "Harlan Ranch"],
     headline: "A local mortgage starting point for Clovis",
     introduction:
-      "Clovis buyers may be comparing established streets near Old Town with newer communities farther east. This page gives those borrowers a locally framed path to the configured mortgage contact without inventing market statistics or availability.",
+      "Clovis buyers may be comparing established streets near Old Town with newer communities farther east. This page gives those borrowers a locally framed path to a licensed loan officer without inventing market statistics or availability.",
     marketContext:
       "New construction timelines, homeowners association costs, occupancy plans, and property location can each affect a financing conversation. Those details should be reviewed against current lender and public-record information for the actual address.",
     localProcess:
@@ -174,7 +174,7 @@ const ZIP_PROFILES: LocalSeoProfile[] = [
     neighborhoods: ["Old Town Clovis", "Tarpey Village", "Sierra Vista"],
     headline: "Local mortgage guidance for Clovis ZIP 93612",
     introduction:
-      "ZIP 93612 includes central Clovis neighborhoods and nearby commercial corridors. This territory page connects borrowers with the configured local mortgage professional while keeping public data and lending guidance clearly separated.",
+      "ZIP 93612 includes central Clovis neighborhoods and nearby commercial corridors. This territory page connects borrowers with a licensed local loan officer while keeping public data and lending guidance clearly separated.",
     marketContext:
       "Property condition, insurance, occupancy, and exact jurisdiction can matter more than a ZIP-wide average. Any tax or housing figure should be checked against a dated public source and the specific parcel.",
     localProcess:
@@ -200,9 +200,9 @@ const ZIP_PROFILES: LocalSeoProfile[] = [
 
 export const LOCAL_SEO_PROFILES = [...CITY_PROFILES, ...ZIP_PROFILES];
 
-// Local pages are served from the app origin; canonicalizing to ypnus.com pointed at 404s.
+// ypnus.com now serves this app (app.ypnus.com 301s there), so local pages canonicalize to it.
 export const LOCAL_SEO_PUBLIC_ORIGIN =
-  process.env.LOCAL_SEO_PUBLIC_ORIGIN?.trim().replace(/\/$/, "") || APP_SITE_URL;
+  process.env.LOCAL_SEO_PUBLIC_ORIGIN?.trim().replace(/\/$/, "") || MARKETING_SITE_URL;
 
 export function getLocalSeoProfile(
   kind: LocalSeoPageKind,
@@ -216,6 +216,30 @@ export function getLocalSeoPath(profile: LocalSeoProfile): string {
   return profile.kind === "city"
     ? `/mortgage-broker/${profile.slug}`
     : `/zip/${profile.slug}`;
+}
+
+/** Borrower intake (src/app/embed/intake) — where borrower CTAs on local pages go. */
+export const BORROWER_INTAKE_PATH = "/embed/intake";
+
+/** Lead-source tag for a local page: "zip-93720" or "city-fresno-ca". */
+export function localFunnelSource(profile: Pick<LocalSeoProfile, "kind" | "slug">): string {
+  return `${profile.kind}-${profile.slug}`;
+}
+
+/** Borrower intake URL tagged with this local page as the lead source. */
+export function localIntakeHref(profile: Pick<LocalSeoProfile, "kind" | "slug">): string {
+  return `${BORROWER_INTAKE_PATH}?funnelSource=${encodeURIComponent(localFunnelSource(profile))}`;
+}
+
+/**
+ * Accepts a funnelSource from a query string only when it is a short slug
+ * (letters, digits, "-", "_"); anything else is dropped so arbitrary text never
+ * reaches lead records.
+ */
+export function parseFunnelSourceParam(value: string | string[] | undefined): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const trimmed = raw?.trim();
+  return trimmed && /^[A-Za-z0-9_-]{1,64}$/.test(trimmed) ? trimmed : undefined;
 }
 
 export function getPublicBusinessProfile(): PublicBusinessProfile {

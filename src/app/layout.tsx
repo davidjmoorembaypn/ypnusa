@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Script from "next/script";
-import { APP_SITE_URL, MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
+import { MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
+import { FOUNDER_ID, monthlyOfferPriceSpecification } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,7 +17,8 @@ const geistSans = Geist({
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(APP_SITE_URL),
+  // app.ypnus.com 301s to ypnus.com, so relative metadata URLs resolve on the canonical host.
+  metadataBase: new URL(MARKETING_SITE_URL),
   title: {
     default: "YPN USA App — Mortgage Growth Platform for Loan Officers",
     template: "%s | YPN USA",
@@ -28,7 +30,6 @@ export const metadata: Metadata = {
   creator: "YPN Inc.",
   publisher: "YPN Inc.",
   category: "Business",
-  referrer: "origin-when-cross-origin",
   robots: {
     index: true,
     follow: true,
@@ -74,7 +75,7 @@ const jsonLd = {
         addressCountry: "US",
       },
       areaServed: centralValleyAreaServed(),
-      founder: { "@id": `${MARKETING_SITE_URL}/#person-david-moore` },
+      founder: { "@id": FOUNDER_ID },
       sameAs: [
         "https://www.linkedin.com/in/davidjmooreypn",
         "https://www.facebook.com/YPN.Incorporated/",
@@ -82,7 +83,7 @@ const jsonLd = {
     },
     {
       "@type": "Person",
-      "@id": `${MARKETING_SITE_URL}/#person-david-moore`,
+      "@id": FOUNDER_ID,
       name: "David J. Moore, MBA",
       jobTitle: "CEO & Founder",
       worksFor: [
@@ -98,7 +99,7 @@ const jsonLd = {
         credentialCategory: "MBA",
       },
       description:
-        "Former top-producing mortgage professional with thousands of closed home loans at Chase Bank and Wells Fargo Home Mortgage. Published Amazon real estate author and nationwide speaker.",
+        "Loan officer for 25+ years with 2,000+ loans closed, formerly with Wells Fargo and JPMorgan Chase. Fresno State MBA. CA DRE #01852847, NMLS #787257.",
       sameAs: [
         "https://orcid.org/0009-0008-8069-8897",
         "https://www.linkedin.com/in/davidjmoorembaypninc/",
@@ -114,17 +115,17 @@ const jsonLd = {
     },
     {
       "@type": "WebApplication",
-      "@id": `${APP_SITE_URL}/#app`,
+      "@id": `${MARKETING_SITE_URL}/#app`,
       name: "YPN USA App",
-      url: APP_SITE_URL,
+      url: MARKETING_SITE_URL,
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
       offers: [
         { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Pro", price: "99", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Growth", price: "199", priceCurrency: "USD" },
-        { "@type": "Offer", name: "Exclusive", price: "299", priceCurrency: "USD" },
+        { "@type": "Offer", name: "Pro", price: "99", priceCurrency: "USD", priceSpecification: monthlyOfferPriceSpecification(99) },
+        { "@type": "Offer", name: "Growth", price: "199", priceCurrency: "USD", priceSpecification: monthlyOfferPriceSpecification(199) },
+        { "@type": "Offer", name: "Exclusive", price: "299", priceCurrency: "USD", priceSpecification: monthlyOfferPriceSpecification(299) },
       ],
       description:
         "Mortgage growth platform for licensed loan officers with exclusive ZIP territories, AI borrower intake, qualification, and nurture.",

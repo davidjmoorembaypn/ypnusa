@@ -144,14 +144,14 @@ describe("model fallback on Bedrock", () => {
     mock.method(console, "log", () => {});
     const provider = new AnthropicProvider({ kind: "bedrock", config: { region: "us-east-2", apiKey: "k" } });
     const calls: string[] = [];
-    (provider as unknown as { client: unknown }).client = stubClient(["anthropic.claude-opus-4-8"], calls);
+    (provider as unknown as { client: unknown }).client = stubClient(["anthropic.claude-sonnet-5"], calls);
     const first = await provider.generate({ system: "s", messages: [{ role: "user", content: "hi" }] });
     assert.equal(first.text, "hello");
-    assert.deepEqual(calls, ["anthropic.claude-opus-5", "anthropic.claude-sonnet-5", "anthropic.claude-opus-4-8"]);
+    assert.deepEqual(calls, ["anthropic.claude-sonnet-5-5", "anthropic.claude-opus-5-5", "anthropic.claude-haiku-5-5", "anthropic.claude-sonnet-5"]);
 
     calls.length = 0;
     await provider.generate({ system: "s", messages: [{ role: "user", content: "again" }] });
-    assert.deepEqual(calls, ["anthropic.claude-opus-4-8"], "later requests reuse the model that worked");
+    assert.deepEqual(calls, ["anthropic.claude-sonnet-5"], "later requests reuse the model that worked");
     mock.restoreAll();
   });
 
@@ -183,7 +183,7 @@ describe("model fallback on Bedrock", () => {
     const calls: string[] = [];
     (provider as unknown as { client: unknown }).client = stubClient([], calls);
     await assert.rejects(provider.generate({ system: "s", messages: [{ role: "user", content: "hi" }] }), /404/);
-    assert.equal(calls.length, 6);
+    assert.equal(calls.length, 7);
   });
 });
 
@@ -276,7 +276,7 @@ describe("request shape is identical on both backends (tool use + prompt caching
   it("keeps the standard Anthropic model id and the same request shape", async () => {
     const provider = new AnthropicProvider({ kind: "anthropic", apiKey: "sk-ant-test" });
     const { captured } = await captureParams(provider);
-    assert.equal(captured.model, process.env.ANTHROPIC_MODEL?.trim() || "claude-opus-5");
+    assert.equal(captured.model, process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-5-5");
     assert.deepEqual(captured.system, [{ type: "text", text: "SYS", cache_control: { type: "ephemeral" } }]);
     assert.deepEqual(captured.tools[1].cache_control, { type: "ephemeral" });
   });

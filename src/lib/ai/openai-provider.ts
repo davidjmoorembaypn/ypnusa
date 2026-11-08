@@ -17,7 +17,7 @@ export class OpenAiProvider implements AiProvider {
   constructor() {
     // No-arg constructor resolves OPENAI_API_KEY from the environment —
     // never hardcode a key here or accept one over the wire from a client.
-    this.client = new OpenAI();
+    this.client = new OpenAI({ timeout: 45_000, maxRetries: 1 });
     this.model = process.env.OPENAI_MODEL?.trim() || DEFAULT_MODEL;
   }
 
@@ -40,7 +40,7 @@ export class OpenAiProvider implements AiProvider {
           parameters: tool.inputSchema,
         },
       })),
-    });
+    }, request.timeoutMs ? { timeout: request.timeoutMs } : undefined);
 
     const choice = response.choices[0];
     if (!choice) {

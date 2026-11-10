@@ -3,7 +3,7 @@
 Single place for any session (Claude Code, ChatGPT review, a person) to see where the
 build stands and resume. Update it with every change that ships.
 
-Last updated: 2026-11-08.
+Last updated: 2026-11-10.
 
 ## Live
 
@@ -56,6 +56,13 @@ Last updated: 2026-11-08.
 - Lighthouse, local production build, mobile: home 84 -> 91 (2.4 MB -> 371 KB, LCP
   3.8 s -> 3.2 s simulated; observed paint about 0.2 s), desktop 100. About 95, pricing 93,
   check-zip 95. Accessibility and SEO 100 on all public pages checked.
+
+## Built, waiting to go live (SEO release, after PR #130)
+
+- SEO page plan (doc sections 12-15): /cerebro, /teams, /roi, city hub, pillar intros, 2 posts, schema cleanup.
+- 262 old addresses from Search Console that 404ed on the live site (checked 2026-11-10, 421 URLs
+  tested) now redirect permanently to their closest live page (`src/content/legacy-redirects.json`).
+- GA4 measurement ID changed to G-Q3V5DC6E80 (the "YPNUS.COM - GA4" property) in the release build.
 
 ## Blockers
 

@@ -76,7 +76,7 @@ const CITY_PROFILES: LocalSeoProfile[] = [
     marketContext:
       "Loan structure can change with property type, occupancy, down-payment resources, and whether a home sits inside city limits or an eligible surrounding area. A local review helps separate those details before a borrower compares programs.",
     localProcess:
-      "Start with the target neighborhood or ZIP, intended occupancy, and purchase timeline. The assigned mortgage professional can then discuss program fit and identify which county or municipal records should be verified for the specific property.",
+      "Start with the target neighborhood or ZIP code, intended occupancy, and purchase timeline. The assigned mortgage professional can then discuss program fit and identify which county or municipal records should be verified for the specific property.",
     municipalName: "City of Fresno",
     municipalUrl: "https://www.fresno.gov/",
     latitude: 36.7378,
@@ -109,7 +109,7 @@ const CITY_PROFILES: LocalSeoProfile[] = [
     marketContext:
       "New construction timelines, homeowners association costs, occupancy plans, and property location can each affect a financing conversation. Those details should be reviewed against current lender and public-record information for the actual address.",
     localProcess:
-      "Share the target ZIP, property type, and expected timing first. The assigned professional can explain relevant loan options and flag taxes, insurance, or community costs that need confirmation before a complete estimate.",
+      "Share the target ZIP code, property type, and expected timing first. The assigned professional can explain relevant loan options and flag taxes, insurance, or community costs that need confirmation before a complete estimate.",
     municipalName: "City of Clovis",
     municipalUrl: "https://www.clovisca.gov/",
     latitude: 36.8252,
@@ -139,11 +139,11 @@ const ZIP_PROFILES: LocalSeoProfile[] = [
     county: "Fresno County",
     zipCodes: ["93720"],
     neighborhoods: ["Woodward Park", "Fort Washington", "Pinedale"],
-    headline: "Mortgage help for homes in Fresno ZIP 93720",
+    headline: "Mortgage help for homes in Fresno ZIP code 93720",
     introduction:
-      "ZIP 93720 covers a north Fresno service area that includes established and newer housing near Woodward Park. Borrowers can use this page to reach the mortgage professional assigned to this territory and begin with property-specific facts.",
+      "ZIP code 93720 covers a north Fresno service area that includes established and newer housing near Woodward Park. Borrowers can use this page to reach the mortgage professional assigned to this territory and begin with property-specific facts.",
     marketContext:
-      "The ZIP alone does not determine loan eligibility, taxes, insurance, or value. Property address, occupancy, borrower qualifications, and current program rules still require individual verification.",
+      "The ZIP code alone does not determine loan eligibility, taxes, insurance, or value. Property address, occupancy, borrower qualifications, and current program rules still require individual verification.",
     localProcess:
       "Provide the property address or nearby cross streets, purchase or refinance goal, and timing. The assigned professional can then prepare a focused next-step list without treating area-wide estimates as a quote.",
     municipalName: "City of Fresno",
@@ -152,7 +152,7 @@ const ZIP_PROFILES: LocalSeoProfile[] = [
     longitude: -119.7654,
     metrics: [
       {
-        label: "ZIP-level housing estimates",
+        label: "ZIP-code-level housing estimates",
         sourceName: "U.S. Census Bureau data portal",
         sourceUrl: "https://data.census.gov/",
       },
@@ -172,11 +172,11 @@ const ZIP_PROFILES: LocalSeoProfile[] = [
     county: "Fresno County",
     zipCodes: ["93612"],
     neighborhoods: ["Old Town Clovis", "Tarpey Village", "Sierra Vista"],
-    headline: "Local mortgage guidance for Clovis ZIP 93612",
+    headline: "Local mortgage guidance for Clovis ZIP code 93612",
     introduction:
-      "ZIP 93612 includes central Clovis neighborhoods and nearby commercial corridors. This territory page connects borrowers with a licensed local loan officer while keeping public data and lending guidance clearly separated.",
+      "ZIP code 93612 includes central Clovis neighborhoods and nearby commercial corridors. This territory page connects borrowers with a licensed local loan officer while keeping public data and lending guidance clearly separated.",
     marketContext:
-      "Property condition, insurance, occupancy, and exact jurisdiction can matter more than a ZIP-wide average. Any tax or housing figure should be checked against a dated public source and the specific parcel.",
+      "Property condition, insurance, occupancy, and exact jurisdiction can matter more than a ZIP-code-wide average. Any tax or housing figure should be checked against a dated public source and the specific parcel.",
     localProcess:
       "Begin with the address, property type, financing goal, and target closing window. The assigned professional can identify the documents and current program details needed for a personalized discussion.",
     municipalName: "City of Clovis",
@@ -185,7 +185,7 @@ const ZIP_PROFILES: LocalSeoProfile[] = [
     longitude: -119.7109,
     metrics: [
       {
-        label: "ZIP-level housing estimates",
+        label: "ZIP-code-level housing estimates",
         sourceName: "U.S. Census Bureau data portal",
         sourceUrl: "https://data.census.gov/",
       },

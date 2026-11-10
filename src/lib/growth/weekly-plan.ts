@@ -61,17 +61,17 @@ export function buildWeeklyPlan(input: GrowthPlanInput): PlanAction[] {
   if (input.paidPlan && input.claimedZips === 0) {
     actions.push({
       id: "claim_zip",
-      title: "Choose your exclusive zip code",
-      why: "Your plan includes a zip code, but none is claimed yet, so no territory is routing borrowers to you.",
+      title: "Choose your exclusive ZIP code",
+      why: "Your plan includes a ZIP code, but none is claimed yet, so no territory is routing borrowers to you.",
       href: "/dashboard/territories",
-      cta: "Check zip codes",
+      cta: "Check ZIP codes",
       priority: 80,
     });
   } else if (!input.paidPlan) {
     actions.push({
       id: "check_zip",
-      title: "Check whether your zip code is still open",
-      why: "Checking is free. A zip code is locked only when a paid plan starts.",
+      title: "Check whether your ZIP code is still open",
+      why: "Checking is free. A ZIP code is locked only when a paid plan starts.",
       href: "/pricing",
       cta: "See plans",
       priority: 40,

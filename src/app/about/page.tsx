@@ -146,10 +146,10 @@ export default async function AboutPage() {
 
             <div className="mt-10 flex flex-wrap gap-4 text-sm font-semibold">
               <Link
-                href="/consultation"
+                href="/check-zip"
                 className="inline-flex items-center justify-center rounded-full bg-amber-400 px-7 py-3.5 text-[#09081b] shadow-xl shadow-amber-500/30 transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
               >
-                Book a consultation
+                Check your ZIP code
               </Link>
               <Link
                 href="/pricing"

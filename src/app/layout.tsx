@@ -4,6 +4,7 @@ import Script from "next/script";
 import { MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
 import { FOUNDER_ID } from "@/lib/seo";
 import "./globals.css";
+import { FunnelPageEvents } from "@/components/analytics/funnel-page-events";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -118,6 +119,7 @@ export default function RootLayout({
             </Script>
           </>
         ) : null}
+        <FunnelPageEvents />
         {children}
       </body>
     </html>

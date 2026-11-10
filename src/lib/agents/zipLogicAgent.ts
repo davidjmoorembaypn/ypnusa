@@ -59,7 +59,7 @@ async function resolveZip(rawZip: string, viewer?: ZipViewer): Promise<ZipLogicR
       available: false,
       ownedByYou: true,
       status: "yours",
-      message: `ZIP ${result.zip} is your exclusive territory. Leads from it route to you.`,
+      message: `ZIP code ${result.zip} is your exclusive territory. Leads from it route to you.`,
     };
   }
   return { ...result, ownedByYou: false, status: result.available ? "open" : "taken" };
@@ -74,10 +74,10 @@ export async function suggestTerritory(
     result.status === "invalid"
       ? "Ask for a valid 5-digit ZIP code."
       : result.status === "yours"
-        ? "This ZIP is already yours — focus on getting visible in it (Google Business Profile, local posts, your borrower page)."
+        ? "This ZIP code is already yours — focus on getting visible in it (Google Business Profile, local posts, your borrower page)."
         : result.status === "open"
           ? "Open — it can be claimed on a paid plan."
-          : "Already held by another subscriber — join the waitlist for a reopen alert, or check a nearby ZIP.";
+          : "Already held by another subscriber — join the waitlist for a reopen alert, or check a nearby ZIP code.";
   return { ...result, recommendation };
 }
 
@@ -93,7 +93,7 @@ export async function scoreZip(
       : result.status === "yours"
         ? "This is your exclusive territory."
         : result.status === "open"
-          ? "Open — no one holds this ZIP yet."
+          ? "Open — no one holds this ZIP code yet."
           : "Held by another subscriber.";
   return { zip: result.zip, status: result.status, available: result.available, ownedByYou: result.ownedByYou, reason };
 }

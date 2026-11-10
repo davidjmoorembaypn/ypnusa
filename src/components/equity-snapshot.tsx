@@ -128,13 +128,13 @@ export function EquitySnapshot() {
 
         <div className="mt-6 grid gap-4">
           <label className="grid gap-2 text-sm font-semibold text-white/80">
-            Property ZIP
+            Property ZIP code
             <input
               value={zip}
               onChange={(event) => setZip(event.target.value.replace(/\D/g, "").slice(0, 5))}
               inputMode="numeric"
               autoComplete="postal-code"
-              placeholder="Enter 5-digit ZIP"
+              placeholder="Enter 5-digit ZIP code"
               required
               pattern="\d{5}"
               className="h-12 rounded-xl border border-white/10 bg-black/20 px-4 text-base text-white outline-none placeholder:text-white/25 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"

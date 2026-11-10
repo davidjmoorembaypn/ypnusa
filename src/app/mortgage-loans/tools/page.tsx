@@ -23,8 +23,8 @@ const TOOLS = [
     status: "live" as const,
   },
   {
-    name: "ZIP territories",
-    description: "Manage exclusive ZIP-territory claims.",
+    name: "ZIP code territories",
+    description: "Manage exclusive ZIP code territory claims.",
     href: "/dashboard/territories",
     status: "live" as const,
   },

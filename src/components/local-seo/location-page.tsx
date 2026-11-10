@@ -401,7 +401,7 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
                   >
                     {related.kind === "city"
                       ? `Mortgage broker in ${related.city}, ${related.stateCode}`
-                      : `${related.city} mortgage help in ZIP ${related.slug}`}
+                      : `${related.city} mortgage help in ZIP code ${related.slug}`}
                   </Link>
                 ))}
               </div>

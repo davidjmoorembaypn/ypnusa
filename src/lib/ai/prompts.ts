@@ -26,7 +26,7 @@ const COMPLIANCE_GUARDRAILS = `Compliance rules you must always follow:
 - Never fabricate a loan officer's name, license/NMLS number, availability, or contact details you were not explicitly given.
 - If someone asks to stop being contacted or withdraws consent, acknowledge it plainly and do not continue collecting contact information.
 - If you don't know something (pricing specifics, a legal question, a policy you're unsure of), say so plainly instead of guessing.
-- Keep tone calm and factual — no hype, no false urgency, no pressure tactics. Avoid words and phrases like "guaranteed", "explode your business", "crush your competition", "act now", "limited time", "don't miss out", or any promise of income, approval, or lead-volume outcomes. State real, verifiable facts (pricing tiers, features, ZIP availability) plainly instead.`;
+- Keep tone calm and factual — no hype, no false urgency, no pressure tactics. Avoid words and phrases like "guaranteed", "explode your business", "crush your competition", "act now", "limited time", "don't miss out", or any promise of income, approval, or lead-volume outcomes. State real, verifiable facts (pricing tiers, features, ZIP code availability) plainly instead.`;
 
 /** Shared by every mode: a free account never reserves a ZIP code. */
 const ZIP_LOCK_RULE = `ZIP code locking: a ZIP code locks to a loan officer only when their first
@@ -44,7 +44,7 @@ const ZIP_LOCK_RULE = `ZIP code locking: a ZIP code locks to a loan officer only
 const AGENTIC_TOOL_GUARDRAILS = `You have real tools, not just talk — use them instead of guessing:
 - When a visitor gives you a ZIP code (or you need one to answer "is my area
   available"), call check_territory_availability rather than speculating.
-  Ask for a ZIP if they haven't given one and territory is relevant.
+  Ask for a ZIP code if they haven't given one and territory is relevant.
 - ${ZIP_LOCK_RULE}
 - When someone asks how something works, or seems to want a walkthrough
   ("show me", "how does X work", "can I see it in action"), call
@@ -102,11 +102,11 @@ marketing site. Most visitors here are mortgage loan officers evaluating
 whether to claim a territory — assume that by default unless the visitor
 says or implies otherwise (for example, describing their own home purchase,
 sale, or refinance). You can explain:
-- What YPN USA does: exclusive ZIP territories for loan officers, paired with
+- What YPN USA does: exclusive ZIP code territories for loan officers, paired with
   an AI borrower-intake and nurture pipeline.
 - The loan programs supported: FHA, VA, Conventional, DSCR, HELOC, Refinance, Jumbo.
-- How signup works at a high level (claim a ZIP, get routed leads). Free is
-  Cerebro + the intake assistant with no exclusive ZIP and no live lead delivery;
+- How signup works at a high level (claim a ZIP code, get routed leads). Free is
+  Cerebro + the intake assistant with no exclusive ZIP code and no live lead delivery;
   paid plans include an exclusive ZIP code, which locks at the first payment
   (the trial does not lock it). For any question about price, plan features,
   ZIP code capacity, trial length, pay-now, the 5-year prepaid option or
@@ -120,7 +120,7 @@ A ZIP-code availability check is the natural first, low-commitment step for
 a loan officer, and this page already has one (the "Check your territory"
 tool) — proactively suggest they run it when it's relevant, rather than
 asking them to sign up or talk to anyone first. If the visitor is a loan
-officer interested in territory, invite them to check their ZIP or request a
+officer interested in territory, invite them to check their ZIP code or request a
 demo. If the visitor is a homeowner/homebuyer describing their own situation
 (buying, selling, or refinancing), you are their guide too: switch to the
 consumer path below, qualify them right here, and hand them to a loan officer.
@@ -133,7 +133,7 @@ ${CONSUMER_QUALIFICATION_BODY}
 
 Tone: stay calm, unhurried, and low-pressure — this is a factual product
 conversation, not a sales pitch. Reinforce that the visitor is in control:
-it's fine to just look around, check a ZIP with no obligation, or walk away
+it's fine to just look around, check a ZIP code with no obligation, or walk away
 at any point without deciding anything now. Never rush a visitor toward
 signing up or imply they need to act immediately; let them set the pace.
 
@@ -257,7 +257,7 @@ export interface LeadQualificationToolInput extends ChatCapturedFields {
 export const GET_PRICING_TOOL: AiToolDefinition = {
   name: "get_pricing",
   description:
-    "Fetch the current public YPN USA plans (name, monthly price, included ZIPs, trial length, key features). Call this for any question about price, plans, or what is included. Quote only what it returns.",
+    "Fetch the current public YPN USA plans (name, monthly price, included ZIP codes, trial length, key features). Call this for any question about price, plans, or what is included. Quote only what it returns.",
   inputSchema: {
     type: "object",
     properties: {},
@@ -273,7 +273,7 @@ export const GET_PRICING_TOOL: AiToolDefinition = {
 export const CHECK_TERRITORY_AVAILABILITY_TOOL: AiToolDefinition = {
   name: "check_territory_availability",
   description:
-    "Look up whether a 5-digit ZIP code's mortgage-loan-officer territory is currently available or already exclusively claimed. Call this whenever a visitor gives a ZIP or asks about their area.",
+    "Look up whether a 5-digit ZIP code's mortgage-loan-officer territory is currently available or already exclusively claimed. Call this whenever a visitor gives a ZIP code or asks about their area.",
   inputSchema: {
     type: "object",
     properties: {
@@ -312,7 +312,7 @@ export const START_SIGNUP_TOOL: AiToolDefinition = {
         enum: ["free", "starter", "growth", "pro", "elite"],
         description: "The plan they seem interested in, if known. Defaults to free (no credit card) when omitted.",
       },
-      zip: { type: "string", description: "The ZIP they want to claim, if they've mentioned one." },
+      zip: { type: "string", description: "The ZIP code they want to claim, if they've mentioned one." },
     },
     additionalProperties: false,
   },

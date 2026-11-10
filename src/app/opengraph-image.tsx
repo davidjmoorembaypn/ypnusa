@@ -42,7 +42,7 @@ export default function OGImage() {
             marginBottom: 20,
           }}
         >
-          Own your ZIP code. Capture every borrower.
+          Claim your ZIP code. Let Cerebro answer borrowers.
         </div>
         <div style={{ fontSize: 24, color: "rgba(255,255,255,0.78)", maxWidth: 820 }}>
           Exclusive territories · AI intake · Free → $99 → $199 → $299

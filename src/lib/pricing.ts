@@ -193,6 +193,38 @@ export const PAID_PRICING_TIERS = PRICING_TIERS.filter((tier) => tier.priceMonth
 // claims, but do not offer the retired $29.99 tier to new customers.
 export const PUBLIC_PRICING_TIERS = PRICING_TIERS.filter((tier) => tier.id !== "starter");
 
+/**
+ * THE plan/entitlement matrix: one row per capability, one column per public plan
+ * (column keys are tier ids: growth = Pro $99, pro = Growth $199, elite = Exclusive $299).
+ * The pricing page renders it, and site copy must agree with it. Counts are deliberately
+ * absent: local city pages are built for the markets you serve, not a fixed number.
+ */
+export interface PlanEntitlementRow {
+  label: string;
+  free: string;
+  growth: string;
+  pro: string;
+  elite: string;
+}
+
+export const PLAN_ENTITLEMENTS: readonly PlanEntitlementRow[] = [
+  { label: "Cerebro AI growth diagnostic", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
+  { label: "AI borrower intake assistant", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
+  { label: "Exclusive ZIP code (locks at first payment)", free: "—", growth: "1 included", pro: "1 included", elite: "1 included" },
+  { label: "Live lead delivery", free: "—", growth: "✓", pro: "✓", elite: "✓" },
+  { label: "SMS + email nurture ladders", free: "—", growth: "✓", pro: "✓", elite: "✓" },
+  { label: "Calendar booking + CRM mirroring", free: "—", growth: "✓", pro: "✓", elite: "✓" },
+  { label: "Local page for your ZIP code", free: "—", growth: "✓", pro: "✓", elite: "✓" },
+  { label: "Portable MLO website", free: "—", growth: "—", pro: "✓", elite: "✓" },
+  { label: "Local city pages for your market (on your website)", free: "—", growth: "—", pro: "✓", elite: "✓" },
+  { label: "Priority lead delivery", free: "—", growth: "—", pro: "✓", elite: "✓" },
+  { label: "Advanced life-event signals", free: "—", growth: "—", pro: "✓", elite: "✓" },
+  { label: "Priority ZIP code add-on access", free: "—", growth: "—", pro: "—", elite: "✓" },
+  { label: "Unlimited automation runs", free: "—", growth: "—", pro: "—", elite: "✓" },
+  { label: "White-glove onboarding", free: "—", growth: "—", pro: "—", elite: "✓" },
+];
+
+
 /** Tiers in ascending order of capability — index comparison powers `tierAtLeast` in entitlements.ts. */
 export const PRICING_TIER_ORDER: readonly PricingTierId[] = ["free", "starter", "growth", "pro", "elite"];
 

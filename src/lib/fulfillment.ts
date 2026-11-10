@@ -324,7 +324,7 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
   if (zipConflict) {
     logApiError(
       "fulfillment",
-      new Error(`ZIP ${zipToClaim} was already claimed by another active subscription — left unclaimed for subscription ${record.id}.`),
+      new Error(`ZIP code ${zipToClaim} was already claimed by another active subscription — left unclaimed for subscription ${record.id}.`),
     );
   }
 
@@ -374,7 +374,7 @@ export function lockZipOnPaidInvoice(input: {
     saveRevenueSubscriptionWithZipClaim({ ...paid, zipLockConflict: { zip, at: new Date().toISOString() } }, null);
     logApiError(
       "fulfillment",
-      new Error(`First payment for subscription ${existing.id} arrived, but ZIP ${zip} was already locked by another paid subscription.`),
+      new Error(`First payment for subscription ${existing.id} arrived, but ZIP code ${zip} was already locked by another paid subscription.`),
     );
   }
   return { applied: true, zip, zipClaimed, zipConflict };

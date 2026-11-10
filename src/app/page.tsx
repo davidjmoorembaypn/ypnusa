@@ -464,8 +464,8 @@ export default function Home() {
             <h2 className="mt-2 text-2xl font-semibold text-white lg:text-3xl">Built by a 25-year loan officer</h2>
             <p className="mt-3 text-white/80">
               {AUTHOR_NAME} closed 2,000+ loans over 25+ years, formerly with JPMorgan Chase and Wells Fargo, and holds a
-              Fresno State MBA. NMLS #{NMLS_ID} · California DRE #{CA_DRE_ID}. In the video, he explains why owning your
-              local ZIP code beats renting clicks and shared leads.
+              Fresno State MBA. NMLS #{NMLS_ID} · California DRE #{CA_DRE_ID}. In the video, he explains why holding a ZIP
+              code that is exclusive within YPN USA beats renting clicks and shared leads.
             </p>
             <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold">
               <Link

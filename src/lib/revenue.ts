@@ -315,7 +315,7 @@ function buildRevenueFlow(db: DbShape, subscriptions: RevenueSubscriptionRecord[
       count: subscriptionCount,
       valueCents: mrrCents,
       conversionPct: conversionPct(subscriptionCount, Math.max(db.demoRequests.length, 1)),
-      detail: "Active or trial territory subscriptions from seeded accounts and live ZIP claims.",
+      detail: "Active or trial territory subscriptions from seeded accounts and live ZIP code claims.",
     },
   ];
 
@@ -357,10 +357,10 @@ export function summarizeRevenuePulse(): RevenuePulseSummary {
     flow: buildRevenueFlow(db, subscriptions, mrrCents),
     ltvByMlo,
     assumptions: [
-      "No Stripe ledger exists yet; MRR uses active/trial demo subscriptions plus inferred ZIP claims.",
-      "Unmatched demo-request ZIPs become inferred subscriptions based on team-size wording.",
+      "No Stripe ledger exists yet; MRR uses active/trial demo subscriptions plus inferred ZIP code claims.",
+      "Unmatched demo-request ZIP codes become inferred subscriptions based on team-size wording.",
       "MLO LTV combines projected subscription months with attributed lead, booking, and demo pipeline value.",
-      "County and ZIP revenue is allocated proportionally across each subscription's claimed coverage units.",
+      "County and ZIP code revenue is allocated proportionally across each subscription's claimed coverage units.",
     ],
   };
 }

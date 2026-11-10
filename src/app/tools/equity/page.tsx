@@ -86,7 +86,7 @@ export default async function EquitySnapshotPage() {
           <h2 className="text-2xl font-semibold">Want the AI to keep working after the snapshot?</h2>
           <p className="mt-3 text-white/55">
             Loan officers on paid plans get this same equity snapshot wired into their AI intake
-            assistant, so every borrower in your exclusive ZIP territory is qualified and followed up
+            assistant, so every borrower in your exclusive ZIP code territory is qualified and followed up
             automatically.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
@@ -94,7 +94,7 @@ export default async function EquitySnapshotPage() {
               href="/#territories"
               className="inline-flex rounded-full bg-white px-6 py-3 font-bold text-[#17152f]"
             >
-              Check Your ZIP — Free
+              Check Your ZIP Code — Free
             </Link>
             <Link
               href="/pricing"

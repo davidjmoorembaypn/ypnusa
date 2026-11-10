@@ -62,6 +62,11 @@ Last updated: 2026-11-10.
 - SEO page plan (doc sections 12-15): /cerebro, /teams, /roi, city hub, pillar intros, 2 posts, schema cleanup.
 - 262 old addresses from Search Console that 404ed on the live site (checked 2026-11-10, 421 URLs
   tested) now redirect permanently to their closest live page (`src/content/legacy-redirects.json`).
+- Redirect map from the marketing channel (201 rows) applied on top; every target loads, none skipped.
+- Section 18: /features/branded-mlo-website rewritten (title, meta, FAQ, SoftwareApplication schema; website
+  is on Growth and Exclusive), /compare hub card grid with ItemList schema, new /vs/jungo, /vs/big-purple-dot,
+  /vs/lendware, /vs/leadpops (facts from each site, checked 2026-11-10), BNTouch moved to /vs/bntouch.
+- No launch timeframes ("Live in 48 Hours", "48hr", "live in 60 seconds") and no "70%+ of borrowers" stat.
 - GA4 measurement ID changed to G-Q3V5DC6E80 (the "YPNUS.COM - GA4" property) in the release build.
 
 ## Blockers

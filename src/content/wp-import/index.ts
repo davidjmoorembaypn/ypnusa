@@ -53,6 +53,10 @@ export interface WpImportedPage {
   faq?: { q: string; a: string }[];
   /** "Keep exploring" internal links shown under the body. */
   related?: { href: string; label: string }[];
+  /** Emit the product SoftwareApplication node (plans as offers), e.g. on a feature page. */
+  softwareApp?: boolean;
+  /** Pages this hub lists, mirrored as ItemList JSON-LD (e.g. /compare's comparison cards). */
+  itemList?: { name: string; href: string }[];
 }
 
 /** Founder facts for the author box and Person schema (generated from sites/ypnus-com/data/site.json). */

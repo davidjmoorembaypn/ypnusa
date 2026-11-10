@@ -80,17 +80,17 @@ export function NurturePipeline({ rows }: NurturePipelineProps) {
 
         {rows.length > 0 ? (
           <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(14rem,1fr)_repeat(3,minmax(10rem,0.55fr))_auto]">
-            <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/45">
+            <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
               Search
               <input
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Borrower or MLO"
-                className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm font-normal normal-case tracking-normal text-white outline-none placeholder:text-white/30 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
+                className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm font-normal normal-case tracking-normal text-white outline-none placeholder:text-white/60 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20"
               />
             </label>
-            <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/45">
+            <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
               State
               <select
                 value={state}
@@ -105,7 +105,7 @@ export function NurturePipeline({ rows }: NurturePipelineProps) {
                 ))}
               </select>
             </label>
-            <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/45">
+            <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
               Program
               <select
                 value={program}
@@ -120,7 +120,7 @@ export function NurturePipeline({ rows }: NurturePipelineProps) {
                 ))}
               </select>
             </label>
-            <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/45">
+            <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
               Urgency
               <select
                 value={urgency}
@@ -168,7 +168,7 @@ export function NurturePipeline({ rows }: NurturePipelineProps) {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1080px] text-left text-sm">
-            <thead className="bg-black/15 text-xs uppercase tracking-[0.12em] text-white/40">
+            <thead className="bg-black/15 text-xs uppercase tracking-[0.12em] text-white/60">
               <tr>
                 <th className="px-5 py-3 font-medium">Priority</th>
                 <th className="px-5 py-3 font-medium">Borrower</th>
@@ -192,11 +192,11 @@ export function NurturePipeline({ rows }: NurturePipelineProps) {
                   </td>
                   <td className="px-5 py-4">
                     <p className="font-semibold">{row.borrowerName}</p>
-                    <p className="mt-1 text-xs text-white/45">{row.loanProgram}</p>
+                    <p className="mt-1 text-xs text-white/60">{row.loanProgram}</p>
                   </td>
                   <td className="px-5 py-4">
                     <p className="capitalize">{row.quality}</p>
-                    <p className="mt-1 text-xs text-white/45">
+                    <p className="mt-1 text-xs text-white/60">
                       {row.creditTier} · {row.timeline}
                     </p>
                   </td>
@@ -230,7 +230,7 @@ export function NurturePipeline({ rows }: NurturePipelineProps) {
                     ) : (
                       <div>
                         <p>{dateTime(row.nextFollowUp)}</p>
-                        <p className="mt-1 text-xs uppercase text-white/40">
+                        <p className="mt-1 text-xs uppercase text-white/60">
                           {row.nextChannel ?? "Offer appointment"}
                         </p>
                       </div>
@@ -249,7 +249,7 @@ export function NurturePipeline({ rows }: NurturePipelineProps) {
                         {row.latestAgentNote.replace(/^Agent ▸ /, "")}
                       </p>
                     ) : (
-                      <span className="text-xs text-white/30">—</span>
+                      <span className="text-xs text-white/60">—</span>
                     )}
                   </td>
                   <td className="px-5 py-4 text-white/70">{row.officerName}</td>

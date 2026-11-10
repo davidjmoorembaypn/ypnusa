@@ -55,7 +55,7 @@ export function ComplianceChecker() {
         }}
         rows={7}
         placeholder="Paste your copy here…"
-        className="mt-3 w-full rounded-2xl border border-white/15 bg-[#0d0b26] p-4 text-sm leading-6 text-white placeholder:text-white/35"
+        className="mt-3 w-full rounded-2xl border border-white/15 bg-[#0d0b26] p-4 text-sm leading-6 text-white placeholder:text-white/60"
       />
       <button
         type="button"

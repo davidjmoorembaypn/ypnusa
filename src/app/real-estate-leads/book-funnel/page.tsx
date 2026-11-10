@@ -46,7 +46,7 @@ export default function BookFunnelPage() {
             <span className="text-white">
               {index + 1}. {step.label}
             </span>
-            <span className="text-xs text-white/40">{step.status}</span>
+            <span className="text-xs text-white/60">{step.status}</span>
           </li>
         ))}
       </ol>

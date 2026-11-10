@@ -42,7 +42,7 @@ export function Breadcrumbs({
         {items.map((item, index) => (
           <li key={item.name} className="flex items-center gap-1.5">
             {index > 0 ? (
-              <span aria-hidden className="text-white/30">
+              <span aria-hidden className="text-white/60">
                 /
               </span>
             ) : null}

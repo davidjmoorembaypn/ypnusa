@@ -295,7 +295,7 @@ export function AssistantChat(props: {
             className="flex h-[55vh] max-h-[34rem] min-h-[14rem] flex-col gap-3 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-4"
           >
             {msgs.length === 0 ? (
-              <p className="m-auto max-w-xs text-center text-sm text-white/40">
+              <p className="m-auto max-w-xs text-center text-sm text-white/60">
                 Say hello to start the conversation.
               </p>
             ) : null}
@@ -308,7 +308,7 @@ export function AssistantChat(props: {
                     ? "self-start rounded-bl-[4px] bg-white/10 text-white ring-1 ring-white/10"
                     : bubble.role === "user"
                       ? "self-end whitespace-pre-wrap rounded-br-[4px] bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-md shadow-violet-950/30"
-                      : "self-center text-center text-xs italic text-white/45"
+                      : "self-center text-center text-xs italic text-white/60"
                 }`}
               >
                 {bubble.role === "assistant" ? (
@@ -377,7 +377,7 @@ export function AssistantChat(props: {
               disabled={busy || authRequired}
               type="text"
               placeholder={placeholder}
-              className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-black/20 px-4 text-base text-white outline-none placeholder:text-white/30 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 disabled:opacity-50"
+              className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-black/20 px-4 text-base text-white outline-none placeholder:text-white/60 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 disabled:opacity-50"
             />
             <button
               type="submit"
@@ -389,7 +389,7 @@ export function AssistantChat(props: {
           </form>
 
           {mode !== "mlo_dashboard" ? (
-            <p className="text-[11px] leading-4 text-white/45">
+            <p className="text-[11px] leading-4 text-white/60">
               Chats are answered by AI and saved so we can respond. Please don&rsquo;t share sensitive
               personal or financial details.{" "}
               <a
@@ -435,7 +435,7 @@ export function AssistantChat(props: {
                           {change.status.replace("_", " ")}
                         </span>
                       </div>
-                      <p className="truncate text-xs text-white/40">{change.expectedBenefit}</p>
+                      <p className="truncate text-xs text-white/60">{change.expectedBenefit}</p>
                     </li>
                   ))}
                 </ul>
@@ -452,7 +452,7 @@ export function AssistantChat(props: {
             <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
               {CAPTURED_FIELD_ROWS.map((row) => (
                 <div key={row.key} className="contents">
-                  <dt className="text-white/45">{row.label}</dt>
+                  <dt className="text-white/60">{row.label}</dt>
                   <dd className="truncate text-white/90">{formatCapturedValue(capturedFields[row.key])}</dd>
                 </div>
               ))}
@@ -462,19 +462,19 @@ export function AssistantChat(props: {
               <div className="mt-1 space-y-2 border-t border-white/10 pt-3 text-sm">
                 {leadScore !== undefined ? (
                   <p>
-                    <span className="text-white/45">Lead score: </span>
+                    <span className="text-white/60">Lead score: </span>
                     <span className="font-semibold text-white">{leadScore}/100</span>
                   </p>
                 ) : null}
                 {summary ? (
                   <p>
-                    <span className="text-white/45">Summary: </span>
+                    <span className="text-white/60">Summary: </span>
                     <span className="text-white/85">{summary}</span>
                   </p>
                 ) : null}
                 {recommendedAction ? (
                   <p>
-                    <span className="text-white/45">Recommended action: </span>
+                    <span className="text-white/60">Recommended action: </span>
                     <span className="text-white/85">{recommendedAction}</span>
                   </p>
                 ) : null}

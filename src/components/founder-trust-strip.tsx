@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AI_BOOK, AMAZON_ASSOCIATE_DISCLOSURE, AUTHOR_NAME, CA_DRE_ID, NMLS_CONSUMER_ACCESS_URL, NMLS_ID } from "@/lib/author";
+import { AI_BOOK, AI_BOOK_PRICE_LINE, AMAZON_ASSOCIATE_DISCLOSURE, AUTHOR_NAME, CA_DRE_ID, NMLS_CONSUMER_ACCESS_URL, NMLS_ID } from "@/lib/author";
 
 /**
  * Compact, real-credentials trust signal for conversion pages (homepage,
@@ -56,7 +56,7 @@ export function FounderTrustStrip() {
           />
           <span className="max-w-[11rem] text-xs leading-5 text-white/70">
             <span className="block font-semibold text-white">Author of {AI_BOOK.shortTitle}</span>
-            Now on Amazon Kindle &rarr;
+            {AI_BOOK_PRICE_LINE} &rarr;
             <span className="mt-1 block text-[11px] text-white/70">{AMAZON_ASSOCIATE_DISCLOSURE}</span>
           </span>
         </a>

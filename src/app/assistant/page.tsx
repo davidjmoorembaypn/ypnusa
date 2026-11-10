@@ -48,7 +48,7 @@ export default function AssistantPreviewPage() {
 
         <AssistantPreviewTabs />
 
-        <footer className="mt-10 border-t border-white/10 py-8 text-center text-xs leading-5 text-white/35">
+        <footer className="mt-10 border-t border-white/10 py-8 text-center text-xs leading-5 text-white/60">
           Internal preview only — not indexed, not linked from the public marketing site.
         </footer>
       </div>

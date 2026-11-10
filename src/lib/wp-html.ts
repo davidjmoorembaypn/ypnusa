@@ -9,6 +9,10 @@
  *   - ship zero or several <h1>s.
  */
 
+import mediaManifest from "@/content/wp-import/media-manifest.json";
+import postsData from "@/content/wp-import/posts.json";
+import redirectsData from "@/content/wp-import/redirects.json";
+
 /** Hosts that are this site. app.ypnus.com now 301s to ypnus.com. */
 const SAME_SITE_HOSTS = new Set(["ypnus.com", "www.ypnus.com", "app.ypnus.com"]);
 
@@ -21,10 +25,56 @@ const PATH_REWRITES: Readonly<Record<string, string>> = {
   "/va-loans": "/loan-types/va-loan-leads",
   "/terms": "/terms-of-service",
   "/privacy": "/privacy-policy",
+  "/lo-signup": "/login?next=%2Fonboarding",
+  "/register": "/login?next=%2Fonboarding",
+  "/predictive-intelligence": "/predictive-lead-gen",
+  "/ai-tools": "/features",
+  "/marketing-tools": "/features",
 };
 
+/** Blog posts live under /blog/<slug>, but WordPress linked many of them at the site root. */
+const POST_SLUGS: ReadonlySet<string> = new Set((postsData as { slug: string }[]).map((post) => post.slug));
+/** WordPress-era redirects (old slug -> current path), applied to links so they skip the 308 hop. */
+const LINK_REDIRECTS = redirectsData as Readonly<Record<string, string>>;
+
+/** Resolve an internal path to where it really lives now: no .html, no redirect hop, posts under /blog. */
+function resolveInternalPath(input: string): string {
+  let path = (PATH_REWRITES[input] ?? input).replace(/\.html?$/i, "") || "/";
+  for (let hops = 0; hops < 3; hops++) {
+    const next = PATH_REWRITES[path] ?? LINK_REDIRECTS[path] ?? LINK_REDIRECTS[`${path}/`];
+    if (!next || next === path || /^https?:/i.test(next)) break;
+    path = next.length > 1 ? next.replace(/\/+$/, "") : next;
+  }
+  const single = /^\/([a-z0-9-]+)$/i.exec(path);
+  if (single && POST_SLUGS.has(single[1])) return `/blog/${single[1]}`;
+  return path;
+}
+
 /** The WordPress banner that was never migrated (404 on every page that used it). */
-const BROKEN_IMAGE_PATHS = new Set(["/wp-content/uploads/2026/08/ypn-usa-mlo-banner.jpg"]);
+const BROKEN_IMAGE_PATHS = new Set([
+  "/wp-content/uploads/2026/08/ypn-usa-mlo-banner.jpg",
+  "/wp-content/uploads/2026/06/ai-replacing-real-estate-agents-family-buying-1024x559.jpg",
+  "/wp-content/uploads/ypn-usa-logo.png",
+]);
+
+/**
+ * WordPress media the imported pages use, rehosted in public/media/uploads (same
+ * path under uploads/) with each file's [width, height]. Rewriting to these copies
+ * takes the old WordPress server out of every page load. A file not listed keeps
+ * its original URL.
+ */
+const REHOSTED_MEDIA: Record<string, readonly number[] | undefined> = mediaManifest;
+const UPLOADS_URL_RE = /(?:https?:\/\/(?:www\.)?ypnus\.com)?\/wp-content\/uploads\/([A-Za-z0-9._\/-]+\.(?:jpe?g|png|webp|gif|avif|svg))/gi;
+
+/** /wp-content/uploads URL (absolute or relative) -> rehosted /media/uploads URL, when we have the file. */
+export function rehostWpMediaUrl(text: string): string {
+  return text.replace(UPLOADS_URL_RE, (whole, rel: string) => (REHOSTED_MEDIA[rel] ? `/media/uploads/${rel}` : whole));
+}
+
+function rehostedSize(src: string): readonly number[] | undefined {
+  const m = /^\/media\/uploads\/(.+)$/.exec(src);
+  return m ? REHOSTED_MEDIA[m[1]] : undefined;
+}
 
 /**
  * Imported WordPress pages that run inline <script>/onclick code. Scripts inside
@@ -76,7 +126,9 @@ export function normalizeWpHref(href: string): string {
   const suffix = split === -1 ? "" : rest.slice(split);
   if (!path.startsWith("/")) path = `/${path}`;
   if (path.length > 1) path = path.replace(/\/+$/, "") || "/";
-  path = PATH_REWRITES[path] ?? path;
+  path = resolveInternalPath(path);
+  // A rewrite target may carry its own query (e.g. /login?next=...): keep it, then any original suffix.
+  if (path.includes("?") && suffix.startsWith("?")) return path;
   return `${path}${suffix}`;
 }
 
@@ -108,6 +160,25 @@ export function normalizeWpHtml(html: string): string {
     return path && BROKEN_IMAGE_PATHS.has(path) ? "" : tag;
   });
   out = out.replace(/<(p|figure)\b[^>]*>\s*<\/\1>/gi, "");
+
+  // Serve WordPress media from this app (src, srcset, links to full-size files, inline styles).
+  out = rehostWpMediaUrl(out);
+
+  // Images: lazy-load all but the first, decode off the main thread, and give rehosted
+  // files their real width/height so the page doesn't shift as they load.
+  let imageIndex = 0;
+  out = out.replace(/<img\b[^>]*>/gi, (tag) => {
+    let next = tag;
+    const isFirst = imageIndex++ === 0;
+    if (!isFirst && !/\bloading=/i.test(next)) next = next.replace(/^<img\b/i, '<img loading="lazy"');
+    if (!/\bdecoding=/i.test(next)) next = next.replace(/^<img\b/i, '<img decoding="async"');
+    if (!/\bwidth=/i.test(next) && !/\bheight=/i.test(next)) {
+      const src = /\bsrc=["']([^"']*)["']/i.exec(next)?.[1];
+      const size = src ? rehostedSize(src) : undefined;
+      if (size) next = next.replace(/^<img\b/i, `<img width="${size[0]}" height="${size[1]}"`);
+    }
+    return next;
+  });
 
   // app.ypnus.com now 301s to ypnus.com: name the canonical host in copy and in any
   // script URLs too (a 301 would turn a script's POST into a GET).

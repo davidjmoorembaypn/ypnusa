@@ -22,7 +22,13 @@ export const AI_BOOK = {
   /** Amazon Associates link (SiteStripe tag); pages using it show the associate disclosure. */
   url: "https://www.amazon.com/dp/B0HPY5DNFX?tag=amazondis04a9-20",
   cover: "/images/book-ai-powered-real-estate.webp",
+  /** As listed on the Amazon page (Nov 2026). Update here if the price changes. */
+  kindlePrice: "9.99",
+  kindleUnlimited: true,
 } as const;
+
+/** "Kindle $9.99, or free with Kindle Unlimited" */
+export const AI_BOOK_PRICE_LINE = `Kindle $${AI_BOOK.kindlePrice}${AI_BOOK.kindleUnlimited ? ", or free with Kindle Unlimited" : ""}`;
 
 export const AMAZON_ASSOCIATE_DISCLOSURE = "As an Amazon Associate, YPN USA earns from qualifying purchases.";
 

@@ -4,14 +4,14 @@ import Link from "next/link";
 import { CopySnippet } from "@/components/copy-snippet";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { marketingMetadata } from "@/lib/seo";
+import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   const origin = MARKETING_SITE_URL;
   return marketingMetadata({
-    title: "Free Embeddable Tools for Loan Officers and Realtors",
-    description:
-      "Add a free home equity calculator and an AI borrower intake assistant to your own website. Copy-paste embed code, no coding needed.",
+    ...PAGE_SEO.embed,
+    absoluteTitle: true,
     path: "/embed",
     origin,
   });

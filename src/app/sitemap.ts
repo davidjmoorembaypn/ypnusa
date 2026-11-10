@@ -47,6 +47,8 @@ const SITEMAP_EXCLUDED_TOP_SLUGS = new Set([
 // reflects a real revision date instead of every sitemap regeneration.
 // Same rule for marketing pages: a lastmod that changes on every request is ignored by crawlers.
 const MARKETING_LAST_MODIFIED = new Date("2026-10-15T00:00:00.000Z");
+/** Pages added or rewritten for the Nov 2026 SEO plan (home, /cerebro, /teams, /roi, /loan-officers, pillars, /book). */
+const SEO_PLAN_LAST_MODIFIED = new Date("2026-11-08T00:00:00.000Z");
 const LEGAL_PAGES_LAST_MODIFIED = new Date("2026-09-13T00:00:00.000Z");
 
 function wpPageEntries(origin: string, sectionPath: string, pages: readonly WpImportedPage[]) {
@@ -61,10 +63,13 @@ function wpPageEntries(origin: string, sectionPath: string, pages: readonly WpIm
 export default function sitemap(): MetadataRoute.Sitemap {
   const origin = MARKETING_SITE_URL;
   return [
-    { url: `${origin}/`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "weekly", priority: 1 },
+    { url: `${origin}/`, lastModified: SEO_PLAN_LAST_MODIFIED, changeFrequency: "weekly", priority: 1 },
+    { url: `${origin}/cerebro`, lastModified: SEO_PLAN_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${origin}/teams`, lastModified: SEO_PLAN_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${origin}/roi`, lastModified: SEO_PLAN_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
     { url: `${origin}/features`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
     { url: `${origin}/pricing`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${origin}/loan-officers`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${origin}/loan-officers`, lastModified: SEO_PLAN_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
     ...MLO_MARKETS.map((market) => ({
       url: `${origin}/loan-officers/${market.slug}`,
       lastModified: MARKETING_LAST_MODIFIED,
@@ -72,7 +77,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     })),
     { url: `${origin}/about`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${origin}/book`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${origin}/book`, lastModified: SEO_PLAN_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
     { url: `${origin}/claim-territory`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/consultation`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/blog`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "weekly", priority: 0.7 },

@@ -1,4 +1,5 @@
 import { BLOG_POSTS, type BlogPost } from "@/content/blog";
+import { PLAN_POSTS } from "@/content/blog-plan-2026-11";
 import { WP_POSTS } from "@/content/wp-import";
 
 /**
@@ -7,9 +8,11 @@ import { WP_POSTS } from "@/content/wp-import";
  * collide between the two sources (checked at build time by the export
  * script); if that ever changes, the native post wins.
  */
+const NATIVE_POSTS: readonly BlogPost[] = [...PLAN_POSTS, ...BLOG_POSTS];
+
 export const ALL_BLOG_POSTS: readonly BlogPost[] = [
-  ...BLOG_POSTS,
-  ...WP_POSTS.filter((wp) => !BLOG_POSTS.some((native) => native.slug === wp.slug)),
+  ...NATIVE_POSTS,
+  ...WP_POSTS.filter((wp) => !NATIVE_POSTS.some((native) => native.slug === wp.slug)),
 ];
 
 export function getAnyBlogPost(slug: string): BlogPost | undefined {

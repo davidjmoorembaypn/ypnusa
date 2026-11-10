@@ -113,7 +113,7 @@ describe("automation.ts outreach personalization connector", async () => {
     assert.equal(received.length, 1);
     assert.match(
       received[0].body,
-      /Every ZIP is different|Rental demand|Households in/,
+      /Every ZIP code is different|Rental demand|Households in/,
       "expected the personalization line to be appended to the outreach body",
     );
 

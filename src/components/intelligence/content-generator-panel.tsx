@@ -23,7 +23,7 @@ function ResultBlock({ data }: { data: unknown }) {
 function MarketingGenerator() {
   const marketing = useMarketing();
   const [brandVoice, setBrandVoice] = useState("confident and friendly");
-  const [goal, setGoal] = useState("claim your exclusive ZIP territory");
+  const [goal, setGoal] = useState("claim your exclusive ZIP code territory");
   const [audience, setAudience] = useState("mortgage loan officers");
   const [channel, setChannel] = useState<PlatformChannel>("facebook");
   const [topic, setTopic] = useState("");
@@ -120,7 +120,7 @@ function GmbGenerator() {
 
 function WebsiteBuilderGenerator() {
   const builder = useWebsiteBuilder();
-  const [goal, setGoal] = useState("claim your ZIP territory");
+  const [goal, setGoal] = useState("claim your ZIP code territory");
   const [audience, setAudience] = useState("loan officers");
   const [sections, setSections] = useState("hero, features, testimonials, faq");
   const [offer, setOffer] = useState("50% off your first month");

@@ -9,7 +9,7 @@ export default function EmbedCerebroPage() {
       <AssistantChat
         mode="public_site"
         title="Cerebro"
-        placeholder="Type your ZIP or biggest challenge…"
+        placeholder="Type your ZIP code or biggest challenge…"
         funnelSource="cerebro_homepage_embed"
       />
     </main>

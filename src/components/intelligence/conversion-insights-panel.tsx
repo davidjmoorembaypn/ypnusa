@@ -82,7 +82,7 @@ export function ConversionInsightsPanel() {
     <>
       <Card title="Conversion insights">
         <p className="text-sm text-slate-600">
-          Personalization + CTA output for a given ZIP — the same engines that back the ZIP checker and territory
+          Personalization + CTA output for a given ZIP code — the same engines that back the ZIP code checker and territory
           claim flow on the homepage.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -103,10 +103,10 @@ export function ConversionInsightsPanel() {
       </Card>
 
       {personalization.data?.personalization ? (
-        <Card title="ZIP demand indicators">
+        <Card title="ZIP code demand indicators">
           <dl className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-slate-50 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-700">ZIP demand</dt>
+              <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-700">ZIP code demand</dt>
               <dd className="mt-2 text-sm text-slate-800">{personalization.data.personalization.zipDemandSummary}</dd>
             </div>
             <div className="rounded-2xl bg-slate-50 p-4">

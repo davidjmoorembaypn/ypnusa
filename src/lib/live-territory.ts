@@ -68,7 +68,7 @@ export async function fetchLiveTerritory(
     }
 
     const place =
-      data.city && data.state ? `${data.city}, ${data.state}` : `ZIP ${zip}`;
+      data.city && data.state ? `${data.city}, ${data.state}` : `ZIP code ${zip}`;
 
     // While WordPress still answers ZIP checks, a checkout through this app's own
     // Stripe webhook locks the ZIP only in this app's paid ledger. Honor that lock

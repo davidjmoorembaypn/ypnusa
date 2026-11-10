@@ -36,7 +36,7 @@ export function LifeEventPanel() {
     <Card title="Life-event likelihood">
       <p className="text-sm text-slate-600">
         Rule-based scoring across rental demand, census signals, and county-level life events (divorce, marriage,
-        probate, migration) for a given lead + ZIP.
+        probate, migration) for a given lead + ZIP code.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">

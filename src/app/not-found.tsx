@@ -20,7 +20,7 @@ export default function NotFound() {
       </h1>
       <p className="mt-3 max-w-md text-sm leading-6 text-white/60">
         The link may be outdated, or the page moved. Head back to the app, or check the
-        ZIP territory tool.
+        ZIP code territory tool.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Link

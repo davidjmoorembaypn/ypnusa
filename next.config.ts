@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 // app's webpack/TS path-alias resolution, so "@/content/wp-import" (which itself
 // imports "@/content/blog") would fail to resolve here.
 import wpRedirects from "./src/content/wp-import/redirects.json";
+import legacyRedirects from "./src/content/legacy-redirects.json";
 
 function gitCommit(): string {
   try {
@@ -81,6 +82,14 @@ const nextConfig: NextConfig = {
       // remapped or dropped in favor of an existing native page. See
       // src/content/wp-import/index.ts for how this map is generated.
       ...Object.entries(wpRedirects as Record<string, string>).map(([source, destination]) => ({
+        source,
+        destination,
+        permanent: true,
+      })),
+      // Old ypnus.com addresses that Google Search Console still shows and that 404ed
+      // (checked 2026-11-10), each sent to its closest live page. Kept apart from
+      // redirects.json because that file is regenerated from the WordPress export.
+      ...Object.entries(legacyRedirects as Record<string, string>).map(([source, destination]) => ({
         source,
         destination,
         permanent: true,

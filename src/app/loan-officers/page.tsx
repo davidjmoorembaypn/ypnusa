@@ -1,20 +1,13 @@
 import type { Metadata } from "next";
 import { MloMarketPage } from "@/components/mlo-market/mlo-market-page";
 import { marketingMetadata } from "@/lib/seo";
+import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = MARKETING_SITE_URL;
-  return marketingMetadata({
-    title: "AI Assistant & Exclusive Mortgage Leads for Loan Officers",
-    description:
-      "Cerebro, the agentic AI assistant for mortgage loan officers, answers and qualifies your borrowers 24/7 inside a protected ZIP you own. Plans from $99 with a 15-day free trial.",
-    path: "/loan-officers",
-    origin,
-  });
+  return marketingMetadata({ ...PAGE_SEO.loanOfficers, absoluteTitle: true, path: "/loan-officers" });
 }
 
 export default async function LoanOfficersHubPage() {
-  const origin = MARKETING_SITE_URL;
-  return <MloMarketPage origin={origin} />;
+  return <MloMarketPage origin={MARKETING_SITE_URL} />;
 }

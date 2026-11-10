@@ -1,5 +1,6 @@
 import type { BlogPost } from "@/content/blog";
 import { ALL_BLOG_POSTS } from "@/content/blog-all";
+import { TOPIC_SEO } from "@/lib/seo/page-seo";
 
 /**
  * SEO topic clusters (hub-and-spoke).
@@ -22,7 +23,7 @@ export interface TopicCluster {
   slug: string;
   /** Short label used in nav, breadcrumbs and "Part of" links. */
   name: string;
-  /** Pillar-page <title> (the root template appends " | YPN USA"). Target ≤ 52 chars. */
+  /** Full pillar-page <title>, used as-is (≤ 60 chars); see TOPIC_SEO in page-seo.ts. */
   title: string;
   h1: string;
   /** Meta description, ≤ 155 chars. */
@@ -39,13 +40,11 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
   {
     slug: "exclusive-mortgage-leads",
     name: "Exclusive Mortgage Leads",
-    title: "Exclusive Mortgage Leads & ZIP Territories",
-    h1: "Exclusive mortgage leads and ZIP territories for loan officers",
-    description:
-      "Compare exclusive vs shared mortgage leads, real cost per lead, and how an exclusive ZIP territory lets loan officers own borrower demand.",
+    title: TOPIC_SEO["exclusive-mortgage-leads"].title,
+    h1: "Exclusive mortgage leads by ZIP code for loan officers",
+    description: TOPIC_SEO["exclusive-mortgage-leads"].description,
     intro: [
-      "Shared lead vendors sell the same borrower to several loan officers, so speed and price decide who wins, not service. These guides break down the real cost math of exclusive versus shared leads, how to evaluate lead sources, and how an exclusive ZIP territory changes the economics.",
-      "Start with the guides below, then check whether the ZIP codes you serve are still available to claim.",
+      "Shared lead vendors sell the same borrower to several loan officers, so speed and price decide who wins, not service. This guide answers the questions loan officers ask most about exclusive mortgage leads: how they differ from shared leads, what they cost, how to judge a lead company, and how owning a ZIP code changes the math.",
     ],
     keywords: [
       "exclusive",
@@ -66,10 +65,11 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
       "lead problems",
     ],
     pillarLinks: [
-      { label: "Claim a ZIP territory", href: "/claim-territory" },
-      { label: "Check ZIP demand", href: "/check-zip" },
+      { label: "Claim your ZIP code", href: "/claim-territory" },
+      { label: "Check ZIP code demand", href: "/check-zip" },
+      { label: "Meet Cerebro", href: "/cerebro" },
+      { label: "Loan officer markets", href: "/loan-officers" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Territory pages", href: "/territory" },
     ],
     faq: [
       {
@@ -77,20 +77,19 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
         a: "An exclusive mortgage lead is a borrower inquiry delivered to one loan officer only, instead of being resold to several lenders. Because there is no race against other originators, follow-up quality matters more than who dials first.",
       },
       {
-        q: "How does an exclusive ZIP territory work?",
-        a: "A ZIP territory reserves borrower demand in specific ZIP codes for one loan officer on the platform, so inquiries from those areas route to that officer rather than to a shared pool. Availability is checked per ZIP before you claim.",
+        q: "How does an exclusive ZIP code work?",
+        a: "Each paid YPN USA plan includes one ZIP code. While you hold it, no other YPN USA loan officer can claim it, and inquiries from YPN USA pages for that ZIP code route to you rather than to a shared pool. It is exclusive within YPN USA, not across every lender. Checking a ZIP code is free.",
       },
     ],
   },
   {
     slug: "ai-lead-automation",
     name: "AI, Automation & Compliance",
-    title: "AI Lead Capture, Automation & Compliance",
-    h1: "AI lead capture, automation and compliance for mortgage loan officers",
-    description:
-      "AI borrower intake, speed-to-lead, CRM workflows, SMS/email automation and TCPA/RESPA compliance guides for mortgage loan officers.",
+    title: TOPIC_SEO["ai-lead-automation"].title,
+    h1: "Mortgage CRM, AI lead capture and automation for loan officers",
+    description: TOPIC_SEO["ai-lead-automation"].description,
     intro: [
-      "Response time and consistent follow-up are the two levers loan officers control after a lead arrives. These guides cover AI borrower intake, speed-to-lead, CRM drip workflows, webhooks and the automation that keeps a pipeline moving without manual data entry. Compliance guides (TCPA consent, RESPA, audit readiness) are included because automation only scales safely when consent and disclosures are built in. They are educational, not legal advice.",
+      "Response time and consistent follow-up are the two levers loan officers control after a lead arrives. This guide covers the mortgage CRM, AI borrower intake, speed to lead, follow-up automation, and the TCPA and RESPA rules that keep it safe. It is educational, not legal advice.",
     ],
     keywords: [
       "\\bai\\b",
@@ -122,10 +121,11 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
       "loan process",
     ],
     pillarLinks: [
-      { label: "AI platform", href: "/ai-platform" },
-      { label: "Licensing disclosures", href: "/licensing-disclosures" },
+      { label: "Meet Cerebro", href: "/cerebro" },
+      { label: "Mortgage CRM vs AI assistant", href: "/blog/mortgage-crm-vs-ai-assistant" },
       { label: "Platform features", href: "/features" },
-      { label: "Book a demo", href: "/book" },
+      { label: "Claim your ZIP code", href: "/claim-territory" },
+      { label: "Licensing disclosures", href: "/licensing-disclosures" },
     ],
     faq: [
       {
@@ -145,10 +145,9 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
   {
     slug: "realtor-referral-partnerships",
     name: "Realtor & Referral Partnerships",
-    title: "Realtor & Referral Partnerships for MLOs",
+    title: TOPIC_SEO["realtor-referral-partnerships"].title,
     h1: "Realtor co-marketing and referral partnerships for loan officers",
-    description:
-      "How loan officers build realtor co-marketing, attorney and past-client referral pipelines, with RESPA-aware plays and referral systems that compound.",
+    description: TOPIC_SEO["realtor-referral-partnerships"].description,
     intro: [
       "Referrals remain a core source of purchase and refinance volume, but relying on a handful of realtors concentrates risk. These guides cover compliant co-marketing, approaching agents, estate and probate attorney partnerships, and referral engines that do not depend on realtors at all.",
     ],
@@ -166,7 +165,9 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
     ],
     pillarLinks: [
       { label: "MLO marketing", href: "/mlo-marketing" },
-      { label: "Book a call", href: "/book" },
+      { label: "Meet Cerebro", href: "/cerebro" },
+      { label: "Claim your ZIP code", href: "/claim-territory" },
+      { label: "Book a call", href: "/consultation" },
     ],
     faq: [
       {
@@ -178,12 +179,11 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
   {
     slug: "local-seo-for-loan-officers",
     name: "Local SEO for Loan Officers",
-    title: "Local SEO & Content for Loan Officers",
-    h1: "Local SEO, landing pages and content for loan officers",
-    description:
-      "Local SEO for mortgage websites: hyper-local landing pages, schema markup, Google Business Profile, Core Web Vitals and AI-search (GEO) strategy.",
+    title: TOPIC_SEO["local-seo-for-loan-officers"].title,
+    h1: "SEO for loan officers and mortgage brokers",
+    description: TOPIC_SEO["local-seo-for-loan-officers"].description,
     intro: [
-      "Organic search and map results are the lowest-cost long-term lead source a loan officer can build. These guides cover hyper-local landing pages, schema markup, Google Business Profile, technical SEO audits, site speed and optimizing for AI answer engines.",
+      "Organic search and map results are the lowest-cost long-term lead source a loan officer can build. This guide covers SEO for loan officers and mortgage brokers: Google Business Profile, local pages, schema, site speed and showing up in AI search answers.",
     ],
     keywords: [
       "\\bseo\\b",
@@ -213,9 +213,11 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
       "phoenix",
     ],
     pillarLinks: [
-      { label: "Local markets", href: "/markets" },
-      { label: "GBP optimizer tool", href: "/tools/gbp-optimizer" },
-      { label: "Check ZIP demand", href: "/check-zip" },
+      { label: "Google Business Profile optimizer", href: "/tools/gbp-optimizer" },
+      { label: "Visalia loan officers", href: "/loan-officers/visalia-ca" },
+      { label: "Loan officer markets", href: "/loan-officers" },
+      { label: "Meet Cerebro", href: "/cerebro" },
+      { label: "Claim your ZIP code", href: "/claim-territory" },
     ],
     faq: [
       {
@@ -227,10 +229,9 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
   {
     slug: "loan-programs-and-niches",
     name: "Loan Programs & Niche Markets",
-    title: "Mortgage Loan Programs & Niche Markets",
+    title: TOPIC_SEO["loan-programs-and-niches"].title,
     h1: "Loan programs and niche borrower markets for loan officers",
-    description:
-      "Marketing guides for FHA, VA, DSCR, jumbo, non-QM, HELOC, refinance, probate and first-time buyer niches, built for loan officers.",
+    description: TOPIC_SEO["loan-programs-and-niches"].description,
     intro: [
       "Specializing in a product or borrower niche makes marketing cheaper and referrals easier. These guides cover FHA, VA, DSCR, jumbo, non-QM and bank-statement loans, HELOC and refinance strategy, and life-event niches such as probate and divorce.",
     ],
@@ -259,6 +260,8 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
     pillarLinks: [
       { label: "Mortgage loan programs", href: "/mortgage-loans" },
       { label: "Loan types", href: "/loan-types" },
+      { label: "Meet Cerebro", href: "/cerebro" },
+      { label: "Claim your ZIP code", href: "/claim-territory" },
     ],
     faq: [
       {
@@ -270,12 +273,11 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
   {
     slug: "loan-officer-marketing",
     name: "Loan Officer Marketing",
-    title: "Loan Officer Marketing Strategy & Social Media",
-    h1: "Loan officer marketing strategy, social media and personal brand",
-    description:
-      "Loan officer marketing ideas for 2026: social media, Facebook, Instagram, LinkedIn, video, text and email, plus personal branding and lead generation.",
+    title: TOPIC_SEO["loan-officer-marketing"].title,
+    h1: "Loan officer marketing strategy and ideas",
+    description: TOPIC_SEO["loan-officer-marketing"].description,
     intro: [
-      "Marketing that works for a loan officer is consistent, local and measurable. These guides cover social media, video, email and text, personal branding and the broader lead-generation strategies that tie them together.",
+      "Marketing that works for a loan officer is consistent, local and measurable. This guide lays out a loan officer marketing strategy for 2026, from local content and social media to email, referral partners and measuring what works.",
     ],
     keywords: [
       "marketing",
@@ -294,9 +296,11 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
       "strategies",
     ],
     pillarLinks: [
-      { label: "Social writer tool", href: "/tools/social-writer" },
-      { label: "MLO marketing", href: "/mlo-marketing" },
-      { label: "Pricing", href: "/pricing" },
+      { label: "27 free marketing ideas", href: "/blog/mortgage-marketing-ideas-for-loan-officers" },
+      { label: "AI social post writer", href: "/tools/social-writer" },
+      { label: "ROI calculator", href: "/roi" },
+      { label: "Meet Cerebro", href: "/cerebro" },
+      { label: "Claim your ZIP code", href: "/claim-territory" },
     ],
     faq: [
       {
@@ -359,7 +363,7 @@ export const INDEXABLE_POSTS: readonly BlogPost[] = [...ALL_BLOG_POSTS]
   .sort((a, b) => (a.date < b.date ? 1 : -1));
 
 const assignment = new Map<string, string>(
-  INDEXABLE_POSTS.map((post) => [post.slug, clusterForPost(post).slug]),
+  INDEXABLE_POSTS.map((post) => [post.slug, post.cluster && getCluster(post.cluster) ? post.cluster : clusterForPost(post).slug]),
 );
 
 export function getPostCluster(slug: string): TopicCluster | undefined {

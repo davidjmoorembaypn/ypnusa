@@ -24,6 +24,7 @@
  * authoritative site until DNS actually cuts over (not yet — see AWS_MIGRATION.md).
  */
 import type { BlogPost } from "@/content/blog";
+import { zipCodeCopy } from "@/lib/zip-copy";
 import pagesData from "./pages.json";
 import postsData from "./posts.json";
 import redirectsData from "./redirects.json";
@@ -52,6 +53,10 @@ export interface WpImportedPage {
   faq?: { q: string; a: string }[];
   /** "Keep exploring" internal links shown under the body. */
   related?: { href: string; label: string }[];
+  /** Emit the product SoftwareApplication node (plans as offers), e.g. on a feature page. */
+  softwareApp?: boolean;
+  /** Pages this hub lists, mirrored as ItemList JSON-LD (e.g. /compare's comparison cards). */
+  itemList?: { name: string; href: string }[];
 }
 
 /** Founder facts for the author box and Person schema (generated from sites/ypnus-com/data/site.json). */
@@ -85,7 +90,22 @@ interface RawPost {
 }
 
 type PageSections = Record<string, WpImportedPage[]>;
-const SECTIONS = pagesData as PageSections;
+
+/** Visible titles, descriptions and FAQs say "ZIP code" (body HTML is rewritten at render time in wp-html.ts). */
+function withZipCodeCopy(page: WpImportedPage): WpImportedPage {
+  return {
+    ...page,
+    title: zipCodeCopy(page.title),
+    description: zipCodeCopy(page.description),
+    ...(page.seoTitle ? { seoTitle: zipCodeCopy(page.seoTitle) } : {}),
+    ...(page.faq ? { faq: page.faq.map((item) => ({ q: zipCodeCopy(item.q), a: zipCodeCopy(item.a) })) } : {}),
+    ...(page.related ? { related: page.related.map((link) => ({ ...link, label: zipCodeCopy(link.label) })) } : {}),
+  };
+}
+
+const SECTIONS: PageSections = Object.fromEntries(
+  Object.entries(pagesData as PageSections).map(([section, pages]) => [section, pages.map(withZipCodeCopy)]),
+);
 
 export const WP_TOP_PAGES: readonly WpImportedPage[] = SECTIONS.top ?? [];
 export const WP_MARKET_PAGES: readonly WpImportedPage[] = SECTIONS.markets ?? [];
@@ -106,8 +126,8 @@ export function getWpPage(list: readonly WpImportedPage[], slug: string): WpImpo
 
 export const WP_POSTS: readonly BlogPost[] = (postsData as RawPost[]).map((p) => ({
   slug: p.slug,
-  title: p.title,
-  description: p.description,
+  title: zipCodeCopy(p.title),
+  description: zipCodeCopy(p.description),
   date: p.date,
   author: p.author,
   readingMinutes: p.readingMinutes,

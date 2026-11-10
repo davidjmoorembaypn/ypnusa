@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { WP_AUTHOR, type WpImportedPage } from "@/content/wp-import";
-import { FOUNDER_ID, faqJsonLd } from "@/lib/seo";
+import { FOUNDER_ID, faqJsonLd, jsonLdScript, softwareApplicationJsonLd } from "@/lib/seo";
 import { NMLS_CONSUMER_ACCESS_URL, NMLS_ID, CA_DRE_ID } from "@/lib/author";
 import { needsFullPageLoad, prepareWpHtml } from "@/lib/wp-html";
 
@@ -93,6 +93,19 @@ function pageJsonLd(page: WpImportedPage, url: string, origin: string) {
   return { "@context": "https://schema.org", "@graph": graph };
 }
 
+function itemListJsonLd(items: { name: string; href: string }[], origin: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      url: `${origin}${item.href}`,
+    })),
+  };
+}
+
 function formatReviewed(date: string) {
   return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
     year: "numeric",
@@ -166,6 +179,12 @@ export function WpImportedPageView({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd(page, url, origin)).replace(/</g, "\\u003c") }}
       />
+      {page.softwareApp ? (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(softwareApplicationJsonLd()) }} />
+      ) : null}
+      {page.itemList?.length ? (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(itemListJsonLd(page.itemList, origin)) }} />
+      ) : null}
       {page.faq?.length ? (
         <script
           type="application/ld+json"

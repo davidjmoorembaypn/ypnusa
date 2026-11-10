@@ -35,7 +35,7 @@ function primaryCta(context: CtaContext): CtaEntry {
   const funnelCta = context.funnel?.ctaBlocks[0];
   if (funnelCta) return { label: funnelCta.label, href: funnelCta.url };
   if (context.available === false) return { label: "Join the waitlist" };
-  if (context.zip) return { label: `Lock ZIP ${context.zip}` };
+  if (context.zip) return { label: `Lock ZIP code ${context.zip}` };
   return { label: "Get your free borrower profile" };
 }
 
@@ -47,7 +47,7 @@ function secondaryCta(context: CtaContext): CtaEntry {
 function microNudges(context: CtaContext): string[] {
   const nudges: string[] = [];
   if (typeof context.demandTotal === "number" && context.demandTotal > 0) {
-    nudges.push(`~${context.demandTotal} buyers/sellers/movers active in this ZIP over the last 60 days.`);
+    nudges.push(`~${context.demandTotal} buyers/sellers/movers active in this ZIP code over the last 60 days.`);
   }
   if (context.pattern?.offers[0]) nudges.push(context.pattern.offers[0]);
   if (context.personalization?.whyThisMattersForYou) nudges.push(context.personalization.whyThisMattersForYou);

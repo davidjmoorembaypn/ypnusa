@@ -30,7 +30,7 @@ export function ChurnExitModal({ open, onDismiss }: { open: boolean; onDismiss: 
           ✕
         </button>
         <h2 id="churn-exit-modal-title" className="text-xl font-semibold">
-          Before you go — grab your ZIP demand snapshot
+          Before you go — grab your ZIP code demand snapshot
         </h2>
         <p className="mt-2 text-sm text-white/75">
           Takes 15 seconds, no account needed. See how much unclaimed borrower demand is sitting in your ZIP code
@@ -42,7 +42,7 @@ export function ChurnExitModal({ open, onDismiss }: { open: boolean; onDismiss: 
             onClick={onDismiss}
             className="inline-flex items-center justify-center rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
           >
-            Show me my ZIP
+            Show me my ZIP code
           </a>
           <button
             type="button"

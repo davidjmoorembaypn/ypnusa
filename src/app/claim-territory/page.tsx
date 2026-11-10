@@ -5,8 +5,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { marketingMetadata } from "@/lib/seo";
+import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import claimTerritoryContent from "@/content/wp-import/claim-territory.json";
 
 /**
  * Migrated from ypnus.com's WordPress /claim-territory page (see
@@ -22,8 +22,8 @@ import claimTerritoryContent from "@/content/wp-import/claim-territory.json";
 export async function generateMetadata(): Promise<Metadata> {
   const origin = MARKETING_SITE_URL;
   return marketingMetadata({
-    title: claimTerritoryContent.title,
-    description: claimTerritoryContent.description,
+    ...PAGE_SEO.claimTerritory,
+    absoluteTitle: true,
     path: "/claim-territory",
     origin,
   });
@@ -33,7 +33,7 @@ export default function ClaimTerritoryPage() {
   return (
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
       <SiteHeader />
-      <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Claim Territory", href: "/claim-territory" }]} />
+      <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Claim your ZIP code", href: "/claim-territory" }]} />
       <main id="main-content" className="flex-1">
         <section className="mx-auto w-full max-w-3xl px-5 py-16 md:py-20">
           <h1 className="text-3xl font-semibold leading-tight md:text-5xl">Claim your exclusive ZIP code</h1>

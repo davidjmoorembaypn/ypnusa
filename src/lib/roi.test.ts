@@ -1,6 +1,57 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { computeRoi, formatCoverage, parseDollarInput, parseLoanCountInput, planYearlyCosts } from "./roi";
+import {
+  compensationPerLoanCents,
+  computeRoi,
+  formatCoverage,
+  loansToCoverPlan,
+  parseDollarInput,
+  parseLoanCountInput,
+  parseNumberInput,
+  planYearlyCosts,
+  roiPlanOptions,
+} from "./roi";
+
+describe("/roi loans-to-cover math", () => {
+  it("turns basis points into compensation per loan (100 bps = 1%)", () => {
+    assert.equal(compensationPerLoanCents({ mode: "bps", loanAmountDollars: 350000, bps: 100, flatDollars: null }), 350000);
+    assert.equal(compensationPerLoanCents({ mode: "bps", loanAmountDollars: 400000, bps: 87.5, flatDollars: null }), 350000);
+  });
+
+  it("uses the flat per-loan amount in flat mode", () => {
+    assert.equal(compensationPerLoanCents({ mode: "flat", loanAmountDollars: null, bps: null, flatDollars: 2500 }), 250000);
+  });
+
+  it("returns null until inputs are positive", () => {
+    assert.equal(compensationPerLoanCents({ mode: "bps", loanAmountDollars: 0, bps: 100, flatDollars: null }), null);
+    assert.equal(compensationPerLoanCents({ mode: "bps", loanAmountDollars: 300000, bps: null, flatDollars: null }), null);
+    assert.equal(compensationPerLoanCents({ mode: "flat", loanAmountDollars: null, bps: null, flatDollars: 0 }), null);
+  });
+
+  it("divides the plan's yearly cost by compensation per loan and rounds whole loans up", () => {
+    const pro = loansToCoverPlan(350000, 118800);
+    assert.ok(pro);
+    assert.equal(pro.exact, 118800 / 350000);
+    assert.equal(pro.wholeLoans, 1);
+    assert.equal(loansToCoverPlan(100000, 358800)?.wholeLoans, 4);
+    assert.equal(loansToCoverPlan(100000, 200000)?.wholeLoans, 2);
+    assert.equal(loansToCoverPlan(null, 118800), null);
+  });
+
+  it("offers each plan monthly and 5-year prepaid, at our prices", () => {
+    const options = roiPlanOptions();
+    assert.equal(options.length, 6);
+    assert.deepEqual(options[0], { id: "growth-monthly", label: "Pro, monthly", yearlyCents: 118800 });
+    assert.deepEqual(options[1], { id: "growth-5y", label: "Pro, 5-year prepaid", yearlyCents: 79980 });
+  });
+
+  it("parses typed numbers", () => {
+    assert.equal(parseNumberInput("87.5"), 87.5);
+    assert.equal(parseNumberInput("1,000"), 1000);
+    assert.equal(parseNumberInput("-5"), null);
+    assert.equal(parseNumberInput(""), null);
+  });
+});
 
 describe("planYearlyCosts", () => {
   it("shows $1,188 / $2,388 / $3,588 a year monthly, and the 5-year price spread over 5 years", () => {

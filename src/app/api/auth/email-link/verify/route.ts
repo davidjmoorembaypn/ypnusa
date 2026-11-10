@@ -31,7 +31,11 @@ export async function POST(request: Request) {
       tier: entitlement.tier,
       subscriptionStatus: entitlement.subscriptionStatus,
     });
-    return NextResponse.redirect(new URL(result.next, origin), 303);
+    const destination = new URL(result.next, origin);
+    // A brand-new account (created by this sign-in) fires the signup_complete funnel event
+    // in the browser; the flag carries no personal data and is removed on arrival.
+    if (account.createdAt === account.lastLoginAt) destination.searchParams.set("signup", "1");
+    return NextResponse.redirect(destination, 303);
   } catch (error) {
     logApiError("/api/auth/email-link/verify", error);
     return NextResponse.redirect(new URL("/login?error=failed", origin), 303);

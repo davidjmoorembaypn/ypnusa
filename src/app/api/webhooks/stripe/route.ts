@@ -3,6 +3,7 @@ import { normalizeEmail, upsertAccount } from "@/lib/accounts";
 import { ensureOfficerForAccount } from "@/lib/crm";
 import { applyFulfillmentEvent, lockZipOnPaidInvoice } from "@/lib/fulfillment";
 import { jsonError, jsonOk, logApiError } from "@/lib/http";
+import { sendServerFunnelEvent } from "@/lib/funnel-server";
 import { mapStripeEventToFulfillmentPayload, verifyStripeWebhookEvent } from "@/lib/stripe-webhook";
 
 export const runtime = "nodejs";
@@ -53,6 +54,13 @@ export async function POST(request: Request) {
         invoiceStatus: invoice.status,
       });
       const outcome = recordInvoicePaid(event);
+      if (outcome.recorded && outcome.firstForCustomer) {
+        await sendServerFunnelEvent(
+          "first_payment_succeeded",
+          { source: "stripe", billing_reason: invoice.billing_reason ?? undefined },
+          idOf(invoice.customer as string | { id: string } | null) ?? invoice.id ?? event.id,
+        );
+      }
       return jsonOk({ applied: outcome.recorded, reason: outcome.reason, zipLock: lock });
     }
     const payload = mapStripeEventToFulfillmentPayload(event);

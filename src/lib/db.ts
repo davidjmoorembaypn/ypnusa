@@ -794,15 +794,16 @@ export function storageMode(): { persistent: boolean; dir: string; error?: strin
  * Appends a verified payment unless this invoice or Stripe event was already
  * recorded. Atomic inside writeDb, so a redelivered webhook can never double count.
  */
-export function recordPaymentConversion(record: PaymentConversionRecord): { recorded: boolean; reason?: string } {
-  let outcome: { recorded: boolean; reason?: string } = { recorded: false };
+export function recordPaymentConversion(record: PaymentConversionRecord): { recorded: boolean; reason?: string; firstForCustomer?: boolean } {
+  let outcome: { recorded: boolean; reason?: string; firstForCustomer?: boolean } = { recorded: false };
   writeDb((db) => {
     if (db.paymentConversions.some((item) => item.id === record.id || item.eventId === record.eventId)) {
       outcome = { recorded: false, reason: "Payment already recorded (duplicate delivery)." };
       return;
     }
+    const firstForCustomer = !db.paymentConversions.some((item) => item.stripeCustomerId === record.stripeCustomerId);
     db.paymentConversions.push(record);
-    outcome = { recorded: true };
+    outcome = { recorded: true, firstForCustomer };
   });
   return outcome;
 }

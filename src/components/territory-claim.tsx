@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { track } from "@/lib/track";
+import { trackFunnel } from "@/lib/funnel-events";
 import { postJson } from "@/lib/client-api";
 import { FREE_SIGNUP_HREF, checkoutUrlForTier, payNowUrlForTier } from "@/lib/checkout";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
@@ -343,14 +344,14 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                 <a
                   href={payNowUrlForTier("growth", check.zip) ?? checkoutUrlForTier("growth", check.zip)}
-                  onClick={() => track("begin_checkout", { plan: "growth", zip: check.zip, source, checkout: "pay_now" })}
+                  onClick={() => { track("begin_checkout", { plan: "growth", zip: check.zip, source, checkout: "pay_now" }); trackFunnel("checkout_started", { plan: "growth", checkout: "pay_now", source }); }}
                   className="inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
                 >
                   Pay now &amp; lock ZIP code {check.zip} today →
                 </a>
                 <a
                   href={checkoutUrlForTier("growth", check.zip)}
-                  onClick={() => track("begin_checkout", { plan: "growth", zip: check.zip, source, checkout: "trial" })}
+                  onClick={() => { track("begin_checkout", { plan: "growth", zip: check.zip, source, checkout: "trial" }); trackFunnel("checkout_started", { plan: "growth", checkout: "trial", source }); }}
                   className="text-xs font-semibold text-white/80 underline underline-offset-2 hover:text-white"
                 >
                   or start a 15-day trial

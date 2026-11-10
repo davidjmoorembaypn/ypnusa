@@ -23,7 +23,7 @@ export function idOf(value: string | { id: string } | null | undefined): string 
   return typeof value === "string" ? value : value.id;
 }
 
-export function recordInvoicePaid(event: Stripe.Event): { recorded: boolean; reason?: string } {
+export function recordInvoicePaid(event: Stripe.Event): { recorded: boolean; reason?: string; firstForCustomer?: boolean } {
   if (event.type !== "invoice.paid") return { recorded: false, reason: "Not an invoice.paid event." };
   if (!event.livemode) return { recorded: false, reason: "Test-mode payment ignored." };
 

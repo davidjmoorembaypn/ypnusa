@@ -177,3 +177,20 @@ describe("plan feature copy", () => {
     }
   });
 });
+
+describe("plan entitlement matrix", () => {
+  it("agrees with each plan card's feature list", async () => {
+    const { PLAN_ENTITLEMENTS, getPricingTier } = await import("./pricing");
+    const row = (label: string) => PLAN_ENTITLEMENTS.find((item) => item.label === label);
+    const website = row("Portable MLO website");
+    assert.ok(website);
+    // The website is on Growth ($199, id "pro") and Exclusive ($299, id "elite") only.
+    assert.deepEqual([website.free, website.growth, website.pro, website.elite], ["—", "—", "✓", "✓"]);
+    assert.ok(getPricingTier("pro").features.includes("Portable MLO website"));
+    assert.ok(!getPricingTier("growth").features.includes("Portable MLO website"));
+    const zip = row("Exclusive ZIP code (locks at first payment)");
+    assert.deepEqual([zip?.growth, zip?.pro, zip?.elite], ["1 included", "1 included", "1 included"]);
+    // No fixed page counts anywhere in the matrix.
+    assert.ok(PLAN_ENTITLEMENTS.every((item) => !/\d+\+/.test(item.label)));
+  });
+});

@@ -72,7 +72,9 @@ describe("verified paid conversions", async () => {
   });
 
   it("does not count a payment until the subscription is fulfilled in the app", () => {
-    assert.equal(recordInvoicePaid(invoicePaid({ eventId: "e10", invoiceId: "in_10" })).recorded, true);
+    const first = recordInvoicePaid(invoicePaid({ eventId: "e10", invoiceId: "in_10" }));
+    assert.equal(first.recorded, true);
+    assert.equal(first.firstForCustomer, true);
     const before = summarizeConversions({});
     assert.equal(before.paidCustomers, 1);
     assert.equal(before.qualifyingConversions, 0);
@@ -89,7 +91,9 @@ describe("verified paid conversions", async () => {
     assert.equal(dup.recorded, false);
     assert.match(dup.reason ?? "", /duplicate/i);
 
-    recordInvoicePaid(invoicePaid({ eventId: "e11", invoiceId: "in_11", created: 1_802_600_000 }));
+    const renewal = recordInvoicePaid(invoicePaid({ eventId: "e11", invoiceId: "in_11", created: 1_802_600_000 }));
+    assert.equal(renewal.recorded, true);
+    assert.equal(renewal.firstForCustomer, false);
     assert.equal(summarizeConversions({}).qualifyingConversions, 1);
   });
 

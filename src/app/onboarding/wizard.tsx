@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { GOAL_COPY } from "@/lib/agent-onboarding";
+import { trackFunnel } from "@/lib/funnel-events";
 import type { AgentOnboardingGoal, AgentOnboardingRecord } from "@/lib/types";
 import type { PricingTierId } from "@/lib/pricing";
 
@@ -139,8 +140,10 @@ export function OnboardingWizard({
         setNotice(message);
         return false;
       }
+      if (action === "profile") trackFunnel("growth_profile_saved", { source: "onboarding", step: nextStep });
       if (body && "borrowerPagePath" in body) {
         setBorrowerPagePath(typeof body.borrowerPagePath === "string" ? body.borrowerPagePath : null);
+        if (typeof body.borrowerPagePath === "string" && !borrowerPagePath) trackFunnel("mlo_site_configured", { source: "onboarding", step: nextStep });
       }
       setStep(nextStep); return true;
     } catch {
@@ -372,7 +375,7 @@ export function OnboardingWizard({
                 {borrowerPagePath ? (
                   <p className="mt-2 text-sm leading-6 text-[#536070]">
                     Live at{" "}
-                    <a href={borrowerPagePath} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#7a571b] underline underline-offset-4">
+                    <a href={borrowerPagePath} target="_blank" rel="noopener noreferrer" data-funnel-event="site_preview_open" data-funnel-source="onboarding" className="font-semibold text-[#7a571b] underline underline-offset-4">
                       {borrowerPagePath}<span className="sr-only"> (opens in a new tab)</span>
                     </a>
                     . Share it anywhere; requests started there go to you.

@@ -44,7 +44,7 @@ export const MLO_MARKETS: readonly MloMarket[] = [
     title: PAGE_SEO.visalia.title,
     description: PAGE_SEO.visalia.description,
     cardBlurb: "Visalia and Tulare County, with Tulare, Exeter and Hanford nearby.",
-    h1: "Visalia loan officers: own your ZIP code and let Cerebro work your borrowers",
+    h1: "Visalia loan officers: claim your ZIP code and let Cerebro work your borrowers",
     intro:
       "YPN USA was built in the Central Valley by a loan officer with 25+ years in production. In Visalia, that means one YPN USA loan officer per ZIP code, a local page for your market, and an AI assistant that answers borrower questions at any hour and hands the ready ones to you.",
     whyHere:

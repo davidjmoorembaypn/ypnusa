@@ -8,6 +8,7 @@ import {
   PREPAID_5Y,
   PREPAID_5Y_REFUND_WINDOW_DAYS,
   PREPAID_5Y_YEARS,
+  PLAN_ENTITLEMENTS,
   PUBLIC_PRICING_TIERS,
   getPricingTier,
 } from "@/lib/pricing";
@@ -31,20 +32,6 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-const COMPARE_ROWS: Array<{ label: string; free: string; growth: string; pro: string; elite: string }> = [
-  { label: "Cerebro AI growth diagnostic", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "AI borrower intake assistant", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "Exclusive ZIP code (locks at first payment)", free: "—", growth: "1 included", pro: "1 included", elite: "1 included" },
-  { label: "Live lead delivery", free: "—", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "SMS + email nurture ladders", free: "—", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "Calendar booking + CRM mirroring", free: "—", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "Portable MLO website", free: "—", growth: "—", pro: "✓", elite: "✓" },
-  { label: "Priority lead delivery", free: "—", growth: "—", pro: "✓", elite: "✓" },
-  { label: "Advanced life-event signals", free: "—", growth: "—", pro: "✓", elite: "✓" },
-  { label: "Priority ZIP code add-on access", free: "—", growth: "—", pro: "—", elite: "✓" },
-  { label: "Unlimited automation runs", free: "—", growth: "—", pro: "—", elite: "✓" },
-  { label: "White-glove onboarding", free: "—", growth: "—", pro: "—", elite: "✓" },
-];
 
 const PRICING_FAQ = [
   {
@@ -302,7 +289,7 @@ export default function PricingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {COMPARE_ROWS.map((row) => (
+                  {PLAN_ENTITLEMENTS.map((row) => (
                     <tr key={row.label} className="border-t border-white/10">
                       <td className="px-5 py-3 text-white/80">{row.label}</td>
                       <td className="px-5 py-3 text-center text-white/60">{row.free}</td>

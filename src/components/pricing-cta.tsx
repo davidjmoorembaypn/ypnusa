@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { track } from "@/lib/track";
+import { trackFunnel } from "@/lib/funnel-events";
 import { checkoutUrlForTier, payNowUrlForTier, prepaid5yUrlForTier } from "@/lib/checkout";
 import { ZIP_CHECKED_EVENT, ZIP_STORAGE_KEY } from "@/components/territory-claim";
 import type { PricingTierId } from "@/lib/pricing";
@@ -73,12 +74,13 @@ export function PricingCta({
       href={href}
       className={className}
       aria-describedby={ariaDescribedBy}
-      onClick={() =>
+      onClick={() => {
         track(
           tierId === "free" ? "sign_up_click" : "begin_checkout",
           tierId === "free" ? { plan: tierId } : { plan: tierId, checkout: variant },
-        )
-      }
+        );
+        if (tierId !== "free") trackFunnel("checkout_started", { plan: tierId, checkout: variant, source: "pricing" });
+      }}
     >
       {children}
     </a>

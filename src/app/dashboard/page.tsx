@@ -217,6 +217,8 @@ export default async function DashboardHubPage({
               href={officerPagePath(borrowerPage.slug)}
               target="_blank"
               rel="noopener noreferrer"
+              data-funnel-event="site_preview_open"
+              data-funnel-source="dashboard"
               className="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
             >
               View my page<span className="sr-only"> (opens in a new tab)</span>

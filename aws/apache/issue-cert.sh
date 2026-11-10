@@ -8,7 +8,7 @@ ORIGIN_IP="${1:?usage: issue-cert.sh <wordpress-origin-ip>}"
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 command -v certbot >/dev/null || { echo "ERROR: certbot is not installed" >&2; exit 1; }
-certbot certonly --webroot -w /var/www/letsencrypt -d ypnus.com -d www.ypnus.com \
+certbot certonly --webroot -w /var/www/letsencrypt --cert-name ypnus.com --expand -d ypnus.com -d www.ypnus.com \
   --non-interactive --agree-tos --keep-until-expiring \
   --deploy-hook "systemctl reload httpd"
 bash "$SRC/install-front-door.sh" "$ORIGIN_IP"

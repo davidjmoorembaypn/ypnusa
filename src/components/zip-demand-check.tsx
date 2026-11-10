@@ -43,7 +43,7 @@ export function ZipDemandCheck() {
     event.preventDefault();
     const clean = zip.trim();
     if (!/^\d{5}$/.test(clean)) {
-      setState({ kind: "error", message: "Enter a valid 5-digit zip code." });
+      setState({ kind: "error", message: "Enter a valid 5-digit ZIP code." });
       return;
     }
     setState({ kind: "loading" });
@@ -51,13 +51,13 @@ export function ZipDemandCheck() {
       const res = await fetch(`/api/territory/check?zip=${encodeURIComponent(clean)}`, { cache: "no-store" });
       const data = (await res.json()) as CheckResponse;
       if (!res.ok || data.error) {
-        setState({ kind: "error", message: data.error ?? "We could not check that zip code. Please try again." });
+        setState({ kind: "error", message: data.error ?? "We could not check that ZIP code. Please try again." });
         return;
       }
       track("check_zip_result", { available: Boolean(data.available) });
       setState({ kind: "result", data });
     } catch {
-      setState({ kind: "error", message: "We could not check that zip code. Please try again." });
+      setState({ kind: "error", message: "We could not check that ZIP code. Please try again." });
     }
   }
 
@@ -65,7 +65,7 @@ export function ZipDemandCheck() {
     <div className="rounded-[28px] border border-white/15 bg-white/[0.06] p-6 md:p-8">
       <form onSubmit={submit} noValidate>
         <label htmlFor={inputId} className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-200">
-          Your zip code (where you work)
+          Your ZIP code (where you work)
         </label>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <input
@@ -91,7 +91,7 @@ export function ZipDemandCheck() {
       <div aria-live="polite" role="status" className="mt-5 min-h-[120px]">
         {state.kind === "idle" && (
           <p className="text-sm text-white/80">
-            Enter a zip code to see how many people are expected to buy, sell or move in over the next 60 days.
+            Enter a ZIP code to see how many people are expected to buy, sell or move in over the next 60 days.
           </p>
         )}
         {state.kind === "error" && <p className="text-sm font-medium text-rose-200">{state.message}</p>}
@@ -103,7 +103,7 @@ export function ZipDemandCheck() {
 
 function Result({ data }: { data: CheckResponse }) {
   if (data.valid === false) return <p className="text-sm font-medium text-rose-200">{data.message}</p>;
-  const place = data.city && data.state ? `${data.city}, ${data.state}` : `Zip code ${data.zip}`;
+  const place = data.city && data.state ? `${data.city}, ${data.state}` : `ZIP code ${data.zip}`;
   const d = data.demand;
   return (
     <div>
@@ -128,10 +128,10 @@ function Result({ data }: { data: CheckResponse }) {
           </dl>
         </>
       ) : (
-        <p className="mt-1 text-white/85">Demand figures are not available for this zip code yet.</p>
+        <p className="mt-1 text-white/85">Demand figures are not available for this ZIP code yet.</p>
       )}
       <p className="mt-4 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white">
-        {data.available ? "Open: this zip code is still available. " : "Taken: "}
+        {data.available ? "Open: this ZIP code is still available. " : "Taken: "}
         {data.message}
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
@@ -140,7 +140,7 @@ function Result({ data }: { data: CheckResponse }) {
             href={`/claim-territory?zip=${data.zip}`}
             className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-[#09081b] hover:brightness-105"
           >
-            Claim this zip code
+            Claim this ZIP code
           </Link>
         ) : null}
         <Link

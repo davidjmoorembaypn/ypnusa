@@ -15,9 +15,15 @@
  */
 const BARE_ZIP = /\bZIP(s?)\b(?![  -]?(?:[Cc]odes?|CODES?)\b)(?![+_])/g;
 
+/**
+ * A lowercase or capitalized "zip" used as a word ("your zip code", "Zip Codes", "per zip"):
+ * not part of a URL, path, parameter, email or identifier ("/zip/93720", "?zip=", "zipCode").
+ */
+const LOWER_ZIP = /(?<![\w/.=&?#@-])[Zz]ip(?=s?(?![\w/=@-]|\.\w))/g;
+
 export function zipCodeCopy(text: string): string {
-  if (!text.includes("ZIP")) return text;
-  return text.replace(BARE_ZIP, (match, plural: string, offset: number, whole: string) => {
+  if (!/zip/i.test(text)) return text;
+  return text.replace(LOWER_ZIP, "ZIP").replace(BARE_ZIP, (match, plural: string, offset: number, whole: string) => {
     const after = whole.slice(offset + match.length);
     if (after.startsWith("-")) return `ZIP-code${plural ? "s" : ""}`;
     // Title Case headings ("Exclusive ZIP Territories") keep their capitals.
@@ -32,7 +38,7 @@ export function zipCodeCopy(text: string): string {
  * contents of <script>, <style>, <code> and <pre> blocks.
  */
 export function zipCodeCopyHtml(html: string): string {
-  if (!html.includes("ZIP")) return html;
+  if (!/zip/i.test(html)) return html;
   let out = "";
   let skipUntil: string | null = null;
   // Split into tags and text runs; tags keep their attributes untouched.

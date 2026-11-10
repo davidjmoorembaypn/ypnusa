@@ -22,6 +22,19 @@ describe("zipCodeCopy", () => {
     }
   });
 
+  it("capitalizes a lowercase zip and adds code when it is missing", () => {
+    assert.equal(zipCodeCopy("secure a zip code"), "secure a ZIP code");
+    assert.equal(zipCodeCopy("Exclusive Zip Codes"), "Exclusive ZIP Codes");
+    assert.equal(zipCodeCopy("one officer per zip."), "one officer per ZIP code.");
+    assert.equal(zipCodeCopy("zips nearby"), "ZIP codes nearby");
+  });
+
+  it("leaves zip in URLs, parameters and identifiers alone", () => {
+    for (const text of ["ypnus.com/zip/93720", "/claim-territory?zip=93720", "zipCode", "unzip", "zip_code", "a.zip file"]) {
+      assert.equal(zipCodeCopy(text), text);
+    }
+  });
+
   it("writes hyphenated compounds as ZIP-code-…", () => {
     assert.equal(zipCodeCopy("ZIP-level estimates"), "ZIP-code-level estimates");
   });

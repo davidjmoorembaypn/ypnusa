@@ -26,7 +26,7 @@ export const EXPLAINER_VIDEOS: ExplainerVideo[] = [
     title: "See how YPN USA works",
     url: "https://go.screenpal.com/player/cOQjYdnwAGI",
     description:
-      "A walkthrough of how the platform works end to end — exclusive ZIP territories, AI-driven lead intake, and what a loan officer gets with every signup.",
+      "A walkthrough of how the platform works end to end — exclusive ZIP code territories, AI-driven lead intake, and what a loan officer gets with every signup.",
     topics: [
       "how does this work",
       "how it works",
@@ -48,7 +48,7 @@ export const EXPLAINER_VIDEOS: ExplainerVideo[] = [
     title: "Shared vs. Exclusive Mortgage Leads",
     url: "https://www.youtube.com/watch?v=MdwrE3LjLMA",
     description:
-      "Explains the core ownership model: shared mortgage leads put several loan officers in the same race for the same borrower, while YPN USA locks one paid officer per ZIP so the leads that territory generates route to them, not competitors.",
+      "Explains the core ownership model: shared mortgage leads put several loan officers in the same race for the same borrower, while YPN USA locks one paid officer per ZIP code so the leads that territory generates route to them, not competitors.",
     topics: [
       "shared leads",
       "shared and exclusive leads",

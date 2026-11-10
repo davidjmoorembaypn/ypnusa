@@ -174,7 +174,7 @@ export function scoreLead(lead: Lead, zipCtx: ZipContext, county: CountyEvents):
   const leadScore = clampScore(rentalScore * 0.4 + censusScore * 0.35 + lifeEventLikelihood * 0.25);
   const recommendedAction = recommendedActionFor(tags, zipCtx, lifeEventLikelihood);
 
-  if (reasons.length === 0) reasons.push("No strong signals detected from ZIP, county, or lead tags.");
+  if (reasons.length === 0) reasons.push("No strong signals detected from ZIP code, county, or lead tags.");
 
   return { leadScore, lifeEventLikelihood, recommendedAction, reasons };
 }

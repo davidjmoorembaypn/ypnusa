@@ -86,7 +86,7 @@ export default function TermsOfServicePage() {
           current billing period and then ends.
         </li>
         <li>
-          A ZIP territory is exclusive to the Subscriber who currently holds it under an active
+          A ZIP code territory is exclusive to the Subscriber who currently holds it under an active
           subscription and is subject to the Platform&rsquo;s territory rules. Territory claims
           release automatically if the associated subscription lapses, and we do not guarantee any
           specific volume, quality, or continuity of leads.

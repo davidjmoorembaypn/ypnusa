@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
           protects information in connection with <strong>app.ypnus.com</strong> (this platform)
           and its coordinated marketing site, <strong>ypnus.com</strong>. It applies to loan
           officers who subscribe to the YPN USA platform (&ldquo;Subscribers&rdquo;) and to
-          consumers who interact with a Subscriber&rsquo;s territory page, ZIP-availability
+          consumers who interact with a Subscriber&rsquo;s territory page, ZIP code availability
           checker, AI intake assistant, equity snapshot tool, or phone line (&ldquo;Visitors&rdquo;
           or &ldquo;Borrowers&rdquo;).
         </>
@@ -74,7 +74,7 @@ export default function PrivacyPolicyPage() {
       <h2>3. How we use information</h2>
       <ul>
         <li>To operate the platform: authenticate Subscribers, enforce territory exclusivity, and process billing.</li>
-        <li>To route a Borrower&rsquo;s inquiry to the Subscriber who holds that ZIP territory.</li>
+        <li>To route a Borrower&rsquo;s inquiry to the Subscriber who holds that ZIP code territory.</li>
         <li>To operate the AI intake assistant, qualify inquiries, and schedule appointments.</li>
         <li>To send transactional communications (account, billing, appointment, and support messages).</li>
         <li>To monitor, secure, and improve the platform, and to comply with legal obligations.</li>

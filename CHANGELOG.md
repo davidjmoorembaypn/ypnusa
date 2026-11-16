@@ -1,0 +1,149 @@
+# Change log
+
+What changed on ypnus.com for loan officers and borrowers, one entry per release, newest first.
+
+- **Dates** are the day the build was made, in Pacific time. A build only reaches the live site once it is
+  installed (see [docs/OPERATIONS.md](docs/OPERATIONS.md)); where that happened on a later day, the entry says so.
+- **Build names** match the GitHub releases (`app-build-<7 characters>`). GitHub keeps only the five newest builds,
+  so older ones are listed here but can no longer be downloaded.
+- Each entry covers everything merged since the previous live build. The pull request numbers link the full details.
+- This log starts with the move of ypnus.com off WordPress onto its own server (November 2026). Earlier work is in
+  the git history and in [CHANGELOG-WP-AUDIT.md](CHANGELOG-WP-AUDIT.md).
+
+---
+
+## Nov 16, 2026 — app-build-17e6e2d (live)
+
+- **Lead form, step 2:** if saving the optional company and team size fails, the visitor is told the extra details
+  weren't saved (their request itself still went through), instead of a false "thanks". When step 2 adds new details,
+  the YPN USA team gets an email with them. (#149)
+- **"ZIP code" wording:** 144 imported blog pages now say "whether your ZIP code is open" and "create your free
+  account" instead of showing old file names as link text; form placeholders say "Enter your ZIP code". (#148)
+
+## Nov 16, 2026 — app-build-01c062a
+
+- **Shorter forms and a faster ZIP code check:** on phones the ZIP code check now sits near the top of the home page,
+  right under the headline and verified credentials. Asking about a ZIP code takes three fields (name, work email,
+  optional phone) instead of seven, with company and team size as an optional second step. Bigger, clearer buttons.
+  Prices, plans, Stripe links and SEO were not changed. (#147)
+- **License disclosures on marketing drafts:** every social post, ad, marketing email and Google post Cerebro drafts
+  for a signed-in officer ends with that officer's disclosures (name and NMLS ID, company NMLS ID, state lines and
+  Equal Housing line). The free social writer adds them too. (#146)
+- **CRM link fixes:** a lead moved to another officer now reaches that officer's CRM; brief network failures are
+  retried instead of dropped; replacing the CRM address keeps existing CRM links. Page chat fixes as well. (#146)
+
+## Nov 16, 2026 — app-build-173aca8
+
+- **CRM link:** on Dashboard > CRM link, an officer pastes a Zapier (or any secure webhook) address and every lead
+  routed to them is sent to their own CRM within seconds. The CRM can send status changes and notes back. No new
+  vendor account or paid plan needed. (#145)
+- Fixes for review findings in the lead score, page chat and phone alerts, including a Live Takeover that could be
+  overwritten by a slow AI reply. (#145)
+
+## Nov 16, 2026 — app-build-f16a9f7
+
+- **Phone alerts:** officers can turn on notifications on their phone or computer for a new lead (with its lead
+  score), a lead that needs them, a new chat on their page, and a borrower reply during a takeover. Alerts never
+  include borrower names, contact details, ZIP codes or amounts. (#144)
+
+## Nov 16, 2026 — app-build-1d1d7e7
+
+- **Chat on the officer's page, with Live Takeover:** every live loan officer page has a "Chat with {name}'s
+  assistant" box. Cerebro answers as the officer's AI assistant, sends the lead to that officer when they are
+  licensed in the borrower's state, and shows the required disclosures. The officer can pause Cerebro and reply
+  personally from a new Live chats screen. (#143)
+- **Lead score:** each lead shows a 0 to 100 readiness score (hot, warm or nurture) with its top three reasons in
+  plain English. It is rules only and ignores ZIP code, name, age, family status, veteran status and income, for
+  fair lending. (#142)
+- **Install the dashboard as a phone app:** officers can add the dashboard to their home screen, with an offline page
+  when the connection drops. No borrower data is stored on the phone. (#141)
+- **Cerebro for officers and borrowers:** Cerebro answers officers from their live account (plan, ZIP codes, setup
+  gaps, leads) and a help guide, and borrowers from a mortgage guide. It can email borrowers on its own when an
+  officer is busy (officers can switch to approve-first); every send checks consent, opt-outs, advertising rules and
+  licensing, and includes a one-click unsubscribe. Prequal letters are never sent automatically.
+- The health check now shows whether outgoing email is turned on.
+
+## Nov 16, 2026 — app-build-b0b0030
+
+- **Licensing in onboarding:** step 1 now asks for the company NMLS ID, the states the officer is licensed in, a
+  California license (DRE or DFPI) and whether the company is a direct lender. Cerebro won't draft messages to
+  borrowers in states the officer isn't licensed in, and disclosures use the right lines. (#140)
+- Site optimizer: re-runs after an interrupted run and shows a note by the Run now button.
+
+## Nov 16, 2026 — app-build-f2ff4a4
+
+- **Compliance engine:** Cerebro's borrower messages (follow-ups, rate alerts and prequal letters) and officer pages
+  now carry the officer's NMLS ID, the company NMLS ID, state lines (federal baseline everywhere, plus California's
+  required statements) and the Equal Housing line. A missing NMLS ID shows a visible "[add your NMLS ID]" placeholder.
+  (#139)
+- Site optimizer: Run now works in the background, protected pages are proposed for approval instead of skipped, and
+  page totals come straight from Search Console.
+
+## Nov 16, 2026 — app-build-8bec5a1
+
+- **Borrower data protection:** borrower names, contact details, credit answers, chat transcripts and home-equity
+  figures can now be encrypted on the server (turned on for the live site the same day). Server logs mask emails,
+  phone numbers and other sensitive numbers. (#138)
+- **Consent:** follow-ups stop for a borrower who opted out, and texts or calls wait for 8am to 9pm local time. (#138)
+- **No duplicate leads:** the same lead sent twice to the lead webhook is recorded once. (#138)
+
+## Nov 15, 2026 — app-build-c54f992
+
+- **Cerebro as the borrower follow-up assistant:** borrowers can share prequal basics in chat (sensitive numbers are
+  scrubbed, and Cerebro never says they are prequalified) and sign up for rate alerts. In the dashboard, Cerebro finds
+  consenting leads that haven't been contacted and drafts purchase, refinance and check-in messages for the officer
+  to approve.
+- **Site optimizer:** once a week Cerebro reads Google Search Console, finds pages that show in search but get few
+  clicks, and writes better titles and descriptions for up to three of them. Pricing, legal, sign-in pages and the
+  home page are never changed without approval.
+- Fixes so Cerebro always writes a real reply after taking a borrower's details.
+
+## Nov 15, 2026 — app-build-c859d55
+
+- **No more exit pop-up:** the home page exit-intent pop-up is gone. The home page leads with a stronger headline, an
+  honest line about one loan officer per ZIP code, and one main button to the ZIP code check. (#136)
+- Guides and topic pages end with a clear next step, and phones show a small "Is your ZIP code open?" bar that never
+  opens by itself. (#136)
+
+## Nov 15, 2026 — app-build-8b306d2
+
+- **SEO structure pass:** 43 thin or duplicate old WordPress pages now point to the page that covers the same topic,
+  so every old address lands in one hop. Leftover code text was cleaned out of 36 migrated posts. New "Loan Officer
+  Websites" topic hub and checklist post, breadcrumbs, and a fuller footer. (#135)
+- Cerebro writes its reply after taking a borrower's details, instead of repeating "one moment".
+
+## Nov 15, 2026 — app-build-6643eda
+
+- **Cerebro does the work:** visiting loan officers can have Cerebro write a starter kit in chat (bio, Google Business
+  Profile description and post, a first local blog post and a welcome email), checked against mortgage advertising
+  rules and saved as a private draft page. Officers who ask YPN USA to follow up are saved, with consent.
+- Borrower chat leads now go to the loan officer who holds their ZIP code, and callback requests are queued.
+
+## Nov 10, 2026 — app-build-2187965 (installed Nov 15)
+
+- **"ZIP code" wording and honest claims:** the site says "ZIP code" instead of bare "ZIP". One plan table drives the
+  pricing page, so pages no longer disagree on what each plan includes. Unsupported claims ("3× the lead volume",
+  "Live in 48 Hours") were removed. Demo buttons became self-serve sign-up buttons. Funnel steps are tracked. (#133)
+- **Coming-soon labels:** features that aren't built yet (the multi-task agentic mode) are labeled as coming soon.
+  (#132)
+- **SEO release:** 263 old ypnus.com addresses that returned "not found" now redirect to their closest live page. New
+  pages for Cerebro, teams, ROI and loan officer cities, and comparison pages against other loan officer tools.
+  Google Analytics reports to the right property. (#131)
+- **Speed and accessibility:** phones get a small hero image instead of a 2 MB video, old WordPress images are served
+  by the app, links were fixed, and text contrast was raised. The book shows its Kindle price. (#130)
+
+## Nov 8, 2026 — app-build-62124e8
+
+- **Onboarding fix and loan officer pages:** a broken onboarding redirect was fixed; officers have a profile, the ZIP
+  code is asked at intake, and each officer gets a public page. (#128)
+- Faster home page on phones (preloaded hero image). (#125)
+
+## Nov 7, 2026 — app-build-9e13647 (first release on the new server)
+
+- **ypnus.com runs on its own server:** the site no longer depends on WordPress. Pages were rebuilt with the four
+  plans (Free $0, Pro $99, Growth $199, Exclusive $299) and Stripe checkout links. (#120, #122)
+- **Sign-in and accounts:** loan officers sign in with an emailed one-time link, and accounts are created when Stripe
+  checkout completes. Visalia loan officer pages and Cerebro-first home page. (#119, #124)
+- **ZIP code locks at payment:** a ZIP code is held only once the first payment goes through, with pay-now and 5-year
+  prepaid options. Cerebro is on the dashboard, and its home page greeting is a solid card with one-tap next steps.
+  (#126, #127)

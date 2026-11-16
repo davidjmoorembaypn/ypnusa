@@ -331,6 +331,8 @@ export async function runWithTools(
   const remaining = () => deadline - Date.now();
   /** Text the model already wrote this turn - shown if the budget runs out before a final answer. */
   let lastText = "";
+  /** Set after a tool-only round: the next call goes out without tools so the model must write text. */
+  let textOnly = false;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     if (remaining() < MIN_ROUND_MS) {
@@ -339,7 +341,9 @@ export async function runWithTools(
     const result = await provider.generate({
       system,
       messages,
-      tools,
+      // Gemini tends to answer a "now write your reply" nudge with the same tool call again,
+      // which left visitors with "Got it — one moment." Without tools it has to write text.
+      ...(textOnly ? {} : { tools }),
       timeoutMs: Math.min(MAX_CALL_MS, remaining()),
       ...(options.maxTokens ? { maxTokens: options.maxTokens } : {}),
     });
@@ -360,6 +364,7 @@ export async function runWithTools(
           role: "user",
           content: "[note] Your tool call was recorded. Now write your reply to the visitor in plain text.",
         });
+        textOnly = true;
         continue;
       }
       return { text: result.text, captureCalls, actionCalls: allActionCalls };

@@ -216,3 +216,22 @@ describe("borrower ZIP routing", () => {
     assert.equal(lead?.assignedLoId, routeLead({ program: "CONVENTIONAL", zip: "85004" }).officer.id);
   });
 });
+
+describe("tool-only rounds", () => {
+  it("asks for the reply without tools, so a model that repeats the capture call still answers in text", async () => {
+    const { runWithTools } = await import("./chat-agent");
+    const calls: boolean[] = [];
+    const provider = {
+      name: "fake",
+      async generate(request: { tools?: unknown[] }) {
+        calls.push(Boolean(request.tools?.length));
+        return request.tools?.length
+          ? { text: "", toolCalls: [{ toolName: "capture_lead_qualification", input: { zip: "93291" } }], stopReason: "tool_use" }
+          : { text: "Thanks! What's your name?", toolCalls: [], stopReason: "end_turn" };
+      },
+    };
+    const result = await runWithTools(provider, "sys", [{ role: "user", content: "hi" }], toolsForMode("public_site"), session(), () => {});
+    assert.equal(result.text, "Thanks! What's your name?");
+    assert.deepEqual(calls, [true, false]);
+  });
+});

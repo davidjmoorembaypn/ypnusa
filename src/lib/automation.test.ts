@@ -237,3 +237,47 @@ describe("automation.ts outreach personalization connector", async () => {
     assert.equal(declined.length, 0);
   });
 });
+
+describe("automation.ts consent gate", async () => {
+  const { processDueFollowUps } = await import("./automation");
+  const { appendBorrowerLead, persistFollowUpsBatch, readDb, writeDb } = await import("./db");
+  // 2026-11-16 standard time: noon Pacific / 3pm Eastern, and 10pm Pacific.
+  const NOON_PACIFIC = new Date("2026-11-16T20:00:00Z");
+  const TEN_PM_PACIFIC = new Date("2026-11-17T06:00:00Z");
+
+  it("cancels a follow-up for a borrower who opted out", async () => {
+    const lead = buildLead();
+    appendBorrowerLead(lead);
+    writeDb((db) => {
+      db.consents.push({ id: "c_out", borrowerLeadId: lead.id, channel: "email", granted: false, source: "test", at: "2026-11-01T00:00:00Z" });
+    });
+    const followUp = buildFollowUp(lead.id, { scheduledAt: "2026-11-16T00:00:00Z" });
+    persistFollowUpsBatch([followUp]);
+
+    const summary = await processDueFollowUps({ borrowerLeadId: lead.id, now: NOON_PACIFIC });
+
+    assert.equal(summary.processed, 0);
+    const job = readDb().followUps.find((entry) => entry.id === followUp.id);
+    assert.equal(job?.status, "cancelled");
+  });
+
+  it("holds an overnight text until the morning", async () => {
+    const lead = buildLead();
+    appendBorrowerLead(lead);
+    const followUp = buildFollowUp(lead.id, {
+      plan: "day_30_check_in",
+      channel: "sms",
+      recipient: lead.answers.phone,
+      scheduledAt: "2026-11-17T05:00:00Z",
+      createdAt: "2026-10-18T00:00:00Z",
+    });
+    persistFollowUpsBatch([followUp]);
+
+    const summary = await processDueFollowUps({ borrowerLeadId: lead.id, now: TEN_PM_PACIFIC });
+
+    assert.equal(summary.processed, 0);
+    const job = readDb().followUps.find((entry) => entry.id === followUp.id);
+    assert.equal(job?.status, "pending");
+    assert.ok(job && new Date(job.scheduledAt).getTime() > TEN_PM_PACIFIC.getTime());
+  });
+});

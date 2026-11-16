@@ -1,3 +1,4 @@
+import { piiEncryptionStatus } from "@/lib/crypto/pii";
 import { storageMode } from "@/lib/db";
 import { jsonError, jsonOk, logApiError } from "@/lib/http";
 
@@ -12,7 +13,7 @@ export async function GET() {
 
     return jsonOk({
       service: "ypnusa-app",
-      storage: { persistent, degraded: Boolean(error) },
+      storage: { persistent, degraded: Boolean(error), piiEncryption: piiEncryptionStatus() },
       build: { commit: process.env.APP_COMMIT, builtAt: process.env.APP_BUILT_AT },
       timestamp: new Date().toISOString(),
     });

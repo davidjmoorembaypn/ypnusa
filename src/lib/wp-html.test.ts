@@ -138,3 +138,12 @@ test("root-level post links go to /blog and redirected slugs skip the hop", () =
   assert.equal(normalizeWpHref("/local-zip-code-market-intelligence/"), "/blog/local-zip-code-market-intelligence");
   assert.equal(normalizeWpHref("https://ypnus.com/onboarding.html"), "/onboarding");
 });
+
+test("replaces old file-name link text in imported posts with words", () => {
+  const html = '<p>See <a href="/claim-territory?utm_source=ypnus">check-zip.html</a> and <a href="/login?next=%2Fonboarding">lo-signup.html</a>.</p>';
+  const out = normalizeWpHtml(html);
+  assert.match(out, />whether your ZIP code is open<\/a>/);
+  assert.match(out, />create your free account<\/a>/);
+  assert.doesNotMatch(out, /\.html<\/a>/);
+  assert.match(out, /href="\/claim-territory\?utm_source=ypnus"/);
+});

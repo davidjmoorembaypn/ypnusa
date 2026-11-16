@@ -185,6 +185,11 @@ export function normalizeWpHtml(html: string): string {
     return `${pre}${q}${normalizeWpHref(href)}${q}`;
   });
 
+  // WordPress posts linked to /claim-territory and signup with the old file names as the
+  // visible link text ("See check-zip.html and lo-signup.html."). Readers see words instead.
+  out = out.replace(/(<a\b[^>]*>)\s*check-zip\.html\s*(<\/a>)/gi, "$1whether your ZIP code is open$2");
+  out = out.replace(/(<a\b[^>]*>)\s*lo-signup\.html\s*(<\/a>)/gi, "$1create your free account$2");
+
   // Copy rule: "ZIP code", never a bare "ZIP" (visible text only; see zip-copy.ts).
   out = zipCodeCopyHtml(out);
   return out;

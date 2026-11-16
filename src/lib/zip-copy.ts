@@ -4,8 +4,9 @@
  *
  * Hand-written pages say "ZIP code" in their source. Content migrated from WordPress
  * (src/content/wp-import/*.json) is left as exported and rewritten here at render time,
- * so the import stays a faithful snapshot. Only visible text is rewritten: URLs, slugs,
- * HTML attributes and <script>/<style> bodies are never touched.
+ * so the import stays a faithful snapshot. Only visible text is rewritten (plus placeholder,
+ * aria-label, title and alt values): URLs, slugs, other HTML attributes and <script>/<style>
+ * bodies are never touched.
  */
 
 /**
@@ -19,7 +20,12 @@ const BARE_ZIP = /\bZIP(s?)\b(?![  -]?(?:[Cc]odes?|CODES?)\b)(?![+_])/g;
  * A lowercase or capitalized "zip" used as a word ("your zip code", "Zip Codes", "per zip"):
  * not part of a URL, path, parameter, email or identifier ("/zip/93720", "?zip=", "zipCode").
  */
-const LOWER_ZIP = /(?<![\w/.=&?#@-])[Zz]ip(?=s?(?![\w/=@-]|\.\w))/g;
+// A hyphen counts as part of an identifier ("zip-check") unless a plain word follows it
+// ("zip-level demand" -> "ZIP-code-level demand").
+const LOWER_ZIP = /(?<![\w/.=&?#@-])[Zz]ip(?=s?(?![\w/=@]|-(?![a-z]+\b(?![\w/.=@-]))|\.\w))/g;
+
+/** Attributes whose values are read by visitors (or screen readers), so the copy rule applies. */
+const VISIBLE_ATTRS = /(\s(?:placeholder|aria-label|title|alt)=)(["'])([^"']*)\2/gi;
 
 export function zipCodeCopy(text: string): string {
   if (!/zip/i.test(text)) return text;
@@ -49,7 +55,11 @@ export function zipCodeCopyHtml(html: string): string {
       const close = /^<\s*\/\s*(script|style|code|pre|textarea)\s*>/i.exec(part);
       if (skipUntil && close && close[1].toLowerCase() === skipUntil) skipUntil = null;
       else if (!skipUntil && open && !part.endsWith("/>")) skipUntil = open[1].toLowerCase();
-      out += part;
+      // Placeholders, aria-labels, titles and alt text are visible copy too; every other
+      // attribute (href, name, id, class, pattern...) stays exactly as exported.
+      out += skipUntil || !/zip/i.test(part)
+        ? part
+        : part.replace(VISIBLE_ATTRS, (_m, pre: string, q: string, value: string) => `${pre}${q}${zipCodeCopy(value)}${q}`);
     } else {
       out += skipUntil ? part : zipCodeCopy(part);
     }

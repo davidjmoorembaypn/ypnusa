@@ -97,6 +97,15 @@ describe("territory inquiry capture", async () => {
       });
     });
     assert.equal(addDemoRequestDetails("demo_old", { company: "Late Co" }), null);
+  });
+
+  it("reports whether step 2 filled anything in", () => {
+    writeDb((db) => {
+      db.demoRequests.push({ id: "demo_fresh", createdAt: new Date().toISOString(), name: "Fresh", workEmail: "fresh@example.com", status: "new" });
+    });
+    assert.equal(addDemoRequestDetails("demo_fresh", { company: "First Co" })?.changed, true);
+    assert.equal(addDemoRequestDetails("demo_fresh", { company: "Second Co" })?.changed, false);
+    assert.equal(readDb().demoRequests.find((item) => item.id === "demo_fresh")?.company, "First Co");
     assert.equal(readDb().demoRequests.find((item) => item.id === "demo_old")?.company, undefined);
   });
 });

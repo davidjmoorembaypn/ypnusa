@@ -72,10 +72,27 @@ async function handlePatch(request: Request) {
     const monthlyLeadVolume = teamSize && TEAM_SIZES.has(teamSize) ? teamSize : undefined;
     if (!company && !monthlyLeadVolume) return jsonError("Nothing to save.", 400, "NO_DETAILS");
 
-    const updated = addDemoRequestDetails(id, { company, monthlyLeadVolume });
-    if (!updated) return jsonError("That inquiry can no longer be updated.", 404, "NOT_FOUND");
+    const result = addDemoRequestDetails(id, { company, monthlyLeadVolume });
+    if (!result) return jsonError("That inquiry can no longer be updated.", 404, "NOT_FOUND");
+    const { record, changed } = result;
 
-    return jsonOk({ id: updated.id, message: "Thanks, that helps us prepare." });
+    // The first email went out before step 2, so send the owner the added details too.
+    // Not awaited and never fails the request (same as the first notification).
+    if (changed) {
+      void notifyOwnerOfLead({
+        kind: "demo_request_details",
+        replyTo: record.workEmail,
+        summaryHtml: `
+        <h2>Details added to a demo request</h2>
+        <p><strong>${escapeHtml(record.name)}</strong> (${escapeHtml(record.workEmail)})</p>
+        ${record.company ? `<p>Company: ${escapeHtml(record.company)}</p>` : ""}
+        ${record.monthlyLeadVolume ? `<p>Team size: ${escapeHtml(record.monthlyLeadVolume)}</p>` : ""}
+        ${record.zip ? `<p>ZIP code: ${escapeHtml(record.zip)}</p>` : ""}
+      `,
+      });
+    }
+
+    return jsonOk({ id: record.id, message: "Thanks, that helps us prepare." });
   } catch (error) {
     logApiError("/api/demo-request PATCH", error);
     return jsonError("Details could not be saved.", 500, "DEMO_DETAILS_FAILED");

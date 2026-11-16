@@ -32,7 +32,7 @@ type SubmitState =
   | { status: "error"; message: string };
 
 /** Optional step 2 after the short form (progressive profiling). */
-type DetailsState = "idle" | "saving" | "saved" | "skipped";
+type DetailsState = "idle" | "saving" | "saved" | "skipped" | "failed";
 
 const VOLUME_OPTIONS = [
   "Just me (solo LO)",
@@ -245,18 +245,22 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       return;
     }
     setDetailsState("saving");
+    // Step 2 is optional and the inquiry is already saved, so a failure never blocks the
+    // visitor; it just isn't reported (or tracked) as saved.
+    let saved = false;
     try {
-      await fetch("/api/demo-request", {
+      const res = await fetch("/api/demo-request", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: submit.id, ...details }),
         signal: AbortSignal.timeout(15_000),
       });
-      track("lead_details_added", { source, team_size: details.monthlyLeadVolume || undefined });
+      saved = res.ok;
     } catch {
-      /** noop — step 2 is optional; the inquiry itself is already saved. */
+      saved = false;
     }
-    setDetailsState("saved");
+    if (saved) track("lead_details_added", { source, team_size: details.monthlyLeadVolume || undefined });
+    setDetailsState(saved ? "saved" : "failed");
   }
 
   const showForm = check.status === "result";
@@ -494,7 +498,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           </p>
           <p className="mt-2 text-center text-sm font-semibold text-emerald-100">{submit.message}</p>
 
-          {submit.id && detailsState !== "saved" && detailsState !== "skipped" ? (
+          {submit.id && (detailsState === "idle" || detailsState === "saving") ? (
             <form onSubmit={saveDetails} className="mt-5 border-t border-emerald-300/20 pt-4">
               <p className="text-sm font-semibold text-white">Optional: help us prepare</p>
               <fieldset className="mt-3">
@@ -546,6 +550,10 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
             <div className="mt-4 text-center">
               {detailsState === "saved" ? (
                 <p className="text-xs text-emerald-100/80">Thanks, that helps us prepare.</p>
+              ) : detailsState === "failed" ? (
+                <p role="status" className="text-xs text-amber-100">
+                  We couldn&rsquo;t save those extra details, but your request is in. We&rsquo;ll ask when we reach out.
+                </p>
               ) : null}
               <a
                 href={signupHref}

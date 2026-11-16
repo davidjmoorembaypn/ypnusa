@@ -648,6 +648,8 @@ export interface SiteOverrideRecord {
 export interface SiteOptimizerState {
   lastRunAt?: string;
   lastRunSummary?: string;
+  /** Version of the optimizer that produced the last finished run; a different version reruns on the next tick. */
+  runVersion?: number;
 }
 
 /** Contact channels covered by the consent ledger (TCPA: texts and calls; CAN-SPAM: email). */

@@ -14,6 +14,9 @@ import {
   gscStatus,
   installGscKey,
   isProtectedPath,
+  isRunDue,
+  OPTIMIZER_RUN_VERSION,
+  RUNNING_LABEL,
   proposeChange,
   revertChange,
   verifyPendingChanges,
@@ -116,5 +119,20 @@ describe("Search Console key", () => {
     assert.ok(ok.ok);
     assert.deepEqual(gscStatus(), { connected: true, serviceAccount: "bot@p.iam.gserviceaccount.com" });
     assert.equal(fs.statSync(process.env.GSC_KEY_FILE).mode & 0o777, 0o600);
+  });
+});
+
+describe("isRunDue", () => {
+  const now = Date.parse("2026-11-16T12:00:00Z");
+  const recent = "2026-11-16T11:00:00Z";
+  it("reruns a run cut off by a restart", () => {
+    assert.equal(isRunDue({ lastRunAt: recent, lastRunSummary: RUNNING_LABEL, runVersion: OPTIMIZER_RUN_VERSION }, now), true);
+  });
+  it("reruns results from an older optimizer version", () => {
+    assert.equal(isRunDue({ lastRunAt: recent, lastRunSummary: "Run finished: 0 page(s)" }, now), true);
+  });
+  it("waits a week after a current finished run", () => {
+    assert.equal(isRunDue({ lastRunAt: recent, lastRunSummary: "Read 12 pages", runVersion: OPTIMIZER_RUN_VERSION }, now), false);
+    assert.equal(isRunDue({ lastRunAt: "2026-11-01T00:00:00Z", lastRunSummary: "Read 12 pages", runVersion: OPTIMIZER_RUN_VERSION }, now), true);
   });
 });

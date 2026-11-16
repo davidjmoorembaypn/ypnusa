@@ -29,7 +29,7 @@ function when(iso: string): string {
 
 function done(message: string): never {
   revalidatePath("/admin/cerebro");
-  redirect(`/admin/cerebro?msg=${encodeURIComponent(message)}`);
+  redirect(`/admin/cerebro?msg=${encodeURIComponent(message)}#site-optimizer`);
 }
 
 async function uploadKey(formData: FormData) {
@@ -94,7 +94,7 @@ export default async function AdminCerebroPage({ searchParams }: { searchParams:
         <h1 className="text-2xl font-semibold">Cerebro activity</h1>
         {msg ? <p className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm">{msg.slice(0, 300)}</p> : null}
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <section id="site-optimizer" className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-semibold">Site optimizer</h2>
           <p className="mt-1 text-sm text-slate-600">
             Weekly, Cerebro reads Search Console and rewrites the search title and description of up to 3 pages that get seen but
@@ -116,6 +116,7 @@ export default async function AdminCerebroPage({ searchParams }: { searchParams:
             <form action={runNow}><button type="submit" disabled={!gsc.connected} className="rounded-full bg-cyan-600 px-4 py-2 font-semibold text-white disabled:opacity-40">Run now</button></form>
             <form action={checkNow}><button type="submit" className="rounded-full border border-slate-300 px-4 py-2 font-semibold">Check live changes</button></form>
           </div>
+          {msg ? <p className="mt-3 rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm font-medium">{msg.slice(0, 300)}</p> : null}
           <ul className="mt-4 divide-y divide-slate-100 text-sm">
             {changes.map((change) => (
               <li key={change.id} className="py-3">

@@ -6,7 +6,10 @@ import { getAiProvider } from "@/lib/ai/provider";
 import { readDb, saveSiteOptimizerState, saveSiteOverride, secretsDir } from "@/lib/db";
 import { generateId } from "@/lib/id";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import type { SiteOverrideRecord } from "@/lib/types";
+import type { SiteOptimizerState, SiteOverrideRecord } from "@/lib/types";
+
+/** Shown under Last run while a run is going. Left behind if the app restarts mid-run. */
+export const RUNNING_LABEL = "Running now…";
 
 /**
  * Cerebro's site optimizer: keeps ypnus.com's search titles and descriptions improving on its own.
@@ -495,6 +498,7 @@ export async function runSiteOptimizer(options: { rows?: SearchRow[] } = {}): Pr
   const summary: RunSummary = { ranAt, opportunities: opportunities.length, applied, proposed, skipped };
   saveSiteOptimizerState({
     lastRunAt: ranAt,
+    runVersion: OPTIMIZER_RUN_VERSION,
     lastRunSummary: `Read ${pagesRead} pages from Search Console. ${applied} page${applied === 1 ? "" : "s"} improved and ${proposed} waiting for your approval, out of ${opportunities.length} found${skipped.length ? `; skipped: ${skipped.slice(0, 3).join("; ")}` : ""}.`,
   });
   return summary;
@@ -511,7 +515,7 @@ let running = false;
 export function startRunInBackground(): "started" | "already_running" {
   if (running) return "already_running";
   running = true;
-  saveSiteOptimizerState({ lastRunSummary: "Running now…" });
+  saveSiteOptimizerState({ lastRunSummary: RUNNING_LABEL });
   void runSiteOptimizer()
     .catch((error) => {
       console.error("[site-optimizer] manual run failed", error instanceof Error ? error.message : error);
@@ -523,6 +527,20 @@ export function startRunInBackground(): "started" | "already_running" {
   return "started";
 }
 
+/** Bumped when the optimizer changes how it reads or decides, so the next tick reruns with the new logic. */
+export const OPTIMIZER_RUN_VERSION = 2;
+
+/**
+ * A run is due when none finished yet, when the last one was cut off (the app restarted while it
+ * showed "Running now…"), when it came from an older optimizer version, or after a week.
+ */
+export function isRunDue(state: SiteOptimizerState, now = Date.now()): boolean {
+  if (!state.lastRunAt) return true;
+  if (state.lastRunSummary === RUNNING_LABEL) return true;
+  if (state.runVersion !== OPTIMIZER_RUN_VERSION) return true;
+  return now - Date.parse(state.lastRunAt) > RUN_EVERY_DAYS * DAY_MS;
+}
+
 /** Starts the in-process schedule: verifies changes every 10 minutes, runs weekly once Search Console is connected. */
 export function startSiteOptimizerSchedule(): void {
   if (timer || process.env.SITE_OPTIMIZER_DISABLED === "true") return;
@@ -531,8 +549,7 @@ export function startSiteOptimizerSchedule(): void {
     running = true;
     try {
       await verifyPendingChanges();
-      const last = readDb().siteOptimizer.lastRunAt;
-      const due = !last || Date.now() - Date.parse(last) > RUN_EVERY_DAYS * DAY_MS;
+      const due = isRunDue(readDb().siteOptimizer);
       if (due && gscStatus().connected) await runSiteOptimizer();
     } catch (error) {
       console.error("[site-optimizer] scheduled pass failed", error instanceof Error ? error.message : error);

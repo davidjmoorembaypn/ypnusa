@@ -132,6 +132,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Service worker: always revalidate so a fixed worker reaches phones on the next
+        // visit, and allow it to control the whole site (start_url is /dashboard).
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
         source: "/assets/:path*",
         headers: [
           {

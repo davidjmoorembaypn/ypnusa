@@ -11,6 +11,7 @@ import type {
   CerebroQueuedActionRecord,
   ConsentRecord,
   ProcessedKeyRecord,
+  PushSubscriptionRecord,
   SiteOverrideRecord,
   SiteOptimizerState,
   DbShape,
@@ -193,6 +194,7 @@ const emptyDb = (): DbShape => ({
   siteOptimizer: {},
   consents: [],
   processedKeys: [],
+  pushSubscriptions: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -254,6 +256,7 @@ function normalize(snapshot: unknown): DbShape {
     siteOptimizer: isPlainRecord(parsed.siteOptimizer) ? (parsed.siteOptimizer as SiteOptimizerState) : {},
     consents: arrayOrEmpty<ConsentRecord>(parsed.consents),
     processedKeys: arrayOrEmpty<ProcessedKeyRecord>(parsed.processedKeys),
+    pushSubscriptions: arrayOrEmpty<PushSubscriptionRecord>(parsed.pushSubscriptions),
   };
 }
 

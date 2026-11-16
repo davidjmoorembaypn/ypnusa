@@ -29,6 +29,11 @@ describe("service worker", () => {
     assert.match(sw, /startsWith\("\/api\/"\)/);
   });
 
+  it("shows push alerts and opens only same-site paths on tap", () => {
+    assert.match(sw, /addEventListener\("push"/);
+    assert.match(sw, /startsWith\("\/"\) && !data\.url\.startsWith\("\/\/"\)/);
+  });
+
   it("caches nothing but the static offline page", () => {
     const added = [...sw.matchAll(/cache\.(?:add|addAll|put)\(/g)];
     assert.equal(added.length, 1, "exactly one cache write");

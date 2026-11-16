@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { SessionBar } from "@/components/session-bar";
 import { InstallAppCard } from "@/components/pwa/install-app-card";
+import { PhoneAlertsCard } from "@/components/pwa/phone-alerts-card";
 import { APP_THEME_COLOR } from "@/lib/pwa/theme";
 import { VisibilityScoreCard } from "@/components/visibility-score-card";
 import { computeVisibilityScore } from "@/lib/visibility-score";
@@ -178,6 +179,7 @@ export default async function DashboardHubPage({
         </header>
 
         <InstallAppCard />
+        <PhoneAlertsCard />
 
         {showUpgradeBanner ? (
           <section

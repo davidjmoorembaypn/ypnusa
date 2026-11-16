@@ -13,7 +13,7 @@ export const PAGE_SEO = {
   home: {
     title: "Mortgage Lead Generation & AI for Loan Officers | YPN USA",
     description:
-      "Cerebro answers and qualifies your borrowers 24/7 while you close loans, inside a ZIP code that's yours alone. Start free; plans from $99/mo.",
+      "Own your ZIP code and let Cerebro answer and qualify borrowers 24/7 while you close loans. Start free, plans from $99/mo. Check your ZIP code.",
   },
   cerebro: {
     title: "Cerebro: AI Assistant for Mortgage Loan Officers | YPN USA",
@@ -73,7 +73,7 @@ export const PAGE_SEO = {
   blog: {
     title: "Loan Officer Growth Blog: Leads, AI & Local SEO | YPN USA",
     description:
-      "Practical guides for mortgage loan officers on leads, AI follow-up, local SEO, referral partners and marketing that works.",
+      "Free guides for mortgage loan officers on leads, AI follow-up, local SEO, referral partners and marketing that works. Pick a topic and start.",
   },
   gbpOptimizer: {
     title: "Free Google Business Profile Optimizer for Loan Officers",

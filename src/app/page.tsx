@@ -134,30 +134,26 @@ export default function Home() {
               For licensed mortgage loan officers
             </span>
             <h1 className="mt-6 text-balance text-4xl font-semibold leading-[1.08] lg:text-[3.4rem]">
-              Meet Cerebro: the AI that works your borrowers <span className="text-violet-300">while you close loans.</span>
+              Own your ZIP code. <span className="text-violet-300">Let Cerebro answer every borrower while you close loans.</span>
             </h1>
             <p className="mt-5 text-lg text-white/90">
-              Cerebro answers and qualifies every borrower who reaches your pages, day or night, then hands you the ready
-              ones. Pair it with an exclusive ZIP code, and the mortgage lead generation you build in your market comes to
-              you, not to another YPN USA loan officer.
+              Mortgage lead generation built for loan officers: local pages that bring borrowers to you, Cerebro answering
+              and qualifying them day and night, and one ZIP code per paid plan that no other YPN USA loan officer can claim.
+            </p>
+            <p className="mt-4 text-base font-semibold text-amber-200">
+              One loan officer per ZIP code. Once yours is claimed, it&rsquo;s gone.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-4 text-sm font-semibold">
+            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4 text-sm font-semibold">
               <a
                 href="#territories"
-                className="inline-flex items-center justify-center rounded-full bg-amber-400 px-7 py-3.5 text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-amber-400 px-8 py-3.5 text-base text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
               >
-                Check your ZIP code — free
+                Check if my ZIP code is open
               </a>
-              <OpenAssistantButton className="inline-flex items-center justify-center rounded-full bg-violet-600 px-6 py-3.5 text-white shadow-xl shadow-violet-900/40 transition duration-200 hover:-translate-y-0.5 hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
-                Talk to Cerebro
+              <OpenAssistantButton className="text-violet-100 underline underline-offset-4 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
+                or ask Cerebro a question first
               </OpenAssistantButton>
-              <PricingCta
-                tierId="growth"
-                className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3.5 text-white backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
-              >
-                Start 15-day free trial · Pro $99/mo
-              </PricingCta>
             </div>
             <p className="mt-3 text-xs text-white/70">
               Built by licensed loan officer {AUTHOR_NAME} · NMLS #{NMLS_ID} · CA DRE #{CA_DRE_ID}

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useBehaviorTracking } from "@/lib/hooks/useBehaviorTracking";
-import { ChurnExitModal } from "./ChurnExitModal";
 import { DynamicHero } from "./DynamicHero";
 import { InteractiveCalculator } from "./InteractiveCalculator";
 import { SelfSelectCards } from "./SelfSelectCards";
@@ -48,7 +47,6 @@ export function PredictiveHomepageEngine() {
         </div>
       ) : null}
 
-      <ChurnExitModal open={tracking.exitTrapOpen} onDismiss={tracking.dismissExitTrap} />
     </div>
   );
 }

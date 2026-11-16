@@ -1,5 +1,6 @@
 import { TrackedLink } from "@/components/tracked-link";
 import type { NextStep } from "@/lib/cta/next-steps";
+import { ZipQuickCheck } from "@/components/zip-quick-check";
 
 /**
  * The closing call to action on guides and landing pages: one primary button and one quiet
@@ -28,6 +29,21 @@ export function NextStepBlock({
         {step.heading}
       </h2>
       <p className={`mt-2 text-[15px] leading-7 ${dark ? "text-white/80" : "text-slate-700"}`}>{step.body}</p>
+      {step.zipForm ? (
+        <div className="mt-5 space-y-3">
+          <ZipQuickCheck source={source} tone={tone} />
+          {step.secondary ? (
+            <TrackedLink
+              href={step.secondary.href}
+              event="next_step_click"
+              eventParams={{ source, cta: step.secondary.label, link_url: step.secondary.href }}
+              className={`inline-block text-sm font-semibold underline underline-offset-2 ${dark ? "text-violet-200 hover:text-white" : "text-violet-700 hover:text-violet-900"}`}
+            >
+              {step.secondary.label}
+            </TrackedLink>
+          ) : null}
+        </div>
+      ) : (
       <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
         <TrackedLink
           href={step.primary.href}
@@ -48,6 +64,7 @@ export function NextStepBlock({
           </TrackedLink>
         ) : null}
       </div>
+      )}
     </aside>
   );
 }

@@ -395,8 +395,16 @@ export const INDEXABLE_POSTS: readonly BlogPost[] = [...ALL_BLOG_POSTS]
   .filter((p) => !isThinPost(p))
   .sort((a, b) => (a.date < b.date ? 1 : -1));
 
+/** Migrated posts whose keyword score lands in the wrong cluster (they carry no `cluster` field of their own). */
+const CLUSTER_OVERRIDES: Readonly<Record<string, string>> = {
+  "how-to-get-more-google-reviews-as-a-loan-officer": "local-seo-for-loan-officers",
+};
+
 const assignment = new Map<string, string>(
-  INDEXABLE_POSTS.map((post) => [post.slug, post.cluster && getCluster(post.cluster) ? post.cluster : clusterForPost(post).slug]),
+  INDEXABLE_POSTS.map((post) => {
+    const fixed = post.cluster ?? CLUSTER_OVERRIDES[post.slug];
+    return [post.slug, fixed && getCluster(fixed) ? fixed : clusterForPost(post).slug];
+  }),
 );
 
 export function getPostCluster(slug: string): TopicCluster | undefined {

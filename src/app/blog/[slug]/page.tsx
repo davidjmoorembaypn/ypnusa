@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
+import { StickyCtaBar } from "@/components/sticky-cta-bar";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -192,6 +193,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       </main>
 
       <SiteFooter />
+      <StickyCtaBar source="blog_post" />
     </div>
   );
 }

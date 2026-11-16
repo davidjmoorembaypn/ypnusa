@@ -152,16 +152,28 @@ export interface SearchRow {
   position: number;
 }
 
-/** Last 28 days of page+query rows from Search Console. Tries the domain property, then the URL property. */
+/**
+ * Last 28 days from Search Console: one row per page (true totals) plus page+query rows (for the
+ * searches behind each page). Both are needed: Google drops rare queries from page+query rows, so
+ * on a small site they hold only a fraction of each page's impressions. Tries the domain
+ * property, then the URL property.
+ */
 export async function fetchSearchRows(): Promise<SearchRow[]> {
   const key = readKey();
   if (!key) throw new Error("Search Console isn't connected yet.");
   const token = await accessToken(key);
+  const pages = await querySearchConsole(token, ["page"]);
+  const pageQueries = await querySearchConsole(token, ["page", "query"]);
+  return [...pages, ...pageQueries];
+}
+
+async function querySearchConsole(token: string, dimensions: string[]): Promise<SearchRow[]> {
   const end = new Date(Date.now() - 2 * DAY_MS);
   const start = new Date(end.getTime() - 28 * DAY_MS);
   const host = new URL(MARKETING_SITE_URL).hostname.replace(/^www\./, "");
   const candidates = process.env.GSC_SITE_URL?.trim() ? [process.env.GSC_SITE_URL.trim()] : [`sc-domain:${host}`, `${MARKETING_SITE_URL}/`];
   let lastStatus = 0;
+  let emptyResult: SearchRow[] | null = null;
   for (const site of candidates) {
     const response = await fetch(
       `https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(site)}/searchAnalytics/query`,
@@ -171,17 +183,24 @@ export async function fetchSearchRows(): Promise<SearchRow[]> {
         body: JSON.stringify({
           startDate: start.toISOString().slice(0, 10),
           endDate: end.toISOString().slice(0, 10),
-          dimensions: ["page", "query"],
+          dimensions,
           rowLimit: 5000,
+          // Include the newest (not yet final) days: on a small site every impression counts.
+          dataState: "all",
         }),
         signal: AbortSignal.timeout(30_000),
       },
     );
     if (response.ok) {
       const data = (await response.json()) as { rows?: Array<{ keys: string[]; clicks: number; impressions: number; ctr: number; position: number }> };
-      return (data.rows ?? []).map((row) => ({
+      if (!data.rows?.length) {
+        // An empty answer can mean the account sees this property but not the data; try the other form.
+        emptyResult = [];
+        continue;
+      }
+      return data.rows.map((row) => ({
         page: row.keys[0],
-        query: row.keys[1],
+        ...(row.keys[1] !== undefined ? { query: row.keys[1] } : {}),
         clicks: row.clicks,
         impressions: row.impressions,
         ctr: row.ctr,
@@ -190,6 +209,7 @@ export async function fetchSearchRows(): Promise<SearchRow[]> {
     }
     lastStatus = response.status;
   }
+  if (emptyResult) return emptyResult;
   throw new Error(
     lastStatus === 403
       ? "Search Console refused access (403). Add the service account email as a user on the ypnus.com property."
@@ -210,15 +230,20 @@ export interface Opportunity {
 
 /** Pages people see in search but rarely click: enough impressions, low CTR, ranking on pages 1-2. */
 export function findOpportunities(rows: SearchRow[], now = Date.now()): Opportunity[] {
+  // Page-only rows (no query) carry the true totals; page+query rows then only add the queries.
+  const hasPageTotals = rows.some((row) => row.query === undefined);
   const byPath = new Map<string, { impressions: number; clicks: number; weightedPosition: number; queries: Map<string, number> }>();
   for (const row of rows) {
     const pathname = normalizePath(row.page);
     // Protected pages stay in: the run proposes them for approval instead of applying.
     if (!pathname || isAlwaysSkipped(pathname)) continue;
     const entry = byPath.get(pathname) ?? { impressions: 0, clicks: 0, weightedPosition: 0, queries: new Map() };
-    entry.impressions += row.impressions;
-    entry.clicks += row.clicks;
-    entry.weightedPosition += row.position * row.impressions;
+    const countsTowardTotals = hasPageTotals ? row.query === undefined : true;
+    if (countsTowardTotals) {
+      entry.impressions += row.impressions;
+      entry.clicks += row.clicks;
+      entry.weightedPosition += row.position * row.impressions;
+    }
     if (row.query) entry.queries.set(row.query, (entry.queries.get(row.query) ?? 0) + row.impressions);
     byPath.set(pathname, entry);
   }
@@ -466,10 +491,11 @@ export async function runSiteOptimizer(options: { rows?: SearchRow[] } = {}): Pr
       else applied++;
     }
   }
+  const pagesRead = new Set(rows.filter((row) => row.query === undefined).map((row) => normalizePath(row.page))).size;
   const summary: RunSummary = { ranAt, opportunities: opportunities.length, applied, proposed, skipped };
   saveSiteOptimizerState({
     lastRunAt: ranAt,
-    lastRunSummary: `${applied} page${applied === 1 ? "" : "s"} improved and ${proposed} waiting for your approval, out of ${opportunities.length} found${skipped.length ? `; skipped: ${skipped.slice(0, 3).join("; ")}` : ""}.`,
+    lastRunSummary: `Read ${pagesRead} pages from Search Console. ${applied} page${applied === 1 ? "" : "s"} improved and ${proposed} waiting for your approval, out of ${opportunities.length} found${skipped.length ? `; skipped: ${skipped.slice(0, 3).join("; ")}` : ""}.`,
   });
   return summary;
 }

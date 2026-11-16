@@ -44,6 +44,19 @@ describe("findOpportunities", () => {
     assert.equal(visalia?.impressions, 500);
   });
 
+  it("uses page-only rows for totals when present, so dropped rare queries don't hide a page", () => {
+    const opps = findOpportunities([
+      { page: "http://ypnus.com/", clicks: 0, impressions: 108, ctr: 0, position: 6.9 },
+      { page: "https://ypnus.com/", clicks: 3, impressions: 40, ctr: 0.075, position: 7.1 },
+      row("http://ypnus.com/", "ypn", 10, 0, 4.6),
+      row("http://ypnus.com/", "loans", 9, 0, 18.8),
+    ]);
+    assert.equal(opps.length, 1);
+    assert.equal(opps[0].path, "/");
+    assert.equal(opps[0].impressions, 148);
+    assert.deepEqual(opps[0].topQueries, ["ypn", "loans"]);
+  });
+
   it("protects money, legal and the homepage", () => {
     assert.ok(isProtectedPath("/") && isProtectedPath("/pricing") && isProtectedPath("/privacy-policy"));
     assert.ok(!isProtectedPath("/loan-officers/visalia-ca"));

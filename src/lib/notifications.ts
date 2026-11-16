@@ -1,5 +1,6 @@
 import { HOUSE_OFFICER_ID, isDemoOfficer } from "./crm";
-import { appendLoAlert } from "./db";
+import { appendLoAlert, readDb } from "./db";
+import { alertOfficerOfLead } from "./push-alerts";
 import { escapeHtml, notifyOwnerOfLead, sendEmail } from "./email";
 import { generateId } from "./id";
 import type { BorrowerAnswers, LoanOfficerRecord, LoanProgram, LoAlertRecord, QualificationSummary } from "./types";
@@ -22,7 +23,9 @@ export function notifyAssignedOfficer(payload: {
     suggestedAction: payload.qualification.recommendedNextStep,
   };
 
+  const firstAlert = !readDb().loAlerts.some((alert) => alert.borrowerLeadId === payload.borrowerLeadId);
   appendLoAlert(record);
+  alertOfficerOfLead({ loId: payload.loId, borrowerLeadId: payload.borrowerLeadId, firstAlert });
   return record;
 }
 

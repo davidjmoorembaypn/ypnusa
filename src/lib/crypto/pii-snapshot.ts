@@ -19,6 +19,7 @@ export const PII_FIELDS: Readonly<Record<string, readonly string[]>> = {
   propertyEvaluations: ["name", "email", "phone", "currentMortgageBalanceUsd"],
   cerebroActions: ["subject", "body", "preferredWindow"],
   consents: ["textShown"],
+  pushSubscriptions: ["endpoint", "keys"],
 };
 
 export interface SnapshotPiiReport {

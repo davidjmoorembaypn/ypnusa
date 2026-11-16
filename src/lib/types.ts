@@ -700,6 +700,18 @@ export interface ProcessedKeyRecord {
   ref?: string;
 }
 
+/** A loan officer's phone or browser that receives push alerts (upgrade 3.4). */
+export interface PushSubscriptionRecord {
+  id: string;
+  /** Account id of the officer the alerts are for. */
+  userId: string;
+  /** Push service URL and keys from the browser. Encrypted at rest; never logged. */
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  createdAt: string;
+  lastSentAt?: string;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -726,4 +738,5 @@ export interface DbShape {
   siteOptimizer: SiteOptimizerState;
   consents: ConsentRecord[];
   processedKeys: ProcessedKeyRecord[];
+  pushSubscriptions: PushSubscriptionRecord[];
 }

@@ -3,6 +3,7 @@ import { readDb, writeDb } from "./db";
 import { requiredDisclosures, type ComplianceOfficer } from "./compliance/guardrails";
 import { zipToState } from "./compliance/zip-state";
 import { findPublicOfficerPage, type PublicOfficerPage } from "./officer-profile";
+import { alertOfficerOfChatReply } from "./push-alerts";
 import type { ChatMessageRecord, ChatSessionRecord } from "./types";
 
 /**
@@ -260,7 +261,9 @@ export function appendBorrowerMessageIfTakenOver(sessionId: string, content: str
     session.updatedAt = new Date().toISOString();
     stored = structuredClone(session);
   });
-  return stored;
+  const saved = stored as ChatSessionRecord | null;
+  if (saved?.officerUserId) alertOfficerOfChatReply(saved.officerUserId, saved.id);
+  return saved;
 }
 
 /**

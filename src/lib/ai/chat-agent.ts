@@ -52,6 +52,7 @@ import {
   type LeadQualificationToolInput,
 } from "./prompts";
 import { runWebsiteAutopilot, type WebsiteAutopilotPlan } from "./website-autopilot";
+import { alertOfficerOfNewChat } from "@/lib/push-alerts";
 import {
   appendBorrowerMessageIfTakenOver,
   officerChatContext,
@@ -871,6 +872,9 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
     if (stored) return humanModeResult(stored);
   }
   appendMessage(session, "user", userMessage);
+  if (session.officerUserId && session.messages.filter((message) => message.role === "user").length === 1) {
+    alertOfficerOfNewChat(session.officerUserId, session.id);
+  }
 
   if (input.mode === "mlo_dashboard" && matchesAutopilotCommand(userMessage)) {
     return runAutopilotTurn(session, input);

@@ -44,6 +44,48 @@ function profileProblems(profile: ProfileForm): Partial<Record<keyof ProfileForm
   return problems;
 }
 
+/** Optional licensing details: company NMLS ID, licensed states, California license type, lender wording. */
+type LicensingForm = { companyNmlsId: string; states: string; caType: "" | "ca_dre" | "ca_dfpi_cfl"; caDreNumber: string; isLender: boolean };
+
+const US_STATE_CODES = new Set(
+  ("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA PR " +
+    "RI SC SD TN TX UT VT VA WA WV WI WY GU VI").split(" "),
+);
+
+function licensingStates(licensing: LicensingForm): string[] {
+  return [...new Set(licensing.states.toUpperCase().split(/[^A-Z]+/).filter(Boolean))];
+}
+
+/** Mirrors normalizeLicenses / the company NMLS check in src/lib/officer-profile.ts. */
+function licensingProblems(licensing: LicensingForm): Partial<Record<"companyNmlsId" | "states" | "caDreNumber", string>> {
+  const problems: Partial<Record<"companyNmlsId" | "states" | "caDreNumber", string>> = {};
+  const companyNmls = licensing.companyNmlsId.replace(/\D/g, "");
+  if (licensing.companyNmlsId.trim() && !/^\d{4,10}$/.test(companyNmls)) problems.companyNmlsId = "Company NMLS ID: 4 to 10 digits.";
+  const bad = licensingStates(licensing).filter((code) => !US_STATE_CODES.has(code));
+  if (bad.length > 0) problems.states = `Use two-letter state codes, like CA, AZ. Not recognized: ${bad.join(", ")}.`;
+  if (licensingStates(licensing).includes("CA") && licensing.caType === "ca_dre" && !licensing.caDreNumber.trim()) {
+    problems.caDreNumber = "Enter your California DRE license number.";
+  }
+  return problems;
+}
+
+function licensingPayload(licensing: LicensingForm) {
+  const licenses = licensingStates(licensing)
+    .filter((state) => US_STATE_CODES.has(state))
+    .map((state) =>
+      state === "CA" && licensing.caType === "ca_dre"
+        ? { state, type: "ca_dre", number: licensing.caDreNumber.trim() }
+        : state === "CA" && licensing.caType === "ca_dfpi_cfl"
+          ? { state, type: "ca_dfpi_cfl" }
+          : { state, type: "mlo" },
+    );
+  return {
+    companyNmlsId: licensing.companyNmlsId.replace(/\D/g, ""),
+    licenses,
+    equalHousing: licensing.isLender ? "lender" : "opportunity",
+  };
+}
+
 const DEFAULT_STATE: FormState = {
   goal: "speed_to_lead",
   goalDescription: GOAL_COPY.speed_to_lead.description,
@@ -87,13 +129,25 @@ export function OnboardingWizard({
       company: saved?.company ?? "",
     };
   });
+  const [licensing, setLicensing] = useState<LicensingForm>(() => {
+    const saved = initialProfile?.officerProfile;
+    const ca = saved?.licenses?.find((item) => item.state === "CA");
+    return {
+      companyNmlsId: saved?.companyNmlsId ?? "",
+      states: (saved?.licenses ?? []).map((item) => item.state).join(", "),
+      caType: ca?.type === "ca_dre" || ca?.type === "ca_dfpi_cfl" ? ca.type : "",
+      caDreNumber: ca?.type === "ca_dre" ? ca.number ?? "" : "",
+      isLender: saved?.equalHousing === "lender",
+    };
+  });
+  const licenseIssues = licensingProblems(licensing);
   const [touched, setTouched] = useState<Partial<Record<keyof ProfileForm, boolean>>>({});
   const [fieldError, setFieldError] = useState<{ field: ProfileField; message: string } | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(initialPhotoUrl);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [borrowerPagePath, setBorrowerPagePath] = useState<string | null>(initialBorrowerPagePath);
   const problems = profileProblems(profile);
-  const profileValid = Object.keys(problems).length === 0;
+  const profileValid = Object.keys(problems).length === 0 && Object.keys(licenseIssues).length === 0;
   // After a profile save, officers who already finished later steps go back to where they were.
   const resumeStep = Math.min(5, Math.max(2, initialProfile?.completedStep ?? 1));
   const [form, setForm] = useState<FormState>(() => {
@@ -127,7 +181,7 @@ export function OnboardingWizard({
           completedStep: nextStep,
           action,
           testPassedAt,
-          profile: action === "profile" || profileValid ? profile : undefined,
+          profile: action === "profile" || profileValid ? { ...profile, ...licensingPayload(licensing) } : undefined,
         }),
       });
       const body = await response.json().catch(() => ({}));
@@ -301,6 +355,46 @@ export function OnboardingWizard({
                 })}
               </div>
 
+              <fieldset className="mt-6 rounded-2xl border border-[#d8d0c1] bg-white p-4">
+                <legend className="px-1 text-sm font-bold">Licensing <span className="font-medium text-[#647080]">(adds the right disclosures to every message)</span></legend>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-bold" htmlFor="profile-companyNmlsId">Company NMLS ID <span className="font-medium text-[#647080]">(optional)</span></label>
+                    <input id="profile-companyNmlsId" inputMode="numeric" maxLength={20} value={licensing.companyNmlsId} onChange={e => setLicensing({ ...licensing, companyNmlsId: e.target.value })} placeholder="e.g. 7890" aria-invalid={licenseIssues.companyNmlsId ? true : undefined} className={inputClass} />
+                    {licenseIssues.companyNmlsId ? <p className="mt-1.5 text-xs font-semibold text-[#9a3b16]">{licenseIssues.companyNmlsId}</p> : null}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold" htmlFor="profile-states">States you&apos;re licensed in</label>
+                    <input id="profile-states" maxLength={200} value={licensing.states} onChange={e => setLicensing({ ...licensing, states: e.target.value })} placeholder="e.g. CA, AZ" aria-invalid={licenseIssues.states ? true : undefined} aria-describedby="profile-states-help" className={inputClass} />
+                    <p id="profile-states-help" className="mt-1.5 text-xs text-[#647080]">Cerebro won&apos;t write to borrowers in other states.</p>
+                    {licenseIssues.states ? <p className="mt-1 text-xs font-semibold text-[#9a3b16]">{licenseIssues.states}</p> : null}
+                  </div>
+                  {licensingStates(licensing).includes("CA") ? (
+                    <>
+                      <div>
+                        <label className="block text-sm font-bold" htmlFor="profile-caType">California license</label>
+                        <select id="profile-caType" value={licensing.caType} onChange={e => setLicensing({ ...licensing, caType: e.target.value as LicensingForm["caType"] })} className={inputClass}>
+                          <option value="">Not sure / other</option>
+                          <option value="ca_dre">DRE (real estate license with MLO endorsement)</option>
+                          <option value="ca_dfpi_cfl">DFPI (California Financing Law)</option>
+                        </select>
+                      </div>
+                      {licensing.caType === "ca_dre" ? (
+                        <div>
+                          <label className="block text-sm font-bold" htmlFor="profile-caDre">DRE license number</label>
+                          <input id="profile-caDre" maxLength={20} value={licensing.caDreNumber} onChange={e => setLicensing({ ...licensing, caDreNumber: e.target.value })} placeholder="e.g. 01234567" aria-invalid={licenseIssues.caDreNumber ? true : undefined} className={inputClass} />
+                          {licenseIssues.caDreNumber ? <p className="mt-1.5 text-xs font-semibold text-[#9a3b16]">{licenseIssues.caDreNumber}</p> : null}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+                  <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                    <input type="checkbox" checked={licensing.isLender} onChange={e => setLicensing({ ...licensing, isLender: e.target.checked })} />
+                    My company is a direct lender (show &ldquo;Equal Housing Lender&rdquo; instead of &ldquo;Equal Housing Opportunity&rdquo;)
+                  </label>
+                </div>
+              </fieldset>
+
               <fieldset className="mt-6">
                 <legend className="text-sm font-bold">Headshot <span className="font-medium text-[#647080]">(recommended)</span></legend>
                 <div className="mt-2 flex flex-wrap items-center gap-4 rounded-2xl border border-[#d8d0c1] bg-white p-4">
@@ -333,7 +427,11 @@ export function OnboardingWizard({
               <label className="mt-6 block text-sm font-bold" htmlFor="zip">Primary ZIP code</label>
               <input id="zip" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={form.territoryZip ?? ""} onChange={e => setForm({ ...form, territoryZip: e.target.value.replace(/\D/g, "").slice(0,5) })} placeholder="e.g. 78701" className={inputClass} />
               <button disabled={busy || photoBusy || !profileValid || !/^\d{5}$/.test(form.territoryZip ?? "")} onClick={() => { setTouched({ fullName: true, nmlsId: true, phone: true, company: true }); void save(resumeStep, "profile"); }} className="mt-7 rounded-full bg-[#102239] px-6 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Save profile and continue</button>
-              {!profileValid ? <p className="mt-3 text-xs text-[#647080]">Add your full name, NMLS ID and phone to continue.</p> : null}
+              {!profileValid ? (
+                <p className="mt-3 text-xs text-[#647080]">
+                  {Object.keys(problems).length > 0 ? "Add your full name, NMLS ID and phone to continue." : "Fix the licensing details above to continue."}
+                </p>
+              ) : null}
             </>}
 
             {step === 2 && <>

@@ -179,6 +179,22 @@ describe("crm routing and activity log", async () => {
       assert.equal(routeLead({ program: "FHA", zip: "00000", officerSlug: "not-a-real-officer-ffffffff" }).reason, "house");
     });
 
+    it("mirrors licensing details (company NMLS, licenses, lender wording) onto the officer record", () => {
+      const { account } = seedOfficer("licensed.lo@example.com", "Lia Licensed", ["93612"]);
+      writeDb((db) => {
+        const record = db.agentOnboarding.find((item) => item.userId === account.id);
+        if (record?.officerProfile) {
+          record.officerProfile.companyNmlsId = "7890";
+          record.officerProfile.licenses = [{ state: "CA", type: "ca_dre", number: "01234567" }];
+          record.officerProfile.equalHousing = "lender";
+        }
+      });
+      const officer = syncOfficerProfile(account.id);
+      assert.equal(officer?.companyNmlsId, "7890");
+      assert.deepEqual(officer?.licenses, [{ state: "CA", type: "ca_dre", number: "01234567" }]);
+      assert.equal(officer?.equalHousing, "lender");
+    });
+
     it("mirrors a saved profile onto the officer record only for an officer with a live plan", () => {
       const { account } = seedOfficer("mirror.lo@example.com", "Mia Mirror", ["93611"]);
       const officer = syncOfficerProfile(account.id);

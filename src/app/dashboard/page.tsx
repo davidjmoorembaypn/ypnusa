@@ -1,7 +1,9 @@
 import Link from "next/link";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { SessionBar } from "@/components/session-bar";
+import { InstallAppCard } from "@/components/pwa/install-app-card";
+import { APP_THEME_COLOR } from "@/lib/pwa/theme";
 import { VisibilityScoreCard } from "@/components/visibility-score-card";
 import { computeVisibilityScore } from "@/lib/visibility-score";
 import { requireSession } from "@/lib/auth";
@@ -14,6 +16,8 @@ export const metadata: Metadata = {
   title: "Dashboard",
   robots: { index: false, follow: false },
 };
+
+export const viewport: Viewport = { themeColor: APP_THEME_COLOR };
 
 export const dynamic = "force-dynamic";
 
@@ -167,6 +171,8 @@ export default async function DashboardHubPage({
           </div>
           <SessionBar />
         </header>
+
+        <InstallAppCard />
 
         {showUpgradeBanner ? (
           <section

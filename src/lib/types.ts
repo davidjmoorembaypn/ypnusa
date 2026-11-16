@@ -1,3 +1,4 @@
+import type { OfficerLicense } from "./compliance/rules";
 import type { PricingTierId } from "./pricing";
 import type { EntitlementStatus } from "./session";
 
@@ -89,6 +90,10 @@ export interface LoanOfficerRecord {
   nmlsId?: string;
   phone?: string;
   company?: string;
+  /** Mirrored from the profile: the company's NMLS ID, state licenses and Equal Housing wording. */
+  companyNmlsId?: string;
+  licenses?: OfficerLicense[];
+  equalHousing?: "opportunity" | "lender";
   /** Public page slug (/lo/[slug]), set once the officer saves a profile. */
   publicSlug?: string;
   specialties: LoanProgram[];
@@ -477,6 +482,12 @@ export interface OfficerProfileRecord {
   /** US phone number as 10 digits (no country code). */
   phone: string;
   company?: string;
+  /** The company's NMLS ID (printed next to the officer's when set). */
+  companyNmlsId?: string;
+  /** States the officer is licensed in; used to block messages to other states. */
+  licenses?: OfficerLicense[];
+  /** "lender" prints Equal Housing Lender; default Equal Housing Opportunity. */
+  equalHousing?: "opportunity" | "lender";
   /** Public page slug: the name plus a short id derived from the account id. */
   slug: string;
   updatedAt: string;

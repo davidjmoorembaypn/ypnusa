@@ -63,6 +63,20 @@ describe("officer profile", async () => {
         company: "  ",
       });
       assert.deepEqual(ok, { ok: true, value: { fullName: "Jane Doe", nmlsId: "1234567", phone: "5595120372" } });
+      const licensed = profile.validateOfficerProfileInput({
+        fullName: "Jane Doe", nmlsId: "123456", phone: "5595120372", companyNmlsId: "7890", equalHousing: "lender",
+        licenses: [{ state: "ca", type: "ca_dre", number: "0123 4567" }, { state: "AZ" }],
+      });
+      assert.ok(licensed.ok);
+      if (licensed.ok) {
+        assert.deepEqual(licensed.value.licenses, [{ state: "CA", type: "ca_dre", number: "01234567" }, { state: "AZ", type: "mlo" }]);
+        assert.equal(licensed.value.companyNmlsId, "7890");
+        assert.equal(licensed.value.equalHousing, "lender");
+      }
+      const badState = profile.validateOfficerProfileInput({ fullName: "Jane Doe", nmlsId: "123456", phone: "5595120372", licenses: [{ state: "ZZ" }] });
+      assert.equal(!badState.ok && badState.field, "licenses");
+      const dreNoNumber = profile.validateOfficerProfileInput({ fullName: "Jane Doe", nmlsId: "123456", phone: "5595120372", licenses: [{ state: "CA", type: "ca_dre" }] });
+      assert.equal(dreNoNumber.ok, false);
       const bad = profile.validateOfficerProfileInput({ fullName: "Jane Doe", nmlsId: "12", phone: "5595120372" });
       assert.equal(bad.ok, false);
       assert.equal(!bad.ok && bad.field, "nmlsId");

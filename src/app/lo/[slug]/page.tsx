@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { officerLicenseLines } from "@/lib/compliance/guardrails";
 import { notFound, permanentRedirect } from "next/navigation";
 import { serializeJsonLd } from "@/lib/local-seo";
 import {
@@ -85,6 +86,7 @@ export default async function LoanOfficerPage({ params }: Props) {
   if (slug !== page.slug) permanentRedirect(officerPagePath(page.slug));
 
   const { fullName, company, nmlsId, phone } = page.profile;
+  const licenseLines = officerLicenseLines({ name: fullName, ...page.profile });
   const url = `${MARKETING_SITE_URL}${officerPagePath(page.slug)}`;
   const photoPath = page.photo ? officerPhotoUrl(page.userId, page.photo) : null;
   const intakeHref = officerIntakeHref(page);
@@ -234,8 +236,9 @@ export default async function LoanOfficerPage({ params }: Props) {
       <footer className="mx-auto max-w-3xl px-4 pb-10 text-center text-[11px] leading-5 text-[#647080]">
         <p>
           {fullName} · NMLS #{nmlsId}
-          {company ? ` · ${company}` : ""} · Equal Housing Opportunity
+          {company ? ` · ${company}` : ""} · {page.profile.equalHousing === "lender" ? "Equal Housing Lender" : "Equal Housing Opportunity"}
         </p>
+        {licenseLines.length > 0 ? <p className="mt-1">{licenseLines.join(" · ")}</p> : null}
         <p className="mt-1">
           Page provided by YPN USA marketing technology only — not a commitment to lend. Loan approval, rates and terms
           depend on the lender&rsquo;s review of your application.

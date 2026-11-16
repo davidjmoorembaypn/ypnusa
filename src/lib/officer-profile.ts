@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { claimedZipsForEmail } from "@/lib/accounts";
 import { officerPhotoDir, readDb } from "@/lib/db";
+import type { OfficerLicense } from "@/lib/compliance/rules";
 import type { AgentOnboardingRecord, OfficerPhotoRecord, OfficerProfileRecord } from "@/lib/types";
 
 /**
@@ -87,10 +88,37 @@ export function normalizeCompany(value: unknown): string | undefined {
   return company.length >= 2 ? company : undefined;
 }
 
-export type ProfileField = "fullName" | "nmlsId" | "phone" | "company";
+export type ProfileField = "fullName" | "nmlsId" | "phone" | "company" | "companyNmlsId" | "licenses";
+
+const US_STATES = new Set(
+  ("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA PR " +
+    "RI SC SD TN TX UT VT VA WA WV WI WY GU VI").split(" "),
+);
+const LICENSE_TYPES = new Set<OfficerLicense["type"]>(["mlo", "ca_dre", "ca_dfpi_cfl", "other"]);
+
+/** Optional state licenses: [{ state: "CA", type: "ca_dre", number: "01234567" }]. Null when malformed. */
+export function normalizeLicenses(value: unknown): OfficerLicense[] | null {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.length > 60) return null;
+  const out: OfficerLicense[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") return null;
+    const item = raw as Record<string, unknown>;
+    const state = typeof item.state === "string" ? item.state.trim().toUpperCase() : "";
+    const type = (typeof item.type === "string" ? item.type : "mlo") as OfficerLicense["type"];
+    if (!US_STATES.has(state) || !LICENSE_TYPES.has(type)) return null;
+    const number = typeof item.number === "string" ? item.number.trim().replace(/[^A-Za-z0-9-]/g, "").slice(0, 20) : "";
+    if (type === "ca_dre" && !number) return null;
+    out.push({ state, type, ...(number ? { number } : {}) });
+  }
+  return out;
+}
 
 export type ProfileInputResult =
-  | { ok: true; value: Pick<OfficerProfileRecord, "fullName" | "nmlsId" | "phone" | "company"> }
+  | {
+      ok: true;
+      value: Pick<OfficerProfileRecord, "fullName" | "nmlsId" | "phone" | "company" | "companyNmlsId" | "licenses" | "equalHousing">;
+    }
   | { ok: false; field: ProfileField; error: string };
 
 export function validateOfficerProfileInput(input: Record<string, unknown>): ProfileInputResult {
@@ -103,7 +131,28 @@ export function validateOfficerProfileInput(input: Record<string, unknown>): Pro
   const companyRaw = cleanText(input.company, 200);
   if (companyRaw.length > 100) return { ok: false, field: "company", error: "Company name must be 100 characters or fewer." };
   const company = normalizeCompany(input.company);
-  return { ok: true, value: { fullName, nmlsId, phone, ...(company ? { company } : {}) } };
+  let companyNmlsId: string | undefined;
+  if (input.companyNmlsId !== undefined && input.companyNmlsId !== null && input.companyNmlsId !== "") {
+    companyNmlsId = normalizeNmlsId(input.companyNmlsId) ?? undefined;
+    if (!companyNmlsId) return { ok: false, field: "companyNmlsId", error: "Company NMLS ID must be 4 to 10 digits." };
+  }
+  const licenses = normalizeLicenses(input.licenses);
+  if (!licenses) {
+    return { ok: false, field: "licenses", error: "Each license needs a US state, a license type and, for a California DRE license, its number." };
+  }
+  const equalHousing = input.equalHousing === "lender" ? "lender" : undefined;
+  return {
+    ok: true,
+    value: {
+      fullName,
+      nmlsId,
+      phone,
+      ...(company ? { company } : {}),
+      ...(companyNmlsId ? { companyNmlsId } : {}),
+      ...(licenses.length > 0 ? { licenses } : {}),
+      ...(equalHousing ? { equalHousing } : {}),
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

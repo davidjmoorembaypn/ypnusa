@@ -1,4 +1,5 @@
 import { borrowerFacingOfficer, houseOfficerRecord, HOUSE_OFFICER_ID } from "@/lib/crm";
+import { applyComplianceGuardrails, describeBlock, type ComplianceOfficer } from "@/lib/compliance/guardrails";
 import { appendCrmNote, readDb, saveCerebroAction, writeDb } from "@/lib/db";
 import { generateId } from "@/lib/id";
 import type {
@@ -287,12 +288,56 @@ function lastTouch(actions: CerebroQueuedActionRecord[], lead: BorrowerLeadRecor
   return Math.max(Date.parse(lead.createdAt), ...times);
 }
 
+const NMLS_PLACEHOLDER = "[add your NMLS ID]";
+
+export function complianceOfficerOf(officer: LoanOfficerRecord): ComplianceOfficer {
+  return {
+    name: officer.name,
+    nmlsId: officer.nmlsId,
+    company: officer.company,
+    companyNmlsId: officer.companyNmlsId,
+    licenses: officer.licenses,
+    equalHousing: officer.equalHousing,
+  };
+}
+
+/**
+ * Adds the officer's required disclosures (NMLS ID, state lines, Equal Housing) to a
+ * borrower-facing draft, via src/lib/compliance. Returns null when the officer is not
+ * licensed in the borrower's state. A missing NMLS ID does not drop the draft: it gets a
+ * visible placeholder the officer must fill in before approving, as prequal letters do.
+ */
+export function withDisclosures(
+  lead: BorrowerLeadRecord,
+  officer: LoanOfficerRecord,
+  channel: "text" | "email",
+  body: string,
+): { body: string } | { blocked: string } {
+  const run = (nmlsId: string | undefined) =>
+    applyComplianceGuardrails({
+      text: body,
+      channel: channel === "text" ? "sms" : "email",
+      officer: { ...complianceOfficerOf(officer), nmlsId },
+      zip: lead.answers.zip,
+    });
+  let result = run(officer.nmlsId);
+  if (result.blocked && result.reasons.includes("not_licensed_in_state")) {
+    return { blocked: describeBlock("not_licensed_in_state", result.state) };
+  }
+  if (result.blocked) result = run(NMLS_PLACEHOLDER);
+  return { body: result.text };
+}
+
 function queueDraft(
   lead: BorrowerLeadRecord,
   kind: CerebroQueuedActionRecord["kind"],
   channel: "text" | "email",
   draft: { subject?: string; body: string },
-): CerebroQueuedActionRecord {
+  officer: LoanOfficerRecord = facingOfficer(lead.assignedLoId),
+): CerebroQueuedActionRecord | null {
+  const checked = withDisclosures(lead, officer, channel, draft.body);
+  if ("blocked" in checked) return null;
+  draft = { ...draft, body: checked.body };
   const now = new Date().toISOString();
   const record: CerebroQueuedActionRecord = {
     id: generateId("cba"),
@@ -320,7 +365,7 @@ export function executeRunFollowUps(call: AiToolCall, officer: LoanOfficerRecord
   const crmStatus = new Map(db.crmLeads.map((crm) => [crm.borrowerLeadId, crm.status]));
   const actions = db.cerebroActions;
   const cutoff = Date.now() - quietDays * DAY_MS;
-  const skipped = { noConsent: 0, recentlyTouched: 0, closed: 0, noContact: 0 };
+  const skipped = { noConsent: 0, recentlyTouched: 0, closed: 0, noContact: 0, notLicensedInState: 0 };
   const drafted: Array<{ borrower: string; channel: string; goal: string }> = [];
 
   const leads = db.borrowerLeads
@@ -336,7 +381,11 @@ export function executeRunFollowUps(call: AiToolCall, officer: LoanOfficerRecord
     }
     const channel = channelFor(lead);
     if (!channel) { skipped.noContact++; continue; }
-    queueDraft(lead, "nudge_draft", channel, nudgeDraft(lead, facingOfficer(lead.assignedLoId), channel));
+    const facing = facingOfficer(lead.assignedLoId);
+    if (!queueDraft(lead, "nudge_draft", channel, nudgeDraft(lead, facing, channel), facing)) {
+      skipped.notLicensedInState++;
+      continue;
+    }
     drafted.push({ borrower: lead.answers.name ?? "Unnamed lead", channel, goal: goalOf(lead) });
   }
   return JSON.stringify({
@@ -360,17 +409,23 @@ export function executeDraftRateAlerts(call: AiToolCall, officer: LoanOfficerRec
   );
   let drafted = 0;
   let alreadyQueued = 0;
+  let notLicensedInState = 0;
   for (const lead of watchers) {
     if (hasOpenDraft(db.cerebroActions, lead.id, ["rate_alert_draft"])) { alreadyQueued++; continue; }
     const channel = channelFor(lead, lead.rateAlerts?.channel);
     if (!channel) continue;
-    queueDraft(lead, "rate_alert_draft", channel, rateAlertDraft(lead, facingOfficer(lead.assignedLoId), channel, direction, officerNote));
+    const facing = facingOfficer(lead.assignedLoId);
+    if (!queueDraft(lead, "rate_alert_draft", channel, rateAlertDraft(lead, facing, channel, direction, officerNote), facing)) {
+      notLicensedInState++;
+      continue;
+    }
     drafted++;
   }
   return JSON.stringify({
     optedIn: watchers.length,
     drafted,
     alreadyQueued,
+    notLicensedInState,
     note:
       watchers.length === 0
         ? "None of their borrowers has opted in to rate alerts yet. Cerebro offers it to borrowers on the site."
@@ -397,8 +452,8 @@ export function executeDraftPrequalLetter(call: AiToolCall, officer: LoanOfficer
   const expires = new Date(today.getTime() + validDays * DAY_MS);
   const fmt = (date: Date) => date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
   const city = str(call.input.propertyCity, 60);
-  const nmls = officer.nmlsId ? `NMLS #${officer.nmlsId}` : "NMLS #[add your NMLS ID]";
-  const body = [
+  const nmls = officer.nmlsId ? `NMLS #${officer.nmlsId}` : `NMLS #${NMLS_PLACEHOLDER}`;
+  const letter = [
     fmt(today),
     "",
     "Prequalification Letter",
@@ -419,6 +474,10 @@ export function executeDraftPrequalLetter(call: AiToolCall, officer: LoanOfficer
   ]
     .filter((line): line is string => line !== null)
     .join("\n");
+  // State disclosures (e.g. California DRE) and the license-state check.
+  const checked = withDisclosures(lead, officer, "email", letter);
+  if ("blocked" in checked) return JSON.stringify({ error: "not_licensed_in_state", note: checked.blocked });
+  const body = checked.body;
   const now = today.toISOString();
   saveCerebroAction({
     id: generateId("cba"),

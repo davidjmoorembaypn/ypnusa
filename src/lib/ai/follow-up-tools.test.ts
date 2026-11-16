@@ -9,7 +9,7 @@ import type { BorrowerLeadRecord, ChatSessionRecord } from "../types";
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-follow-up-tools-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
-import { appendBorrowerLead, appendCrmLead, readDb } from "../db";
+import { appendBorrowerLead, appendCrmLead, readDb, writeDb } from "../db";
 import { executeMloTool } from "./cerebro-tools";
 import {
   executeDraftPrequalLetter,
@@ -17,6 +17,7 @@ import {
   executeRunFollowUps,
   executeSavePrequalDetails,
   executeSubscribeRateAlerts,
+  withDisclosures,
 } from "./follow-up-tools";
 
 const qualification = { programScores: {}, leadQuality: "strong" as const, urgency: "high" as const, recommendedNextStep: "Call", rationale: [] };
@@ -112,5 +113,44 @@ describe("officer follow-up tools", () => {
     assert.equal(typeof ok.drafted, "number");
     const stranger = JSON.parse(await executeMloTool({ toolName: "run_follow_ups", input: {} }, { userEmail: "nobody@example.com" }));
     assert.equal(stranger.error, "no_officer_profile");
+  });
+});
+
+describe("compliance disclosures on Cerebro drafts", () => {
+  it("adds the officer's NMLS ID to a texted nudge, before the STOP line", () => {
+    const loId = "lo_compliance_test";
+    writeDb((db) => {
+      db.loanOfficers.push({ id: loId, name: "Cal Officer", email: "cal@example.com", nmlsId: "555555", specialties: [], weeklyWindows: [] } as never);
+    });
+    const leadId = addLead(loId, { name: "Nia Nudge", phone: "5595550199", contactConsent: true, zip: "93277" });
+    const lead = readDb().borrowerLeads.find((l) => l.id === leadId)!;
+    const result = withDisclosures(lead, readDb().loanOfficers.find((o) => o.id === loId)!, "text", "Hi Nia, checking in. Reply STOP to opt out.");
+    assert.ok("body" in result);
+    if ("body" in result) assert.equal(result.body, "Hi Nia, checking in. Cal Officer, NMLS #555555. Reply STOP to opt out.");
+  });
+
+  it("refuses a draft to a borrower in a state the officer is not licensed in", () => {
+    const loId = "lo_ca_only";
+    writeDb((db) => {
+      db.loanOfficers.push({
+        id: loId, name: "Cali Only", email: "cali@example.com", nmlsId: "666666", specialties: [], weeklyWindows: [],
+        licenses: [{ state: "CA", type: "mlo" }],
+      } as never);
+    });
+    const leadId = addLead(loId, { name: "Ari Zona", email: "ari@example.com", contactConsent: true, zip: "85004" });
+    const lead = readDb().borrowerLeads.find((l) => l.id === leadId)!;
+    const result = withDisclosures(lead, readDb().loanOfficers.find((o) => o.id === loId)!, "email", "Hi Ari.");
+    assert.ok("blocked" in result);
+  });
+
+  it("puts a visible placeholder in a draft when the officer has no NMLS ID yet", () => {
+    const loId = "lo_no_nmls";
+    writeDb((db) => {
+      db.loanOfficers.push({ id: loId, name: "New Officer", email: "new@example.com", specialties: [], weeklyWindows: [] } as never);
+    });
+    const leadId = addLead(loId, { name: "Pat", email: "pat@example.com", contactConsent: true });
+    const lead = readDb().borrowerLeads.find((l) => l.id === leadId)!;
+    const result = withDisclosures(lead, readDb().loanOfficers.find((o) => o.id === loId)!, "email", "Hi Pat.");
+    assert.ok("body" in result && result.body.includes("NMLS #[add your NMLS ID]"));
   });
 });

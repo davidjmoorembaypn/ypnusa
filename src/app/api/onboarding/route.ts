@@ -12,7 +12,7 @@ import {
   validateOfficerProfileInput,
 } from "@/lib/officer-profile";
 import { rateLimit } from "@/lib/rate-limit";
-import type { AgentOnboardingGoal, AgentOnboardingRecord } from "@/lib/types";
+import type { AgentOnboardingGoal, AgentOnboardingRecord, OfficerProfileRecord } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,7 +81,16 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
+      // Compliance fields the form did not send keep their saved values (the step 1 form
+      // predates them), so a profile save never silently drops an officer's licenses.
+      const kept: Partial<OfficerProfileRecord> = {};
+      for (const key of ["companyNmlsId", "licenses", "equalHousing"] as const) {
+        if (!(key in rawProfile) && previous?.officerProfile?.[key] !== undefined) {
+          Object.assign(kept, { [key]: previous.officerProfile[key] });
+        }
+      }
       officerProfile = {
+        ...kept,
         ...checked.value,
         slug: officerSlug(checked.value.fullName, session.sub),
         updatedAt: now,

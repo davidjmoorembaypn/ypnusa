@@ -164,6 +164,10 @@ export interface CrmLeadRecord {
   status: string;
   notes: string[];
   qualificationSnapshot: QualificationSummary;
+  /** The officer's CRM ids for this lead, one per CRM link (upgrade 2). */
+  externalRefs?: Array<{ connectionId: string; externalId: string }>;
+  /** When the officer's CRM last changed this lead; older CRM updates are ignored. */
+  crmUpdatedAt?: string;
 }
 
 export interface LoAlertRecord {
@@ -712,6 +716,47 @@ export interface PushSubscriptionRecord {
   lastSentAt?: string;
 }
 
+/**
+ * A loan officer's link to their own CRM (upgrade 2), usually through Zapier. YPN USA posts
+ * lead events to outboundUrl, signed with signingSecret; the CRM posts status changes back
+ * to /api/webhooks/crm/{id} with the inbound token.
+ */
+export interface CrmConnectionRecord {
+  id: string;
+  /** Account id of the officer who owns the link. */
+  userId: string;
+  /** Where lead events go (for example a Zapier catch hook). Encrypted at rest; never logged. */
+  outboundUrl: string;
+  /** Signs every outbound event (HMAC-SHA256). Encrypted at rest; never logged. */
+  signingSecret: string;
+  /** SHA-256 of the token the CRM sends with updates. The token itself is shown once. */
+  inboundTokenHash: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastOutboundAt?: string;
+  lastOutboundOk?: boolean;
+  lastInboundAt?: string;
+}
+
+/** One lead event sent (or waiting to be sent) to an officer's CRM. Holds no borrower details. */
+export interface CrmDeliveryRecord {
+  id: string;
+  connectionId: string;
+  userId: string;
+  event: "lead.created" | "test";
+  borrowerLeadId?: string;
+  status: "pending" | "sent" | "failed";
+  attempts: number;
+  createdAt: string;
+  nextAttemptAt?: string;
+  sentAt?: string;
+  /** HTTP status of the last try, or 0 when it never connected. */
+  lastHttpStatus?: number;
+  /** Short reason code for the last failure (no URLs, no borrower details). */
+  lastError?: string;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -739,4 +784,6 @@ export interface DbShape {
   consents: ConsentRecord[];
   processedKeys: ProcessedKeyRecord[];
   pushSubscriptions: PushSubscriptionRecord[];
+  crmConnections: CrmConnectionRecord[];
+  crmDeliveries: CrmDeliveryRecord[];
 }

@@ -20,6 +20,7 @@ export const PII_FIELDS: Readonly<Record<string, readonly string[]>> = {
   cerebroActions: ["subject", "body", "preferredWindow"],
   consents: ["textShown"],
   pushSubscriptions: ["endpoint", "keys"],
+  crmConnections: ["outboundUrl", "signingSecret"],
 };
 
 export interface SnapshotPiiReport {

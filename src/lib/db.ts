@@ -12,6 +12,8 @@ import type {
   ConsentRecord,
   ProcessedKeyRecord,
   PushSubscriptionRecord,
+  CrmConnectionRecord,
+  CrmDeliveryRecord,
   SiteOverrideRecord,
   SiteOptimizerState,
   DbShape,
@@ -195,6 +197,8 @@ const emptyDb = (): DbShape => ({
   consents: [],
   processedKeys: [],
   pushSubscriptions: [],
+  crmConnections: [],
+  crmDeliveries: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -257,6 +261,8 @@ function normalize(snapshot: unknown): DbShape {
     consents: arrayOrEmpty<ConsentRecord>(parsed.consents),
     processedKeys: arrayOrEmpty<ProcessedKeyRecord>(parsed.processedKeys),
     pushSubscriptions: arrayOrEmpty<PushSubscriptionRecord>(parsed.pushSubscriptions),
+    crmConnections: arrayOrEmpty<CrmConnectionRecord>(parsed.crmConnections),
+    crmDeliveries: arrayOrEmpty<CrmDeliveryRecord>(parsed.crmDeliveries),
   };
 }
 

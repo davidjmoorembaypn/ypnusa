@@ -114,6 +114,15 @@ export class GeminiProvider implements AiProvider {
       if (part.functionCall) toolCalls.push({ toolName: part.functionCall.name, input: part.functionCall.args ?? {} });
     }
 
+    if (!text.trim() && toolCalls.length === 0) {
+      // Diagnostics only (no prompt or reply text): why Gemini returned an empty answer.
+      console.warn(
+        `[gemini] empty response finishReason=${candidate.finishReason ?? "none"} parts=${JSON.stringify(
+          (candidate.content?.parts ?? []).map((part) => Object.keys(part)),
+        )}`,
+      );
+    }
+
     return {
       text,
       toolCalls,

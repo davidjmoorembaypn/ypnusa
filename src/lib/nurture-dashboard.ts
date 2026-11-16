@@ -1,6 +1,7 @@
 import { calendarConnectionStatus } from "./calendar";
 import { readDb } from "./db";
 import type { SessionPayload } from "./session";
+import { scoreLead, type LeadScore } from "./scoring/lead-score";
 import type { FollowUpChannel, LoanProgram, Urgency } from "./types";
 
 export interface NurtureDashboardRow {
@@ -9,7 +10,12 @@ export interface NurtureDashboardRow {
   loanProgram: LoanProgram;
   timeline: string;
   creditTier: string;
+  /** Program-fit composite from intake qualification (qualification.ts). */
   score: number;
+  /** Readiness-to-talk score, 0-100, with its top reasons (scoring/lead-score.ts). */
+  leadScore: number;
+  leadScoreBand: LeadScore["band"];
+  leadScoreReasons: string[];
   quality: string;
   urgency: Urgency;
   officerName: string;
@@ -103,6 +109,8 @@ export function buildNurtureDashboard(loId?: string, predictiveByZip?: Record<st
       const escalation = alerts.length > 1 ? alerts[0] : undefined;
 
       const crmLead = db.crmLeads.find((item) => item.borrowerLeadId === lead.id);
+      const chat = db.chatSessions.find((item) => item.borrowerLeadId === lead.id);
+      const readiness = scoreLead({ lead, chat, hasAppointment: Boolean(appointment), now: new Date(now) });
       const latestAgentNote = crmLead?.notes.filter((note) => note.startsWith("Agent ▸")).at(-1);
 
       return {
@@ -112,6 +120,9 @@ export function buildNurtureDashboard(loId?: string, predictiveByZip?: Record<st
         timeline: lead.answers.timeline ?? "Not provided",
         creditTier: lead.answers.estimatedCreditBand ?? "Not provided",
         score: Math.round(lead.qualification.programScores.overallScore ?? 0),
+        leadScore: readiness.score,
+        leadScoreBand: readiness.band,
+        leadScoreReasons: readiness.reasons.slice(0, 3).map((reason) => reason.label),
         quality: lead.qualification.leadQuality,
         urgency: lead.qualification.urgency,
         officerName: officer?.name ?? "Unassigned",

@@ -24,7 +24,10 @@ interface HistoryMessage {
   author?: string;
 }
 
+/** While the officer has the chat: check for their replies every 5 seconds. */
 const POLL_MS = 5_000;
+/** While Cerebro has it: check every 10 seconds whether the officer has stepped in. */
+const IDLE_POLL_MS = 10_000;
 
 function makeId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return `${prefix}_${crypto.randomUUID()}`;
@@ -54,19 +57,22 @@ export function OfficerPageChat(props: {
   const [busy, setBusy] = useState(false);
   const [humanMode, setHumanMode] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  const [hasSession, setHasSession] = useState(false);
   const sessionIdRef = useRef<string | null>(null);
+  // A poll must not replace the bubbles while a message is on its way.
+  const busyRef = useRef(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const inputId = `officer-chat-${officerSlug}`;
 
   const refresh = useCallback(async () => {
     const sessionId = sessionIdRef.current;
-    if (!sessionId) return;
+    if (!sessionId || busyRef.current) return;
     const params = new URLSearchParams({ mode: "lead_qualification", sessionId });
     try {
       const res = await fetch(`/api/assistant/chat?${params.toString()}`);
       if (!res.ok) return;
       const body = (await res.json()) as { ok?: boolean; messages?: HistoryMessage[]; handledBy?: string };
-      if (!body.ok || !Array.isArray(body.messages)) return;
+      if (!body.ok || !Array.isArray(body.messages) || busyRef.current) return;
       const restored = toBubbles(body.messages);
       if (restored.length > 0) setMsgs(restored);
       setHumanMode(body.handledBy === "officer");
@@ -81,14 +87,20 @@ export function OfficerPageChat(props: {
     } catch {
       sessionIdRef.current = null;
     }
+    const timer = window.setTimeout(() => setHasSession(Boolean(sessionIdRef.current)), 0);
     void refresh();
+    return () => window.clearTimeout(timer);
   }, [storageKey, refresh]);
 
+  // Poll whenever this borrower has a chat, so an officer who takes over (and their replies)
+  // shows up without the borrower sending another message. Skipped while the tab is hidden.
   useEffect(() => {
-    if (!humanMode) return;
-    const timer = window.setInterval(() => void refresh(), POLL_MS);
+    if (!hasSession) return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, humanMode ? POLL_MS : IDLE_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [humanMode, refresh]);
+  }, [hasSession, humanMode, refresh]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -101,6 +113,7 @@ export function OfficerPageChat(props: {
     setDraft("");
     setFailed(null);
     setBusy(true);
+    busyRef.current = true;
     try {
       const res = await fetch("/api/assistant/chat", {
         method: "POST",
@@ -125,6 +138,7 @@ export function OfficerPageChat(props: {
         return;
       }
       sessionIdRef.current = body.sessionId;
+      setHasSession(true);
       try {
         window.localStorage.setItem(storageKey, body.sessionId);
       } catch {
@@ -141,6 +155,7 @@ export function OfficerPageChat(props: {
         { id: makeId("s"), from: "system", body: "Couldn't connect. Check your connection, then tap Retry." },
       ]);
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }

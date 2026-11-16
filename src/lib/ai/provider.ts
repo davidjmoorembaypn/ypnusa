@@ -165,6 +165,7 @@ function resolveBackend(): AiBackend | null {
  * add a branch below — callers never need to change.
  */
 export function getAiProvider(): AiProvider | null {
+  if (testProvider !== undefined) return testProvider;
   const now = Date.now();
   if (cachedProvider !== undefined && now - checkedAt < REFRESH_MS) return cachedProvider;
   checkedAt = now;
@@ -192,6 +193,13 @@ export function getAiProvider(): AiProvider | null {
   cachedProvider = chain.length === 0 ? null : chain.length === 1 ? chain[0] : new FailoverAiProvider(chain);
 
   return cachedProvider;
+}
+
+let testProvider: AiProvider | null | undefined;
+
+/** Test-only: use this provider instead of the configured ones (undefined restores them). */
+export function setAiProviderForTests(provider: AiProvider | null | undefined): void {
+  testProvider = provider;
 }
 
 /** Test-only: clears the memoized provider so env var changes take effect. */

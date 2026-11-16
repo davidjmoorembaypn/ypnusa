@@ -47,6 +47,11 @@ const SECTIONS: readonly Section[] = [
     description: "Borrowers chatting with Cerebro on your page. Take over to reply yourself.",
   },
   {
+    href: "/portal/crm",
+    title: "CRM link",
+    description: "Send new leads to your CRM through Zapier, and bring status changes back.",
+  },
+  {
     href: "/dashboard/local-seo",
     title: "Local SEO & GBP",
     description: "Territory pages and verified Google review connections.",

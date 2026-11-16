@@ -12,7 +12,7 @@ for (const key of ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "AI_PROVIDER", "GEMI
 }
 
 const OFFICER = "acct_officer";
-const SUB = { endpoint: "https://push.example.com/abc", keys: { p256dh: "BPubKey_abc-123", auth: "authSecret_1" } };
+const SUB = { endpoint: "https://fcm.googleapis.com/fcm/send/abc", keys: { p256dh: "BPubKey_abc-123", auth: "authSecret_1" } };
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
 
@@ -161,5 +161,89 @@ describe("phone alerts (web push)", async () => {
     assert.equal(chatAlerts.length, 1);
     assert.equal(chatAlerts[0].payload.url, "/portal/live-chats");
     assert.ok(!JSON.stringify(chatAlerts[0].payload).includes("Hello"));
+  });
+  it("accepts only real browser push services as endpoints", () => {
+    for (const bad of [
+      "https://169.254.169.254/latest/meta-data",
+      "https://internal.example.com/push",
+      "https://fcm.googleapis.com.evil.example/x",
+      "https://user:pw@fcm.googleapis.com/x",
+    ]) {
+      assert.equal(push.saveSubscription(OFFICER, { ...SUB, endpoint: bad }).ok, false, bad);
+    }
+    for (const good of [
+      "https://fcm.googleapis.com/fcm/send/x",
+      "https://updates.push.services.mozilla.com/wpush/v2/x",
+      "https://web.push.apple.com/x",
+      "https://wns2-par02p.notify.windows.com/w/?token=x",
+    ]) {
+      assert.equal(push.isPushServiceUrl(good), true, good);
+    }
+  });
+
+  it("sends house-book alerts to the admin accounts' phones", async () => {
+    const { HOUSE_OFFICER_ID } = await import("./crm");
+    writeDb((db) => {
+      db.accounts = [
+        { id: "acct_admin_1", email: "owner@example.com", role: "admin", createdAt: new Date().toISOString(), source: "email_signup" },
+        { id: "acct_mlo_1", email: "mlo@example.com", role: "mlo", createdAt: new Date().toISOString(), source: "email_signup" },
+      ];
+    });
+    push.saveSubscription("acct_admin_1", SUB);
+    push.saveSubscription("acct_mlo_1", { ...SUB, endpoint: "https://fcm.googleapis.com/fcm/send/other" });
+    const { alertOfficerOfLead } = await import("./push-alerts");
+    alertOfficerOfLead({ loId: HOUSE_OFFICER_ID, borrowerLeadId: "lead_house", firstAlert: true });
+    await settle();
+    assert.deepEqual(sent.map((item) => item.endpoint), [SUB.endpoint]);
+  });
+
+  it("alerts the officer a chat's lead was routed to when the borrower replies during a takeover", async () => {
+    push.saveSubscription(OFFICER, SUB);
+    writeDb((db) => {
+      db.crmLeads = [
+        {
+          id: "crm_zip",
+          createdAt: new Date().toISOString(),
+          borrowerLeadId: "lead_zip",
+          assignedLoId: OFFICER,
+          status: "new_ai_routed",
+          notes: [],
+          qualificationSnapshot: { programScores: {}, leadQuality: "developing", urgency: "standard", recommendedNextStep: "", rationale: [] },
+        },
+      ];
+      db.chatSessions = [
+        {
+          id: "chat_zip",
+          mode: "lead_qualification",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          crmLeadId: "crm_zip",
+          borrowerLeadId: "lead_zip",
+          handledBy: "officer",
+          messages: [],
+          capturedFields: {},
+          status: "qualified",
+        },
+      ];
+    });
+    const { appendBorrowerMessageIfTakenOver } = await import("./live-chat");
+    appendBorrowerMessageIfTakenOver("chat_zip", "Still there?");
+    await settle();
+    assert.equal(sent.filter((item) => item.payload.title === "Borrower replied").length, 1);
+  });
+
+  it("gives every process the same key pair when they start together", () => {
+    const file = path.join(secretsDir(), "vapid-keys.json");
+    fs.rmSync(file, { force: true });
+    push.resetPushKeysForTests();
+    const first = push.vapidKeys();
+    // Another process won the race: the file now holds its pair.
+    const other = { publicKey: "other-public", privateKey: "other-private" };
+    fs.rmSync(file, { force: true });
+    fs.writeFileSync(file, JSON.stringify(other), { mode: 0o600 });
+    push.resetPushKeysForTests();
+    assert.deepEqual(push.vapidKeys(), other);
+    assert.notDeepEqual(first, other);
+    assert.equal(fs.readdirSync(path.dirname(file)).some((name) => name.endsWith(".tmp")), false);
   });
 });

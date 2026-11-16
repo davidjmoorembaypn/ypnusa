@@ -99,11 +99,16 @@ export interface ChatViewer {
   role: string;
 }
 
-/** The officer the chat belongs to: the page owner, or whoever its lead was routed to. */
-function chatOwnerId(session: ChatSessionRecord): string | undefined {
-  if (session.officerUserId) return session.officerUserId;
-  if (!session.crmLeadId) return undefined;
-  return readDb().crmLeads.find((lead) => lead.id === session.crmLeadId)?.assignedLoId;
+/**
+ * The officer the chat belongs to: whoever its lead is routed to once there is a lead (so a
+ * borrower moved to a licensed officer goes with their chat), otherwise the page owner.
+ */
+export function chatOwnerId(session: Pick<ChatSessionRecord, "officerUserId" | "crmLeadId">): string | undefined {
+  if (session.crmLeadId) {
+    const assigned = readDb().crmLeads.find((lead) => lead.id === session.crmLeadId)?.assignedLoId;
+    if (assigned) return assigned;
+  }
+  return session.officerUserId;
 }
 
 export function canManageChat(session: ChatSessionRecord, viewer: ChatViewer): boolean {
@@ -262,7 +267,8 @@ export function appendBorrowerMessageIfTakenOver(sessionId: string, content: str
     stored = structuredClone(session);
   });
   const saved = stored as ChatSessionRecord | null;
-  if (saved?.officerUserId) alertOfficerOfChatReply(saved.officerUserId, saved.id);
+  const ownerId = saved ? chatOwnerId(saved) : undefined;
+  if (saved && ownerId) alertOfficerOfChatReply(ownerId, saved.id);
   return saved;
 }
 

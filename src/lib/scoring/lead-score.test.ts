@@ -105,4 +105,11 @@ describe("scoreLead", () => {
     assert.equal(bandForScore(45), "warm");
     assert.equal(bandForScore(44), "nurture");
   });
+  it("counts a down payment only when the borrower names an amount above zero", async () => {
+    const { statesDownPayment } = await import("./lead-score");
+    for (const text of ["5%, from savings", "$20k", "about 40,000"]) assert.equal(statesDownPayment(text), true, text);
+    for (const text of ["not sure", "0", "$0", "none yet", "gift from parents", "", undefined]) {
+      assert.equal(statesDownPayment(text), false, String(text));
+    }
+  });
 });

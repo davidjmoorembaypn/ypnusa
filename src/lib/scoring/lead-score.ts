@@ -93,12 +93,24 @@ function readinessReasons(input: LeadScoreInput): LeadScoreReason[] {
     default:
       break;
   }
-  const hasDownPayment = (answers.estimatedDownPaymentUsd ?? 0) > 0 || Boolean(prequal?.downPayment);
+  const hasDownPayment = (answers.estimatedDownPaymentUsd ?? 0) > 0 || statesDownPayment(prequal?.downPayment);
   if (hasDownPayment && answers.purchaseRefiIntent !== "refinance") {
     reasons.push({ label: "Has a down payment saved", points: 4 });
   }
   if ((prequal?.docsReady?.length ?? 0) > 0) reasons.push({ label: "Has documents ready", points: 4 });
   return capGroup(reasons, 15);
+}
+
+/**
+ * True only when the borrower's own words name a down payment above zero ("5%", "$20k").
+ * "Not sure", "none", "0" or no number at all earn nothing.
+ */
+export function statesDownPayment(text: string | undefined): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  if (/\b(not sure|unsure|don'?t know|no idea|none|nothing|no savings|zero|n\/a|tbd|undecided)\b/.test(lower)) return false;
+  const numbers = lower.match(/\d+(?:[.,]\d+)?/g) ?? [];
+  return numbers.some((value) => Number(value.replace(/,/g, "")) > 0);
 }
 
 function recencyReason(createdAt: string, now: Date): LeadScoreReason | null {

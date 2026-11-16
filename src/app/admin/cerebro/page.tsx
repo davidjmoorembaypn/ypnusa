@@ -11,7 +11,7 @@ import {
   installGscKey,
   rejectChange,
   revertChange,
-  runSiteOptimizer,
+  startRunInBackground,
   verifyPendingChanges,
 } from "@/lib/site-optimizer";
 
@@ -44,14 +44,11 @@ async function uploadKey(formData: FormData) {
 async function runNow() {
   "use server";
   await requireAdminSession("/admin/cerebro");
-  let message: string;
-  try {
-    const summary = await runSiteOptimizer();
-    message = `Run finished: ${summary.applied} page(s) improved out of ${summary.opportunities} found.`;
-  } catch (error) {
-    message = error instanceof Error ? error.message : "The run failed.";
-  }
-  done(message);
+  done(
+    startRunInBackground() === "started"
+      ? "Run started. Reload this page in about 2 minutes to see the result under Last run."
+      : "A run is already going. Reload this page in a minute or two.",
+  );
 }
 
 async function checkNow() {
@@ -106,7 +103,9 @@ export default async function AdminCerebroPage({ searchParams }: { searchParams:
           </p>
           <p className="mt-3 text-sm">
             Search Console: {gsc.connected ? <strong>connected as {gsc.serviceAccount}</strong> : <strong>not connected</strong>}
-            {db.siteOptimizer.lastRunAt ? <> · Last run {when(db.siteOptimizer.lastRunAt)}: {db.siteOptimizer.lastRunSummary}</> : null}
+            {db.siteOptimizer.lastRunSummary ? (
+              <> · Last run{db.siteOptimizer.lastRunAt ? ` ${when(db.siteOptimizer.lastRunAt)}` : ""}: {db.siteOptimizer.lastRunSummary}</>
+            ) : null}
           </p>
           <form action={uploadKey} className="mt-4 flex flex-wrap items-center gap-3 text-sm">
             <label className="font-medium" htmlFor="key">Upload the Search Console JSON key file:</label>

@@ -462,6 +462,26 @@ export async function runSiteOptimizer(options: { rows?: SearchRow[] } = {}): Pr
 let timer: ReturnType<typeof setInterval> | null = null;
 let running = false;
 
+/**
+ * Starts a run in the background and returns at once. A full run (Search Console plus a model
+ * call per page) can outlast the web proxy's 60-second timeout, so the admin's "Run now" must
+ * not wait for it. The result lands in siteOptimizer.lastRunSummary.
+ */
+export function startRunInBackground(): "started" | "already_running" {
+  if (running) return "already_running";
+  running = true;
+  saveSiteOptimizerState({ lastRunSummary: "Running now…" });
+  void runSiteOptimizer()
+    .catch((error) => {
+      console.error("[site-optimizer] manual run failed", error instanceof Error ? error.message : error);
+      saveSiteOptimizerState({ lastRunAt: new Date().toISOString(), lastRunSummary: `Failed: ${error instanceof Error ? error.message : "unknown error"}` });
+    })
+    .finally(() => {
+      running = false;
+    });
+  return "started";
+}
+
 /** Starts the in-process schedule: verifies changes every 10 minutes, runs weekly once Search Console is connected. */
 export function startSiteOptimizerSchedule(): void {
   if (timer || process.env.SITE_OPTIMIZER_DISABLED === "true") return;

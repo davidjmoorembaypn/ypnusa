@@ -115,6 +115,9 @@ describe("toolsForMode", () => {
         CAPTURE_LEAD_QUALIFICATION_TOOL.name,
         SCHEDULE_MEETING_TOOL.name,
         REQUEST_HUMAN_HANDOFF_TOOL.name,
+        "create_starter_kit",
+        "save_officer_prospect",
+        "request_callback",
       ]),
     );
   });
@@ -129,6 +132,7 @@ describe("toolsForMode", () => {
         SCHEDULE_MEETING_TOOL.name,
         CHECK_TERRITORY_AVAILABILITY_TOOL.name,
         REQUEST_HUMAN_HANDOFF_TOOL.name,
+        "request_callback",
       ]),
     );
   });
@@ -145,6 +149,8 @@ describe("toolsForMode", () => {
         "decide_website_change",
         "draft_marketing_content",
         "draft_landing_page",
+        "list_queued_actions",
+        "decide_queued_action",
         CHECK_TERRITORY_AVAILABILITY_TOOL.name,
         GET_PRICING_TOOL.name,
       ]),

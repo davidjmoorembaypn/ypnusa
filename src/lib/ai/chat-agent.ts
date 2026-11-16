@@ -1,9 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { generateId } from "@/lib/id";
 import { bookAppointment, listSyncedAvailableSlots } from "@/lib/calendar";
-import { readAgentOnboarding, readChatSession, readDb, saveChatSession } from "@/lib/db";
+import { readAgentOnboarding, readChatSession, readDb, saveChatSession, writeDb } from "@/lib/db";
 import { normalizeEmail } from "@/lib/accounts";
-import { findZipOwnerSubscription, logCrmActivity, routeLead } from "@/lib/crm";
+import { findZipOwnerSubscription, HOUSE_OFFICER_ID, logCrmActivity, routeLead } from "@/lib/crm";
+import { isValidZip, normalizeZip } from "@/lib/territory";
 import { emailNewLeadAlert, notifyAssignedOfficer } from "@/lib/notifications";
 import { marketingUrl } from "@/lib/site";
 import type {
@@ -21,6 +22,15 @@ import { isPricingTierId, PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { checkoutUrlForTier } from "@/lib/checkout";
 import { executeMloTool, MLO_TOOL_NAMES, MLO_TOOLS, type MloToolContext } from "./cerebro-tools";
 import { findExplainerVideo } from "./explainer-videos";
+import {
+  CREATE_STARTER_KIT_TOOL,
+  executeCreateStarterKit,
+  executeRequestCallback,
+  executeSaveOfficerProspect,
+  PUBLIC_ACTION_TOOL_NAMES,
+  REQUEST_CALLBACK_TOOL,
+  SAVE_OFFICER_PROSPECT_TOOL,
+} from "./public-agent-tools";
 import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
 import {
   buildSystemPrompt,
@@ -41,15 +51,18 @@ const CUSTOMER_FACING_MODES: AssistantMode[] = ["public_site", "lead_qualificati
 export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
   const tools: AiToolDefinition[] = [FIND_EXPLAINER_VIDEO_TOOL];
   if (mode === "lead_qualification") {
-    tools.push(CAPTURE_LEAD_QUALIFICATION_TOOL, SCHEDULE_MEETING_TOOL, REQUEST_HUMAN_HANDOFF_TOOL);
+    tools.push(CAPTURE_LEAD_QUALIFICATION_TOOL, SCHEDULE_MEETING_TOOL, REQUEST_CALLBACK_TOOL, REQUEST_HUMAN_HANDOFF_TOOL);
   }
   if (mode === "public_site") {
     // Cerebro greets everyone: loan officers get signup/pricing, consumers get qualified in place.
     tools.push(
       START_SIGNUP_TOOL,
       GET_PRICING_TOOL,
+      CREATE_STARTER_KIT_TOOL,
+      SAVE_OFFICER_PROSPECT_TOOL,
       CAPTURE_LEAD_QUALIFICATION_TOOL,
       SCHEDULE_MEETING_TOOL,
+      REQUEST_CALLBACK_TOOL,
       REQUEST_HUMAN_HANDOFF_TOOL,
     );
   }
@@ -183,6 +196,17 @@ async function executeActionTool(
       if (session.mode !== "mlo_dashboard") return JSON.stringify({ error: "not_available" });
       return await executeMloTool(call, ctx);
     }
+    if (PUBLIC_ACTION_TOOL_NAMES.has(call.toolName)) {
+      if (call.toolName === "request_callback") {
+        if (!CUSTOMER_FACING_MODES.includes(session.mode)) return JSON.stringify({ error: "not_available" });
+        return executeRequestCallback(call, session);
+      }
+      // Officer-acquisition tools belong to the public site only.
+      if (session.mode !== "public_site") return JSON.stringify({ error: "not_available" });
+      return call.toolName === "create_starter_kit"
+        ? executeCreateStarterKit(call, session)
+        : executeSaveOfficerProspect(call, session);
+    }
     if (call.toolName === "check_territory_availability") {
       const zip = typeof call.input.zip === "string" ? call.input.zip : "";
       return await executeTerritoryCheck(zip, session.mode === "mlo_dashboard" ? ctx.userEmail : undefined);
@@ -269,6 +293,7 @@ const ACTION_TOOL_NAMES = new Set([
   "start_signup",
   "schedule_meeting",
   "request_human_handoff",
+  ...PUBLIC_ACTION_TOOL_NAMES,
   ...MLO_TOOL_NAMES,
 ]);
 
@@ -297,7 +322,7 @@ export async function runWithTools(
   session: ChatSessionRecord,
   mergeCapture: (call: AiToolCall) => void,
   ctx: MloToolContext = {},
-  options: { budgetMs?: number } = {},
+  options: { budgetMs?: number; maxTokens?: number } = {},
 ): Promise<{ text: string; captureCalls: AiToolCall[]; actionCalls: AiToolCall[] }> {
   const messages = [...history];
   const captureCalls: AiToolCall[] = [];
@@ -316,6 +341,7 @@ export async function runWithTools(
       messages,
       tools,
       timeoutMs: Math.min(MAX_CALL_MS, remaining()),
+      ...(options.maxTokens ? { maxTokens: options.maxTokens } : {}),
     });
     if (result.text.trim()) lastText = result.text.trim();
     for (const call of result.toolCalls) {
@@ -465,7 +491,13 @@ function mergeCapturedFields(
   if (input.leadType !== undefined) next.leadType = input.leadType;
   if (input.urgency !== undefined) next.urgency = input.urgency;
   if (input.consent !== undefined) next.consent = input.consent;
+  if (input.zip !== undefined) {
+    const zip = normalizeZip(input.zip);
+    if (isValidZip(zip)) next.zip = zip;
+  }
+  const zipChanged = next.zip !== undefined && next.zip !== session.capturedFields.zip;
   session.capturedFields = next;
+  if (zipChanged) rerouteLinkedLeadToZipOwner(session);
 
   if (typeof input.summary === "string" && input.summary.trim()) session.summary = input.summary.trim();
   if (typeof input.leadQualityScore === "number" && Number.isFinite(input.leadQualityScore)) {
@@ -479,6 +511,36 @@ function mergeCapturedFields(
   if (f.consent === true && f.name && (f.email || f.phone) && f.leadType) {
     session.status = "qualified";
   }
+}
+
+/**
+ * A borrower who gave their ZIP code after the lead was already linked (so it went to the house
+ * book) moves to that ZIP code's paying loan officer. Never moves a lead away from a paying
+ * officer, and never re-sends any alert.
+ */
+function rerouteLinkedLeadToZipOwner(session: ChatSessionRecord): void {
+  const leadId = session.borrowerLeadId;
+  const zip = session.capturedFields.zip;
+  if (!leadId || !zip) return;
+  const lead = readDb().borrowerLeads.find((item) => item.id === leadId);
+  if (!lead || lead.assignedLoId !== HOUSE_OFFICER_ID) return;
+  const route = routeLead({ program: lead.answers.loanProgram, zip });
+  if (route.reason !== "zip_owner") return;
+  writeDb((db) => {
+    const stored = db.borrowerLeads.find((item) => item.id === leadId);
+    if (stored) {
+      stored.assignedLoId = route.officer.id;
+      stored.answers = { ...stored.answers, zip };
+    }
+    const crm = db.crmLeads.find((item) => item.borrowerLeadId === leadId);
+    if (crm) {
+      crm.assignedLoId = route.officer.id;
+      crm.notes.push(`Cerebro: borrower gave ZIP code ${zip}; lead moved to its loan officer.`);
+    }
+    for (const action of db.cerebroActions) {
+      if (action.borrowerLeadId === leadId && action.status === "awaiting_approval") action.loId = route.officer.id;
+    }
+  });
 }
 
 function inferLoanProgram(leadType: ChatCapturedFields["leadType"]): LoanProgram {
@@ -513,6 +575,7 @@ export function linkQualifiedLead(session: ChatSessionRecord): void {
     name: f.name,
     email: f.email,
     phone: f.phone,
+    zip: f.zip,
     contactConsent: f.consent,
     purchaseRefiIntent:
       f.leadType === "refinance" ? "refinance" : f.leadType === "buyer" ? "purchase" : "unsure",
@@ -527,7 +590,7 @@ export function linkQualifiedLead(session: ChatSessionRecord): void {
     rationale: [session.summary ?? "Captured via the app.ypnus.com lead-qualification assistant."],
   };
 
-  // The chat doesn't capture a ZIP, so this routes to the house account unless one is added.
+  // Routes to the paying loan officer who holds the borrower's ZIP code, or the house book.
   const route = routeLead({ program: answers.loanProgram, zip: answers.zip });
   const result = logCrmActivity(answers, qualification, route.officer.id, session.funnelSource, session.id);
 
@@ -756,6 +819,8 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
         }
       },
       { userId: input.userId, userEmail: input.userEmail },
+      // The starter kit is written inside one tool call, so public chats get a larger output cap.
+      input.mode === "public_site" ? { maxTokens: 8192 } : {},
     );
 
     reply = text.trim() || "Got it — one moment.";

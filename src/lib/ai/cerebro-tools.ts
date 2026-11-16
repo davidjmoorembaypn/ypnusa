@@ -1,4 +1,12 @@
-import { readDb, listWebsiteAutopilotChanges, readAgentOnboarding, saveAutopilotRun, saveWebsiteAutopilotChange } from "@/lib/db";
+import {
+  listCerebroActions,
+  listWebsiteAutopilotChanges,
+  readAgentOnboarding,
+  readDb,
+  saveAutopilotRun,
+  saveCerebroAction,
+  saveWebsiteAutopilotChange,
+} from "@/lib/db";
 import { runAgent } from "@/lib/agents/coreAgent";
 import type { PlatformChannel } from "@/lib/agents/marketingAgent";
 import type { AutopilotPageType } from "@/lib/types";
@@ -31,6 +39,8 @@ export const MLO_TOOL_NAMES = new Set([
   "decide_website_change",
   "draft_marketing_content",
   "draft_landing_page",
+  "list_queued_actions",
+  "decide_queued_action",
 ]);
 
 export const GET_MY_PIPELINE_TOOL: AiToolDefinition = {
@@ -127,6 +137,29 @@ export const DRAFT_LANDING_PAGE_TOOL: AiToolDefinition = {
   },
 };
 
+export const LIST_QUEUED_ACTIONS_TOOL: AiToolDefinition = {
+  name: "list_queued_actions",
+  description:
+    "List what Cerebro queued for this loan officer from public chats: borrower callback requests and drafted first messages waiting for their approval (id, borrower, channel, preferred time, draft text). Call when they ask what needs them, who wants a call, or what Cerebro did.",
+  inputSchema: { type: "object", properties: {}, additionalProperties: false },
+};
+
+export const DECIDE_QUEUED_ACTION_TOOL: AiToolDefinition = {
+  name: "decide_queued_action",
+  description:
+    "Mark one queued item approved or dismissed by id, optionally with the officer's edited text. Approving marks the draft ready for the officer to send themselves: Cerebro never sends it. Only call after the officer explicitly says to approve or dismiss that specific item.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      actionId: { type: "string" },
+      decision: { type: "string", enum: ["approve", "dismiss"] },
+      editedBody: { type: "string", description: "The officer's own edited wording, if they changed it." },
+    },
+    required: ["actionId", "decision"],
+    additionalProperties: false,
+  },
+};
+
 export const MLO_TOOLS: AiToolDefinition[] = [
   GET_MY_PIPELINE_TOOL,
   RUN_WEBSITE_AUTOPILOT_TOOL,
@@ -134,6 +167,8 @@ export const MLO_TOOLS: AiToolDefinition[] = [
   DECIDE_WEBSITE_CHANGE_TOOL,
   DRAFT_MARKETING_CONTENT_TOOL,
   DRAFT_LANDING_PAGE_TOOL,
+  LIST_QUEUED_ACTIONS_TOOL,
+  DECIDE_QUEUED_ACTION_TOOL,
 ];
 
 function str(value: unknown, max = 400): string | undefined {
@@ -331,6 +366,57 @@ async function draftLandingPage(call: AiToolCall): Promise<string> {
   return JSON.stringify({ draftOnly: true, note: "Draft only - not published.", page: result.data });
 }
 
+function listQueued(ctx: MloToolContext): string {
+  const officer = findOfficer(ctx);
+  if (!officer) return JSON.stringify({ error: "no_officer_profile", note: "No loan-officer profile is linked to this account yet." });
+  const leads = new Map(readDb().borrowerLeads.map((lead) => [lead.id, lead]));
+  const open = listCerebroActions(officer.id)
+    .filter((action) => action.status === "awaiting_approval")
+    .slice(-20)
+    .map((action) => ({
+      id: action.id,
+      kind: action.kind,
+      borrower: leads.get(action.borrowerLeadId)?.answers.name ?? "Unnamed lead",
+      channel: action.channel,
+      preferredWindow: action.preferredWindow ?? null,
+      subject: action.subject ?? null,
+      text: action.body,
+      createdAt: action.createdAt,
+    }));
+  return JSON.stringify({ waitingForYou: open.length, items: open });
+}
+
+function decideQueued(call: AiToolCall, ctx: MloToolContext): string {
+  const officer = findOfficer(ctx);
+  if (!officer) return JSON.stringify({ error: "no_officer_profile" });
+  const actionId = str(call.input.actionId, 120);
+  const decision = call.input.decision;
+  if (!actionId || (decision !== "approve" && decision !== "dismiss")) {
+    return JSON.stringify({ error: "actionId and decision (approve|dismiss) are required." });
+  }
+  // Ownership check: only this officer's own queue.
+  const action = listCerebroActions(officer.id).find((item) => item.id === actionId);
+  if (!action) return JSON.stringify({ error: "not_found" });
+  if (action.status !== "awaiting_approval") return JSON.stringify({ error: "already_decided", status: action.status });
+  const editedBody = str(call.input.editedBody, 2000);
+  saveCerebroAction({
+    ...action,
+    status: decision === "approve" ? "approved" : "dismissed",
+    body: editedBody ?? action.body,
+    updatedAt: new Date().toISOString(),
+  });
+  return JSON.stringify({
+    ok: true,
+    actionId,
+    decision,
+    note:
+      decision === "approve"
+        ? "Marked approved. Automatic sending is off, so nothing went out: give the officer the final text to send from their own phone or email."
+        : "Dismissed.",
+    finalText: decision === "approve" ? (editedBody ?? action.body) : undefined,
+  });
+}
+
 /** Runs one MLO tool. Never throws; always returns a plain-text (JSON) result for the model. */
 export async function executeMloTool(call: AiToolCall, ctx: MloToolContext): Promise<string> {
   try {
@@ -347,6 +433,10 @@ export async function executeMloTool(call: AiToolCall, ctx: MloToolContext): Pro
         return await draftMarketing(call);
       case "draft_landing_page":
         return await draftLandingPage(call);
+      case "list_queued_actions":
+        return listQueued(ctx);
+      case "decide_queued_action":
+        return decideQueued(call, ctx);
       default:
         return JSON.stringify({ error: `Unknown tool: ${call.toolName}` });
     }

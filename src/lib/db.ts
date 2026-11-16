@@ -5,6 +5,9 @@ import path from "path";
 import type {
   AccountRecord,
   LoginTokenRecord,
+  StarterKitRecord,
+  OfficerProspectRecord,
+  CerebroQueuedActionRecord,
   DbShape,
   AppointmentRecord,
   AgentOnboardingRecord,
@@ -173,6 +176,9 @@ const emptyDb = (): DbShape => ({
   agentOnboarding: [],
   accounts: [],
   loginTokens: [],
+  starterKits: [],
+  officerProspects: [],
+  cerebroActions: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -227,6 +233,9 @@ function normalize(snapshot: unknown): DbShape {
     agentOnboarding: arrayOrEmpty<AgentOnboardingRecord>(parsed.agentOnboarding),
     accounts: arrayOrEmpty<AccountRecord>(parsed.accounts),
     loginTokens: arrayOrEmpty<LoginTokenRecord>(parsed.loginTokens),
+    starterKits: arrayOrEmpty<StarterKitRecord>(parsed.starterKits),
+    officerProspects: arrayOrEmpty<OfficerProspectRecord>(parsed.officerProspects),
+    cerebroActions: arrayOrEmpty<CerebroQueuedActionRecord>(parsed.cerebroActions),
   };
 }
 
@@ -806,4 +815,51 @@ export function recordPaymentConversion(record: PaymentConversionRecord): { reco
     outcome = { recorded: true, firstForCustomer };
   });
   return outcome;
+}
+
+/** Keeps the Cerebro collections bounded on the single-file store. */
+const MAX_STARTER_KITS = 2000;
+const MAX_OFFICER_PROSPECTS = 5000;
+const MAX_CEREBRO_ACTIONS = 5000;
+
+export function saveStarterKit(kit: StarterKitRecord): void {
+  writeDb((db) => {
+    db.starterKits.push(kit);
+    if (db.starterKits.length > MAX_STARTER_KITS) db.starterKits.splice(0, db.starterKits.length - MAX_STARTER_KITS);
+  });
+}
+
+export function readStarterKit(id: string): StarterKitRecord | null {
+  return readDb().starterKits.find((kit) => kit.id === id) ?? null;
+}
+
+/** One prospect per chat session: later calls in the same chat update it instead of adding another. */
+export function upsertOfficerProspect(prospect: OfficerProspectRecord): OfficerProspectRecord {
+  let saved = prospect;
+  writeDb((db) => {
+    const idx = db.officerProspects.findIndex((item) => item.sessionId === prospect.sessionId);
+    if (idx >= 0) {
+      saved = { ...db.officerProspects[idx], ...prospect, id: db.officerProspects[idx].id, createdAt: db.officerProspects[idx].createdAt };
+      db.officerProspects[idx] = saved;
+    } else {
+      db.officerProspects.push(prospect);
+      if (db.officerProspects.length > MAX_OFFICER_PROSPECTS) {
+        db.officerProspects.splice(0, db.officerProspects.length - MAX_OFFICER_PROSPECTS);
+      }
+    }
+  });
+  return saved;
+}
+
+export function saveCerebroAction(action: CerebroQueuedActionRecord): void {
+  writeDb((db) => {
+    const idx = db.cerebroActions.findIndex((item) => item.id === action.id);
+    if (idx >= 0) db.cerebroActions[idx] = action;
+    else db.cerebroActions.push(action);
+    if (db.cerebroActions.length > MAX_CEREBRO_ACTIONS) db.cerebroActions.splice(0, db.cerebroActions.length - MAX_CEREBRO_ACTIONS);
+  });
+}
+
+export function listCerebroActions(loId: string): CerebroQueuedActionRecord[] {
+  return readDb().cerebroActions.filter((action) => action.loId === loId);
 }

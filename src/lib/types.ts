@@ -324,6 +324,8 @@ export interface ChatCapturedFields {
   urgency?: Urgency;
   /** Explicit contact-consent capture — required before any outbound follow-up. */
   consent?: boolean;
+  /** 5-digit ZIP code of the property or search area. Routes the lead to that ZIP code's paying loan officer. */
+  zip?: string;
 }
 
 export interface ChatSessionRecord {
@@ -528,6 +530,71 @@ export interface LoginTokenRecord {
   usedAt?: string;
 }
 
+/**
+ * A first-week marketing kit Cerebro drafts live for a visiting loan officer (bio, Google Business
+ * Profile copy, a first blog post and a welcome email). Drafts only: nothing here is published or sent.
+ */
+export interface StarterKitRecord {
+  id: string;
+  createdAt: string;
+  /** Chat session that produced it. */
+  sessionId: string;
+  officerName: string;
+  city: string;
+  state: string;
+  zip?: string;
+  /** Only when the officer typed it; never invented. */
+  nmlsId?: string;
+  bio: string;
+  gbpDescription: string;
+  gbpPost: string;
+  blogTitle: string;
+  blogPost: string;
+  welcomeEmailSubject: string;
+  welcomeEmailBody: string;
+  /** Lines the server added (disclosures) or reminders for the officer. */
+  complianceNotes: string[];
+}
+
+/** A loan officer who talked to Cerebro on the public site and agreed to hear from YPN USA. */
+export interface OfficerProspectRecord {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  sessionId: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  zip?: string;
+  city?: string;
+  state?: string;
+  planInterest?: string;
+  /** True only when they said YPN USA may contact them. */
+  consent: boolean;
+  starterKitId?: string;
+  notes?: string;
+}
+
+/**
+ * Something Cerebro queued for a loan officer to approve: a borrower's callback request or a
+ * drafted follow-up. Never sent automatically; approving only marks it ready for the officer.
+ */
+export interface CerebroQueuedActionRecord {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  loId: string;
+  borrowerLeadId: string;
+  kind: "callback_request" | "follow_up_draft";
+  status: "awaiting_approval" | "approved" | "dismissed";
+  channel: "phone" | "text" | "email";
+  /** The borrower's own words for when to reach them, e.g. "weekday evenings after 6". */
+  preferredWindow?: string;
+  subject?: string;
+  body: string;
+  source: "public_chat" | "officer_chat";
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -547,4 +614,7 @@ export interface DbShape {
   agentOnboarding: AgentOnboardingRecord[];
   accounts: AccountRecord[];
   loginTokens: LoginTokenRecord[];
+  starterKits: StarterKitRecord[];
+  officerProspects: OfficerProspectRecord[];
+  cerebroActions: CerebroQueuedActionRecord[];
 }

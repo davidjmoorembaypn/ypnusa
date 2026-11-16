@@ -11,6 +11,13 @@ import { runAgent } from "@/lib/agents/coreAgent";
 import type { PlatformChannel } from "@/lib/agents/marketingAgent";
 import type { AutopilotPageType } from "@/lib/types";
 import { getWordPressAutopilotStatus } from "@/lib/wordpress";
+import {
+  executeDraftPrequalLetter,
+  executeDraftRateAlerts,
+  executeRunFollowUps,
+  OFFICER_FOLLOW_UP_TOOL_NAMES,
+  OFFICER_FOLLOW_UP_TOOLS,
+} from "./follow-up-tools";
 import type { AiToolCall, AiToolDefinition } from "./provider";
 import {
   buildAutopilotRunRecord,
@@ -41,6 +48,7 @@ export const MLO_TOOL_NAMES = new Set([
   "draft_landing_page",
   "list_queued_actions",
   "decide_queued_action",
+  ...OFFICER_FOLLOW_UP_TOOL_NAMES,
 ]);
 
 export const GET_MY_PIPELINE_TOOL: AiToolDefinition = {
@@ -169,6 +177,7 @@ export const MLO_TOOLS: AiToolDefinition[] = [
   DRAFT_LANDING_PAGE_TOOL,
   LIST_QUEUED_ACTIONS_TOOL,
   DECIDE_QUEUED_ACTION_TOOL,
+  ...OFFICER_FOLLOW_UP_TOOLS,
 ];
 
 function str(value: unknown, max = 400): string | undefined {
@@ -437,6 +446,15 @@ export async function executeMloTool(call: AiToolCall, ctx: MloToolContext): Pro
         return listQueued(ctx);
       case "decide_queued_action":
         return decideQueued(call, ctx);
+      case "run_follow_ups":
+      case "draft_rate_alerts":
+      case "draft_prequal_letter": {
+        const officer = findOfficer(ctx);
+        if (!officer) return JSON.stringify({ error: "no_officer_profile", note: "No loan-officer profile is linked to this account yet." });
+        if (call.toolName === "run_follow_ups") return executeRunFollowUps(call, officer);
+        if (call.toolName === "draft_rate_alerts") return executeDraftRateAlerts(call, officer);
+        return executeDraftPrequalLetter(call, officer);
+      }
       default:
         return JSON.stringify({ error: `Unknown tool: ${call.toolName}` });
     }

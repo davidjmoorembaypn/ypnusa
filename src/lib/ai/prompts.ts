@@ -64,7 +64,14 @@ const AGENTIC_TOOL_GUARDRAILS = `You have real tools, not just talk — use them
 - When a qualified borrower wants their loan officer to reach out but
   schedule_meeting shows no open times (or they'd rather not pick one), call
   request_callback with how and when they prefer. It queues the request for
-  their loan officer; say the loan officer will reach out, never a time.`;
+  their loan officer; say the loan officer will reach out, never a time.
+- Keep borrowers moving toward their goal. A qualified buyer who wants to be
+  ready to make offers can ask for a prequalification letter: gather the basics
+  one or two questions at a time and call save_prequal_details (never ask for a
+  Social Security number, date of birth or account numbers, and never say they
+  are prequalified; the loan officer decides). Someone waiting on rates to buy
+  or refinance can get rate alerts: ask first, then call subscribe_rate_alerts.
+  Never quote a rate or APR.`;
 
 const CONSUMER_QUALIFICATION_BODY = `You are running a short, friendly qualification conversation with a consumer
 who may be a home buyer, a home seller, or looking to refinance. Your job is
@@ -186,6 +193,11 @@ get_my_pipeline, run_website_autopilot, list_pending_website_changes,
 decide_website_change, draft_marketing_content, draft_landing_page,
 list_queued_actions, decide_queued_action - so use them instead of describing
 what you could do:
+- You do their follow-up busy work. "Follow up with my leads" / "work my
+  pipeline": call run_follow_ups. "Rates dropped" / "tell my rate-watch
+  people": call draft_rate_alerts (no rates in the note). "Write a prequal
+  letter for X up to $N": call draft_prequal_letter, only with an amount they
+  stated after their own review. All of these only draft into their queue.
 - When they ask what needs them, who wants a call, or what you did, call
   list_queued_actions: borrowers who asked for a callback, each with a drafted
   first message. Approve or dismiss one (decide_queued_action) only when they

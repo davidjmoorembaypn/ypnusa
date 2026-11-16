@@ -127,6 +127,21 @@ export interface BorrowerLeadRecord {
   assignedLoId: string;
   crmLeadId: string;
   sessionId?: string;
+  /** Set when the borrower asked to hear when rates move. Alerts are still drafted for the officer to approve. */
+  rateAlerts?: { channel: "text" | "email"; optedInAt: string; optedOutAt?: string };
+  /** What the borrower shared toward a prequal letter (self-reported ranges, never SSN or account numbers). */
+  prequalRequest?: PrequalRequest;
+}
+
+export interface PrequalRequest {
+  requestedAt: string;
+  targetPrice?: string;
+  downPayment?: string;
+  creditRange?: "excellent" | "good" | "fair" | "rebuilding" | "unsure";
+  employment?: "w2" | "self_employed" | "retired" | "other";
+  monthlyIncomeRange?: string;
+  docsReady?: string[];
+  notes?: string;
 }
 
 export interface CrmLeadRecord {
@@ -585,14 +600,14 @@ export interface CerebroQueuedActionRecord {
   updatedAt: string;
   loId: string;
   borrowerLeadId: string;
-  kind: "callback_request" | "follow_up_draft";
+  kind: "callback_request" | "follow_up_draft" | "nudge_draft" | "rate_alert_draft" | "prequal_request" | "prequal_letter_draft";
   status: "awaiting_approval" | "approved" | "dismissed";
   channel: "phone" | "text" | "email";
   /** The borrower's own words for when to reach them, e.g. "weekday evenings after 6". */
   preferredWindow?: string;
   subject?: string;
   body: string;
-  source: "public_chat" | "officer_chat";
+  source: "public_chat" | "officer_chat" | "follow_up_run";
 }
 
 export interface DbShape {

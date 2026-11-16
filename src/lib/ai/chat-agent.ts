@@ -23,6 +23,13 @@ import { checkoutUrlForTier } from "@/lib/checkout";
 import { executeMloTool, MLO_TOOL_NAMES, MLO_TOOLS, type MloToolContext } from "./cerebro-tools";
 import { findExplainerVideo } from "./explainer-videos";
 import {
+  BORROWER_FOLLOW_UP_TOOL_NAMES,
+  executeSavePrequalDetails,
+  executeSubscribeRateAlerts,
+  SAVE_PREQUAL_DETAILS_TOOL,
+  SUBSCRIBE_RATE_ALERTS_TOOL,
+} from "./follow-up-tools";
+import {
   CREATE_STARTER_KIT_TOOL,
   executeCreateStarterKit,
   executeRequestCallback,
@@ -51,7 +58,14 @@ const CUSTOMER_FACING_MODES: AssistantMode[] = ["public_site", "lead_qualificati
 export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
   const tools: AiToolDefinition[] = [FIND_EXPLAINER_VIDEO_TOOL];
   if (mode === "lead_qualification") {
-    tools.push(CAPTURE_LEAD_QUALIFICATION_TOOL, SCHEDULE_MEETING_TOOL, REQUEST_CALLBACK_TOOL, REQUEST_HUMAN_HANDOFF_TOOL);
+    tools.push(
+      CAPTURE_LEAD_QUALIFICATION_TOOL,
+      SCHEDULE_MEETING_TOOL,
+      REQUEST_CALLBACK_TOOL,
+      SAVE_PREQUAL_DETAILS_TOOL,
+      SUBSCRIBE_RATE_ALERTS_TOOL,
+      REQUEST_HUMAN_HANDOFF_TOOL,
+    );
   }
   if (mode === "public_site") {
     // Cerebro greets everyone: loan officers get signup/pricing, consumers get qualified in place.
@@ -63,6 +77,8 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
       CAPTURE_LEAD_QUALIFICATION_TOOL,
       SCHEDULE_MEETING_TOOL,
       REQUEST_CALLBACK_TOOL,
+      SAVE_PREQUAL_DETAILS_TOOL,
+      SUBSCRIBE_RATE_ALERTS_TOOL,
       REQUEST_HUMAN_HANDOFF_TOOL,
     );
   }
@@ -196,6 +212,12 @@ async function executeActionTool(
       if (session.mode !== "mlo_dashboard") return JSON.stringify({ error: "not_available" });
       return await executeMloTool(call, ctx);
     }
+    if (BORROWER_FOLLOW_UP_TOOL_NAMES.has(call.toolName)) {
+      if (!CUSTOMER_FACING_MODES.includes(session.mode)) return JSON.stringify({ error: "not_available" });
+      return call.toolName === "subscribe_rate_alerts"
+        ? executeSubscribeRateAlerts(call, session)
+        : executeSavePrequalDetails(call, session);
+    }
     if (PUBLIC_ACTION_TOOL_NAMES.has(call.toolName)) {
       if (call.toolName === "request_callback") {
         if (!CUSTOMER_FACING_MODES.includes(session.mode)) return JSON.stringify({ error: "not_available" });
@@ -294,6 +316,7 @@ const ACTION_TOOL_NAMES = new Set([
   "schedule_meeting",
   "request_human_handoff",
   ...PUBLIC_ACTION_TOOL_NAMES,
+  ...BORROWER_FOLLOW_UP_TOOL_NAMES,
   ...MLO_TOOL_NAMES,
 ]);
 

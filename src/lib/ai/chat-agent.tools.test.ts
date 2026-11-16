@@ -118,6 +118,8 @@ describe("toolsForMode", () => {
         "create_starter_kit",
         "save_officer_prospect",
         "request_callback",
+        "save_prequal_details",
+        "subscribe_rate_alerts",
       ]),
     );
   });
@@ -133,6 +135,8 @@ describe("toolsForMode", () => {
         CHECK_TERRITORY_AVAILABILITY_TOOL.name,
         REQUEST_HUMAN_HANDOFF_TOOL.name,
         "request_callback",
+        "save_prequal_details",
+        "subscribe_rate_alerts",
       ]),
     );
   });
@@ -151,6 +155,9 @@ describe("toolsForMode", () => {
         "draft_landing_page",
         "list_queued_actions",
         "decide_queued_action",
+        "run_follow_ups",
+        "draft_rate_alerts",
+        "draft_prequal_letter",
         CHECK_TERRITORY_AVAILABILITY_TOOL.name,
         GET_PRICING_TOOL.name,
       ]),

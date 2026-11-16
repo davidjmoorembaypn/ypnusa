@@ -76,7 +76,7 @@ export function borrowerFacingOfficer(officer: LoanOfficerRecord): LoanOfficerRe
 }
 
 /** Officer fields that come from the officer's own onboarding profile. */
-type ProfileMirror = Pick<LoanOfficerRecord, "nmlsId" | "phone" | "company" | "publicSlug"> & { profileName?: string };
+type ProfileMirror = Pick<LoanOfficerRecord, "nmlsId" | "phone" | "company" | "companyNmlsId" | "licenses" | "equalHousing" | "publicSlug"> & { profileName?: string };
 
 function profileMirrorFor(accountId: string): ProfileMirror {
   const profile = readDb().agentOnboarding.find((record) => record.userId === accountId)?.officerProfile;
@@ -86,6 +86,9 @@ function profileMirrorFor(accountId: string): ProfileMirror {
     nmlsId: profile.nmlsId,
     phone: profile.phone,
     company: profile.company,
+    companyNmlsId: profile.companyNmlsId,
+    licenses: profile.licenses,
+    equalHousing: profile.equalHousing,
     publicSlug: officerSlug(profile.fullName, accountId),
   };
 }

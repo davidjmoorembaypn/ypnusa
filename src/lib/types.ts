@@ -332,6 +332,8 @@ export interface ChatMessageRecord {
   role: ChatRole;
   content: string;
   createdAt: string;
+  /** Set on assistant-side messages the loan officer typed during a Live Takeover (not the AI). */
+  author?: "officer";
 }
 
 /**
@@ -376,6 +378,12 @@ export interface ChatSessionRecord {
   /** UTC day (YYYY-MM-DD) that usageCount counts model-answered messages for — the daily cap in chat-agent.ts. */
   usageDay?: string;
   usageCount?: number;
+  /** Set for borrower chats started on a loan officer's own page (/lo/[slug]): that officer's account id and page slug. */
+  officerUserId?: string;
+  officerSlug?: string;
+  /** Who answers the borrower: Cerebro (default) or the loan officer after a Live Takeover. */
+  handledBy?: "ai" | "officer";
+  handledByChangedAt?: string;
 }
 
 export type AutopilotPageType = "profile" | "landing_page" | "seo" | "chatbot" | "lead_form";

@@ -41,6 +41,11 @@ const SECTIONS: readonly Section[] = [
     description: "AI-qualified borrowers, outreach health, and calendar conversions.",
   },
   {
+    href: "/portal/live-chats",
+    title: "Live chats",
+    description: "Borrowers chatting with Cerebro on your page. Take over to reply yourself.",
+  },
+  {
     href: "/dashboard/local-seo",
     title: "Local SEO & GBP",
     description: "Territory pages and verified Google review connections.",

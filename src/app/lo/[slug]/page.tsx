@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { officerLicenseLines } from "@/lib/compliance/guardrails";
+import { OfficerPageChat } from "@/components/assistant/officer-page-chat";
+import { officerChatContext } from "@/lib/live-chat";
 import { notFound, permanentRedirect } from "next/navigation";
 import { serializeJsonLd } from "@/lib/local-seo";
 import {
@@ -91,6 +93,7 @@ export default async function LoanOfficerPage({ params }: Props) {
   const photoPath = page.photo ? officerPhotoUrl(page.userId, page.photo) : null;
   const intakeHref = officerIntakeHref(page);
   const zipLabel = page.zips.length === 1 ? "ZIP code" : "ZIP codes";
+  const chatOfficer = officerChatContext(page.slug);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -195,6 +198,16 @@ export default async function LoanOfficerPage({ params }: Props) {
             The request takes a few quick questions and goes straight to {fullName}.
           </p>
         </section>
+
+        {chatOfficer ? (
+          <div className="mt-6">
+            <OfficerPageChat
+              officerSlug={chatOfficer.slug}
+              officerFirstName={chatOfficer.firstName}
+              disclosures={chatOfficer.disclosures}
+            />
+          </div>
+        ) : null}
 
         <section aria-labelledby="zips-heading" className="mt-6 rounded-[24px] border border-[#d8d0c1] bg-white p-6 sm:p-8">
           <h2 id="zips-heading" className="text-lg font-semibold tracking-[-0.02em]">

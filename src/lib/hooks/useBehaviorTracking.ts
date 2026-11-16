@@ -4,9 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   analyzeScroll,
   createInitialBehaviorState,
-  detectExitRisk,
   loadPersistedBehavior,
-  markExitTrapShown,
   recordSignal,
   resolveContentVariant,
   resolveDynamicHeroCopy,
@@ -29,7 +27,6 @@ export function useBehaviorTracking() {
   const [visitorIntent, setVisitorIntentState] = useState<VisitorIntent | null>(null);
   const [returningVisitor, setReturningVisitor] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [exitTrapOpen, setExitTrapOpen] = useState(false);
   const lastScroll = useRef<ScrollSample | null>(null);
 
   useEffect(() => {
@@ -59,11 +56,6 @@ export function useBehaviorTracking() {
     [record],
   );
 
-  const dismissExitTrap = useCallback(() => {
-    setExitTrapOpen(false);
-    setState((prev) => markExitTrapShown(prev));
-  }, []);
-
   // Micro-interactions: hover on pricing/features, scroll velocity + backtracking,
   // copy/paste, and tab visibility — all client-only, no network round trip.
   useEffect(() => {
@@ -76,27 +68,13 @@ export function useBehaviorTracking() {
       if (!previous) return;
 
       const analysis = analyzeScroll(previous, now);
-      setState((prev) => {
-        let next = recordSignal(prev, {
+      // No exit-intent pop-up (removed 2026-11-16 at David's request): scroll is only scored.
+      setState((prev) =>
+        recordSignal(prev, {
           type: analysis.isBacktracking ? "scroll_backtrack" : "scroll",
           timestamp: now.timestamp,
-        });
-        if (detectExitRisk(next, { fastExitScroll: analysis.isFastExitScroll })) {
-          next = markExitTrapShown(next);
-          setExitTrapOpen(true);
-        }
-        return next;
-      });
-    };
-
-    const handlePointerOut = (event: PointerEvent) => {
-      const leftTop = event.clientY <= 0;
-      if (!leftTop) return;
-      setState((prev) => {
-        if (!detectExitRisk(prev, { pointerLeftTop: true })) return prev;
-        setExitTrapOpen(true);
-        return markExitTrapShown(prev);
-      });
+        }),
+      );
     };
 
     const handleCopy = () => record("copy");
@@ -104,14 +82,12 @@ export function useBehaviorTracking() {
     const handleVisibilityChange = () => record(document.hidden ? "tab_hidden" : "tab_visible");
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    document.addEventListener("pointerout", handlePointerOut);
     document.addEventListener("copy", handleCopy);
     document.addEventListener("paste", handlePaste);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      document.removeEventListener("pointerout", handlePointerOut);
       document.removeEventListener("copy", handleCopy);
       document.removeEventListener("paste", handlePaste);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -131,9 +107,7 @@ export function useBehaviorTracking() {
     heroCopy,
     visitorIntent,
     returningVisitor,
-    exitTrapOpen,
     selectVisitorIntent,
-    dismissExitTrap,
     recordHover,
     recordSliderInteraction,
   };

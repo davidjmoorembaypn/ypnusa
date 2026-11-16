@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StickyCtaBar } from "@/components/sticky-cta-bar";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
@@ -277,6 +278,7 @@ export function WpImportedPageView({
         ) : null}
       </main>
       <SiteFooter />
+      {nextStep ? <StickyCtaBar source={`wp_page:${sectionPath || "top"}`} /> : null}
     </div>
   );
 }

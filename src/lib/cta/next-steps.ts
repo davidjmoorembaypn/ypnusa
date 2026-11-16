@@ -18,23 +18,26 @@ export interface NextStep {
   body: string;
   primary: NextStepAction;
   secondary?: NextStepAction;
+  /** Show an inline ZIP code field that goes straight to the check on /claim-territory. */
+  zipForm?: boolean;
 }
 
-const CHECK_ZIP: NextStepAction = { label: "Check your ZIP code", href: "/claim-territory" };
-const START_FREE: NextStepAction = { label: "Start free", href: FREE_SIGNUP_HREF };
-const PRICING: NextStepAction = { label: "Compare plans", href: "/pricing" };
-const CEREBRO: NextStepAction = { label: "Talk to Cerebro", href: "/cerebro" };
+const CHECK_ZIP: NextStepAction = { label: "Check my ZIP code", href: "/claim-territory" };
+const START_FREE: NextStepAction = { label: "Start free, no card", href: FREE_SIGNUP_HREF };
+const PRICING: NextStepAction = { label: "See plans and pricing", href: "/pricing" };
+const CEREBRO: NextStepAction = { label: "Try Cerebro free", href: "/cerebro" };
 
 export const ZIP_STEP: NextStep = {
-  heading: "See whether your ZIP code is open",
-  body: "Each paid plan includes one ZIP code that's exclusive within YPN USA. It locks when your first payment goes through. Checking is free.",
+  heading: "Lock your ZIP code before another loan officer does",
+  body: "YPN USA gives each ZIP code to one loan officer. Once it's claimed, it's gone. Checking is free and takes seconds; the ZIP code locks when your first payment goes through.",
   primary: CHECK_ZIP,
   secondary: PRICING,
+  zipForm: true,
 };
 
 const PRICING_STEP: NextStep = {
-  heading: "Pick the plan that fits how you work",
-  body: "Start free, or try Pro, Growth or Exclusive free for 15 days. Each paid plan includes one exclusive ZIP code and Cerebro.",
+  heading: "Start free today, upgrade when you're ready",
+  body: "The Free plan needs no card. Pro, Growth and Exclusive come with a 15-day free trial, Cerebro and one ZIP code that's yours alone within YPN USA.",
   primary: PRICING,
   secondary: START_FREE,
 };
@@ -43,33 +46,33 @@ const PRICING_STEP: NextStep = {
 export const CLUSTER_NEXT_STEPS: Readonly<Record<string, NextStep>> = {
   "exclusive-mortgage-leads": ZIP_STEP,
   "ai-lead-automation": {
-    heading: "See how Cerebro would answer your borrowers",
-    body: "Cerebro answers borrower questions day and night, qualifies them and hands the ready ones to you. Try it free, no card needed.",
+    heading: "Let Cerebro answer your next borrower",
+    body: "Borrowers who wait go to whoever answers first. Cerebro answers day and night, qualifies them and hands the ready ones to you. Try it free, no card needed.",
     primary: CEREBRO,
     secondary: START_FREE,
   },
   "realtor-referral-partnerships": {
-    heading: "Give your referral partners a faster answer",
-    body: "Start a free YPN USA account: Cerebro answers the buyers your partners send, any hour, and you get every conversation.",
+    heading: "Give your referral partners a lender who always answers",
+    body: "Agents keep sending buyers to the loan officer who responds. Start free: Cerebro answers the buyers your partners send, any hour, and you get every conversation.",
     primary: START_FREE,
     secondary: CHECK_ZIP,
   },
   "local-seo-for-loan-officers": {
-    heading: "Check your Google Business Profile in two minutes",
-    body: "The free optimizer reviews your profile and drafts a description, posts and next steps written for loan officers.",
+    heading: "See what your Google profile is missing",
+    body: "Run the free optimizer: it reviews your Google Business Profile and drafts a description, posts and next steps written for loan officers. No Google login needed.",
     primary: { label: "Run the free optimizer", href: "/tools/gbp-optimizer" },
     secondary: CHECK_ZIP,
   },
   "loan-officer-websites": {
-    heading: "Get a loan officer website without hiring a designer",
-    body: "Your name and NMLS ID, local pages for your market, a compliance footer and Cerebro on every page.",
+    heading: "Get a loan officer website that answers borrowers for you",
+    body: "Your name and NMLS ID, local pages for your market, a compliance footer and Cerebro on every page, without hiring a designer.",
     primary: { label: "See the branded website", href: "/features/branded-mlo-website" },
     secondary: CHECK_ZIP,
   },
   "loan-programs-and-niches": ZIP_STEP,
   "loan-officer-marketing": {
-    heading: "Get local pages and Cerebro working for you",
-    body: "Start free: local pages, Cerebro answering borrowers and drafts for your posts. Upgrade when you want an exclusive ZIP code.",
+    heading: "Start getting found in your market this week",
+    body: "Start free: local pages, Cerebro answering borrowers and drafts for your posts. Upgrade when you want a ZIP code no other YPN USA loan officer can claim.",
     primary: START_FREE,
     secondary: { label: "Run the ROI calculator", href: "/roi" },
   },

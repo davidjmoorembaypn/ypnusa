@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { StickyCtaBar } from "@/components/sticky-cta-bar";
 import { libraryGuidesFor } from "@/content/library-guides";
 import { NextStepBlock } from "@/components/next-step";
 import { nextStepForCluster } from "@/lib/cta/next-steps";
@@ -183,6 +184,7 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
         </section>
       </main>
       <SiteFooter />
+      <StickyCtaBar source="topic" />
     </div>
   );
 }

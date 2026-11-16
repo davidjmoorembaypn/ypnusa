@@ -107,6 +107,7 @@ const MORE_MARKET_LINKS: readonly { label: string; href: string }[] = [
   { label: "Atlanta, GA", href: "/atlanta-ga-mortgage-loan-officer" },
   { label: "Tampa, FL", href: "/tampa-fl-mortgage-loan-officer" },
   { label: "Phoenix, AZ", href: "/territory/phoenix-az-mortgage-loan-officer" },
+  { label: "Central Valley loan data report", href: "/research" },
   { label: "All markets we cover", href: "/markets" },
 ];
 

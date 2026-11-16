@@ -32,7 +32,7 @@ export class OpenAiProvider implements AiProvider {
           content: message.content,
         })),
       ],
-      tools: request.tools?.map((tool) => ({
+      tools: (request.toolChoice === "none" ? undefined : request.tools)?.map((tool) => ({
         type: "function" as const,
         function: {
           name: tool.name,

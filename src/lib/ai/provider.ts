@@ -51,6 +51,12 @@ export interface AiGenerateRequest {
   maxTokens?: number;
   /** Optional per-request deadline in ms (providers that support it cap the HTTP call to this). */
   timeoutMs?: number;
+  /**
+   * "none": the model must answer in text. Gemini keeps the tool list declared (it returns an
+   * empty UNEXPECTED_TOOL_CALL response when a tool it wants is missing) and is told not to call
+   * any; the other providers simply get no tools.
+   */
+  toolChoice?: "auto" | "none";
 }
 
 export interface AiGenerateResult {

@@ -117,7 +117,7 @@ export class AnthropicProvider implements AiProvider {
         role: message.role,
         content: message.content,
       })),
-      tools: request.tools?.map((tool, index, all) => ({
+      tools: (request.toolChoice === "none" ? undefined : request.tools)?.map((tool, index, all) => ({
         name: tool.name,
         description: tool.description,
         input_schema: tool.inputSchema,

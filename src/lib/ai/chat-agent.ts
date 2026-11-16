@@ -341,9 +341,11 @@ export async function runWithTools(
     const result = await provider.generate({
       system,
       messages,
-      // Gemini tends to answer a "now write your reply" nudge with the same tool call again,
-      // which left visitors with "Got it — one moment." Without tools it has to write text.
-      ...(textOnly ? {} : { tools }),
+      tools,
+      // Gemini tends to answer a "now write your reply" nudge with the same tool call again (or an
+      // empty reply when the tool is missing), which left visitors with "Got it — one moment."
+      // toolChoice none keeps the tools declared but makes it write text.
+      ...(textOnly ? { toolChoice: "none" as const } : {}),
       timeoutMs: Math.min(MAX_CALL_MS, remaining()),
       ...(options.maxTokens ? { maxTokens: options.maxTokens } : {}),
     });
@@ -546,6 +548,26 @@ function rerouteLinkedLeadToZipOwner(session: ChatSessionRecord): void {
       if (action.borrowerLeadId === leadId && action.status === "awaiting_approval") action.loId = route.officer.id;
     }
   });
+}
+
+/**
+ * Used only when the model returned no text at all. Instead of a dead-end "one moment", asks for
+ * the next missing piece of a borrower's details (or offers help), so the chat keeps moving.
+ */
+export function fallbackReply(session: ChatSessionRecord): string {
+  if (!CUSTOMER_FACING_MODES.includes(session.mode)) return "Done. What would you like to do next?";
+  const f = session.capturedFields;
+  if (!f.leadType) {
+    return "Happy to help. Are you a loan officer, or are you buying, selling or refinancing a home?";
+  }
+  if (f.leadType === "other") return "Thanks. What can I help you with today?";
+  if (!f.zip) return "Thanks! What's the ZIP code of the home, or the area you're looking in?";
+  if (!f.name) return "Got it. What's your name?";
+  if (!f.email && !f.phone) return "Thanks. What's the best email or phone number to reach you?";
+  if (f.consent !== true) {
+    return "May a local loan officer contact you by phone, text or email about this? You can say no.";
+  }
+  return "Thanks, you're all set. A local loan officer will reach out. Is there anything else I can help with?";
 }
 
 function inferLoanProgram(leadType: ChatCapturedFields["leadType"]): LoanProgram {
@@ -828,7 +850,7 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
       input.mode === "public_site" ? { maxTokens: 8192 } : {},
     );
 
-    reply = text.trim() || "Got it — one moment.";
+    reply = text.trim() || fallbackReply(session);
     if (actionCalls.some((call) => call.toolName === "request_human_handoff")) {
       handoffPhone = resolveHandoffPhone();
     }

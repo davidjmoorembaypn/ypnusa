@@ -68,6 +68,7 @@ export class GeminiProvider implements AiProvider {
           })),
         },
       ];
+      if (request.toolChoice === "none") body.toolConfig = { functionCallingConfig: { mode: "NONE" } };
     }
 
     // Google returns 503 ("high demand") and 429 in bursts. Retry the primary model once, then try a

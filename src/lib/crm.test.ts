@@ -213,6 +213,62 @@ describe("crm routing and activity log", async () => {
       }
     });
 
+    it("sends a lead to the new officer's CRM when a later ZIP code moves it off the house book", async () => {
+      const { account } = seedOfficer("zip.owner@example.com", "Paula Pine", ["93277"]);
+      const safety = await import("./integrations/crm/url-safety");
+      const link = await import("./integrations/crm/link");
+      const sent: string[] = [];
+      safety.setDnsLookupForTests(async () => [{ address: "52.1.2.3" }]);
+      link.setCrmRetryTimersForTests(false);
+      link.setCrmFetchForTests(async (_url, init) => {
+        sent.push(JSON.parse(init.body).lead.id);
+        return { status: 200 };
+      });
+      writeDb((db) => {
+        db.crmConnections = [];
+        db.crmDeliveries = [];
+        db.chatSessions = [];
+      });
+      const connected = await link.connectCrm(account.id, "https://hooks.zapier.com/hooks/catch/1/x/");
+      assert.equal(connected.ok, true);
+      const { setAiProviderForTests } = await import("./ai/provider");
+      const { runAssistantTurn } = await import("./ai/chat-agent");
+      const turns = [
+        { name: "Sam Lee", email: "sam@example.com", consent: true, leadType: "buyer" },
+        { name: "Sam Lee", email: "sam@example.com", consent: true, leadType: "buyer", zip: "93277" },
+      ];
+      let turn = 0;
+      let answerNext = false;
+      setAiProviderForTests({
+        name: "test",
+        async generate() {
+          if (answerNext || turn >= turns.length) {
+            answerNext = false;
+            return { text: "Thanks!", toolCalls: [], stopReason: "end_turn" };
+          }
+          answerNext = true;
+          const input = turns[turn];
+          turn += 1;
+          return { text: "", toolCalls: [{ toolName: "capture_lead_qualification", input }], stopReason: "tool_use" };
+        },
+      });
+      try {
+        const first = await runAssistantTurn({ mode: "lead_qualification", userMessage: "I want to buy" });
+        const leadId = first.borrowerLeadId;
+        assert.ok(leadId);
+        assert.equal(readDb().borrowerLeads.find((lead) => lead.id === leadId)?.assignedLoId, HOUSE_OFFICER_ID);
+        await runAssistantTurn({ mode: "lead_qualification", sessionId: first.sessionId, userMessage: "It's 93277" });
+        assert.equal(readDb().borrowerLeads.find((lead) => lead.id === leadId)?.assignedLoId, account.id);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        assert.deepEqual(sent, [leadId], "the ZIP code owner's CRM gets the lead once");
+      } finally {
+        setAiProviderForTests(undefined);
+        safety.setDnsLookupForTests(null);
+        link.setCrmFetchForTests(null);
+        link.setCrmRetryTimersForTests(true);
+      }
+    });
+
     it("falls back to ZIP code routing when the officer page isn't live", () => {
       const { slug } = seedOfficer("cancelled.lo@example.com", "Cass Cancel", ["93611"], "cancelled");
       seedOfficer("zip.holder2@example.com", "Zoe Holder", ["93720"]);

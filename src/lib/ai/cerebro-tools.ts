@@ -9,12 +9,14 @@ import {
   saveWebsiteAutopilotChange,
 } from "@/lib/db";
 import { runAgent } from "@/lib/agents/coreAgent";
+import { GENERIC_MARKETING_DISCLOSURES, withMarketingDisclosures } from "@/lib/compliance/guardrails";
 import type { PlatformChannel } from "@/lib/agents/marketingAgent";
 import type { AutopilotPageType } from "@/lib/types";
 import { CUSTOMER_PORTAL_URL, marketingUrl } from "@/lib/site";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { getWordPressAutopilotStatus } from "@/lib/wordpress";
 import {
+  complianceOfficerOf,
   executeDraftPrequalLetter,
   executeDraftRateAlerts,
   executeRunFollowUps,
@@ -346,7 +348,7 @@ function decideChange(call: AiToolCall, ctx: MloToolContext): string {
   return JSON.stringify({ ok: true, changeId, decision, title: change.title });
 }
 
-async function draftMarketing(call: AiToolCall): Promise<string> {
+async function draftMarketing(call: AiToolCall, ctx: MloToolContext): Promise<string> {
   const kind = call.input.kind;
   const goal = str(call.input.goal, 300);
   if (!goal) return JSON.stringify({ error: "goal is required." });
@@ -385,11 +387,47 @@ async function draftMarketing(call: AiToolCall): Promise<string> {
       return JSON.stringify({ error: "Unknown kind." });
   }
   if (!result.ok) return JSON.stringify({ error: result.error ?? "Draft failed." });
+  const disclosed = addMarketingDisclosures(kind, channel, result.data, findOfficer(ctx));
   return JSON.stringify({
     draftOnly: true,
     note: "Draft for the officer to review. Not sent or published. Regulated language (rates, approvals, guarantees, NMLS) must be reviewed by the officer before use.",
-    result: result.data,
+    result: disclosed.data,
+    ...disclosed.meta,
   });
+}
+
+/** The text field of each draft kind that gets the officer's disclosures. A GBP description gets none (it describes the business, it isn't an ad). */
+const DISCLOSURE_FIELD: Partial<Record<string, string>> = {
+  social_post: "body",
+  email: "body",
+  ad_copy: "primaryText",
+  gmb_post: "postText",
+};
+
+/**
+ * Upgrade 6.6: marketing drafts carry the officer's license disclosures, like Cerebro's other
+ * messages. Without a linked officer profile, the draft is returned as is with the list of
+ * what to add, so nothing goes out looking complete when it isn't.
+ */
+function addMarketingDisclosures(
+  kind: unknown,
+  channel: PlatformChannel,
+  data: unknown,
+  officer: ReturnType<typeof findOfficer>,
+): { data: unknown; meta: Record<string, unknown> } {
+  const field = typeof kind === "string" ? DISCLOSURE_FIELD[kind] : undefined;
+  if (!field || !data || typeof data !== "object") return { data, meta: {} };
+  const record = data as Record<string, unknown>;
+  const text = record[field];
+  if (typeof text !== "string") return { data, meta: {} };
+  if (!officer) {
+    return { data, meta: { disclosuresNeeded: [...GENERIC_MARKETING_DISCLOSURES], disclosureNote: "No loan officer profile is linked, so add these before posting." } };
+  }
+  const complianceChannel = channel === "sms" ? "sms" : kind === "email" ? "email" : "social_caption";
+  const added = withMarketingDisclosures(text, complianceOfficerOf(officer), complianceChannel);
+  const meta: Record<string, unknown> = { disclosuresAdded: added.appended };
+  if (!officer.nmlsId) meta.disclosureNote = "Fill in your NMLS ID where the draft shows the placeholder, and add it to your profile.";
+  return { data: { ...record, [field]: added.text }, meta };
 }
 
 async function draftLandingPage(call: AiToolCall): Promise<string> {
@@ -548,7 +586,7 @@ export async function executeMloTool(call: AiToolCall, ctx: MloToolContext): Pro
       case "decide_website_change":
         return decideChange(call, ctx);
       case "draft_marketing_content":
-        return await draftMarketing(call);
+        return await draftMarketing(call, ctx);
       case "draft_landing_page":
         return await draftLandingPage(call);
       case "list_queued_actions":

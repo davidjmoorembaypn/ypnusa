@@ -162,6 +162,40 @@ describe("live chat takeover", async () => {
     assert.equal(live.canManageChat(moved, OTHER), true);
     assert.equal(live.canManageChat(moved, OWNER), false);
   });
+
+  it("shows the borrower the name of the officer who actually replies after the chat moved", async () => {
+    const now = new Date().toISOString();
+    writeDb((db) => {
+      db.agentOnboarding = [
+        { userId: OWNER.sub, officerProfile: { fullName: "Carla Coast" } },
+        { userId: OTHER.sub, officerProfile: { fullName: "Paula Pine" } },
+      ] as unknown as typeof db.agentOnboarding;
+      db.crmLeads = [
+        {
+          id: "crm_moved",
+          createdAt: now,
+          borrowerLeadId: "lead_moved",
+          assignedLoId: OTHER.sub,
+          status: "new_ai_routed",
+          notes: [],
+          qualificationSnapshot: { programScores: {}, leadQuality: "developing", urgency: "standard", recommendedNextStep: "", rationale: [] },
+        },
+      ];
+      db.chatSessions.push(chat("chat_moved", { crmLeadId: "crm_moved", borrowerLeadId: "lead_moved" }));
+    });
+    assert.equal(live.chatHandlerFirstName(readChatSession("chat_moved")!), "Paula");
+    assert.equal(live.takeOverChat("chat_moved", OTHER).ok, true);
+    assert.equal(live.officerReply("chat_moved", OTHER, "Hi Sam, Paula here.").ok, true);
+    const stored = readChatSession("chat_moved")!;
+    assert.equal(stored.messages.at(-1)!.authorName, "Paula");
+    assert.equal(live.transcriptMessages(stored).at(-1)!.authorName, "Paula");
+
+    const { transcriptForSession, chatHandlerName } = await import("./ai/chat-agent");
+    const borrowerView = transcriptForSession({ sessionId: "chat_moved", mode: "lead_qualification" });
+    assert.equal(borrowerView.at(-1)!.authorName, "Paula");
+    assert.equal(chatHandlerName("chat_moved"), "Paula");
+    assert.equal(live.officerFirstNameFor("acct_nobody"), live.OFFICER_NAME_FALLBACK);
+  });
 });
 
 describe("officer licensing for page chats", async () => {

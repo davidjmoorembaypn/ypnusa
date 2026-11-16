@@ -167,6 +167,23 @@ describe("CRM link (upgrade 2)", async () => {
       assert.equal(inbound.authenticateInbound(first.connectionId, first.inboundToken), null);
     });
 
+    it("replacing the address keeps the CRM's lead ids and any lead still waiting to go out", async () => {
+      const first = await connect();
+      writeDb((db) => {
+        const crm = db.crmLeads.find((row) => row.borrowerLeadId === "lead_a")!;
+        crm.externalRefs = [{ connectionId: first.connectionId, externalId: "hs-991" }];
+      });
+      respondWith = 503;
+      link.queueCrmEvent(OFFICER, "lead.created", "lead_b", { sendNow: false });
+      const second = await connect();
+      const pending = readDb().crmDeliveries.filter((row) => row.status === "pending");
+      assert.equal(pending.length, 1);
+      assert.equal(pending[0].connectionId, second.connectionId);
+      const outcome = inbound.applyCrmUpdate(second.connectionId, second.inboundToken, { externalId: "hs-991", status: "contacted" }, new Date());
+      assert.equal(outcome.ok, true);
+      assert.equal(readDb().crmLeads.find((row) => row.borrowerLeadId === "lead_a")?.status, "contacted");
+    });
+
     it("disconnecting stops new leads going out", async () => {
       await connect();
       link.disconnectCrm(OFFICER);
@@ -281,6 +298,87 @@ describe("CRM link (upgrade 2)", async () => {
       const result = await link.deliverCrmEvent(queued!.id);
       assert.equal(result?.status, "failed");
       assert.equal(calls.length, 0);
+    });
+
+    it("sends a lead once per CRM link, even when asked twice", async () => {
+      await connect();
+      assert.ok(link.queueLeadForOfficer(OFFICER, "lead_a"));
+      assert.equal(link.queueLeadForOfficer(OFFICER, "lead_a"), null);
+      await settle();
+      assert.equal(calls.length, 1);
+    });
+
+    it("never prunes a lead that is still waiting to go out", async () => {
+      await connect();
+      respondWith = 503;
+      const first = link.queueCrmEvent(OFFICER, "lead.created", "lead_a", { sendNow: false });
+      for (let index = 0; index < 60; index += 1) {
+        const test = link.queueCrmEvent(OFFICER, "test", undefined, { sendNow: false });
+        writeDb((db) => {
+          const row = db.crmDeliveries.find((item) => item.id === test!.id)!;
+          row.status = "sent";
+        });
+      }
+      link.queueCrmEvent(OFFICER, "test", undefined, { sendNow: false });
+      const rows = readDb().crmDeliveries;
+      assert.ok(rows.some((row) => row.id === first!.id), "the oldest pending lead survives");
+      assert.ok(rows.filter((row) => row.status !== "pending").length <= 50);
+    });
+
+    it("retries later when the address doesn't resolve for a moment", async () => {
+      await connect();
+      safety.setDnsLookupForTests(async () => {
+        throw new Error("EAI_AGAIN");
+      });
+      const queued = link.queueCrmEvent(OFFICER, "lead.created", "lead_a", { sendNow: false });
+      const first = await link.deliverCrmEvent(queued!.id);
+      assert.equal(first?.status, "pending");
+      assert.equal(first?.lastError, "no_response");
+      safety.setDnsLookupForTests(async () => [{ address: resolvesTo }]);
+      await link.processDueCrmDeliveries(new Date(Date.now() + 31_000));
+      assert.equal(readDb().crmDeliveries[0].status, "sent");
+    });
+
+    it("leaves a lead alone while another server process is sending it", async () => {
+      await connect();
+      const queued = link.queueCrmEvent(OFFICER, "lead.created", "lead_a", { sendNow: false });
+      writeDb((db) => {
+        const row = db.crmDeliveries.find((item) => item.id === queued!.id)!;
+        row.claimId = "other-process";
+        row.claimUntil = new Date(Date.now() + 60_000).toISOString();
+      });
+      const skipped = await link.deliverCrmEvent(queued!.id);
+      assert.equal(calls.length, 0);
+      assert.equal(skipped?.attempts, 0);
+      // A process that died mid-send lets go once its claim runs out.
+      writeDb((db) => {
+        const row = db.crmDeliveries.find((item) => item.id === queued!.id)!;
+        row.claimUntil = new Date(Date.now() - 1_000).toISOString();
+      });
+      const sent = await link.deliverCrmEvent(queued!.id);
+      assert.equal(sent?.status, "sent");
+      assert.equal(sent?.attempts, 1);
+      assert.equal(sent?.claimId, undefined);
+    });
+
+    it("doesn't retry early when another process stored a later retry time", async () => {
+      await connect();
+      const queued = link.queueCrmEvent(OFFICER, "lead.created", "lead_a", { sendNow: false });
+      writeDb((db) => {
+        const row = db.crmDeliveries.find((item) => item.id === queued!.id)!;
+        row.attempts = 2;
+        row.nextAttemptAt = new Date(Date.now() + 120_000).toISOString();
+      });
+      await link.deliverCrmEvent(queued!.id);
+      assert.equal(calls.length, 0);
+      assert.equal(readDb().crmDeliveries[0].attempts, 2);
+    });
+
+    it("refuses to connect when the name resolves to a private address at send time", async () => {
+      const error = await new Promise<NodeJS.ErrnoException | null>((resolve) => {
+        link.publicOnlyLookup("localhost", {}, (err) => resolve(err));
+      });
+      assert.equal(error?.code, "EADDRBLOCKED");
     });
 
     it("sends a made-up test lead", async () => {

@@ -53,8 +53,10 @@ import {
 } from "./prompts";
 import { runWebsiteAutopilot, type WebsiteAutopilotPlan } from "./website-autopilot";
 import { alertOfficerOfNewChat } from "@/lib/push-alerts";
+import { queueLeadForOfficer } from "@/lib/integrations/crm/link";
 import {
   appendBorrowerMessageIfTakenOver,
+  chatHandlerFirstName,
   officerChatContext,
   officerChatPrompt,
   officerLicensedFor,
@@ -476,6 +478,8 @@ export interface AssistantTurnResult {
   limitReached?: boolean;
   /** True while the loan officer has taken over this chat: Cerebro stayed silent and reply is empty. */
   humanMode?: boolean;
+  /** With humanMode: first name of the officer handling the chat now. */
+  handlerName?: string;
 }
 
 function nowIso(): string {
@@ -531,6 +535,7 @@ function humanModeResult(session: ChatSessionRecord): AssistantTurnResult {
     crmLeadId: session.crmLeadId,
     providerConfigured: getAiProvider() !== null,
     humanMode: true,
+    handlerName: chatHandlerFirstName(session),
   };
 }
 
@@ -542,7 +547,7 @@ export function transcriptForSession(input: {
   sessionId: string;
   mode: AssistantMode;
   userId?: string;
-}): Array<{ role: ChatMessageRecord["role"]; content: string; author?: "officer" }> {
+}): Array<{ role: ChatMessageRecord["role"]; content: string; author?: "officer"; authorName?: string }> {
   const session = readChatSession(input.sessionId);
   if (!session || session.mode !== input.mode) return [];
   if (input.mode === "mlo_dashboard" && (!input.userId || session.userId !== input.userId)) return [];
@@ -550,7 +555,14 @@ export function transcriptForSession(input: {
     role: message.role,
     content: message.content,
     ...(message.author ? { author: message.author } : {}),
+    ...(message.author && message.authorName ? { authorName: message.authorName } : {}),
   }));
+}
+
+/** First name of the officer handling a borrower chat now, for the borrower's chat window. */
+export function chatHandlerName(sessionId: string): string | undefined {
+  const session = readChatSession(sessionId);
+  return session?.mode === "lead_qualification" ? chatHandlerFirstName(session) : undefined;
 }
 
 /** Whether the loan officer is answering a borrower chat right now (Live Takeover). */
@@ -609,6 +621,7 @@ function mergeCapturedFields(
  * - a lead given to the page's officer moves to normal routing when that officer turns out not
  *   to be licensed in the borrower's state.
  * Never moves a lead away from a paying officer for any other reason, and never re-sends any alert.
+ * A moved lead is sent once to the new officer's CRM link, if they have one.
  */
 function rerouteLinkedLead(session: ChatSessionRecord): void {
   const leadId = session.borrowerLeadId;
@@ -652,6 +665,8 @@ function rerouteLinkedLead(session: ChatSessionRecord): void {
       if (action.borrowerLeadId === leadId && action.status === "awaiting_approval") action.loId = officerId;
     }
   });
+  // The new officer's CRM gets the lead too (their alerts were already covered by the first one).
+  queueLeadForOfficer(route.officer.id, leadId);
 }
 
 /**

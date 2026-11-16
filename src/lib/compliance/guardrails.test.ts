@@ -113,3 +113,36 @@ describe("officerLicenseLines", () => {
     assert.deepEqual(lines, ["Valley Home Loans, NMLS #7890", "CA DRE #01234567", "Licensed in AZ, CA"]);
   });
 });
+
+describe("marketing disclosures (upgrade 6.6)", async () => {
+  const { marketingDisclosures, withMarketingDisclosures } = await import("./guardrails");
+  const officer = {
+    name: "Dana Diaz",
+    nmlsId: "555111",
+    company: "Valley Home Loans",
+    companyNmlsId: "999000",
+    licenses: [{ state: "CA", type: "ca_dre" as const, number: "01234567" }, { state: "NV", type: "mlo" as const }],
+    equalHousing: "lender" as const,
+  };
+
+  it("covers the officer, the company, every licensed state and Equal Housing", () => {
+    const lines = marketingDisclosures(officer, "social_caption");
+    assert.equal(lines[0], "Dana Diaz, NMLS #555111");
+    assert.ok(lines.includes("Valley Home Loans, NMLS #999000"));
+    assert.ok(lines.includes("Licensed in CA, NV"));
+    assert.equal(lines.at(-1), "Equal Housing Lender");
+  });
+
+  it("is idempotent and keeps an NMLS ID the post already shows", () => {
+    const once = withMarketingDisclosures("Free buyer Q&A Saturday. Dana Diaz NMLS ID: 555111", officer, "social_caption");
+    assert.equal(once.appended.includes("Dana Diaz, NMLS #555111"), false);
+    const twice = withMarketingDisclosures(once.text, officer, "social_caption");
+    assert.equal(twice.text, once.text);
+    assert.deepEqual(twice.appended, []);
+  });
+
+  it("puts a visible placeholder where the NMLS ID is missing", () => {
+    const lines = marketingDisclosures({ name: "Nia North" }, "social_caption");
+    assert.equal(lines[0], "Nia North, NMLS #[add your NMLS ID]");
+  });
+});

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { generateMarketingTool, parseMarketingToolInput } from "@/lib/marketing-tools";
+import { getSession } from "@/lib/auth";
+import { generateMarketingTool, marketingToolDisclosureSection, parseMarketingToolInput } from "@/lib/marketing-tools";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,10 @@ export async function POST(request: Request) {
 
   try {
     const input = parseMarketingToolInput(await request.json());
-    const output = await generateMarketingTool(input);
+    const generated = await generateMarketingTool(input);
+    const session = await getSession().catch(() => null);
+    const disclosures = marketingToolDisclosureSection(input, session?.email);
+    const output = disclosures ? `${generated.trimEnd()}\n\n${disclosures}` : generated;
     return NextResponse.json({ ok: true, tool: input.tool, output });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to generate right now.";

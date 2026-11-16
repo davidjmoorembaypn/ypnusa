@@ -9,3 +9,13 @@ test("parses and trims marketing tool input", () => {
 test("rejects missing required fields",()=>{ assert.throws(()=>parseMarketingToolInput({tool:"gbp"}),/required/); });
 test("GBP prompt prohibits false Google access claims",()=>{ const p=buildMarketingToolPrompt({tool:"gbp",profession:"mortgage",businessName:"YPN",market:"Fresno",services:"FHA"}); assert.match(p,/Never claim you accessed/); assert.match(p,/estimated readiness score/); });
 test("social prompt prohibits invented financial claims",()=>{ const p=buildMarketingToolPrompt({tool:"social",profession:"mortgage",businessName:"YPN",market:"Fresno",services:"FHA"}); assert.match(p,/Do not invent rates/); assert.match(p,/compliance review/); });
+
+test("social drafts for mortgage end with the disclosures to include; real estate and GBP get none", async () => {
+  const { marketingToolDisclosureSection } = await import("./marketing-tools");
+  const section = marketingToolDisclosureSection({ tool: "social", profession: "mortgage" });
+  assert.match(section, /DISCLOSURES TO INCLUDE IN EVERY POST/);
+  assert.match(section, /NMLS ID/);
+  assert.match(section, /Equal Housing/);
+  assert.equal(marketingToolDisclosureSection({ tool: "social", profession: "real_estate" }), "");
+  assert.equal(marketingToolDisclosureSection({ tool: "gbp", profession: "mortgage" }), "");
+});

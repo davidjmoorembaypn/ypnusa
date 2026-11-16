@@ -1,4 +1,7 @@
+import { complianceOfficerOf } from "@/lib/ai/follow-up-tools";
 import { getAiProvider } from "@/lib/ai/provider";
+import { GENERIC_MARKETING_DISCLOSURES, marketingDisclosures } from "@/lib/compliance/guardrails";
+import { readDb } from "@/lib/db";
 
 export type MarketingTool = "gbp" | "social";
 
@@ -86,4 +89,20 @@ export async function generateMarketingTool(input: MarketingToolInput): Promise<
     maxTokens: 2200,
   });
   return result.text.trim();
+}
+
+/**
+ * Upgrade 6.6: the social writer ends mortgage drafts with the disclosures every post needs.
+ * A signed-in loan officer gets their own lines (name and NMLS ID, company, state licenses,
+ * Equal Housing); anyone else gets the list of what to add. Real estate drafts get nothing.
+ */
+export function marketingToolDisclosureSection(input: Pick<MarketingToolInput, "tool" | "profession">, signedInEmail?: string): string {
+  if (input.tool !== "social" || input.profession !== "mortgage") return "";
+  const email = signedInEmail?.trim().toLowerCase();
+  const officer = email ? readDb().loanOfficers.find((item) => item.email.trim().toLowerCase() === email) : undefined;
+  if (officer) {
+    const lines = marketingDisclosures(complianceOfficerOf(officer), "social_caption");
+    return `DISCLOSURES TO INCLUDE IN EVERY POST\n${lines.join("\n")}`;
+  }
+  return `DISCLOSURES TO INCLUDE IN EVERY POST\n${GENERIC_MARKETING_DISCLOSURES.map((line) => `- ${line}`).join("\n")}`;
 }

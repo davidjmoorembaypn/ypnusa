@@ -178,6 +178,53 @@ describe("executeMloTool", () => {
     );
     assert.equal(page.draftOnly, true);
   });
+
+  it("adds the officer's license disclosures to social posts, ads and Google posts", async () => {
+    writeDb((db) => {
+      db.loanOfficers.push({
+        id: "lo_disclose",
+        name: "Dana Diaz",
+        email: "dana@example.com",
+        nmlsId: "555111",
+        company: "Valley Home Loans",
+        companyNmlsId: "999000",
+        licenses: [{ state: "CA", type: "ca_dre", number: "01234567" }],
+        specialties: ["FHA"],
+        weeklyWindows: [],
+      });
+    });
+    const ctx = { userId: "user_dana", userEmail: "dana@example.com" };
+    const post = JSON.parse(
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Invite first-time buyers to a free Q&A" } }, ctx),
+    );
+    assert.match(post.result.body, /Dana Diaz, NMLS #555111/);
+    assert.match(post.result.body, /Valley Home Loans, NMLS #999000/);
+    assert.match(post.result.body, /Licensed in CA/);
+    assert.match(post.result.body, /Equal Housing Opportunity/);
+    assert.ok(post.disclosuresAdded.length >= 4);
+
+    const ad = JSON.parse(await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "ad_copy", goal: "Refinance checkups" } }, ctx));
+    assert.match(ad.result.primaryText, /NMLS #555111/);
+    const gmb = JSON.parse(await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "gmb_post", goal: "Open house Q&A" } }, ctx));
+    assert.match(gmb.result.postText, /NMLS #555111/);
+    const description = JSON.parse(await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "gmb_description", goal: "Profile" } }, ctx));
+    assert.equal(description.disclosuresAdded, undefined, "a business description is not an ad");
+  });
+
+  it("lists what to add when no officer profile is linked, and fills a placeholder for a missing NMLS ID", async () => {
+    const anonymous = JSON.parse(
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Buyer tips" } }, { userEmail: "nobody@example.com" }),
+    );
+    assert.ok(anonymous.disclosuresNeeded.length > 0);
+    writeDb((db) => {
+      db.loanOfficers.push({ id: "lo_no_nmls", name: "Nia North", email: "nia@example.com", specialties: ["FHA"], weeklyWindows: [] });
+    });
+    const missing = JSON.parse(
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Buyer tips" } }, { userEmail: "nia@example.com" }),
+    );
+    assert.match(missing.result.body, /Nia North, NMLS #\[add your NMLS ID\]/);
+    assert.ok(missing.disclosureNote);
+  });
 });
 
 describe("MLO tools are unreachable from a public session", () => {

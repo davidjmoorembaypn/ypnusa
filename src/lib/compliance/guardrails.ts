@@ -151,3 +151,41 @@ export function describeBlock(reason: ComplianceBlockReason, state?: string): st
     ? "Add your NMLS ID to your profile first; every mortgage message must show it."
     : `You haven't listed a license in ${state ?? "this borrower's state"}, so this can't go out there.`;
 }
+
+export const NMLS_ID_PLACEHOLDER = "[add your NMLS ID]";
+
+/**
+ * Disclosure lines for marketing an officer posts to the public (a social post, ad or Google
+ * post), where there is no one borrower and so no one state: name and NMLS ID, company NMLS
+ * ID, every licensed state's own lines, the states they are licensed in, and Equal Housing.
+ * A missing NMLS ID gets a visible placeholder to fill in, never a silent gap.
+ */
+export function marketingDisclosures(officer: ComplianceOfficer, channel: ComplianceChannel): string[] {
+  const lines = [`${officer.name}, NMLS #${officer.nmlsId || NMLS_ID_PLACEHOLDER}`, ...officerLicenseLines(officer)];
+  if (channel !== "sms") lines.push(officer.equalHousing === "lender" ? "Equal Housing Lender" : "Equal Housing Opportunity");
+  return [...new Set(lines)];
+}
+
+/** Adds marketingDisclosures() to a draft, skipping any line it already shows. Idempotent. */
+export function withMarketingDisclosures(
+  text: string,
+  officer: ComplianceOfficer,
+  channel: ComplianceChannel,
+): { text: string; appended: string[] } {
+  const appended = marketingDisclosures(officer, channel).filter((line) => {
+    if (officer.nmlsId && line === `${officer.name}, NMLS #${officer.nmlsId}` && hasNmls(text, officer.nmlsId)) return false;
+    if (officer.companyNmlsId && line.endsWith(`NMLS #${officer.companyNmlsId}`) && hasNmls(text, officer.companyNmlsId)) return false;
+    return !alreadyHas(text, line);
+  });
+  if (appended.length === 0) return { text, appended };
+  const joined = channel === "sms" ? ` ${appended.join(". ")}.` : `\n\n${appended.join("\n")}`;
+  return { text: `${text.trimEnd()}${joined}`, appended };
+}
+
+/** What a mortgage post needs when we don't know the officer (the free public tool, signed out). */
+export const GENERIC_MARKETING_DISCLOSURES: readonly string[] = [
+  "Your name and NMLS ID (for example: Jane Doe, NMLS #123456)",
+  "Your company's name and NMLS ID",
+  "Equal Housing Opportunity (or Equal Housing Lender)",
+  "Any license lines your state requires (for example, California DRE or DFPI wording)",
+];

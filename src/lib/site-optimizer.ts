@@ -45,6 +45,11 @@ const PROTECTED_PATHS = [
 
 export const LIMITS = { title: { min: 25, max: 62 }, description: { min: 70, max: 160 } } as const;
 
+/** Sign-in, app and admin pages: never worth a search snippet, not even as a proposal. */
+function isAlwaysSkipped(pathname: string): boolean {
+  return /^\/(login|logout|admin|dashboard|portal|account|billing|onboarding|analytics|api|starter-kit|embed)\b/.test(pathname);
+}
+
 export function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PATHS.some((pattern) => pattern.test(pathname));
 }
@@ -208,7 +213,8 @@ export function findOpportunities(rows: SearchRow[], now = Date.now()): Opportun
   const byPath = new Map<string, { impressions: number; clicks: number; weightedPosition: number; queries: Map<string, number> }>();
   for (const row of rows) {
     const pathname = normalizePath(row.page);
-    if (!pathname || isProtectedPath(pathname)) continue;
+    // Protected pages stay in: the run proposes them for approval instead of applying.
+    if (!pathname || isAlwaysSkipped(pathname)) continue;
     const entry = byPath.get(pathname) ?? { impressions: 0, clicks: 0, weightedPosition: 0, queries: new Map() };
     entry.impressions += row.impressions;
     entry.clicks += row.clicks;
@@ -416,6 +422,7 @@ export interface RunSummary {
   ranAt: string;
   opportunities: number;
   applied: number;
+  proposed: number;
   skipped: string[];
 }
 
@@ -427,8 +434,12 @@ export async function runSiteOptimizer(options: { rows?: SearchRow[] } = {}): Pr
   const rows = options.rows ?? (await fetchSearchRows());
   const opportunities = findOpportunities(rows);
   let applied = 0;
+  let proposed = 0;
+  const waiting = new Set(readDb().siteOverrides.filter((item) => item.status === "proposed").map((item) => item.path));
   for (const opportunity of opportunities) {
     if (applied >= MAX_AUTO_CHANGES_PER_RUN) break;
+    const needsApproval = isProtectedPath(opportunity.path);
+    if (needsApproval && (proposed >= MAX_AUTO_CHANGES_PER_RUN || waiting.has(opportunity.path))) continue;
     let current: Awaited<ReturnType<typeof readLivePage>>;
     try {
       current = await readLivePage(opportunity.path);
@@ -447,14 +458,18 @@ export async function runSiteOptimizer(options: { rows?: SearchRow[] } = {}): Pr
     }
     const evidence = `${opportunity.impressions} impressions, ${(opportunity.ctr * 100).toFixed(1)}% CTR, position ${opportunity.position.toFixed(1)}`;
     const reason = `Shows in search for "${opportunity.topQueries[0] ?? "related searches"}" but few people click.`;
-    const title = await proposeChange({ path: opportunity.path, field: "title", value: snippet.title, previousValue: current.title, reason, evidence, source: "cerebro_auto" });
-    const description = await proposeChange({ path: opportunity.path, field: "description", value: snippet.description, previousValue: current.description, reason, evidence, source: "cerebro_auto" });
-    if (title.ok || description.ok) applied++;
+    const base = { path: opportunity.path, reason, evidence, source: "cerebro_auto" as const, requireApproval: needsApproval };
+    const title = await proposeChange({ ...base, field: "title", value: snippet.title, previousValue: current.title });
+    const description = await proposeChange({ ...base, field: "description", value: snippet.description, previousValue: current.description });
+    if (title.ok || description.ok) {
+      if (needsApproval) proposed++;
+      else applied++;
+    }
   }
-  const summary: RunSummary = { ranAt, opportunities: opportunities.length, applied, skipped };
+  const summary: RunSummary = { ranAt, opportunities: opportunities.length, applied, proposed, skipped };
   saveSiteOptimizerState({
     lastRunAt: ranAt,
-    lastRunSummary: `${applied} page${applied === 1 ? "" : "s"} improved out of ${opportunities.length} found${skipped.length ? `; skipped: ${skipped.slice(0, 3).join("; ")}` : ""}.`,
+    lastRunSummary: `${applied} page${applied === 1 ? "" : "s"} improved and ${proposed} waiting for your approval, out of ${opportunities.length} found${skipped.length ? `; skipped: ${skipped.slice(0, 3).join("; ")}` : ""}.`,
   });
   return summary;
 }

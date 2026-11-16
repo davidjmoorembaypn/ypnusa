@@ -37,9 +37,11 @@ describe("findOpportunities", () => {
       row("https://ypnus.com/blog/good-page", "already clicked", 200, 40, 3),
       row("https://other.com/x", "x", 999, 0, 5),
     ]);
-    assert.deepEqual(opps.map((o) => o.path), ["/loan-officers/visalia-ca"]);
-    assert.equal(opps[0].topQueries[0], "visalia loan officer leads");
-    assert.equal(opps[0].impressions, 500);
+    // /pricing stays in (the run proposes it for approval); other hosts never do.
+    assert.deepEqual(opps.map((o) => o.path).sort(), ["/loan-officers/visalia-ca", "/pricing"]);
+    const visalia = opps.find((o) => o.path === "/loan-officers/visalia-ca");
+    assert.equal(visalia?.topQueries[0], "visalia loan officer leads");
+    assert.equal(visalia?.impressions, 500);
   });
 
   it("protects money, legal and the homepage", () => {

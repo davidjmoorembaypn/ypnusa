@@ -1,4 +1,4 @@
-import { appendAnalytics, appendDemoRequest } from "@/lib/db";
+import { addDemoRequestDetails, appendAnalytics, appendDemoRequest } from "@/lib/db";
 import { isRecord, jsonError, jsonOk, logApiError, parseJsonBody } from "@/lib/http";
 import { generateId } from "@/lib/id";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  */
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": MARKETING_SITE_URL,
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, PATCH, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
   Vary: "Origin",
 };
@@ -33,6 +33,53 @@ export async function POST(request: Request) {
     response.headers.set(key, value);
   }
   return response;
+}
+
+export async function PATCH(request: Request) {
+  const response = await handlePatch(request);
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    response.headers.set(key, value);
+  }
+  return response;
+}
+
+/** Team-size choices the short form offers after the first submit. */
+const TEAM_SIZES = new Set(["Just me (solo LO)", "2–5 loan officers", "6–20 loan officers", "Whole brokerage / branch"]);
+
+/**
+ * Step 2 of the short form (progressive profiling): optional company and team size for an
+ * inquiry saved in the last two hours. Never required, never blocks the visitor.
+ */
+async function handlePatch(request: Request) {
+  try {
+    const limited = enforceRateLimit(request, {
+      scope: "demo-details",
+      limit: 5,
+      message: "Too many requests — please slow down and try again shortly.",
+    });
+    if (limited) return limited;
+
+    const parsed = await parseJsonBody(request);
+    if (!parsed.ok) return jsonError(parsed.error, 400, parsed.code);
+    if (!isRecord(parsed.data)) return jsonError("Request body must be a JSON object.", 400, "INVALID_BODY");
+
+    const body = parsed.data;
+    const id = optionalText(body.id, 80);
+    if (!id) return jsonError("Missing inquiry id.", 400, "MISSING_ID");
+
+    const company = optionalText(body.company, 160);
+    const teamSize = optionalText(body.monthlyLeadVolume, 40);
+    const monthlyLeadVolume = teamSize && TEAM_SIZES.has(teamSize) ? teamSize : undefined;
+    if (!company && !monthlyLeadVolume) return jsonError("Nothing to save.", 400, "NO_DETAILS");
+
+    const updated = addDemoRequestDetails(id, { company, monthlyLeadVolume });
+    if (!updated) return jsonError("That inquiry can no longer be updated.", 404, "NOT_FOUND");
+
+    return jsonOk({ id: updated.id, message: "Thanks, that helps us prepare." });
+  } catch (error) {
+    logApiError("/api/demo-request PATCH", error);
+    return jsonError("Details could not be saved.", 500, "DEMO_DETAILS_FAILED");
+  }
 }
 
 async function handlePost(request: Request) {
@@ -56,10 +103,11 @@ async function handlePost(request: Request) {
     const body = parsed.data;
     const name = optionalText(body.name, 120);
     const workEmail = optionalText(body.workEmail, 160);
+    // Company is optional: the short form asks for it after the first submit (see PATCH).
     const company = optionalText(body.company, 160);
 
-    if (!name || !workEmail || !company) {
-      return jsonError("Name, work email, and company are required.", 400, "MISSING_FIELDS");
+    if (!name || !workEmail) {
+      return jsonError("Name and work email are required.", 400, "MISSING_FIELDS");
     }
 
     if (!isValidEmail(workEmail)) {
@@ -78,7 +126,7 @@ async function handlePost(request: Request) {
       createdAt: new Date().toISOString(),
       name,
       workEmail,
-      company,
+      company: company || undefined,
       phone: optionalText(body.phone, 40),
       role: optionalText(body.role, 80),
       zip: zip || undefined,
@@ -120,7 +168,7 @@ async function handlePost(request: Request) {
       replyTo: record.workEmail,
       summaryHtml: `
         <h2>New demo request</h2>
-        <p><strong>${escapeHtml(record.name)}</strong> (${escapeHtml(record.company)})</p>
+        <p><strong>${escapeHtml(record.name)}</strong>${record.company ? ` (${escapeHtml(record.company)})` : ""}</p>
         <p>Email: ${escapeHtml(record.workEmail)}</p>
         ${record.phone ? `<p>Phone: ${escapeHtml(record.phone)}</p>` : ""}
         ${record.zip ? `<p>ZIP code: ${escapeHtml(record.zip)} — ${territory?.available ? "available" : territory ? "already claimed" : "not checked"}</p>` : ""}

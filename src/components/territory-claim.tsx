@@ -28,8 +28,11 @@ type CheckState =
 type SubmitState =
   | { status: "idle" }
   | { status: "submitting" }
-  | { status: "done"; message: string }
+  | { status: "done"; message: string; id?: string }
   | { status: "error"; message: string };
+
+/** Optional step 2 after the short form (progressive profiling). */
+type DetailsState = "idle" | "saving" | "saved" | "skipped";
 
 const VOLUME_OPTIONS = [
   "Just me (solo LO)",
@@ -89,15 +92,15 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const personalization = usePersonalization();
   const cta = useCTAEngine();
 
+  // Short form: three fields and consent. Company and team size are asked after the
+  // first submit, as an optional one-tap step, so nobody faces a long form up front.
   const [form, setForm] = useState({
     name: "",
     workEmail: "",
-    company: "",
     phone: "",
-    role: "Loan officer",
-    monthlyLeadVolume: VOLUME_OPTIONS[0],
-    message: "",
   });
+  const [details, setDetails] = useState({ company: "", monthlyLeadVolume: "" });
+  const [detailsState, setDetailsState] = useState<DetailsState>("idle");
 
   // A ZIP handed over in the URL (e.g. /claim-territory?zip=93720 from the ZIP demand
   // check) is prefilled and checked right away, so the visitor never types it twice.
@@ -107,9 +110,12 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     try {
       const fromUrl = new URLSearchParams(window.location.search).get("zip");
       const remembered = sessionStorage.getItem(ZIP_STORAGE_KEY);
-      const handed = fromUrl && /^\d{5}$/.test(fromUrl) ? fromUrl : remembered && /^\d{5}$/.test(remembered) ? remembered : null;
-      // runCheck fills the input and re-checks live availability for the handed-over ZIP.
-      if (handed) void runCheck(handed);
+      // A ZIP handed over in the URL is checked right away (the visitor asked for it). One only
+      // remembered from earlier is just prefilled: checking it unprompted would grow the card
+      // after load and push the page down (layout shift), and the visitor is one tap away.
+      if (fromUrl && /^\d{5}$/.test(fromUrl)) void runCheck(fromUrl);
+      // Deferred a tick so the prefill isn't a synchronous state update inside the effect.
+      else if (remembered && /^\d{5}$/.test(remembered)) void Promise.resolve().then(() => setZip(remembered));
     } catch {
       /** noop — prefill is a convenience only. */
     }
@@ -120,6 +126,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   function tryAnotherZip() {
     setCheck({ status: "idle" });
     setSubmit({ status: "idle" });
+    setDetailsState("idle");
     setZip("");
     zipInputRef.current?.focus();
   }
@@ -197,8 +204,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   async function submitReservation(e: React.FormEvent) {
     e.preventDefault();
     if (submit.status === "submitting") return;
-    if (!form.name.trim() || !form.workEmail.trim() || !form.company.trim()) {
-      setSubmit({ status: "error", message: "Name, work email, and company are required." });
+    if (!form.name.trim() || !form.workEmail.trim()) {
+      setSubmit({ status: "error", message: "Please enter your name and work email." });
       return;
     }
     if (!consent) {
@@ -207,10 +214,11 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     }
     setSubmit({ status: "submitting" });
     try {
-      const { data } = await postJson<{ ok?: boolean; error?: string; message?: string }>(
+      const { data } = await postJson<{ ok?: boolean; error?: string; message?: string; id?: string }>(
         "/api/demo-request",
         {
           ...form,
+          role: "Loan officer",
           zip: check.status === "result" ? check.zip : zip,
           source,
           consent,
@@ -221,10 +229,34 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         return;
       }
       track("generate_lead", { source, method: "territory_reservation" });
-      setSubmit({ status: "done", message: data.message ?? "You're in — we'll be in touch shortly." });
+      setSubmit({ status: "done", message: data.message ?? "You're in — we'll be in touch shortly.", id: data.id });
+      setDetailsState("idle");
     } catch {
       setSubmit({ status: "error", message: "Network error — try again in a moment." });
     }
+  }
+
+  /** Step 2 (optional): company and team size, saved onto the inquiry just created. */
+  async function saveDetails(e: React.FormEvent) {
+    e.preventDefault();
+    if (submit.status !== "done" || !submit.id || detailsState === "saving") return;
+    if (!details.company.trim() && !details.monthlyLeadVolume) {
+      setDetailsState("skipped");
+      return;
+    }
+    setDetailsState("saving");
+    try {
+      await fetch("/api/demo-request", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: submit.id, ...details }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      track("lead_details_added", { source, team_size: details.monthlyLeadVolume || undefined });
+    } catch {
+      /** noop — step 2 is optional; the inquiry itself is already saved. */
+    }
+    setDetailsState("saved");
   }
 
   const showForm = check.status === "result";
@@ -247,7 +279,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   return (
     <div className="w-full rounded-[28px] border border-white/15 bg-white/[0.06] p-6 shadow-2xl shadow-slate-950/40 backdrop-blur md:p-8">
       <label htmlFor={zipInputId} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-200">
-        Check your territory
+        Is your ZIP code open? Free, instant, no login
       </label>
       <div className="mt-3 flex flex-col gap-3 sm:flex-row">
         <input
@@ -264,25 +296,26 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               void runCheck();
             }
           }}
-          className="w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-base font-semibold tracking-wide text-slate-900 outline-none ring-violet-300 transition placeholder:font-normal placeholder:text-slate-400 focus:ring-2"
+          className="min-h-[52px] w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-base font-semibold tracking-wide text-slate-900 outline-none ring-violet-300 transition placeholder:font-normal placeholder:text-slate-500 focus:ring-2"
         />
         <button
           type="button"
           onClick={() => void runCheck()}
           disabled={check.status === "checking"}
-          className="shrink-0 rounded-2xl bg-gradient-to-r from-violet-500 to-violet-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-violet-600/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
+          className="min-h-[52px] shrink-0 rounded-2xl bg-amber-400 px-6 py-3 text-base font-bold text-[#09081b] shadow-lg shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
           aria-busy={check.status === "checking"}
         >
-          {check.status === "checking" ? "Checking…" : "Check availability"}
+          {check.status === "checking" ? "Checking…" : "Check my ZIP code"}
         </button>
       </div>
 
       <div aria-live="polite" role="status" className="mt-4 min-h-[172px]">
         {check.status === "idle" ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/70">
-            <p className="font-medium text-white">Instant ZIP code availability</p>
+            <p className="font-medium text-white">See it before you sign up</p>
             <p className="mt-1 text-[13px]">
-              Enter a 5-digit ZIP code to check availability. Free signup does not reserve a ZIP code; exclusivity begins with a paid plan.
+              Enter a 5-digit ZIP code to see if it&rsquo;s open and how many buyers, sellers and movers are expected there. Checking
+              doesn&rsquo;t reserve a ZIP code; it locks at your first payment on a paid plan.
             </p>
           </div>
         ) : null}
@@ -304,7 +337,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
             <p className="mt-1 text-rose-100/80">{check.message}</p>
             <button
               type="button"
-              className="mt-3 rounded-full border border-rose-200/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
+              className="mt-3 min-h-[44px] rounded-full border border-rose-200/40 px-5 py-2 text-xs font-semibold uppercase tracking-wide transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
               onClick={() => void runCheck()}
             >
               Retry check
@@ -341,41 +374,41 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               </p>
             ) : null}
             {check.available ? (
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 <a
                   href={payNowUrlForTier("growth", check.zip) ?? checkoutUrlForTier("growth", check.zip)}
                   onClick={() => { track("begin_checkout", { plan: "growth", zip: check.zip, source, checkout: "pay_now" }); trackFunnel("checkout_started", { plan: "growth", checkout: "pay_now", source }); }}
-                  className="inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-center text-sm font-bold text-[#09081b] shadow-lg shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 sm:col-span-2"
                 >
-                  Pay now &amp; lock ZIP code {check.zip} today →
+                  Claim my exclusive ZIP code {check.zip} →
                 </a>
                 <a
                   href={checkoutUrlForTier("growth", check.zip)}
                   onClick={() => { track("begin_checkout", { plan: "growth", zip: check.zip, source, checkout: "trial" }); trackFunnel("checkout_started", { plan: "growth", checkout: "trial", source }); }}
-                  className="text-xs font-semibold text-white/80 underline underline-offset-2 hover:text-white"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-white/40 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                 >
-                  or start a 15-day trial
+                  Start 15-day free trial
                 </a>
                 <a
                   href={signupHref}
                   onClick={() => track("sign_up_click", { plan: "free", source })}
-                  className="text-xs font-semibold text-white/80 underline underline-offset-2 hover:text-white"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-full px-5 py-3 text-center text-sm font-semibold text-white/85 underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                 >
-                  or start on the Free plan
+                  Start on the Free plan
                 </a>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={tryAnotherZip}
-                className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+                className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-bold text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
               >
                 Check another ZIP code →
               </button>
             )}
             <p className="mt-2 text-[12px] text-white/70">
               {check.available
-                ? "Pro plan, $99/mo, cancel anytime. Your ZIP code locks at your first payment: paying now locks it today, while the 15-day trial lets you try the tools first and someone who pays sooner can take it."
+                ? "Pro plan, $99/mo, cancel anytime. Claiming now pays the first month and locks your ZIP code today. The 15-day trial lets you try the tools first, but someone who pays sooner can take the ZIP code."
                 : "Join the waitlist below and we'll tell you if this ZIP code opens up."}
             </p>
             {cta.data?.microNudges?.length ? (
@@ -393,9 +426,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       </div>
 
       {showForm && submit.status !== "done" ? (
-        <form onSubmit={submitReservation} className="mt-6 grid gap-3 sm:grid-cols-2">
-          <p className="sm:col-span-2 text-sm font-semibold text-white">
-            {claimed ? "Join the waitlist for this territory" : `Ask about ZIP code ${check.zip}`}
+        <form onSubmit={submitReservation} className="mt-6 grid gap-3" noValidate>
+          <p className="text-sm font-semibold text-white">
+            {claimed ? "Join the waitlist for this ZIP code" : `Not ready to claim? Get the details for ZIP code ${check.zip}`}
           </p>
 
           <Field
@@ -408,108 +441,120 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           <Field
             label="Work email"
             type="email"
+            inputMode="email"
             value={form.workEmail}
             onChange={(v) => setForm((f) => ({ ...f, workEmail: v }))}
             autoComplete="email"
             required
           />
           <Field
-            label="Company / brokerage"
-            value={form.company}
-            onChange={(v) => setForm((f) => ({ ...f, company: v }))}
-            autoComplete="organization"
-            required
-          />
-          <Field
-            label="Mobile phone"
+            label="Mobile phone (optional)"
             type="tel"
+            inputMode="tel"
             value={form.phone}
             onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
             autoComplete="tel"
           />
 
-          <label className="text-xs font-medium text-white/70">
-            Team size
-            <select
-              value={form.monthlyLeadVolume}
-              onChange={(e) => setForm((f) => ({ ...f, monthlyLeadVolume: e.target.value }))}
-              className="mt-1 w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-violet-300"
-            >
-              {VOLUME_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-medium text-white/70">
-            Role
-            <input
-              value={form.role}
-              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-              className="mt-1 w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-violet-300"
-            />
-          </label>
-
-          <label className="sm:col-span-2 text-xs font-medium text-white/70">
-            Anything we should know? (optional)
-            <textarea
-              value={form.message}
-              onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-              rows={2}
-              className="mt-1 w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-violet-300"
-            />
-          </label>
-
-          <label className="sm:col-span-2 flex items-start gap-3 text-xs leading-5 text-white/55">
+          <label className="flex items-start gap-3 text-xs leading-5 text-white/70">
             <input
               type="checkbox"
               checked={consent}
               onChange={(event) => setConsent(event.target.checked)}
               required
-              className="mt-1 accent-amber-400"
+              className="mt-0.5 h-5 w-5 shrink-0 accent-amber-400"
             />
             YPN USA and an assigned loan officer may contact me by email and, if provided, text or
             phone about this request. Message and data rates may apply; reply STOP to opt out.
           </label>
 
           {submit.status === "error" ? (
-            <p className="sm:col-span-2 text-sm font-medium text-rose-200">{submit.message}</p>
+            <p role="alert" className="text-sm font-medium text-rose-200">{submit.message}</p>
           ) : null}
 
           <button
             type="submit"
             disabled={submit.status === "submitting"}
-            className="sm:col-span-2 mt-1 rounded-2xl bg-amber-400 px-6 py-3 text-base font-semibold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
+            className="mt-1 min-h-[52px] rounded-2xl bg-amber-400 px-6 py-3 text-base font-bold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
           >
             {submit.status === "submitting"
-              ? "Submitting…"
+              ? "Sending…"
               : claimed
                 ? "Join the waitlist"
-                : "Request territory details"}
+                : `Send me ZIP code ${check.zip} details`}
           </button>
-          <p className="sm:col-span-2 text-[11px] text-white/50">
-            Prefer the full signup?{" "}
-            <a href={signupHref} className="underline hover:text-white">
-              Create your free account
-            </a>
-            . No credit card required for the Free plan.
-          </p>
+          <p className="text-[11px] text-white/60">Takes about 20 seconds. This does not reserve a ZIP code.</p>
         </form>
       ) : null}
 
       {submit.status === "done" ? (
-        <div className="mt-6 rounded-2xl border border-emerald-300/40 bg-emerald-400/10 px-5 py-5 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-200">
-            {claimed ? "Waitlist request received" : "Territory inquiry received"}
+        <div className="mt-6 rounded-2xl border border-emerald-300/40 bg-emerald-400/10 px-5 py-5">
+          <p className="text-center text-sm font-semibold uppercase tracking-[0.2em] text-emerald-200">
+            {claimed ? "Waitlist request received" : "Request received"}
           </p>
-          <p className="mt-2 text-sm font-semibold text-emerald-100">{submit.message}</p>
-          <a
-            href={signupHref}
-            className="mt-4 inline-flex rounded-full bg-amber-400 px-5 py-2 text-xs font-bold uppercase tracking-wide text-[#09081b] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-          >
-            Finish free setup →
-          </a>
+          <p className="mt-2 text-center text-sm font-semibold text-emerald-100">{submit.message}</p>
+
+          {submit.id && detailsState !== "saved" && detailsState !== "skipped" ? (
+            <form onSubmit={saveDetails} className="mt-5 border-t border-emerald-300/20 pt-4">
+              <p className="text-sm font-semibold text-white">Optional: help us prepare</p>
+              <fieldset className="mt-3">
+                <legend className="text-xs font-medium text-white/75">Team size</legend>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {VOLUME_OPTIONS.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      aria-pressed={details.monthlyLeadVolume === opt}
+                      onClick={() => setDetails((d) => ({ ...d, monthlyLeadVolume: d.monthlyLeadVolume === opt ? "" : opt }))}
+                      className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 ${
+                        details.monthlyLeadVolume === opt
+                          ? "border-amber-300 bg-amber-400 text-[#09081b]"
+                          : "border-white/25 bg-white/5 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              <div className="mt-3">
+                <Field
+                  label="Company or brokerage (optional)"
+                  value={details.company}
+                  onChange={(v) => setDetails((d) => ({ ...d, company: v }))}
+                  autoComplete="organization"
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={detailsState === "saving"}
+                  className="min-h-[44px] rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#09081b] transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {detailsState === "saving" ? "Saving…" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailsState("skipped")}
+                  className="min-h-[44px] px-2 text-sm font-semibold text-white/75 underline underline-offset-2 hover:text-white"
+                >
+                  Skip
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="mt-4 text-center">
+              {detailsState === "saved" ? (
+                <p className="text-xs text-emerald-100/80">Thanks, that helps us prepare.</p>
+              ) : null}
+              <a
+                href={signupHref}
+                className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-[#09081b] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+              >
+                Create my free account →
+              </a>
+            </div>
+          )}
         </div>
       ) : null}
     </div>
@@ -521,6 +566,7 @@ function Field({
   value,
   onChange,
   type = "text",
+  inputMode,
   autoComplete,
   required,
 }: {
@@ -528,20 +574,22 @@ function Field({
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   autoComplete?: string;
   required?: boolean;
 }) {
   return (
-    <label className="text-xs font-medium text-white/70">
+    <label className="block text-xs font-medium text-white/80">
       {label}
-      {required ? <span className="text-violet-300"> *</span> : null}
+      {required ? <span className="text-amber-300"> *</span> : null}
       <input
         type={type}
+        inputMode={inputMode}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         required={required}
-        className="mt-1 w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-violet-300"
+        className="mt-1 min-h-[48px] w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-base text-slate-900 outline-none focus:ring-2 focus:ring-violet-300"
       />
     </label>
   );

@@ -76,14 +76,14 @@ export function ZipDemandCheck() {
             placeholder="e.g. 93701"
             value={zip}
             onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
-            className="w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-base font-semibold tracking-wide text-slate-900 outline-none ring-violet-300 placeholder:font-normal placeholder:text-slate-500 focus:ring-2"
+            className="min-h-[52px] w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-base font-semibold tracking-wide text-slate-900 outline-none ring-violet-300 placeholder:font-normal placeholder:text-slate-500 focus:ring-2"
           />
           <button
             type="submit"
             disabled={state.kind === "loading"}
-            className="shrink-0 rounded-2xl bg-violet-600 px-6 py-3 text-base font-semibold text-white hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 disabled:opacity-60"
+            className="min-h-[52px] shrink-0 rounded-2xl bg-amber-400 px-6 py-3 text-base font-bold text-[#09081b] shadow-lg shadow-amber-500/30 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:opacity-60"
           >
-            {state.kind === "loading" ? "Checking…" : "Check"}
+            {state.kind === "loading" ? "Checking…" : "Show my 60-day demand"}
           </button>
         </div>
       </form>
@@ -138,14 +138,14 @@ function Result({ data }: { data: CheckResponse }) {
         {data.available ? (
           <Link
             href={`/claim-territory?zip=${data.zip}`}
-            className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-[#09081b] hover:brightness-105"
+            className="inline-flex min-h-[48px] items-center rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-[#09081b] hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
           >
-            Claim this ZIP code
+            Claim my exclusive ZIP code
           </Link>
         ) : null}
         <Link
           href="/pricing"
-          className="rounded-full border border-white/30 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+          className="inline-flex min-h-[48px] items-center rounded-full border border-white/30 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
           See plans &amp; pricing
         </Link>

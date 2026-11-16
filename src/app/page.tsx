@@ -14,7 +14,7 @@ import { EXPLAINER_VIDEO, explainerVideoJsonLd } from "@/lib/explainer-video";
 import { FOUNDER_ID, faqJsonLd, jsonLdScript, marketingMetadata, softwareApplicationJsonLd } from "@/lib/seo";
 import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
-import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
+import { AUTHOR_NAME, CA_DRE_ID, NMLS_CONSUMER_ACCESS_URL, NMLS_ID } from "@/lib/author";
 
 export async function generateMetadata(): Promise<Metadata> {
   return marketingMetadata({ ...PAGE_SEO.home, path: "/", absoluteTitle: true });
@@ -128,15 +128,59 @@ export default function Home() {
       <section className="relative isolate overflow-hidden">
         <HeroVideo />
         <div className="ypn-hero-scrim pointer-events-none absolute inset-0" aria-hidden />
-        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:py-24">
-          <div className="max-w-xl">
+        {/* One column on phones in the order headline, credentials, ZIP code check, details, so the
+            check sits above the fold; two columns from lg up with the check beside the headline. */}
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-start gap-6 px-4 pb-14 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-x-12 lg:gap-y-8 lg:py-24">
+          <div className="max-w-xl lg:col-start-1 lg:row-start-1">
             <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
               For licensed mortgage loan officers
             </span>
-            <h1 className="mt-6 text-balance text-4xl font-semibold leading-[1.08] lg:text-[3.4rem]">
+            <h1 className="mt-5 text-balance text-[2rem] font-semibold leading-[1.1] sm:text-4xl lg:mt-6 lg:text-[3.4rem] lg:leading-[1.08]">
               Own your ZIP code. <span className="text-violet-300">Let Cerebro answer every borrower while you close loans.</span>
             </h1>
-            <p className="mt-5 text-lg text-white/90">
+
+            {/* Real, verifiable credentials only (see /about); no invented reviews, awards or user counts. */}
+            <div className="mt-5 rounded-2xl border border-white/15 bg-[#09081b]/60 px-4 py-3 backdrop-blur-sm">
+              <p className="text-[13px] font-semibold text-white">
+                Built by licensed loan officer {AUTHOR_NAME}
+              </p>
+              <ul className="mt-2 flex flex-wrap gap-1.5 text-[12px] font-medium text-white/90">
+                {[
+                  "25+ years as a loan officer",
+                  "2,000+ loans closed",
+                  "Formerly Wells Fargo & JPMorgan Chase",
+                  `NMLS #${NMLS_ID}`,
+                  `CA DRE #${CA_DRE_ID}`,
+                ].map((item) => (
+                  <li key={item} className="rounded-full bg-white/10 px-2.5 py-1 ring-1 ring-white/15">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href={NMLS_CONSUMER_ACCESS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex min-h-[32px] items-center text-[12px] font-semibold text-violet-200 underline underline-offset-2 hover:text-white"
+              >
+                Verify on NMLS Consumer Access
+              </a>
+            </div>
+          </div>
+
+          <div id="claim" className="w-full scroll-mt-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+            <TerritoryClaim source="hero" />
+            <p className="mt-3 text-center text-xs text-white/75">
+              Checking is free &mdash; your ZIP code locks at your first payment.{" "}
+              <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
+                Plans from $99/mo
+              </Link>
+              : pay now to lock it today, or try the tools free for 15 days first.
+            </p>
+          </div>
+
+          <div className="max-w-xl lg:col-start-1 lg:row-start-2">
+            <p className="text-lg text-white/90">
               Mortgage lead generation built for loan officers: local pages that bring borrowers to you, Cerebro answering
               and qualifying them day and night, and one ZIP code per paid plan that no other YPN USA loan officer can claim.
             </p>
@@ -144,22 +188,7 @@ export default function Home() {
               One loan officer per ZIP code. Once yours is claimed, it&rsquo;s gone.
             </p>
 
-            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4 text-sm font-semibold">
-              <a
-                href="#territories"
-                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-amber-400 px-8 py-3.5 text-base text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-              >
-                Check if my ZIP code is open
-              </a>
-              <OpenAssistantButton className="text-violet-100 underline underline-offset-4 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
-                or ask Cerebro a question first
-              </OpenAssistantButton>
-            </div>
-            <p className="mt-3 text-xs text-white/70">
-              Built by licensed loan officer {AUTHOR_NAME} · NMLS #{NMLS_ID} · CA DRE #{CA_DRE_ID}
-            </p>
-
-            <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-white/70">
+            <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-white/75">
               {["Free to start", "Free plan needs no card", "15-day trial on paid plans"].map((item) => (
                 <li key={item} className="flex items-center gap-1.5">
                   <span aria-hidden className="text-emerald-400">✓</span>
@@ -168,31 +197,24 @@ export default function Home() {
               ))}
             </ul>
 
-            <dl className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <dl className="mt-6 grid grid-cols-3 gap-2 sm:gap-4">
               {[
                 ["24/7", "Borrower answers"],
                 ["1 per ZIP code", "YPN USA loan officer"],
                 ["15 days", "Free trial, paid plans"],
               ].map(([stat, label]) => (
-                <div key={label} className="rounded-2xl bg-white/5 px-4 py-3 ring-1 ring-white/15">
-                  <dt className="text-xl font-bold text-violet-200">{stat}</dt>
-                  <dd className="text-[11px] uppercase tracking-wide text-white/70">{label}</dd>
+                <div key={label} className="rounded-2xl bg-white/5 px-3 py-3 ring-1 ring-white/15 sm:px-4">
+                  <dt className="text-base font-bold text-violet-200 sm:text-xl">{stat}</dt>
+                  <dd className="text-[10px] uppercase tracking-wide text-white/75 sm:text-[11px]">{label}</dd>
                 </div>
               ))}
             </dl>
 
-            <PredictiveHomepageEngine />
-          </div>
+            <OpenAssistantButton className="mt-5 inline-flex min-h-[44px] items-center text-sm font-semibold text-violet-100 underline underline-offset-4 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
+              Have a question first? Ask Cerebro
+            </OpenAssistantButton>
 
-          <div className="w-full lg:max-w-md">
-            <TerritoryClaim source="hero" />
-            <p className="mt-3 text-center text-xs text-white/70">
-              Checking availability is free &mdash; your ZIP code locks at your first payment.{" "}
-              <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
-                Plans from $99/mo
-              </Link>
-              : pay now to lock it today, or try the tools free for 15 days first.
-            </p>
+            <PredictiveHomepageEngine />
           </div>
         </div>
       </section>
@@ -421,7 +443,7 @@ export default function Home() {
                 </PricingCta>
                 <a
                   href="#territories"
-                  className={`mt-3 text-center text-xs font-semibold underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 ${
+                  className={`mt-2 inline-flex min-h-[44px] items-center justify-center text-center text-xs font-semibold underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 ${
                     tier.highlight ? "text-white/80 focus-visible:ring-violet-300" : "text-violet-700 focus-visible:ring-violet-500"
                   }`}
                 >
@@ -511,9 +533,9 @@ export default function Home() {
           <div className="mt-10 text-center">
             <a
               href="#territories"
-              className="inline-flex items-center justify-center rounded-full bg-[#09081b] px-8 py-4 text-base font-semibold text-white transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-amber-400 px-8 py-4 text-base font-bold text-[#09081b] shadow-lg shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
             >
-              Check your ZIP code
+              Check my ZIP code
             </a>
           </div>
         </div>
@@ -526,9 +548,9 @@ export default function Home() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#09081b]/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur md:hidden">
         <a
           href="#territories"
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/30 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-[#09081b] shadow-lg shadow-amber-500/30 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
         >
-          Check your ZIP code — free
+          Check my ZIP code — free
         </a>
       </div>
 

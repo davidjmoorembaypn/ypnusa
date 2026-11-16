@@ -7,6 +7,7 @@ import { TerritoryClaim } from "@/components/territory-claim";
 import { marketingMetadata } from "@/lib/seo";
 import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
+import { AUTHOR_NAME, CA_DRE_ID, NMLS_ID } from "@/lib/author";
 
 /**
  * Migrated from ypnus.com's WordPress /claim-territory page (see
@@ -32,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function ClaimTerritoryPage() {
   return (
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
-      <SiteHeader />
+      <SiteHeader variant="focused" />
       <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Claim your ZIP code", href: "/claim-territory" }]} />
       <main id="main-content" className="flex-1">
         <section className="mx-auto w-full max-w-3xl px-5 py-16 md:py-20">
@@ -44,8 +45,8 @@ export default function ClaimTerritoryPage() {
           </p>
           <div className="mt-6 max-w-xl rounded-2xl border border-white/15 bg-white/[0.06] p-4 text-sm text-white/85">
             <p>
-              <strong className="text-white">David Moore, MBA</strong> &middot; 25+ year loan officer &middot; NMLS
-              #787257
+              <strong className="text-white">{AUTHOR_NAME}</strong> &middot; 25+ years as a loan officer &middot; 2,000+
+              loans closed &middot; formerly Wells Fargo &amp; JPMorgan Chase &middot; NMLS #{NMLS_ID} &middot; CA DRE #{CA_DRE_ID}
             </p>
             <p className="mt-1">
               Territory is first-come, first-served. Once your ZIP code is claimed, no other YPN USA loan officer

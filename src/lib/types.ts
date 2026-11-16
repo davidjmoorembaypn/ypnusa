@@ -251,7 +251,8 @@ export interface DemoRequestRecord {
   createdAt: string;
   name: string;
   workEmail: string;
-  company: string;
+  /** Optional since the short form: asked after the first submit (progressive profiling). */
+  company?: string;
   phone?: string;
   role?: string;
   /** Requested exclusive ZIP-code territory. */

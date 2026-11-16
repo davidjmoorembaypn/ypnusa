@@ -28,8 +28,11 @@ export function parseMarketingToolInput(body: unknown): MarketingToolInput {
   const profession = raw.profession === "real_estate" ? "real_estate" : "mortgage";
   const businessName = clean(raw.businessName, 120);
   const market = clean(raw.market, 120);
-  const services = clean(raw.services, 600);
-  if (!businessName || !market || !services) throw new Error("Business name, market, and services are required.");
+  // Services is optional (fewer required fields on the free tool); a sensible default by profession.
+  const services =
+    clean(raw.services, 600) ||
+    (profession === "mortgage" ? "Purchase loans, refinance, FHA, VA and conventional loans" : "Buyer and seller representation");
+  if (!businessName || !market) throw new Error("Business name and market are required.");
   return {
     tool, profession, businessName, market, services,
     audience: clean(raw.audience, 300), tone: clean(raw.tone, 80),

@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function CheckZipPage() {
   return (
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
-      <SiteHeader />
+      <SiteHeader variant="focused" />
       <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Check your ZIP code", href: "/check-zip" }]} />
       <main id="main-content" className="flex-1">
         <section className="mx-auto w-full max-w-3xl px-5 py-16 md:py-20">

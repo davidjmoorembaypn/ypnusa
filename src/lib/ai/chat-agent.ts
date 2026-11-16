@@ -585,8 +585,9 @@ function mergeCapturedFields(
     if (isValidZip(zip)) next.zip = zip;
   }
   const zipChanged = next.zip !== undefined && next.zip !== session.capturedFields.zip;
+  const stateChanged = next.state !== undefined && next.state !== session.capturedFields.state;
   session.capturedFields = next;
-  if (zipChanged) rerouteLinkedLeadToZipOwner(session);
+  if (zipChanged || stateChanged) rerouteLinkedLead(session);
 
   if (typeof input.summary === "string" && input.summary.trim()) session.summary = input.summary.trim();
   if (typeof input.leadQualityScore === "number" && Number.isFinite(input.leadQualityScore)) {
@@ -603,31 +604,52 @@ function mergeCapturedFields(
 }
 
 /**
- * A borrower who gave their ZIP code after the lead was already linked (so it went to the house
- * book) moves to that ZIP code's paying loan officer. Never moves a lead away from a paying
- * officer, and never re-sends any alert.
+ * Location given after the lead was already linked:
+ * - a house lead moves to the ZIP code's paying loan officer;
+ * - a lead given to the page's officer moves to normal routing when that officer turns out not
+ *   to be licensed in the borrower's state.
+ * Never moves a lead away from a paying officer for any other reason, and never re-sends any alert.
  */
-function rerouteLinkedLeadToZipOwner(session: ChatSessionRecord): void {
+function rerouteLinkedLead(session: ChatSessionRecord): void {
   const leadId = session.borrowerLeadId;
   const zip = session.capturedFields.zip;
-  if (!leadId || !zip) return;
+  if (!leadId) return;
   const lead = readDb().borrowerLeads.find((item) => item.id === leadId);
-  if (!lead || lead.assignedLoId !== HOUSE_OFFICER_ID) return;
-  const route = routeLead({ program: lead.answers.loanProgram, zip });
-  if (route.reason !== "zip_owner") return;
+  if (!lead) return;
+  let route: ReturnType<typeof routeLead> | null = null;
+  let note = "";
+  if (lead.assignedLoId === HOUSE_OFFICER_ID && zip) {
+    const zipRoute = routeLead({ program: lead.answers.loanProgram, zip });
+    if (zipRoute.reason === "zip_owner") {
+      route = zipRoute;
+      note = `Cerebro: borrower gave ZIP code ${zip}; lead moved to its loan officer.`;
+    }
+  } else if (session.officerSlug && session.officerUserId && lead.assignedLoId === session.officerUserId) {
+    const pageOfficer = officerChatContext(session.officerSlug);
+    const location = { zip, state: session.capturedFields.state };
+    if (pageOfficer && !officerLicensedFor(pageOfficer, location)) {
+      const licensedRoute = routeLead({ program: lead.answers.loanProgram, zip });
+      if (licensedRoute.officer.id !== lead.assignedLoId) {
+        route = licensedRoute;
+        note = "Cerebro: the property is outside this officer's licensed states; lead moved to a licensed loan officer.";
+      }
+    }
+  }
+  if (!route) return;
   writeDb((db) => {
+    const officerId = route.officer.id;
     const stored = db.borrowerLeads.find((item) => item.id === leadId);
     if (stored) {
-      stored.assignedLoId = route.officer.id;
-      stored.answers = { ...stored.answers, zip };
+      stored.assignedLoId = officerId;
+      if (zip) stored.answers = { ...stored.answers, zip };
     }
     const crm = db.crmLeads.find((item) => item.borrowerLeadId === leadId);
     if (crm) {
-      crm.assignedLoId = route.officer.id;
-      crm.notes.push(`Cerebro: borrower gave ZIP code ${zip}; lead moved to its loan officer.`);
+      crm.assignedLoId = officerId;
+      crm.notes.push(note);
     }
     for (const action of db.cerebroActions) {
-      if (action.borrowerLeadId === leadId && action.status === "awaiting_approval") action.loId = route.officer.id;
+      if (action.borrowerLeadId === leadId && action.status === "awaiting_approval") action.loId = officerId;
     }
   });
 }
@@ -754,14 +776,6 @@ function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput)
   });
 
   const reply = plan.summaryForMlo;
-  // The officer may have taken over while the model was answering: keep their takeover and
-  // messages, and drop Cerebro's reply so the borrower only hears from the officer.
-  if (session.mode === "lead_qualification" && reconcileWithStored(session)) {
-    session.updatedAt = nowIso();
-    saveChatSession(session);
-    return humanModeResult(session);
-  }
-
   appendMessage(session, "assistant", reply);
   session.updatedAt = nowIso();
   saveChatSession(session);
@@ -966,6 +980,14 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
     linkQualifiedLead(session);
   } catch (error) {
     console.error("[chat-agent] linkQualifiedLead failed", error);
+  }
+
+  // The officer may have taken over while the model was answering: keep their takeover and
+  // messages, and drop Cerebro's reply so the borrower only hears from the officer.
+  if (session.mode === "lead_qualification" && reconcileWithStored(session)) {
+    session.updatedAt = nowIso();
+    saveChatSession(session);
+    return humanModeResult(session);
   }
 
   appendMessage(session, "assistant", reply);

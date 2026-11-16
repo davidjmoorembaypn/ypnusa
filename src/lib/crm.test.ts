@@ -170,6 +170,49 @@ describe("crm routing and activity log", async () => {
       assert.equal(route.officer.publicSlug, slug);
     });
 
+    it("moves a page chat's lead when the borrower later names a state the officer isn't licensed in", async () => {
+      const { account, slug } = seedOfficer("ca.only@example.com", "Carla Coast", ["93611"]);
+      writeDb((db) => {
+        const record = db.agentOnboarding.find((item) => item.userId === account.id);
+        if (record?.officerProfile) record.officerProfile.licenses = [{ state: "CA", type: "mlo", number: "1234567" }];
+        db.chatSessions = db.chatSessions.filter((item) => item.id !== "chat_late_location");
+      });
+      const { setAiProviderForTests } = await import("./ai/provider");
+      const { runAssistantTurn } = await import("./ai/chat-agent");
+      const turns = [
+        { name: "Sam Lee", email: "sam@example.com", consent: true, leadType: "buyer" },
+        { name: "Sam Lee", email: "sam@example.com", consent: true, leadType: "buyer", zip: "85004" },
+      ];
+      // Each borrower turn: the model records the fields once, then answers in text.
+      let turn = 0;
+      let answerNext = false;
+      setAiProviderForTests({
+        name: "test",
+        async generate() {
+          if (answerNext || turn >= turns.length) {
+            answerNext = false;
+            return { text: "Thanks!", toolCalls: [], stopReason: "end_turn" };
+          }
+          answerNext = true;
+          const input = turns[turn];
+          turn += 1;
+          return { text: "", toolCalls: [{ toolName: "capture_lead_qualification", input }], stopReason: "tool_use" };
+        },
+      });
+      try {
+        const first = await runAssistantTurn({ mode: "lead_qualification", userMessage: "I want to buy", officerSlug: slug });
+        const leadId = first.borrowerLeadId;
+        assert.ok(leadId, "the lead links once qualified");
+        assert.equal(readDb().borrowerLeads.find((lead) => lead.id === leadId)?.assignedLoId, account.id);
+        await runAssistantTurn({ mode: "lead_qualification", sessionId: first.sessionId, userMessage: "It's in Phoenix, 85004", officerSlug: slug });
+        const moved = readDb().borrowerLeads.find((lead) => lead.id === leadId);
+        assert.notEqual(moved?.assignedLoId, account.id, "an unlicensed officer keeps no out-of-state lead");
+        assert.equal(readDb().crmLeads.find((crm) => crm.borrowerLeadId === leadId)?.assignedLoId, moved?.assignedLoId);
+      } finally {
+        setAiProviderForTests(undefined);
+      }
+    });
+
     it("falls back to ZIP code routing when the officer page isn't live", () => {
       const { slug } = seedOfficer("cancelled.lo@example.com", "Cass Cancel", ["93611"], "cancelled");
       seedOfficer("zip.holder2@example.com", "Zoe Holder", ["93720"]);

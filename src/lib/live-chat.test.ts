@@ -117,6 +117,51 @@ describe("live chat takeover", async () => {
     });
     assert.equal(live.listLiveChats(OWNER).length, 0);
   });
+  it("keeps a takeover that happens while Cerebro is still writing its reply", async () => {
+    const { setAiProviderForTests } = await import("./ai/provider");
+    setAiProviderForTests({
+      name: "test",
+      async generate() {
+        // The officer takes over and replies while the model is still answering.
+        live.takeOverChat("chat_owned", OWNER);
+        live.officerReply("chat_owned", OWNER, "Hi Sam, Jane here.");
+        return { text: "Cerebro's late answer", toolCalls: [], stopReason: "end_turn" };
+      },
+    });
+    try {
+      const result = await runAssistantTurn({ mode: "lead_qualification", sessionId: "chat_owned", userMessage: "Anyone there?" });
+      assert.equal(result.humanMode, true);
+      const stored = readChatSession("chat_owned")!;
+      assert.equal(stored.handledBy, "officer");
+      const contents = stored.messages.map((message) => message.content);
+      assert.ok(contents.includes("Hi Sam, Jane here."));
+      assert.ok(contents.includes("Anyone there?"));
+      assert.equal(contents.includes("Cerebro's late answer"), false);
+    } finally {
+      setAiProviderForTests(undefined);
+    }
+  });
+
+  it("gives the chat to the officer the lead was moved to", () => {
+    writeDb((db) => {
+      db.crmLeads = [
+        {
+          id: "crm_moved",
+          createdAt: new Date().toISOString(),
+          borrowerLeadId: "lead_moved",
+          assignedLoId: OTHER.sub,
+          status: "new_ai_routed",
+          notes: [],
+          qualificationSnapshot: { programScores: {}, leadQuality: "developing", urgency: "standard", recommendedNextStep: "", rationale: [] },
+        },
+      ];
+      db.chatSessions.push(chat("chat_moved", { crmLeadId: "crm_moved", borrowerLeadId: "lead_moved" }));
+    });
+    const moved = readChatSession("chat_moved")!;
+    assert.equal(live.chatOwnerId(moved), OTHER.sub);
+    assert.equal(live.canManageChat(moved, OTHER), true);
+    assert.equal(live.canManageChat(moved, OWNER), false);
+  });
 });
 
 describe("officer licensing for page chats", async () => {

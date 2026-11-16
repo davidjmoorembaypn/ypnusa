@@ -10,7 +10,7 @@ import net from "node:net";
 
 const MAX_URL_LENGTH = 2048;
 
-export type UrlCheck = { ok: true; url: URL } | { ok: false; error: string };
+export type UrlCheck = { ok: true; url: URL } | { ok: false; error: string; reason: "invalid" | "private" | "unresolved" };
 
 function ipv4ToInt(ip: string): number {
   return ip.split(".").reduce((acc, part) => (acc << 8) + Number(part), 0) >>> 0;
@@ -64,26 +64,26 @@ export function isPrivateAddress(address: string): boolean {
 
 /** The checks that need no network: shape, scheme, credentials, port and literal addresses. */
 export function checkOutboundUrl(raw: unknown): UrlCheck {
-  if (typeof raw !== "string") return { ok: false, error: "Paste the full https address from your CRM or Zapier." };
+  if (typeof raw !== "string") return { ok: false, error: "Paste the full https address from your CRM or Zapier.", reason: "invalid" };
   const value = raw.trim();
   if (!value || value.length > MAX_URL_LENGTH) {
-    return { ok: false, error: "Paste the full https address from your CRM or Zapier." };
+    return { ok: false, error: "Paste the full https address from your CRM or Zapier.", reason: "invalid" };
   }
   let url: URL;
   try {
     url = new URL(value);
   } catch {
-    return { ok: false, error: "That isn't a valid web address." };
+    return { ok: false, error: "That isn't a valid web address.", reason: "invalid" };
   }
-  if (url.protocol !== "https:") return { ok: false, error: "The address must start with https://." };
-  if (url.username || url.password) return { ok: false, error: "The address can't include a user name or password." };
-  if (url.port && url.port !== "443") return { ok: false, error: "The address must use the standard https port." };
+  if (url.protocol !== "https:") return { ok: false, error: "The address must start with https://.", reason: "invalid" };
+  if (url.username || url.password) return { ok: false, error: "The address can't include a user name or password.", reason: "invalid" };
+  if (url.port && url.port !== "443") return { ok: false, error: "The address must use the standard https port.", reason: "invalid" };
   const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
   if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
-    return { ok: false, error: "The address must be a public website." };
+    return { ok: false, error: "The address must be a public website.", reason: "private" };
   }
-  if (net.isIP(host) && isPrivateAddress(host)) return { ok: false, error: "The address must be a public website." };
-  if (!net.isIP(host) && !host.includes(".")) return { ok: false, error: "The address must be a public website." };
+  if (net.isIP(host) && isPrivateAddress(host)) return { ok: false, error: "The address must be a public website.", reason: "private" };
+  if (!net.isIP(host) && !host.includes(".")) return { ok: false, error: "The address must be a public website.", reason: "private" };
   return { ok: true, url };
 }
 
@@ -105,12 +105,12 @@ export async function checkOutboundUrlResolves(raw: unknown): Promise<UrlCheck> 
   if (net.isIP(host)) return shape;
   try {
     const addresses = await lookup(host);
-    if (addresses.length === 0) return { ok: false, error: "That address doesn't resolve." };
+    if (addresses.length === 0) return { ok: false, error: "That address doesn't resolve.", reason: "unresolved" };
     if (addresses.some((entry) => isPrivateAddress(entry.address))) {
-      return { ok: false, error: "The address must be a public website." };
+      return { ok: false, error: "The address must be a public website.", reason: "private" };
     }
     return shape;
   } catch {
-    return { ok: false, error: "That address doesn't resolve." };
+    return { ok: false, error: "That address doesn't resolve.", reason: "unresolved" };
   }
 }

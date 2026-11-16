@@ -169,7 +169,7 @@ export function buildNurtureDashboard(loId?: string, predictiveByZip?: Record<st
   const averageScore =
     rows.length === 0
       ? 0
-      : Math.round(rows.reduce((total, row) => total + row.score, 0) / rows.length);
+      : Math.round(rows.reduce((total, row) => total + row.leadScore, 0) / rows.length);
   const equityReviews: EquityReviewRow[] = db.propertyEvaluations
     // Equity reviews have no officer ownership field yet. Only the admin's
     // unscoped view may include them until a verified assignment exists.

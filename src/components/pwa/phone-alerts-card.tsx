@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Dashboard card that turns phone alerts on or off for this device. Alerts cover new leads,
@@ -35,6 +35,16 @@ function isStandalone(): boolean {
   return window.matchMedia?.("(display-mode: standalone)").matches === true || nav.standalone === true;
 }
 
+async function fetchPublicKey(): Promise<string | null> {
+  try {
+    const res = await fetch("/api/push", { cache: "no-store" });
+    const body = (await res.json()) as { ok?: boolean; publicKey?: string };
+    return body.ok && body.publicKey ? body.publicKey : null;
+  } catch {
+    return null;
+  }
+}
+
 async function workerRegistration(): Promise<ServiceWorkerRegistration> {
   const existing = await navigator.serviceWorker.getRegistration("/");
   return existing ?? navigator.serviceWorker.register("/sw.js", { scope: "/" });
@@ -43,6 +53,9 @@ async function workerRegistration(): Promise<ServiceWorkerRegistration> {
 export function PhoneAlertsCard() {
   const [state, setState] = useState<State>("loading");
   const [message, setMessage] = useState<string | null>(null);
+  // Fetched before the tap: Safari only shows the permission prompt when it is asked for
+  // straight from the tap, with no network wait in between.
+  const publicKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(async () => {
@@ -55,6 +68,9 @@ export function PhoneAlertsCard() {
         setState("blocked");
         return;
       }
+      void fetchPublicKey().then((key) => {
+        publicKeyRef.current = key;
+      });
       try {
         const registration = await navigator.serviceWorker.getRegistration("/");
         const subscription = registration ? await registration.pushManager.getSubscription() : null;
@@ -67,24 +83,26 @@ export function PhoneAlertsCard() {
   }, []);
 
   async function turnOn() {
+    // Ask first, before any await, so the prompt stays tied to the tap (required on iPhone).
+    const permissionRequest = Notification.requestPermission();
     setState("working");
     setMessage(null);
     try {
-      const keyRes = await fetch("/api/push", { cache: "no-store" });
-      const keyBody = (await keyRes.json()) as { ok?: boolean; publicKey?: string };
-      if (!keyBody.ok || !keyBody.publicKey) throw new Error("no key");
-      const permission = await Notification.requestPermission();
+      const permission = await permissionRequest;
       if (permission !== "granted") {
         setState(permission === "denied" ? "blocked" : "off");
         return;
       }
+      const publicKey = publicKeyRef.current ?? (await fetchPublicKey());
+      if (!publicKey) throw new Error("no key");
+      publicKeyRef.current = publicKey;
       const registration = await workerRegistration();
       await navigator.serviceWorker.ready;
       const subscription =
         (await registration.pushManager.getSubscription()) ??
         (await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: base64UrlToBytes(keyBody.publicKey),
+          applicationServerKey: base64UrlToBytes(publicKey),
         }));
       const res = await fetch("/api/push", {
         method: "POST",

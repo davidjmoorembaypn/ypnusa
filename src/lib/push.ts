@@ -3,6 +3,7 @@ import path from "node:path";
 import webpush from "web-push";
 import { generateId } from "./id";
 import { readDb, secretsDir, writeDb } from "./db";
+import { checkOutboundUrlResolves } from "./integrations/crm/url-safety";
 import type { PushSubscriptionRecord } from "./types";
 
 /**
@@ -57,20 +58,39 @@ export function vapidKeys(): VapidKeys {
     return cachedKeys;
   }
   const file = keyFile();
-  try {
-    const saved: unknown = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8"));
-    if (isKeys(saved)) {
-      cachedKeys = saved;
-      return cachedKeys;
-    }
-  } catch {
-    // No saved keys yet: generate below.
+  const saved = readKeyFile(file);
+  if (saved) {
+    cachedKeys = saved;
+    return cachedKeys;
   }
+  // Two processes may get here at once. Each writes its own temp file, and only the first
+  // hard link to the real name succeeds (it is atomic and refuses to overwrite), so every
+  // process ends up with the same key pair: the one that won.
   const generated = webpush.generateVAPIDKeys();
   fs.mkdirSync(/*turbopackIgnore: true*/ path.dirname(file), { recursive: true, mode: 0o700 });
-  fs.writeFileSync(/*turbopackIgnore: true*/ file, JSON.stringify(generated), { mode: 0o600 });
-  cachedKeys = generated;
+  const temp = `${file}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(/*turbopackIgnore: true*/ temp, JSON.stringify(generated), { mode: 0o600 });
+  try {
+    fs.linkSync(/*turbopackIgnore: true*/ temp, file);
+    cachedKeys = generated;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    const winner = readKeyFile(file);
+    if (!winner) throw new Error("Push keys file exists but can't be read.");
+    cachedKeys = winner;
+  } finally {
+    fs.rmSync(/*turbopackIgnore: true*/ temp, { force: true });
+  }
   return cachedKeys;
+}
+
+function readKeyFile(file: string): VapidKeys | null {
+  try {
+    const saved: unknown = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8"));
+    return isKeys(saved) ? saved : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Test hook: forget cached keys. */
@@ -78,10 +98,17 @@ export function resetPushKeysForTests(): void {
   cachedKeys = null;
 }
 
-function isHttpsUrl(value: unknown): value is string {
+/** Browser push services. A subscription must point at one of them, never anywhere else. */
+const PUSH_SERVICE_HOSTS = new Set(["fcm.googleapis.com", "android.googleapis.com", "updates.push.services.mozilla.com", "web.push.apple.com"]);
+const PUSH_SERVICE_SUFFIXES = [".push.apple.com", ".notify.windows.com", ".push.services.mozilla.com"];
+
+export function isPushServiceUrl(value: unknown): value is string {
   if (typeof value !== "string" || value.length > 2048) return false;
   try {
-    return new URL(value).protocol === "https:";
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443")) return false;
+    const host = url.hostname.toLowerCase();
+    return PUSH_SERVICE_HOSTS.has(host) || PUSH_SERVICE_SUFFIXES.some((suffix) => host.endsWith(suffix));
   } catch {
     return false;
   }
@@ -97,7 +124,7 @@ export type SaveSubscriptionResult = { ok: true } | { ok: false; error: string }
 export function saveSubscription(userId: string, input: unknown): SaveSubscriptionResult {
   if (typeof input !== "object" || input === null) return { ok: false, error: "Missing subscription." };
   const { endpoint, keys } = input as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } };
-  if (!isHttpsUrl(endpoint)) return { ok: false, error: "Invalid subscription." };
+  if (!isPushServiceUrl(endpoint)) return { ok: false, error: "Invalid subscription." };
   if (!keys || !isKeyString(keys.p256dh) || !isKeyString(keys.auth)) return { ok: false, error: "Invalid subscription." };
   const p256dh = keys.p256dh;
   const auth = keys.auth;
@@ -141,7 +168,14 @@ function safePath(url: string): string {
 
 type Sender = (subscription: PushSubscriptionRecord, payload: string) => Promise<{ statusCode: number }>;
 
-const defaultSender: Sender = (subscription, payload) => {
+const defaultSender: Sender = async (subscription, payload) => {
+  // Checked again at send time: only a known push service on a public address.
+  // A disallowed address counts as gone (the subscription is dropped); a DNS hiccup does not.
+  if (!isPushServiceUrl(subscription.endpoint)) throw Object.assign(new Error("push endpoint not allowed"), { statusCode: 410 });
+  const check = await checkOutboundUrlResolves(subscription.endpoint);
+  if (!check.ok) {
+    throw Object.assign(new Error("push endpoint not reachable"), { statusCode: check.reason === "unresolved" ? undefined : 410 });
+  }
   const keys = vapidKeys();
   return webpush.sendNotification(
     { endpoint: subscription.endpoint, keys: subscription.keys },

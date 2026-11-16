@@ -804,25 +804,27 @@ export const DEMO_REQUEST_DETAILS_WINDOW_MS = 2 * 60 * 60 * 1000;
 /**
  * Adds the optional second-step details (company, team size, role) to an inquiry saved
  * moments ago. Only fills fields that are still empty, and only inside the window above,
- * so a leaked id can't be used to rewrite an older lead. Returns the updated record or null.
+ * so a leaked id can't be used to rewrite an older lead. Returns the record and whether
+ * anything was filled in, or null when the inquiry is unknown or too old.
  */
 export function addDemoRequestDetails(
   id: string,
   details: Pick<DemoRequestRecord, "company" | "monthlyLeadVolume" | "role">,
   now: Date = new Date(),
-): DemoRequestRecord | null {
-  let updated: DemoRequestRecord | null = null;
+): { record: DemoRequestRecord; changed: boolean } | null {
+  let result: { record: DemoRequestRecord; changed: boolean } | null = null;
   writeDb((db) => {
     const record = db.demoRequests.find((item) => item.id === id);
     if (!record) return;
     const age = now.getTime() - new Date(record.createdAt).getTime();
     if (!Number.isFinite(age) || age < 0 || age > DEMO_REQUEST_DETAILS_WINDOW_MS) return;
-    if (details.company && !record.company) record.company = details.company;
-    if (details.monthlyLeadVolume && !record.monthlyLeadVolume) record.monthlyLeadVolume = details.monthlyLeadVolume;
-    if (details.role && !record.role) record.role = details.role;
-    updated = structuredClone(record);
+    let changed = false;
+    if (details.company && !record.company) { record.company = details.company; changed = true; }
+    if (details.monthlyLeadVolume && !record.monthlyLeadVolume) { record.monthlyLeadVolume = details.monthlyLeadVolume; changed = true; }
+    if (details.role && !record.role) { record.role = details.role; changed = true; }
+    result = { record: structuredClone(record), changed };
   });
-  return updated;
+  return result;
 }
 
 export function appendPropertyEvaluation(record: PropertyEvaluationRecord): void {

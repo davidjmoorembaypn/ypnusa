@@ -85,12 +85,16 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
 /** Notifies the business inbox (BUSINESS_EMAIL) of a new lead/demo request. */
 export async function notifyOwnerOfLead(input: {
-  kind: "demo_request" | "lo_alert";
+  kind: "demo_request" | "demo_request_details" | "lo_alert";
   summaryHtml: string;
   replyTo?: string;
 }): Promise<SendEmailResult> {
   const subject =
-    input.kind === "demo_request" ? "New demo request — YPN USA" : "New borrower lead assigned";
+    input.kind === "demo_request"
+      ? "New demo request — YPN USA"
+      : input.kind === "demo_request_details"
+        ? "Demo request details added — YPN USA"
+        : "New borrower lead assigned";
   return sendEmail({
     to: BUSINESS_EMAIL,
     subject,

@@ -43,6 +43,19 @@ export const AUTO_SEND_KINDS: ReadonlySet<CerebroQueuedActionRecord["kind"]> = n
 const MAX_SENDS_PER_PASS = 25;
 const NMLS_PLACEHOLDER = "[add your NMLS ID]";
 
+/**
+ * Drafts queued before live replies existed were promised to wait for the officer, so only
+ * items created from this moment on are ever sent without an approval.
+ */
+export const LIVE_REPLIES_SINCE = "2026-11-16T12:30:00Z";
+
+/** Reserved test domains, and leads marked as tests, never get a real email. */
+function isTestLead(lead: BorrowerLeadRecord): boolean {
+  const domain = lead.answers.email?.split("@")[1]?.toLowerCase() ?? "";
+  if (/(^|\.)(example\.(com|org|net)|test|invalid|localhost)$/.test(domain)) return true;
+  return /\(claude test\)/i.test(lead.answers.name ?? "");
+}
+
 export function officerFor(loId: string): LoanOfficerRecord {
   const found = readDb().loanOfficers.find((officer) => officer.id === loId);
   if (!found) return houseOfficerRecord();
@@ -109,6 +122,10 @@ export function decideDispatch(
   if (action.status === "awaiting_approval" && (!live || action.holdReason)) return { action: "skip" };
   if (action.status === "held" && !approved && !live) return { action: "skip" };
   if (!lead) return { action: "needs_officer", reason: "Needs your OK: the lead no longer exists." };
+  if (isTestLead(lead)) return { action: "skip" };
+  if (!approved && Date.parse(action.createdAt) < Date.parse(LIVE_REPLIES_SINCE)) {
+    return action.status === "awaiting_approval" ? { action: "skip" } : { action: "needs_officer", reason: "Needs your OK: drafted before Cerebro sent emails on its own." };
+  }
 
   const consentChannel = action.channel === "email" ? "email" : action.channel === "text" ? "sms" : "call";
   const contact = canContact({ db, borrowerLeadId: lead.id, channel: consentChannel, legacyConsent: lead.answers.contactConsent === true, now });

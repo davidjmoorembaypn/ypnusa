@@ -38,6 +38,7 @@ import {
   REQUEST_CALLBACK_TOOL,
   SAVE_OFFICER_PROSPECT_TOOL,
 } from "./public-agent-tools";
+import { executeKnowledgeTool, MORTGAGE_GUIDE_TOOL, PLATFORM_HELP_TOOL } from "./knowledge";
 import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
 import {
   buildSystemPrompt,
@@ -85,6 +86,9 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
   // Signed-in officers can check ZIP codes (their own is recognised as theirs) and plans too.
   if (mode === "mlo_dashboard") tools.push(...MLO_TOOLS, CHECK_TERRITORY_AVAILABILITY_TOOL, GET_PRICING_TOOL);
   if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(CHECK_TERRITORY_AVAILABILITY_TOOL);
+  // Answer books: how YPN USA works (officers, and officers shopping on the site); home-loan basics (borrowers).
+  if (mode === "mlo_dashboard" || mode === "public_site") tools.push(PLATFORM_HELP_TOOL);
+  if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(MORTGAGE_GUIDE_TOOL);
   return tools;
 }
 
@@ -233,6 +237,9 @@ async function executeActionTool(
       const zip = typeof call.input.zip === "string" ? call.input.zip : "";
       return await executeTerritoryCheck(zip, session.mode === "mlo_dashboard" ? ctx.userEmail : undefined);
     }
+    if (call.toolName === "platform_help" || call.toolName === "mortgage_guide") {
+      return executeKnowledgeTool(call.toolName, call.input.question);
+    }
     if (call.toolName === "find_explainer_video") {
       const topic = typeof call.input.topic === "string" ? call.input.topic : "";
       const video = findExplainerVideo(topic);
@@ -318,6 +325,8 @@ const ACTION_TOOL_NAMES = new Set([
   ...PUBLIC_ACTION_TOOL_NAMES,
   ...BORROWER_FOLLOW_UP_TOOL_NAMES,
   ...MLO_TOOL_NAMES,
+  "platform_help",
+  "mortgage_guide",
 ]);
 
 /**

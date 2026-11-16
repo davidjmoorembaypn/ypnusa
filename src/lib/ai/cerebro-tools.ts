@@ -11,6 +11,8 @@ import {
 import { runAgent } from "@/lib/agents/coreAgent";
 import type { PlatformChannel } from "@/lib/agents/marketingAgent";
 import type { AutopilotPageType } from "@/lib/types";
+import { CUSTOMER_PORTAL_URL, marketingUrl } from "@/lib/site";
+import { isLiveSubscription } from "@/lib/subscription-live";
 import { getWordPressAutopilotStatus } from "@/lib/wordpress";
 import {
   executeDraftPrequalLetter,
@@ -50,6 +52,7 @@ export const MLO_TOOL_NAMES = new Set([
   "list_queued_actions",
   "decide_queued_action",
   "set_reply_mode",
+  "get_my_account",
   ...OFFICER_FOLLOW_UP_TOOL_NAMES,
 ]);
 
@@ -182,6 +185,13 @@ export const SET_REPLY_MODE_TOOL: AiToolDefinition = {
   },
 };
 
+export const GET_MY_ACCOUNT_TOOL: AiToolDefinition = {
+  name: "get_my_account",
+  description:
+    "The signed-in loan officer's own account, live: plan and status, the ZIP codes they hold, profile and setup gaps (NMLS ID, licensed states, public page), lead counts, what waits for them and what Cerebro sent, reply mode, and the billing portal. Call for any question about their account, plan, ZIP codes, setup, billing or how they're doing.",
+  inputSchema: { type: "object", properties: {}, additionalProperties: false },
+};
+
 export const MLO_TOOLS: AiToolDefinition[] = [
   GET_MY_PIPELINE_TOOL,
   RUN_WEBSITE_AUTOPILOT_TOOL,
@@ -192,6 +202,7 @@ export const MLO_TOOLS: AiToolDefinition[] = [
   LIST_QUEUED_ACTIONS_TOOL,
   DECIDE_QUEUED_ACTION_TOOL,
   SET_REPLY_MODE_TOOL,
+  GET_MY_ACCOUNT_TOOL,
   ...OFFICER_FOLLOW_UP_TOOLS,
 ];
 
@@ -424,6 +435,50 @@ function listQueued(ctx: MloToolContext): string {
   });
 }
 
+function getMyAccount(ctx: MloToolContext): string {
+  const email = ctx.userEmail?.trim().toLowerCase();
+  if (!email) return JSON.stringify({ error: "not_signed_in" });
+  const db = readDb();
+  const officer = findOfficer(ctx);
+  const plans = db.revenueSubscriptions
+    .filter(
+      (sub) =>
+        (sub.ownerEmail?.trim().toLowerCase() === email || (officer && sub.ownerLoId === officer.id)) &&
+        sub.status !== "cancelled" &&
+        isLiveSubscription(sub),
+    )
+    .map((sub) => ({ plan: sub.tier, status: sub.status, zipCodes: sub.claimedZips, since: sub.startedAt }));
+  const since30 = Date.now() - 30 * 86400000;
+  const leads = officer ? db.borrowerLeads.filter((lead) => lead.assignedLoId === officer.id) : [];
+  const actions = officer ? db.cerebroActions.filter((action) => action.loId === officer.id) : [];
+  const setupGaps = [
+    !officer ? "No loan-officer profile yet: finish the steps at /onboarding." : null,
+    officer && !officer.nmlsId ? "Add your NMLS ID (needed on every message)." : null,
+    officer && !(officer.licenses ?? []).length ? "List the states you're licensed in (Cerebro won't email borrowers on its own without them)." : null,
+    officer && !officer.publicSlug ? "Save your profile to publish your page at ypnus.com/lo/your-name." : null,
+    plans.length === 0 ? "No paid plan, so no ZIP code is locked to you yet." : null,
+  ].filter(Boolean);
+  return JSON.stringify({
+    name: officer?.name ?? null,
+    plans,
+    zipCodes: [...new Set(plans.flatMap((plan) => plan.zipCodes))],
+    profile: officer
+      ? {
+          nmlsOnFile: Boolean(officer.nmlsId),
+          licensedStates: [...new Set((officer.licenses ?? []).map((license) => license.state))],
+          company: officer.company ?? null,
+          publicPage: officer.publicSlug ? marketingUrl(`/lo/${officer.publicSlug}`) : null,
+        }
+      : null,
+    setupGaps,
+    leads: { total: leads.length, last30Days: leads.filter((lead) => Date.parse(lead.createdAt) >= since30).length },
+    waitingForYou: actions.filter((action) => action.status === "awaiting_approval").length,
+    emailsCerebroSentLast30Days: actions.filter((action) => action.status === "sent" && Date.parse(action.sentAt ?? "") >= since30).length,
+    replyMode: officer?.cerebroReplyMode === "approve" ? "approve" : "live",
+    billingPortal: CUSTOMER_PORTAL_URL,
+  });
+}
+
 function setReplyMode(call: AiToolCall, ctx: MloToolContext): string {
   const officer = findOfficer(ctx);
   if (!officer) return JSON.stringify({ error: "no_officer_profile" });
@@ -502,6 +557,8 @@ export async function executeMloTool(call: AiToolCall, ctx: MloToolContext): Pro
         return decideQueued(call, ctx);
       case "set_reply_mode":
         return setReplyMode(call, ctx);
+      case "get_my_account":
+        return getMyAccount(ctx);
       case "run_follow_ups":
       case "draft_rate_alerts":
       case "draft_prequal_letter": {

@@ -23,7 +23,7 @@ function addOfficer(overrides: Partial<LoanOfficerRecord> = {}): LoanOfficerReco
     ...readDb().loanOfficers[0],
     id: generateId("lo"),
     name: "Dana Reyes",
-    email: `dana-${Math.random().toString(36).slice(2)}@example.com`,
+    email: `dana-${Math.random().toString(36).slice(2)}@lender.test`,
     nmlsId: "123456",
     licenses: [{ state: "CA", type: "mlo" }],
     ...overrides,
@@ -42,7 +42,7 @@ function addLead(loId: string, answers: Partial<BorrowerLeadRecord["answers"]> =
     assignedLoId: loId,
     qualification,
     crmLeadId: "",
-    answers: { loanProgram: "CONVENTIONAL", name: "Sam Buyer", email: "sam@example.com", zip: "93291", contactConsent: true, ...answers },
+    answers: { loanProgram: "CONVENTIONAL", name: "Sam Buyer", email: "sam@borrowermail.com", zip: "93291", contactConsent: true, ...answers },
   });
   return id;
 }
@@ -84,7 +84,7 @@ describe("Cerebro dispatch", () => {
     const { sent } = await run();
     const mine = sent.filter((mail) => mail.replyTo === officer.email);
     assert.equal(mine.length, 1);
-    assert.equal(mine[0].to, "sam@example.com");
+    assert.equal(mine[0].to, "sam@borrowermail.com");
     assert.match(mine[0].html, /Sent by Cerebro, the AI assistant for Dana Reyes/);
     assert.match(mine[0].html, /NMLS #123456/);
     assert.match(mine[0].html, /Equal Housing Opportunity/);
@@ -169,5 +169,18 @@ describe("unsubscribe links", () => {
     const latest = readDb().consents.filter((item) => item.borrowerLeadId === lead);
     assert.deepEqual(new Set(latest.map((item) => item.channel)), new Set(["sms", "call", "email", "ai_voice"]));
     assert.ok(latest.every((item) => item.granted === false));
+  });
+});
+
+describe("Cerebro dispatch safety", () => {
+  it("never auto-sends drafts queued before live replies, or to test leads", async () => {
+    const officer = addOfficer();
+    const old = queue(officer.id, addLead(officer.id), { createdAt: "2026-11-15T18:00:00Z" });
+    const test = queue(officer.id, addLead(officer.id, { email: "someone@example.com" }));
+    const marked = queue(officer.id, addLead(officer.id, { name: "Test Borrower (Claude test)" }));
+    assert.equal((await run()).sent.filter((mail) => mail.replyTo === officer.email).length, 0);
+    assert.equal(stored(old.id).status, "awaiting_approval");
+    assert.equal(stored(test.id).status, "awaiting_approval");
+    assert.equal(stored(marked.id).status, "awaiting_approval");
   });
 });

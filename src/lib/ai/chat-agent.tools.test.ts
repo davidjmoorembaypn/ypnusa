@@ -120,6 +120,8 @@ describe("toolsForMode", () => {
         "request_callback",
         "save_prequal_details",
         "subscribe_rate_alerts",
+        "platform_help",
+        "mortgage_guide",
       ]),
     );
   });
@@ -137,6 +139,7 @@ describe("toolsForMode", () => {
         "request_callback",
         "save_prequal_details",
         "subscribe_rate_alerts",
+        "mortgage_guide",
       ]),
     );
   });
@@ -156,6 +159,8 @@ describe("toolsForMode", () => {
         "list_queued_actions",
         "decide_queued_action",
         "set_reply_mode",
+        "get_my_account",
+        "platform_help",
         "run_follow_ups",
         "draft_rate_alerts",
         "draft_prequal_letter",

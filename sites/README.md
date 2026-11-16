@@ -16,7 +16,7 @@ ypnus.com is served by **this Next.js app**, as planned in `docs/AWS_MIGRATION.m
 - Marketing pages, posts and the 301 redirect map live in `src/content/wp-import/`
   (wired into `next.config.ts` and the `src/app/*/[slug]` routes).
 - ypnus.com reaches the app through the Apache front door in `aws/apache/` on the existing
-  app server (`i-0ad200fc61f4d39f5`, us-east-2). Deploys follow `aws/README.md`
+  app server (EC2, us-east-2). Deploys follow `aws/README.md`
   (`scripts/aws-install-release.sh`). There is no separate hosting stack for ypnus.com.
 - DNS for ypnus.com stays on WordPress until the cutover items in `docs/AWS_MIGRATION.md` are
   done (Stripe webhook owner, ZIP ledger, media, final content check).

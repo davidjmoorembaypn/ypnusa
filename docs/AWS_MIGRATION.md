@@ -22,13 +22,13 @@ See `aws/README.md` for the full runbook: host details, how to get a shell
 (AWS SSM Session Manager — not blocked by the quarantine SCP below), and
 `scripts/aws-install-release.sh` to install a new release with automatic
 rollback. This section's "to fix it" steps below are now mostly done — the
-host is `i-0ad200fc61f4d39f5` (us-east-2), reachable, and now running build
+host is an EC2 instance in us-east-2, reachable, and now running build
 `5bd0cf5`, deployed via that script and verified against `/api/health`.
 
 ## Correction: where the app runs today (verified 2026-10-15)
 
 `app.ypnus.com` was never on Vercel. Until about 2026-10-09 it ran on Hostinger (Passenger,
-behind Hostinger's CDN). It now resolves to `18.223.107.93`, an AWS host answering as
+behind Hostinger's CDN). It now resolves to an AWS host answering as
 `Apache/2.4.68 (Amazon Linux)` in front of the Next.js app. That host was set up outside this
 runbook; it is not the ECS/ALB stack in `infra/aws`.
 
@@ -51,7 +51,7 @@ The Hostinger install is intact and is the source for both settings and data:
 
 To fix it you need access to the AWS host, for example through the AWS MCP connector:
 
-1. Find the instance behind `18.223.107.93` and how it runs the app (process manager, env file).
+1. Find the instance behind that address and how it runs the app (process manager, env file).
 2. Copy the variables server to server. Never paste values into chat, PRs or commits.
 3. Merge `store.json`: Hostinger's copy plus any records created on AWS after the switch.
 4. Restart the app, then verify:

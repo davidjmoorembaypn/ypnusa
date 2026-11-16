@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { runAssistantTurn, transcriptForSession } from "@/lib/ai/chat-agent";
+import { chatHandledBy, runAssistantTurn, transcriptForSession } from "@/lib/ai/chat-agent";
 import { isPaidEntitlement, resolveEntitlement } from "@/lib/entitlements";
 import { isRecord, jsonError, logApiError, parseJsonBody } from "@/lib/http";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
@@ -18,6 +18,8 @@ interface ChatRequestBody {
   message: string;
   sessionId?: string;
   funnelSource?: string;
+  /** Loan officer page slug, for borrower chats on /lo/[slug]. */
+  officerSlug?: string;
 }
 
 function optionalString(value: unknown, max: number): string | undefined {
@@ -50,6 +52,7 @@ function validateBody(
       message,
       sessionId: optionalString(data.sessionId, MAX_SESSION_ID_LENGTH),
       funnelSource: optionalString(data.funnelSource, 160),
+      officerSlug: mode === "lead_qualification" ? optionalString(data.officerSlug, 120) : undefined,
     },
   };
 }
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
     const validated = validateBody(parsed.data);
     if (!validated.ok) return jsonError(validated.error, 400, validated.code);
 
-    const { mode, message, sessionId, funnelSource } = validated.body;
+    const { mode, message, sessionId, funnelSource, officerSlug } = validated.body;
 
     let userId: string | undefined;
     let userEmail: string | undefined;
@@ -87,6 +90,7 @@ export async function POST(request: Request) {
       userEmail,
       paidPlan,
       funnelSource,
+      officerSlug,
       userMessage: message,
     });
 
@@ -122,7 +126,12 @@ export async function GET(request: Request) {
       if (!session) return jsonError("Sign in to use the dashboard assistant.", 401, "UNAUTHENTICATED");
       userId = session.sub;
     }
-    return NextResponse.json({ ok: true, messages: transcriptForSession({ sessionId, mode, userId }) });
+    const messages = transcriptForSession({ sessionId, mode, userId });
+    return NextResponse.json({
+      ok: true,
+      messages,
+      ...(mode === "lead_qualification" && messages.length > 0 ? { handledBy: chatHandledBy(sessionId) } : {}),
+    });
   } catch (error) {
     logApiError("/api/assistant/chat GET", error);
     return jsonError("Couldn't load the conversation.", 500, "ASSISTANT_HISTORY_FAILED");

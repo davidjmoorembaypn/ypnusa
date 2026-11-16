@@ -52,6 +52,13 @@ import {
   type LeadQualificationToolInput,
 } from "./prompts";
 import { runWebsiteAutopilot, type WebsiteAutopilotPlan } from "./website-autopilot";
+import {
+  appendBorrowerMessageIfTakenOver,
+  officerChatContext,
+  officerChatPrompt,
+  officerLicensedFor,
+  reconcileWithStored,
+} from "@/lib/live-chat";
 
 /** Modes where the assistant talks to a prospective customer, not an MLO about their own pipeline. */
 const CUSTOMER_FACING_MODES: AssistantMode[] = ["public_site", "lead_qualification"];
@@ -434,6 +441,8 @@ export interface AssistantTurnInput {
   /** True when the signed-in user has an active paid plan (or is an admin) — sets the daily message cap. */
   paidPlan?: boolean;
   funnelSource?: string;
+  /** Slug of the loan officer page the borrower is chatting on (lead_qualification only). */
+  officerSlug?: string;
   userMessage: string;
 }
 
@@ -464,6 +473,8 @@ export interface AssistantTurnResult {
   providerConfigured: boolean;
   /** Set when the signed-in user hit the daily message cap; the model was not called. */
   limitReached?: boolean;
+  /** True while the loan officer has taken over this chat: Cerebro stayed silent and reply is empty. */
+  humanMode?: boolean;
 }
 
 function nowIso(): string {
@@ -488,9 +499,37 @@ function loadOrCreateSession(input: AssistantTurnInput): ChatSessionRecord {
     updatedAt: nowIso(),
     userId: input.userId,
     funnelSource: input.funnelSource,
+    ...officerFieldsFor(input),
     messages: [],
     capturedFields: {},
     status: "active",
+  };
+}
+
+/** Ties a new borrower chat to the officer whose page it started on, when that page is live. */
+function officerFieldsFor(input: AssistantTurnInput): Pick<ChatSessionRecord, "officerUserId" | "officerSlug"> {
+  if (input.mode !== "lead_qualification" || !input.officerSlug) return {};
+  const officer = officerChatContext(input.officerSlug);
+  return officer ? { officerUserId: officer.userId, officerSlug: officer.slug } : {};
+}
+
+function systemPromptFor(session: ChatSessionRecord): string {
+  const base = buildSystemPrompt(session.mode);
+  if (session.mode !== "lead_qualification" || !session.officerSlug) return base;
+  const officer = officerChatContext(session.officerSlug);
+  return officer ? `${base}\n\n${officerChatPrompt(officer)}` : base;
+}
+
+function humanModeResult(session: ChatSessionRecord): AssistantTurnResult {
+  return {
+    sessionId: session.id,
+    reply: "",
+    capturedFields: session.capturedFields,
+    status: session.status,
+    borrowerLeadId: session.borrowerLeadId,
+    crmLeadId: session.crmLeadId,
+    providerConfigured: getAiProvider() !== null,
+    humanMode: true,
   };
 }
 
@@ -502,11 +541,21 @@ export function transcriptForSession(input: {
   sessionId: string;
   mode: AssistantMode;
   userId?: string;
-}): Array<{ role: ChatMessageRecord["role"]; content: string }> {
+}): Array<{ role: ChatMessageRecord["role"]; content: string; author?: "officer" }> {
   const session = readChatSession(input.sessionId);
   if (!session || session.mode !== input.mode) return [];
   if (input.mode === "mlo_dashboard" && (!input.userId || session.userId !== input.userId)) return [];
-  return session.messages.map((message) => ({ role: message.role, content: message.content }));
+  return session.messages.map((message) => ({
+    role: message.role,
+    content: message.content,
+    ...(message.author ? { author: message.author } : {}),
+  }));
+}
+
+/** Whether the loan officer is answering a borrower chat right now (Live Takeover). */
+export function chatHandledBy(sessionId: string): "ai" | "officer" {
+  const session = readChatSession(sessionId);
+  return session?.mode === "lead_qualification" && session.handledBy === "officer" ? "officer" : "ai";
 }
 
 function appendMessage(session: ChatSessionRecord, role: ChatMessageRecord["role"], content: string): void {
@@ -650,7 +699,12 @@ export function linkQualifiedLead(session: ChatSessionRecord): void {
   };
 
   // Routes to the paying loan officer who holds the borrower's ZIP code, or the house book.
-  const route = routeLead({ program: answers.loanProgram, zip: answers.zip });
+  // A chat on an officer's own page goes to that officer, unless the property is in a state
+  // they aren't licensed in (then the usual ZIP code routing picks a licensed officer).
+  const pageOfficer = session.officerSlug ? officerChatContext(session.officerSlug) : null;
+  const officerSlug =
+    pageOfficer && officerLicensedFor(pageOfficer, { zip: f.zip, state: f.state }) ? pageOfficer.slug : undefined;
+  const route = routeLead({ program: answers.loanProgram, zip: answers.zip, officerSlug });
   const result = logCrmActivity(answers, qualification, route.officer.id, session.funnelSource, session.id);
 
   session.borrowerLeadId = result.borrowerLeadId;
@@ -699,6 +753,14 @@ function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput)
   });
 
   const reply = plan.summaryForMlo;
+  // The officer may have taken over while the model was answering: keep their takeover and
+  // messages, and drop Cerebro's reply so the borrower only hears from the officer.
+  if (session.mode === "lead_qualification" && reconcileWithStored(session)) {
+    session.updatedAt = nowIso();
+    saveChatSession(session);
+    return humanModeResult(session);
+  }
+
   appendMessage(session, "assistant", reply);
   session.updatedAt = nowIso();
   saveChatSession(session);
@@ -803,6 +865,11 @@ export function trimHistoryForModel(messages: ChatMessageRecord[]): AiMessage[] 
 export async function runAssistantTurn(input: AssistantTurnInput): Promise<AssistantTurnResult> {
   const session = loadOrCreateSession(input);
   const userMessage = input.userMessage.trim().slice(0, MAX_MESSAGE_LENGTH);
+  if (session.mode === "lead_qualification" && session.handledBy === "officer") {
+    // Live Takeover: the loan officer answers this chat, so Cerebro stays silent.
+    const stored = appendBorrowerMessageIfTakenOver(session.id, userMessage);
+    if (stored) return humanModeResult(stored);
+  }
   appendMessage(session, "user", userMessage);
 
   if (input.mode === "mlo_dashboard" && matchesAutopilotCommand(userMessage)) {
@@ -853,7 +920,7 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
     };
   }
 
-  const system = buildSystemPrompt(input.mode);
+  const system = systemPromptFor(session);
   const history = trimHistoryForModel(session.messages);
   if (input.mode === "mlo_dashboard") recordModelUsage(session);
 

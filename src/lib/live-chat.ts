@@ -92,6 +92,16 @@ export function officerLicensedFor(officer: Pick<OfficerChatContext, "licensedSt
   return officer.licensedStates.includes(state);
 }
 
+/** Shown when an officer has no profile name yet. */
+export const OFFICER_NAME_FALLBACK = "Your loan officer";
+
+/** The first name a borrower sees for this officer (from their profile), or a neutral label. */
+export function officerFirstNameFor(userId: string | undefined): string {
+  if (!userId) return OFFICER_NAME_FALLBACK;
+  const fullName = readDb().agentOnboarding.find((record) => record.userId === userId)?.officerProfile?.fullName?.trim();
+  return fullName ? (fullName.split(/\s+/)[0] ?? fullName) : OFFICER_NAME_FALLBACK;
+}
+
 // ── Access ────────────────────────────────────────────────────────────────────
 
 export interface ChatViewer {
@@ -109,6 +119,11 @@ export function chatOwnerId(session: Pick<ChatSessionRecord, "officerUserId" | "
     if (assigned) return assigned;
   }
   return session.officerUserId;
+}
+
+/** The first name of the officer handling this chat now (after any reassignment). */
+export function chatHandlerFirstName(session: Pick<ChatSessionRecord, "officerUserId" | "crmLeadId">): string {
+  return officerFirstNameFor(chatOwnerId(session));
 }
 
 export function canManageChat(session: ChatSessionRecord, viewer: ChatViewer): boolean {
@@ -170,6 +185,8 @@ export function listLiveChats(viewer: ChatViewer, now: Date = new Date()): LiveC
 export interface ChatTranscriptMessage {
   id: string;
   from: "borrower" | "cerebro" | "officer";
+  /** Who typed an officer message. */
+  authorName?: string;
   content: string;
   createdAt: string;
 }
@@ -178,6 +195,7 @@ export function transcriptMessages(session: Pick<ChatSessionRecord, "messages">)
   return session.messages.map((message) => ({
     id: message.id,
     from: message.role === "user" ? "borrower" : message.author === "officer" ? "officer" : "cerebro",
+    ...(message.author === "officer" && message.authorName ? { authorName: message.authorName } : {}),
     content: message.content,
     createdAt: message.createdAt,
   }));
@@ -238,9 +256,18 @@ export function handBackChat(sessionId: string, viewer: ChatViewer): TakeoverRes
 export function officerReply(sessionId: string, viewer: ChatViewer, text: unknown): TakeoverResult {
   const content = typeof text === "string" ? text.trim().slice(0, MAX_OFFICER_MESSAGE_LENGTH) : "";
   if (!content) return { ok: false, code: "EMPTY_MESSAGE" };
+  // The borrower sees the name of whoever actually typed it, even after the chat moved officers.
+  const authorName = officerFirstNameFor(viewer.sub);
   return mutateChat(sessionId, viewer, (session) => {
     if (session.handledBy !== "officer") return { ok: false, code: "NOT_TAKEN_OVER" };
-    pushMessage(session, { id: generateId("msg"), role: "assistant", author: "officer", content, createdAt: new Date().toISOString() });
+    pushMessage(session, {
+      id: generateId("msg"),
+      role: "assistant",
+      author: "officer",
+      authorName,
+      content,
+      createdAt: new Date().toISOString(),
+    });
     return null;
   });
 }

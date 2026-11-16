@@ -16,12 +16,15 @@ interface Bubble {
   id: string;
   from: From;
   body: string;
+  /** Who typed an officer message (the chat may have moved to another officer). */
+  authorName?: string;
 }
 
 interface HistoryMessage {
   role: string;
   content: string;
   author?: string;
+  authorName?: string;
 }
 
 /** While the officer has the chat: check for their replies every 5 seconds. */
@@ -41,6 +44,7 @@ function toBubbles(messages: HistoryMessage[]): Bubble[] {
       id: `h${index}`,
       from: message.role === "user" ? "borrower" : message.author === "officer" ? "officer" : "cerebro",
       body: message.content.trim(),
+      ...(message.author === "officer" && message.authorName ? { authorName: message.authorName } : {}),
     }));
 }
 
@@ -56,6 +60,9 @@ export function OfficerPageChat(props: {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [humanMode, setHumanMode] = useState(false);
+  // The officer answering now: the page owner unless the chat moved to a licensed officer.
+  const [handlerName, setHandlerName] = useState<string | null>(null);
+  const liveName = handlerName ?? officerFirstName;
   const [failed, setFailed] = useState<string | null>(null);
   const [hasSession, setHasSession] = useState(false);
   const sessionIdRef = useRef<string | null>(null);
@@ -71,11 +78,12 @@ export function OfficerPageChat(props: {
     try {
       const res = await fetch(`/api/assistant/chat?${params.toString()}`);
       if (!res.ok) return;
-      const body = (await res.json()) as { ok?: boolean; messages?: HistoryMessage[]; handledBy?: string };
+      const body = (await res.json()) as { ok?: boolean; messages?: HistoryMessage[]; handledBy?: string; handlerName?: string };
       if (!body.ok || !Array.isArray(body.messages) || busyRef.current) return;
       const restored = toBubbles(body.messages);
       if (restored.length > 0) setMsgs(restored);
       setHumanMode(body.handledBy === "officer");
+      if (typeof body.handlerName === "string" && body.handlerName) setHandlerName(body.handlerName);
     } catch {
       // Offline for a moment: the next poll tries again.
     }
@@ -127,7 +135,7 @@ export function OfficerPageChat(props: {
         }),
       });
       const body = res.headers.get("content-type")?.includes("application/json")
-        ? ((await res.json()) as { ok?: boolean; sessionId?: string; reply?: string; humanMode?: boolean })
+        ? ((await res.json()) as { ok?: boolean; sessionId?: string; reply?: string; humanMode?: boolean; handlerName?: string })
         : null;
       if (!res.ok || !body?.ok || !body.sessionId) {
         setFailed(message);
@@ -145,6 +153,7 @@ export function OfficerPageChat(props: {
         // Private browsing: the chat just won't resume after a reload.
       }
       setHumanMode(body.humanMode === true);
+      if (typeof body.handlerName === "string" && body.handlerName) setHandlerName(body.handlerName);
       if (body.reply?.trim()) {
         setMsgs((prev) => [...prev, { id: makeId("a"), from: "cerebro", body: body.reply!.trim() }]);
       }
@@ -174,7 +183,7 @@ export function OfficerPageChat(props: {
         <h2 className="text-lg font-semibold text-slate-900">Questions? Chat with {officerFirstName}&apos;s assistant</h2>
         {humanMode ? (
           <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-            {officerFirstName} is here
+            {liveName} is here
           </span>
         ) : null}
       </div>
@@ -200,7 +209,7 @@ export function OfficerPageChat(props: {
             }`}
           >
             {bubble.from === "officer" ? (
-              <p className="mb-1 text-xs font-semibold text-emerald-700">{officerFirstName}</p>
+              <p className="mb-1 text-xs font-semibold text-emerald-700">{bubble.authorName ?? liveName}</p>
             ) : null}
             {bubble.from === "cerebro" ? (
               <RichText text={bubble.body} linkClassName="font-semibold text-violet-700 underline underline-offset-2" />
@@ -250,9 +259,9 @@ export function OfficerPageChat(props: {
 
       <p className="mt-3 text-[11px] leading-4 text-slate-500">
         {humanMode
-          ? `You're chatting with ${officerFirstName}. `
+          ? `You're chatting with ${liveName}. `
           : `You're chatting with ${officerFirstName}'s AI assistant, not ${officerFirstName}. `}
-        Chats are saved so {officerFirstName} can follow up. This isn&apos;t a loan offer or a rate quote. Please
+        Chats are saved so {humanMode ? liveName : officerFirstName} can follow up. This isn&apos;t a loan offer or a rate quote. Please
         don&apos;t share Social Security or account numbers.{" "}
         <a href={marketingUrl("/privacy-policy")} target="_blank" rel="noopener noreferrer" className="underline">
           Privacy Policy

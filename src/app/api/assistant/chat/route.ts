@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { chatHandledBy, runAssistantTurn, transcriptForSession } from "@/lib/ai/chat-agent";
+import { chatHandledBy, chatHandlerName, runAssistantTurn, transcriptForSession } from "@/lib/ai/chat-agent";
 import { isPaidEntitlement, resolveEntitlement } from "@/lib/entitlements";
 import { isRecord, jsonError, logApiError, parseJsonBody } from "@/lib/http";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
@@ -130,7 +130,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       messages,
-      ...(mode === "lead_qualification" && messages.length > 0 ? { handledBy: chatHandledBy(sessionId) } : {}),
+      ...(mode === "lead_qualification" && messages.length > 0
+        ? { handledBy: chatHandledBy(sessionId), handlerName: chatHandlerName(sessionId) }
+        : {}),
     });
   } catch (error) {
     logApiError("/api/assistant/chat GET", error);

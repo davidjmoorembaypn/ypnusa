@@ -338,6 +338,8 @@ export interface ChatMessageRecord {
   createdAt: string;
   /** Set on assistant-side messages the loan officer typed during a Live Takeover (not the AI). */
   author?: "officer";
+  /** First name of the officer who typed it, shown to the borrower above the message. */
+  authorName?: string;
 }
 
 /**
@@ -755,6 +757,9 @@ export interface CrmDeliveryRecord {
   lastHttpStatus?: number;
   /** Short reason code for the last failure (no URLs, no borrower details). */
   lastError?: string;
+  /** Set while one server process is sending it; others leave it alone until claimUntil. */
+  claimId?: string;
+  claimUntil?: string;
 }
 
 export interface DbShape {

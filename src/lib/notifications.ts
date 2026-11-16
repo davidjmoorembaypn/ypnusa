@@ -1,7 +1,7 @@
 import { HOUSE_OFFICER_ID, isDemoOfficer } from "./crm";
 import { appendLoAlert, readDb } from "./db";
 import { alertOfficerOfLead } from "./push-alerts";
-import { queueCrmEvent } from "./integrations/crm/link";
+import { queueLeadForOfficer } from "./integrations/crm/link";
 import { escapeHtml, notifyOwnerOfLead, sendEmail } from "./email";
 import { generateId } from "./id";
 import type { BorrowerAnswers, LoanOfficerRecord, LoanProgram, LoAlertRecord, QualificationSummary } from "./types";
@@ -28,7 +28,7 @@ export function notifyAssignedOfficer(payload: {
   appendLoAlert(record);
   alertOfficerOfLead({ loId: payload.loId, borrowerLeadId: payload.borrowerLeadId, firstAlert });
   // Send a brand-new lead to the officer's own CRM, once (no-op without a CRM link).
-  if (firstAlert) queueCrmEvent(payload.loId, "lead.created", payload.borrowerLeadId);
+  if (firstAlert) queueLeadForOfficer(payload.loId, payload.borrowerLeadId);
   return record;
 }
 

@@ -8,6 +8,8 @@ import type {
   StarterKitRecord,
   OfficerProspectRecord,
   CerebroQueuedActionRecord,
+  SiteOverrideRecord,
+  SiteOptimizerState,
   DbShape,
   AppointmentRecord,
   AgentOnboardingRecord,
@@ -61,6 +63,11 @@ function dataDir(): string {
 }
 function dbPath(): string {
   return path.join(dataDir(), "store.json");
+}
+
+/** Private files the app keeps beside the store (not in backups or the web root), e.g. the Search Console key. */
+export function secretsDir(): string {
+  return path.join(/*turbopackIgnore: true*/ dataDir(), "secrets");
 }
 
 /** Loan officer headshots live beside the store: <data dir>/officer-photos/<accountId>.<ext>. */
@@ -179,6 +186,8 @@ const emptyDb = (): DbShape => ({
   starterKits: [],
   officerProspects: [],
   cerebroActions: [],
+  siteOverrides: [],
+  siteOptimizer: {},
 });
 
 function describeFsError(error: unknown): string {
@@ -236,6 +245,8 @@ function normalize(snapshot: unknown): DbShape {
     starterKits: arrayOrEmpty<StarterKitRecord>(parsed.starterKits),
     officerProspects: arrayOrEmpty<OfficerProspectRecord>(parsed.officerProspects),
     cerebroActions: arrayOrEmpty<CerebroQueuedActionRecord>(parsed.cerebroActions),
+    siteOverrides: arrayOrEmpty<SiteOverrideRecord>(parsed.siteOverrides),
+    siteOptimizer: isPlainRecord(parsed.siteOptimizer) ? (parsed.siteOptimizer as SiteOptimizerState) : {},
   };
 }
 
@@ -862,4 +873,25 @@ export function saveCerebroAction(action: CerebroQueuedActionRecord): void {
 
 export function listCerebroActions(loId: string): CerebroQueuedActionRecord[] {
   return readDb().cerebroActions.filter((action) => action.loId === loId);
+}
+
+export function saveSiteOverride(record: SiteOverrideRecord): void {
+  writeDb((db) => {
+    const idx = db.siteOverrides.findIndex((item) => item.id === record.id);
+    if (idx >= 0) db.siteOverrides[idx] = record;
+    else db.siteOverrides.push(record);
+    if (db.siteOverrides.length > 3000) db.siteOverrides.splice(0, db.siteOverrides.length - 3000);
+  });
+}
+
+/** The live override for one page field, newest first, or null. */
+export function liveSiteOverride(pathname: string, field: SiteOverrideRecord["field"]): SiteOverrideRecord | null {
+  const matches = readDb().siteOverrides.filter((item) => item.path === pathname && item.field === field && item.status === "live");
+  return matches.length ? matches[matches.length - 1] : null;
+}
+
+export function saveSiteOptimizerState(state: SiteOptimizerState): void {
+  writeDb((db) => {
+    db.siteOptimizer = { ...db.siteOptimizer, ...state };
+  });
 }

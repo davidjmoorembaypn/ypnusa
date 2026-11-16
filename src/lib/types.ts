@@ -610,6 +610,35 @@ export interface CerebroQueuedActionRecord {
   source: "public_chat" | "officer_chat" | "follow_up_run";
 }
 
+/**
+ * A page title or search description Cerebro (or an admin) set as data, applied by
+ * marketingMetadata at render time, so it goes live without a release. Every record keeps the
+ * value it replaced so it can be rolled back.
+ */
+export interface SiteOverrideRecord {
+  id: string;
+  path: string;
+  field: "title" | "description";
+  value: string;
+  /** What the page showed before (the coded default or an earlier override). */
+  previousValue?: string;
+  status: "proposed" | "live" | "reverted" | "rejected";
+  source: "cerebro_auto" | "admin";
+  reason: string;
+  /** Search numbers behind the change, e.g. "1,240 impressions, 0.4% CTR, position 8.2". */
+  evidence?: string;
+  createdAt: string;
+  appliedAt?: string;
+  revertedAt?: string;
+  /** Result of the live check after applying, e.g. "ok" or why it was rolled back. */
+  checkResult?: string;
+}
+
+export interface SiteOptimizerState {
+  lastRunAt?: string;
+  lastRunSummary?: string;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -632,4 +661,6 @@ export interface DbShape {
   starterKits: StarterKitRecord[];
   officerProspects: OfficerProspectRecord[];
   cerebroActions: CerebroQueuedActionRecord[];
+  siteOverrides: SiteOverrideRecord[];
+  siteOptimizer: SiteOptimizerState;
 }

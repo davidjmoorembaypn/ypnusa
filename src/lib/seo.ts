@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { liveSiteOverride } from "@/lib/db";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 
@@ -53,6 +54,15 @@ export function socialImageFor(origin: string) {
   return { ...SOCIAL_IMAGE, url: `${origin}/opengraph-image` };
 }
 
+/** A live override, or null. Never lets a storage problem break a page's metadata. */
+function safeOverride(path: string, field: "title" | "description"): string | null {
+  try {
+    return liveSiteOverride(path, field)?.value ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Per-page metadata for marketing routes. The root layout sets openGraph.url to the
  * homepage, so a page that only sets title/description would be shared with the
@@ -78,6 +88,15 @@ export function marketingMetadata({
   /** The origin (protocol + host) that served this request. See doc comment above. */
   origin?: string;
 }): Metadata {
+  // Titles and descriptions Cerebro's site optimizer set as data (src/lib/site-optimizer.ts)
+  // win over the coded defaults, so they go live without a release and roll back the same way.
+  const titleOverride = safeOverride(path, "title");
+  const descriptionOverride = safeOverride(path, "description");
+  if (titleOverride) {
+    title = titleOverride;
+    absoluteTitle = true;
+  }
+  if (descriptionOverride) description = descriptionOverride;
   const url = `${origin}${path === "/" ? "" : path}`;
   const resolvedTitle = pageTitle(title, { absolute: absoluteTitle });
   const socialTitle = typeof resolvedTitle === "string" ? `${title} | ${SITE_NAME}` : title;

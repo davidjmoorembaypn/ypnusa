@@ -2,7 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SessionBar } from "@/components/session-bar";
 import { requireAdminSession } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { readDb } from "@/lib/db";
+import {
+  approveChange,
+  gscStatus,
+  installGscKey,
+  rejectChange,
+  revertChange,
+  runSiteOptimizer,
+  verifyPendingChanges,
+} from "@/lib/site-optimizer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,10 +27,58 @@ function when(iso: string): string {
   return new Date(iso).toLocaleString("en-US", { timeZone: "America/Los_Angeles", dateStyle: "medium", timeStyle: "short" });
 }
 
-/** What Cerebro did on its own: loan officers who asked to hear from YPN USA, starter kits, borrower callbacks. */
-export default async function AdminCerebroPage() {
+function done(message: string): never {
+  revalidatePath("/admin/cerebro");
+  redirect(`/admin/cerebro?msg=${encodeURIComponent(message)}`);
+}
+
+async function uploadKey(formData: FormData) {
+  "use server";
   await requireAdminSession("/admin/cerebro");
+  const file = formData.get("key");
+  if (!(file instanceof File) || file.size === 0) done("Choose the JSON key file first.");
+  const result = installGscKey(await (file as File).text());
+  done(result.ok ? `Search Console key saved for ${result.serviceAccount}.` : result.error);
+}
+
+async function runNow() {
+  "use server";
+  await requireAdminSession("/admin/cerebro");
+  let message: string;
+  try {
+    const summary = await runSiteOptimizer();
+    message = `Run finished: ${summary.applied} page(s) improved out of ${summary.opportunities} found.`;
+  } catch (error) {
+    message = error instanceof Error ? error.message : "The run failed.";
+  }
+  done(message);
+}
+
+async function checkNow() {
+  "use server";
+  await requireAdminSession("/admin/cerebro");
+  const results = await verifyPendingChanges();
+  done(results.length ? `Checked ${results.length} change(s).` : "Nothing waiting to be checked.");
+}
+
+async function decide(formData: FormData) {
+  "use server";
+  await requireAdminSession("/admin/cerebro");
+  const id = String(formData.get("id") ?? "");
+  const action = String(formData.get("action") ?? "");
+  if (action === "revert") done((await revertChange(id)) ? "Rolled back." : "That change isn't live.");
+  if (action === "approve") done((await approveChange(id)) ? "Approved and live." : "That change isn't waiting.");
+  if (action === "reject") done(rejectChange(id) ? "Rejected." : "That change isn't waiting.");
+  done("Unknown action.");
+}
+
+/** What Cerebro did on its own: loan officers who asked to hear from YPN USA, starter kits, borrower callbacks. */
+export default async function AdminCerebroPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
+  await requireAdminSession("/admin/cerebro");
+  const { msg } = await searchParams;
   const db = readDb();
+  const gsc = gscStatus();
+  const changes = [...db.siteOverrides].reverse().slice(0, 60);
   const prospects = [...db.officerProspects].reverse().slice(0, 100);
   const kits = [...db.starterKits].reverse().slice(0, 100);
   const leadNames = new Map(db.borrowerLeads.map((lead) => [lead.id, lead.answers.name ?? "Unnamed lead"]));
@@ -36,6 +95,48 @@ export default async function AdminCerebroPage() {
           <SessionBar />
         </nav>
         <h1 className="text-2xl font-semibold">Cerebro activity</h1>
+        {msg ? <p className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm">{msg.slice(0, 300)}</p> : null}
+
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold">Site optimizer</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Weekly, Cerebro reads Search Console and rewrites the search title and description of up to 3 pages that get seen but
+            not clicked. Pricing, legal pages and the homepage are never changed on their own. Every change is checked on the live
+            page and rolled back automatically if it doesn&rsquo;t show.
+          </p>
+          <p className="mt-3 text-sm">
+            Search Console: {gsc.connected ? <strong>connected as {gsc.serviceAccount}</strong> : <strong>not connected</strong>}
+            {db.siteOptimizer.lastRunAt ? <> · Last run {when(db.siteOptimizer.lastRunAt)}: {db.siteOptimizer.lastRunSummary}</> : null}
+          </p>
+          <form action={uploadKey} className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+            <label className="font-medium" htmlFor="key">Upload the Search Console JSON key file:</label>
+            <input id="key" name="key" type="file" accept="application/json,.json" className="text-sm" />
+            <button type="submit" className="rounded-full bg-slate-900 px-4 py-2 font-semibold text-white">Upload key</button>
+          </form>
+          <div className="mt-4 flex flex-wrap gap-3 text-sm">
+            <form action={runNow}><button type="submit" disabled={!gsc.connected} className="rounded-full bg-cyan-600 px-4 py-2 font-semibold text-white disabled:opacity-40">Run now</button></form>
+            <form action={checkNow}><button type="submit" className="rounded-full border border-slate-300 px-4 py-2 font-semibold">Check live changes</button></form>
+          </div>
+          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+            {changes.map((change) => (
+              <li key={change.id} className="py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium">{change.path} · {change.field}</span>
+                  <span className="text-slate-500">{change.status}{change.checkResult ? ` · ${change.checkResult}` : ""} · {when(change.appliedAt ?? change.createdAt)}</span>
+                </div>
+                <p className="mt-1"><span className="text-slate-500">Now:</span> {change.value}</p>
+                {change.previousValue ? <p className="text-slate-500">Before: {change.previousValue}</p> : null}
+                <p className="text-slate-500">{change.reason}{change.evidence ? ` (${change.evidence})` : ""}</p>
+                <form action={decide} className="mt-2 flex gap-2">
+                  <input type="hidden" name="id" value={change.id} />
+                  {change.status === "live" ? <button name="action" value="revert" className="rounded-full border border-slate-300 px-3 py-1">Roll back</button> : null}
+                  {change.status === "proposed" ? <><button name="action" value="approve" className="rounded-full bg-slate-900 px-3 py-1 text-white">Approve</button><button name="action" value="reject" className="rounded-full border border-slate-300 px-3 py-1">Reject</button></> : null}
+                </form>
+              </li>
+            ))}
+            {changes.length === 0 ? <li className="py-3 text-slate-500">No changes yet.</li> : null}
+          </ul>
+        </section>
 
         <section>
           <h2 className="text-lg font-semibold">Loan officers who asked to hear from you ({prospects.length})</h2>

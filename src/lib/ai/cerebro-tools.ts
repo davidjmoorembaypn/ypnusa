@@ -5,6 +5,7 @@ import {
   readDb,
   saveAutopilotRun,
   saveCerebroAction,
+  writeDb,
   saveWebsiteAutopilotChange,
 } from "@/lib/db";
 import { runAgent } from "@/lib/agents/coreAgent";
@@ -48,6 +49,7 @@ export const MLO_TOOL_NAMES = new Set([
   "draft_landing_page",
   "list_queued_actions",
   "decide_queued_action",
+  "set_reply_mode",
   ...OFFICER_FOLLOW_UP_TOOL_NAMES,
 ]);
 
@@ -148,14 +150,14 @@ export const DRAFT_LANDING_PAGE_TOOL: AiToolDefinition = {
 export const LIST_QUEUED_ACTIONS_TOOL: AiToolDefinition = {
   name: "list_queued_actions",
   description:
-    "List what Cerebro queued for this loan officer from public chats: borrower callback requests and drafted first messages waiting for their approval (id, borrower, channel, preferred time, draft text). Call when they ask what needs them, who wants a call, or what Cerebro did.",
+    "List what Cerebro queued for this loan officer: items waiting for them (callback requests, prequal requests and letters, and any email Cerebro couldn't send on its own, with needsYou saying why) plus the emails Cerebro already sent to borrowers for them. Also returns their reply mode. Call when they ask what needs them, who wants a call, or what Cerebro did.",
   inputSchema: { type: "object", properties: {}, additionalProperties: false },
 };
 
 export const DECIDE_QUEUED_ACTION_TOOL: AiToolDefinition = {
   name: "decide_queued_action",
   description:
-    "Mark one queued item approved or dismissed by id, optionally with the officer's edited text. Approving marks the draft ready for the officer to send themselves: Cerebro never sends it. Only call after the officer explicitly says to approve or dismiss that specific item.",
+    "Mark one queued item approved or dismissed by id, optionally with the officer's edited text. Approving an email check-in, first reply or rate alert lets Cerebro email it to the borrower within 5 minutes, once the borrower's consent and the compliance checks allow; texts, calls, callbacks and prequal letters are never sent by Cerebro, so give the officer the final text. Only call after the officer explicitly says to approve or dismiss that specific item.",
   inputSchema: {
     type: "object",
     properties: {
@@ -164,6 +166,18 @@ export const DECIDE_QUEUED_ACTION_TOOL: AiToolDefinition = {
       editedBody: { type: "string", description: "The officer's own edited wording, if they changed it." },
     },
     required: ["actionId", "decision"],
+    additionalProperties: false,
+  },
+};
+
+export const SET_REPLY_MODE_TOOL: AiToolDefinition = {
+  name: "set_reply_mode",
+  description:
+    "Set how Cerebro follows up with this officer's borrowers by email. live (the default): Cerebro emails check-ins, first replies and rate alerts on its own when the borrower agreed to be contacted and every compliance check passes. approve: every one waits for the officer's OK. Only call when the officer asks to change it.",
+  inputSchema: {
+    type: "object",
+    properties: { mode: { type: "string", enum: ["live", "approve"] } },
+    required: ["mode"],
     additionalProperties: false,
   },
 };
@@ -177,6 +191,7 @@ export const MLO_TOOLS: AiToolDefinition[] = [
   DRAFT_LANDING_PAGE_TOOL,
   LIST_QUEUED_ACTIONS_TOOL,
   DECIDE_QUEUED_ACTION_TOOL,
+  SET_REPLY_MODE_TOOL,
   ...OFFICER_FOLLOW_UP_TOOLS,
 ];
 
@@ -379,20 +394,53 @@ function listQueued(ctx: MloToolContext): string {
   const officer = findOfficer(ctx);
   if (!officer) return JSON.stringify({ error: "no_officer_profile", note: "No loan-officer profile is linked to this account yet." });
   const leads = new Map(readDb().borrowerLeads.map((lead) => [lead.id, lead]));
-  const open = listCerebroActions(officer.id)
+  const mine = listCerebroActions(officer.id);
+  const borrower = (id: string) => leads.get(id)?.answers.name ?? "Unnamed lead";
+  const open = mine
     .filter((action) => action.status === "awaiting_approval")
     .slice(-20)
     .map((action) => ({
       id: action.id,
       kind: action.kind,
-      borrower: leads.get(action.borrowerLeadId)?.answers.name ?? "Unnamed lead",
+      borrower: borrower(action.borrowerLeadId),
       channel: action.channel,
       preferredWindow: action.preferredWindow ?? null,
+      needsYou: action.holdReason ?? null,
       subject: action.subject ?? null,
       text: action.body,
       createdAt: action.createdAt,
     }));
-  return JSON.stringify({ waitingForYou: open.length, items: open });
+  const sent = mine
+    .filter((action) => action.status === "sent")
+    .slice(-10)
+    .map((action) => ({ borrower: borrower(action.borrowerLeadId), kind: action.kind, subject: action.subject ?? null, sentAt: action.sentAt }));
+  const waiting = mine.filter((action) => action.status === "held").length;
+  return JSON.stringify({
+    replyMode: officer.cerebroReplyMode === "approve" ? "approve" : "live",
+    waitingForYou: open.length,
+    items: open,
+    recentlySentByCerebro: sent,
+    waitingToSend: waiting,
+  });
+}
+
+function setReplyMode(call: AiToolCall, ctx: MloToolContext): string {
+  const officer = findOfficer(ctx);
+  if (!officer) return JSON.stringify({ error: "no_officer_profile" });
+  const mode = call.input.mode;
+  if (mode !== "live" && mode !== "approve") return JSON.stringify({ error: "mode must be live or approve." });
+  writeDb((db) => {
+    const record = db.loanOfficers.find((item) => item.id === officer.id);
+    if (record) record.cerebroReplyMode = mode;
+  });
+  return JSON.stringify({
+    ok: true,
+    mode,
+    note:
+      mode === "live"
+        ? "Cerebro now emails check-ins, first replies and rate alerts on its own when the borrower agreed and every compliance check passes. Prequal letters and anything risky still wait for them."
+        : "Every borrower email now waits for their OK in list_queued_actions.",
+  });
 }
 
 function decideQueued(call: AiToolCall, ctx: MloToolContext): string {
@@ -408,21 +456,27 @@ function decideQueued(call: AiToolCall, ctx: MloToolContext): string {
   if (!action) return JSON.stringify({ error: "not_found" });
   if (action.status !== "awaiting_approval") return JSON.stringify({ error: "already_decided", status: action.status });
   const editedBody = str(call.input.editedBody, 2000);
+  const now = new Date().toISOString();
   saveCerebroAction({
     ...action,
     status: decision === "approve" ? "approved" : "dismissed",
     body: editedBody ?? action.body,
-    updatedAt: new Date().toISOString(),
+    ...(decision === "approve" ? { approvedAt: now } : {}),
+    holdReason: undefined,
+    updatedAt: now,
   });
+  const cerebroSends = decision === "approve" && action.channel === "email" && ["follow_up_draft", "nudge_draft", "rate_alert_draft"].includes(action.kind);
   return JSON.stringify({
     ok: true,
     actionId,
     decision,
     note:
-      decision === "approve"
-        ? "Marked approved. Automatic sending is off, so nothing went out: give the officer the final text to send from their own phone or email."
-        : "Dismissed.",
-    finalText: decision === "approve" ? (editedBody ?? action.body) : undefined,
+      decision === "dismiss"
+        ? "Dismissed."
+        : cerebroSends
+          ? "Approved. Cerebro emails it within 5 minutes if the borrower's consent and the compliance checks allow; if something still blocks it, it comes back here with the reason."
+          : "Approved. Cerebro doesn't send this kind itself: give the officer the final text to send from their own phone or email.",
+    finalText: decision === "approve" && !cerebroSends ? (editedBody ?? action.body) : undefined,
   });
 }
 
@@ -446,6 +500,8 @@ export async function executeMloTool(call: AiToolCall, ctx: MloToolContext): Pro
         return listQueued(ctx);
       case "decide_queued_action":
         return decideQueued(call, ctx);
+      case "set_reply_mode":
+        return setReplyMode(call, ctx);
       case "run_follow_ups":
       case "draft_rate_alerts":
       case "draft_prequal_letter": {

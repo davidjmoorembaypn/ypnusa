@@ -162,62 +162,125 @@ export interface SearchRow {
  * property, then the URL property.
  */
 export async function fetchSearchRows(): Promise<SearchRow[]> {
+  return (await fetchSearchData()).rows;
+}
+
+export interface SearchData {
+  rows: SearchRow[];
+  /** The Search Console properties the rows came from, e.g. ["sc-domain:ypnus.com"]. */
+  properties: string[];
+}
+
+const GSC_API = "https://searchconsole.googleapis.com/webmasters/v3";
+
+/**
+ * Which properties to read. A domain property covers http, https and www, so it is read alone
+ * when the account can see it. Otherwise every URL-prefix property for the site is read and
+ * merged (they don't overlap): Google often still reports old http:// impressions under the
+ * http property, and reading only https:// would miss them.
+ */
+/** "sc-domain:ypnus.com" -> "ypnus.com, all versions"; "http://ypnus.com/" -> "http://ypnus.com". */
+function propertyLabel(site: string): string {
+  return site.startsWith("sc-domain:") ? `${site.slice(10)}, all versions` : site.replace(/\/$/, "");
+}
+
+export function chooseProperties(available: string[], host: string): { domain?: string; prefixes: string[] } {
+  const bare = host.replace(/^www\./, "").toLowerCase();
+  const mine = available.filter((site) => {
+    if (site.toLowerCase() === `sc-domain:${bare}`) return true;
+    try {
+      return new URL(site).hostname.replace(/^www\./, "").toLowerCase() === bare;
+    } catch {
+      return false;
+    }
+  });
+  const domain = mine.find((site) => site.toLowerCase().startsWith("sc-domain:"));
+  return { domain, prefixes: mine.filter((site) => site !== domain) };
+}
+
+async function listProperties(token: string): Promise<string[] | null> {
+  try {
+    const response = await fetch(`${GSC_API}/sites`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(20_000) });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { siteEntry?: Array<{ siteUrl: string; permissionLevel?: string }> };
+    return (data.siteEntry ?? []).filter((entry) => entry.permissionLevel !== "siteUnverifiedUser").map((entry) => entry.siteUrl);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchSearchData(): Promise<SearchData> {
   const key = readKey();
   if (!key) throw new Error("Search Console isn't connected yet.");
   const token = await accessToken(key);
-  const pages = await querySearchConsole(token, ["page"]);
-  const pageQueries = await querySearchConsole(token, ["page", "query"]);
-  return [...pages, ...pageQueries];
+  const host = new URL(MARKETING_SITE_URL).hostname;
+  const forced = process.env.GSC_SITE_URL?.trim();
+  const listed = forced ? [forced] : await listProperties(token);
+  const { domain, prefixes } = listed
+    ? chooseProperties(listed, host)
+    : { domain: `sc-domain:${host.replace(/^www\./, "")}`, prefixes: [`${MARKETING_SITE_URL}/`] };
+
+  const read = async (site: string) => [
+    ...(await querySearchConsole(token, site, ["page"])),
+    ...(await querySearchConsole(token, site, ["page", "query"])),
+  ];
+
+  let lastError: Error | null = null;
+  if (domain) {
+    try {
+      const rows = await read(domain);
+      if (rows.length > 0) return { rows, properties: [domain] };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+  const rows: SearchRow[] = [];
+  const used: string[] = [];
+  for (const site of prefixes) {
+    try {
+      const siteRows = await read(site);
+      if (siteRows.length > 0) used.push(site);
+      rows.push(...siteRows);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+  if (used.length > 0 || !lastError) return { rows, properties: used };
+  throw lastError;
 }
 
-async function querySearchConsole(token: string, dimensions: string[]): Promise<SearchRow[]> {
+async function querySearchConsole(token: string, site: string, dimensions: string[]): Promise<SearchRow[]> {
   const end = new Date(Date.now() - 2 * DAY_MS);
   const start = new Date(end.getTime() - 28 * DAY_MS);
-  const host = new URL(MARKETING_SITE_URL).hostname.replace(/^www\./, "");
-  const candidates = process.env.GSC_SITE_URL?.trim() ? [process.env.GSC_SITE_URL.trim()] : [`sc-domain:${host}`, `${MARKETING_SITE_URL}/`];
-  let lastStatus = 0;
-  let emptyResult: SearchRow[] | null = null;
-  for (const site of candidates) {
-    const response = await fetch(
-      `https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(site)}/searchAnalytics/query`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          startDate: start.toISOString().slice(0, 10),
-          endDate: end.toISOString().slice(0, 10),
-          dimensions,
-          rowLimit: 5000,
-          // Include the newest (not yet final) days: on a small site every impression counts.
-          dataState: "all",
-        }),
-        signal: AbortSignal.timeout(30_000),
-      },
+  const response = await fetch(`${GSC_API}/sites/${encodeURIComponent(site)}/searchAnalytics/query`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      startDate: start.toISOString().slice(0, 10),
+      endDate: end.toISOString().slice(0, 10),
+      dimensions,
+      rowLimit: 5000,
+      // Include the newest (not yet final) days: on a small site every impression counts.
+      dataState: "all",
+    }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) {
+    throw new Error(
+      response.status === 403
+        ? "Search Console refused access (403). Add the service account email as a user on the ypnus.com property."
+        : `Search Console request failed (${response.status}).`,
     );
-    if (response.ok) {
-      const data = (await response.json()) as { rows?: Array<{ keys: string[]; clicks: number; impressions: number; ctr: number; position: number }> };
-      if (!data.rows?.length) {
-        // An empty answer can mean the account sees this property but not the data; try the other form.
-        emptyResult = [];
-        continue;
-      }
-      return data.rows.map((row) => ({
-        page: row.keys[0],
-        ...(row.keys[1] !== undefined ? { query: row.keys[1] } : {}),
-        clicks: row.clicks,
-        impressions: row.impressions,
-        ctr: row.ctr,
-        position: row.position,
-      }));
-    }
-    lastStatus = response.status;
   }
-  if (emptyResult) return emptyResult;
-  throw new Error(
-    lastStatus === 403
-      ? "Search Console refused access (403). Add the service account email as a user on the ypnus.com property."
-      : `Search Console request failed (${lastStatus}).`,
-  );
+  const data = (await response.json()) as { rows?: Array<{ keys: string[]; clicks: number; impressions: number; ctr: number; position: number }> };
+  return (data.rows ?? []).map((row) => ({
+    page: row.keys[0],
+    ...(row.keys[1] !== undefined ? { query: row.keys[1] } : {}),
+    clicks: row.clicks,
+    impressions: row.impressions,
+    ctr: row.ctr,
+    position: row.position,
+  }));
 }
 
 // ---------------------------------------------------------------- opportunities
@@ -231,7 +294,18 @@ export interface Opportunity {
   topQueries: string[];
 }
 
-/** Pages people see in search but rarely click: enough impressions, low CTR, ranking on pages 1-2. */
+/**
+ * Pages people see in search but rarely click. Two ways in:
+ * - enough impressions (50+), under 3% clicked, ranking on pages 1-2 (position 2 to 25);
+ * - on a small site: 15+ impressions on page 1 (position 10 or better) and not one click,
+ *   which is the clearest sign the title and description aren't working.
+ */
+export function isOpportunity(item: { impressions: number; clicks: number; ctr: number; position: number }): boolean {
+  if (item.impressions >= 50 && item.ctr < 0.03 && item.position >= 2 && item.position <= 25) return true;
+  return item.impressions >= 15 && item.clicks === 0 && item.position > 0 && item.position <= 10;
+}
+
+/** Pages people see in search but rarely click (see isOpportunity), most missed clicks first. */
 export function findOpportunities(rows: SearchRow[], now = Date.now()): Opportunity[] {
   // Page-only rows (no query) carry the true totals; page+query rows then only add the queries.
   const hasPageTotals = rows.some((row) => row.query === undefined);
@@ -260,7 +334,7 @@ export function findOpportunities(rows: SearchRow[], now = Date.now()): Opportun
       position: entry.impressions ? entry.weightedPosition / entry.impressions : 0,
       topQueries: [...entry.queries.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([query]) => query),
     }))
-    .filter((item) => item.impressions >= 50 && item.ctr < 0.03 && item.position >= 2 && item.position <= 25 && !recent.has(item.path))
+    .filter((item) => isOpportunity(item) && !recent.has(item.path))
     .sort((a, b) => b.impressions * (0.03 - b.ctr) - a.impressions * (0.03 - a.ctr));
 }
 
@@ -291,7 +365,8 @@ function decodeEntities(text: string): string {
 
 /** The page's current <title> and meta description as served. */
 export async function readLivePage(pathname: string): Promise<{ status: number; title?: string; description?: string }> {
-  const response = await fetch(selfUrl(pathname), { signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "ypnus-site-optimizer" } });
+  // redirect: "manual" so an old URL that now redirects is skipped, not edited under the wrong path.
+  const response = await fetch(selfUrl(pathname), { redirect: "manual", signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "ypnus-site-optimizer" } });
   const html = response.ok ? await response.text() : "";
   const title = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1];
   const description = html.match(/<meta[^>]+name="description"[^>]+content="([^"]*)"/i)?.[1];
@@ -459,7 +534,8 @@ export async function runSiteOptimizer(options: { rows?: SearchRow[] } = {}): Pr
   const ranAt = new Date().toISOString();
   const skipped: string[] = [];
   await verifyPendingChanges();
-  const rows = options.rows ?? (await fetchSearchRows());
+  const data = options.rows ? { rows: options.rows, properties: [] as string[] } : await fetchSearchData();
+  const rows = data.rows;
   const opportunities = findOpportunities(rows);
   let applied = 0;
   let proposed = 0;
@@ -499,7 +575,7 @@ export async function runSiteOptimizer(options: { rows?: SearchRow[] } = {}): Pr
   saveSiteOptimizerState({
     lastRunAt: ranAt,
     runVersion: OPTIMIZER_RUN_VERSION,
-    lastRunSummary: `Read ${pagesRead} pages from Search Console. ${applied} page${applied === 1 ? "" : "s"} improved and ${proposed} waiting for your approval, out of ${opportunities.length} found${skipped.length ? `; skipped: ${skipped.slice(0, 3).join("; ")}` : ""}.`,
+    lastRunSummary: `Read ${pagesRead} pages from Search Console${data.properties.length ? ` (${data.properties.map(propertyLabel).join(" + ")})` : ""}. ${applied} page${applied === 1 ? "" : "s"} improved and ${proposed} waiting for your approval, out of ${opportunities.length} found${skipped.length ? `; skipped: ${skipped.slice(0, 3).join("; ")}` : ""}.`,
   });
   return summary;
 }
@@ -528,7 +604,7 @@ export function startRunInBackground(): "started" | "already_running" {
 }
 
 /** Bumped when the optimizer changes how it reads or decides, so the next tick reruns with the new logic. */
-export const OPTIMIZER_RUN_VERSION = 2;
+export const OPTIMIZER_RUN_VERSION = 3;
 
 /**
  * A run is due when none finished yet, when the last one was cut off (the app restarted while it

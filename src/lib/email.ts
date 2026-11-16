@@ -42,6 +42,10 @@ export interface SendEmailInput {
   subject: string;
   html: string;
   replyTo?: string;
+  /** Display name on the From line; defaults to "YPN USA". */
+  fromName?: string;
+  /** Extra headers, e.g. List-Unsubscribe for one-click unsubscribe in Gmail and Yahoo. */
+  headers?: Record<string, string>;
 }
 
 export interface SendEmailResult {
@@ -61,11 +65,12 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   try {
     const { error } = await resend.emails.send({
-      from: `YPN USA <${from}>`,
+      from: `${(input.fromName ?? "YPN USA").replace(/[<>"]/g, "")} <${from}>`,
       to: input.to,
       subject: input.subject,
       html: input.html,
       replyTo: input.replyTo,
+      ...(input.headers ? { headers: input.headers } : {}),
     });
     if (error) {
       logApiError("email.send", new Error(error.message));

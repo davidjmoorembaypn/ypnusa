@@ -155,6 +155,7 @@ describe("toolsForMode", () => {
         "draft_landing_page",
         "list_queued_actions",
         "decide_queued_action",
+        "set_reply_mode",
         "run_follow_ups",
         "draft_rate_alerts",
         "draft_prequal_letter",

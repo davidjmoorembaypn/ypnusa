@@ -116,6 +116,15 @@ function sessionSecret(): string {
   return loadOrCreatePersistedSecret();
 }
 
+/** HMAC-SHA256 (base64url) of a value with the app's signing secret, e.g. for unsubscribe links. */
+export function signValue(value: string): string {
+  return createHmac("sha256", sessionSecret()).update(`v1:${value}`).digest("base64url");
+}
+
+export function verifySignedValue(value: string, signature: string): boolean {
+  return safeEqual(signValue(value), signature);
+}
+
 function sign(payloadB64: string): string {
   return createHmac("sha256", sessionSecret()).update(payloadB64).digest("base64url");
 }

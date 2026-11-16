@@ -86,6 +86,12 @@ export interface LoanOfficerRecord {
   id: string;
   name: string;
   email: string;
+  /**
+   * How Cerebro handles its follow-up messages to this officer's borrowers. "live" (default):
+   * it sends them itself, within the consent, opt-out and compliance checks. "approve": every
+   * message waits for the officer's OK.
+   */
+  cerebroReplyMode?: "live" | "approve";
   /** Mirrored from the officer's onboarding profile (AgentOnboardingRecord.officerProfile). */
   nmlsId?: string;
   phone?: string;
@@ -612,7 +618,13 @@ export interface CerebroQueuedActionRecord {
   loId: string;
   borrowerLeadId: string;
   kind: "callback_request" | "follow_up_draft" | "nudge_draft" | "rate_alert_draft" | "prequal_request" | "prequal_letter_draft";
-  status: "awaiting_approval" | "approved" | "dismissed";
+  /** sent: Cerebro emailed it. held: waiting on something (see holdReason), retried later. */
+  status: "awaiting_approval" | "approved" | "dismissed" | "sent" | "held";
+  sentAt?: string;
+  /** When the officer approved it; kept through holds so a later send knows a person reviewed it. */
+  approvedAt?: string;
+  /** Why it hasn't gone out yet. On an awaiting_approval item, what the officer needs to do. */
+  holdReason?: string;
   channel: "phone" | "text" | "email";
   /** The borrower's own words for when to reach them, e.g. "weekday evenings after 6". */
   preferredWindow?: string;

@@ -15,6 +15,8 @@ import {
   installGscKey,
   isProtectedPath,
   isRunDue,
+  isOpportunity,
+  chooseProperties,
   OPTIMIZER_RUN_VERSION,
   RUNNING_LABEL,
   proposeChange,
@@ -134,5 +136,36 @@ describe("isRunDue", () => {
   it("waits a week after a current finished run", () => {
     assert.equal(isRunDue({ lastRunAt: recent, lastRunSummary: "Read 12 pages", runVersion: OPTIMIZER_RUN_VERSION }, now), false);
     assert.equal(isRunDue({ lastRunAt: "2026-11-01T00:00:00Z", lastRunSummary: "Read 12 pages", runVersion: OPTIMIZER_RUN_VERSION }, now), true);
+  });
+});
+
+describe("chooseProperties", () => {
+  it("reads the domain property alone when it is visible", () => {
+    const chosen = chooseProperties(["sc-domain:ypnus.com", "https://ypnus.com/", "https://other.com/"], "ypnus.com");
+    assert.equal(chosen.domain, "sc-domain:ypnus.com");
+    assert.deepEqual(chosen.prefixes, ["https://ypnus.com/"]);
+  });
+  it("merges http and https URL properties when there is no domain property", () => {
+    const chosen = chooseProperties(["https://ypnus.com/", "http://ypnus.com/", "http://www.ypnus.com/", "https://other.com/"], "ypnus.com");
+    assert.equal(chosen.domain, undefined);
+    assert.deepEqual(chosen.prefixes, ["https://ypnus.com/", "http://ypnus.com/", "http://www.ypnus.com/"]);
+  });
+});
+
+describe("isOpportunity on a small site", () => {
+  it("picks a first-page page with 15+ impressions and no clicks", () => {
+    assert.equal(isOpportunity({ impressions: 21, clicks: 0, ctr: 0, position: 5.1 }), true);
+  });
+  it("leaves pages with clicks, too few impressions or deep positions alone", () => {
+    assert.equal(isOpportunity({ impressions: 40, clicks: 3, ctr: 0.075, position: 7 }), false);
+    assert.equal(isOpportunity({ impressions: 10, clicks: 0, ctr: 0, position: 4 }), false);
+    assert.equal(isOpportunity({ impressions: 23, clicks: 0, ctr: 0, position: 50 }), false);
+  });
+  it("still picks the merged homepage (http + https) by the main rule", () => {
+    const found = findOpportunities([
+      { page: "https://ypnus.com/", clicks: 3, impressions: 40, ctr: 0.075, position: 7.08 },
+      { page: "http://ypnus.com/", clicks: 0, impressions: 108, ctr: 0, position: 6.92 },
+    ]);
+    assert.equal(found[0]?.path, "/");
   });
 });

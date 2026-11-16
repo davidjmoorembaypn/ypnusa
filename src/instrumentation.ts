@@ -19,4 +19,12 @@ export async function register() {
   } catch (error) {
     console.error("[site-optimizer] could not start", error);
   }
+  // Cerebro's borrower follow-ups: every 5 minutes, emails what is due under the consent and
+  // compliance checks (see src/lib/cerebro-dispatch.ts). Never blocks startup.
+  try {
+    const { startCerebroDispatchSchedule } = await import("./lib/cerebro-dispatch");
+    startCerebroDispatchSchedule();
+  } catch (error) {
+    console.error("[cerebro-dispatch] could not start", error);
+  }
 }

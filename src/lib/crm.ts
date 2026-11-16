@@ -57,6 +57,9 @@ export function houseOfficerRecord(): LoanOfficerRecord {
   return {
     id: HOUSE_OFFICER_ID,
     name: "David J. Moore",
+    nmlsId: "787257",
+    // California only: Cerebro won't send to house leads in other states without David's OK.
+    licenses: [{ state: "CA", type: "ca_dre", number: "01852847" }],
     email: normalizeEmail(process.env.HOUSE_LEAD_EMAIL) ?? BUSINESS_EMAIL,
     specialties: [...ALL_PROGRAMS],
     weeklyWindows: DEFAULT_WEEKLY_WINDOWS,

@@ -7,7 +7,7 @@ Last updated: 2026-11-10.
 
 ## Live
 
-- Host: AWS EC2 `i-0fc561aea198051bb` (us-east-2), reached with SSM. See `aws/README.md`.
+- Host: AWS EC2 instance `ypnus-app` (us-east-2), reached with SSM. See `aws/README.md`.
 - Live build: `62124e8` (PR #128), installed 2026-11-08 by David with `scripts/aws-install-release.sh`.
 - Plans (fixed, match Stripe): Pro $99/mo, Growth $199/mo, Exclusive $299/mo
   (internal tier ids `growth`, `pro`, `elite`). 15-day trial. One included ZIP code per

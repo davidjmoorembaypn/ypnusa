@@ -1,7 +1,7 @@
 # Running the prototype on AWS
 
 **Status: not deployed, and the container image has not been built or tested** (no Docker or AWS
-access in the session that wrote this). Do not use the production server `i-0ad200fc61f4d39f5`
+access in the session that wrote this). Do not use the production app server
 for this. Use a new, separate resource so the live site is never at risk. Creating AWS resources
 costs money, so approve the cost first.
 

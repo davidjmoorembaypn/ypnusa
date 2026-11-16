@@ -10,8 +10,8 @@ what currently serves traffic.
 
 | What | Value |
 | --- | --- |
-| Instance | `i-0ad200fc61f4d39f5`, tag `Name=YPNUSA`, region **us-east-2** |
-| Public IP | `18.223.107.93` (→ `app.ypnus.com`) |
+| Instance | tag `Name=YPNUSA`, region **us-east-2** (ID kept out of the public repo) |
+| Public IP | the `app.ypnus.com` A record (address kept out of the public repo) |
 | OS | Amazon Linux 2023, t3.micro |
 | Web server | Apache, reverse-proxies `app.ypnus.com` → `http://127.0.0.1:3000` (see `/etc/httpd/conf.d/ypnusa.conf`); TLS via Let's Encrypt (`ypnusa-cert-renew.service` / certbot timer) |
 | App | Next.js **standalone** build, run directly with `node server.js` (not `next start`) |
@@ -21,16 +21,16 @@ what currently serves traffic.
 | Health check | `GET /api/health` → `{"ok":true,"build":{"commit":"<sha7>"},...}` |
 
 No SSH key is set up for this box day-to-day; it's reached through **AWS SSM
-Session Manager**, which the org's quarantine SCP (`p-vxracxez`) does not
+Session Manager**, which the org's quarantine SCP does not
 block (most EC2/Lambda/CloudFormation/ECS actions are denied by that SCP —
 SSM `SendCommand` / Session Manager still works). The instance has IAM
 instance profile `YPNUSA-SSM-TempAccess`.
 
 ### Getting a shell
 
-- **Console:** EC2 → Instances → `i-0ad200fc61f4d39f5` (us-east-2) → Connect →
+- **Console:** EC2 → Instances → the production instance (us-east-2) → Connect →
   Session Manager → Connect.
-- **CLI:** `aws ssm start-session --target i-0ad200fc61f4d39f5 --region us-east-2`
+- **CLI:** `aws ssm start-session --target <instance-id> --region us-east-2`
 - **Programmatic (what was used to set this up):** `ssm:SendCommand` with
   `AWS-RunShellScript`, then poll `ssm:GetCommandInvocation`. Useful for an
   agent/tool that only has boto3/AWS API access, not an interactive terminal.

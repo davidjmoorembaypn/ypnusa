@@ -7,7 +7,7 @@ in the ypnus channel first. Steps marked *repo* are already done in PR 120.
 ## How it fits together
 
 ```
-ypnus.com ──DNS──▶ AWS host 18.223.107.93 (i-0ad200fc61f4d39f5, us-east-2)
+ypnus.com ──DNS──▶ AWS host (EC2, us-east-2)
                     Apache front door  (aws/apache/zz-ypnus-com.conf.tmpl)
                     ├─ /wp-json/, /wp-admin/, /wp-content/, /wp-login.php,
                     │  lo-*.html, check-zip.html, pricing.html, onboarding.html ──▶ WordPress (Hostinger, kept running)
@@ -74,7 +74,7 @@ Each step says what it changes. Stop and roll back at any failed check.
    ```
    Expect 200 on pages, 301/308 on old URLs, WordPress JSON on `/wp-json/...`.
 5. **Lower DNS TTL** to 300 seconds a day ahead (YES). *Changes:* TTL only.
-6. **Point DNS at the AWS host** (YES). Set `A ypnus.com → 18.223.107.93` and `www` (A or CNAME to
+6. **Point DNS at the AWS host** (YES). Set `A ypnus.com → <AWS server IP>` and `www` (A or CNAME to
    ypnus.com). Leave MX and email records alone. *Changes:* public traffic for ypnus.com moves to the app.
 7. **Issue the real certificate** right after DNS resolves to the host (YES):
    ```bash

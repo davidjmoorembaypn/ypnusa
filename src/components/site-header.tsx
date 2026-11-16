@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { FREE_SIGNUP_HREF } from "@/lib/checkout";
 
 /**
- * Unified header nav (Cerebro | Features | Pricing | Teams | Blog | Free Tools | Log In | Get Started).
+ * Unified header nav (Cerebro | Features | Pricing | Teams | About | Blog | Free Tools | Log In | Start free).
  * ypnus.com and app.ypnus.com are the same Next.js app, so every item is an
  * internal route.
  */
@@ -19,7 +19,12 @@ const NAV: Array<{ href: string; label: string; internal?: boolean }> = [
   { href: "/tools/equity", label: "Free Tools", internal: true },
 ];
 
-export function SiteHeader() {
+/**
+ * `variant="focused"` is for conversion landing pages (/claim-territory, /check-zip): logo,
+ * sign-in and one call to action only, with no nav links competing with the page's form.
+ */
+export function SiteHeader({ variant = "full" }: { variant?: "full" | "focused" } = {}) {
+  const focused = variant === "focused";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasSession, setHasSession] = useState(false);
   const signupHref = FREE_SIGNUP_HREF;
@@ -51,7 +56,7 @@ export function SiteHeader() {
       >
         Skip to main content
       </a>
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:gap-4 sm:px-6 sm:py-3">
         <Link href="/" className="flex min-w-0 items-center gap-2" onClick={() => setMobileOpen(false)}>
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 text-sm font-black text-white">
             Y
@@ -61,6 +66,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
+        {focused ? null : (
         <nav className="hidden items-center gap-5 text-sm font-medium text-white/80 xl:gap-7 lg:flex">
           {NAV.map((item) =>
             item.internal ? (
@@ -79,26 +85,36 @@ export function SiteHeader() {
             </Link>
           ) : null}
         </nav>
+        )}
 
         <div className="flex items-center gap-2">
+          {focused && !hasSession ? (
+            <Link
+              href={loginHref}
+              className="inline-flex min-h-[44px] items-center px-2 text-sm font-medium text-white/80 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
+            >
+              Log In
+            </Link>
+          ) : null}
           {hasSession ? (
             <Link
               href="/dashboard"
-              className="hidden rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-[#09081b] shadow-lg shadow-emerald-500/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 sm:inline-flex"
+              className="inline-flex min-h-[44px] items-center rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-[#09081b] shadow-lg shadow-emerald-500/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
             >
               Dashboard
             </Link>
-          ) : (
+          ) : focused ? null : (
             <a
               href={signupHref}
-              className="hidden rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 sm:inline-flex"
+              className="inline-flex min-h-[44px] items-center whitespace-nowrap rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-[#09081b] shadow-lg shadow-amber-500/20 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             >
-              Get Started
+              Start free
             </a>
           )}
+          {focused ? null : (
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 lg:hidden"
             aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={mobileOpen}
             aria-controls="mobile-navigation"
@@ -111,9 +127,11 @@ export function SiteHeader() {
               <span className={`absolute left-0 top-[14px] h-0.5 w-5 rounded-full bg-white transition ${mobileOpen ? "-translate-y-[7px] -rotate-45" : ""}`} />
             </span>
           </button>
+          )}
         </div>
       </div>
 
+      {focused ? null : (
       <div
         id="mobile-navigation"
         className={`lg:hidden ${mobileOpen ? "block" : "hidden"}`}
@@ -165,11 +183,12 @@ export function SiteHeader() {
               className="mt-3 flex items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-[#09081b] shadow-lg shadow-amber-500/20 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
               onClick={() => setMobileOpen(false)}
             >
-              Get Started
+              Start free
             </a>
           )}
         </nav>
       </div>
+      )}
     </header>
   );
 }

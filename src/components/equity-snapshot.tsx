@@ -308,9 +308,9 @@ export function EquitySnapshot() {
                 <button
                   type="submit"
                   disabled={reviewState === "saving"}
-                  className="mt-4 h-11 w-full rounded-full border border-white/20 bg-white/10 px-5 text-sm font-semibold transition hover:bg-white/15 disabled:cursor-wait disabled:opacity-60"
+                  className="mt-4 min-h-[48px] w-full rounded-full bg-amber-400 px-5 text-sm font-bold text-[#09081b] shadow-lg shadow-amber-500/30 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:cursor-wait disabled:opacity-60"
                 >
-                  {reviewState === "saving" ? "Saving…" : "Request an MLO review"}
+                  {reviewState === "saving" ? "Sending…" : "Get my free MLO review"}
                 </button>
               </form>
             )}

@@ -6,7 +6,7 @@ import { makeWpSectionRoute } from "@/lib/wp-page-route";
 // WordPress had (Analytics Dashboard, Hyper-Local SEO Pages, etc.) — WordPress's own
 // root /features content was dropped in favor of the native page (see
 // src/content/wp-import/index.ts).
-const route = makeWpSectionRoute(WP_FEATURES_SUBPAGES, "/features", "Features");
+const route = makeWpSectionRoute(WP_FEATURES_SUBPAGES, "/features");
 
 export const generateStaticParams = route.generateStaticParams;
 export const generateMetadata = route.generateMetadata;

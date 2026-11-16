@@ -109,7 +109,7 @@ test("prepareWpHtml combines link cleanup and the h1 rule", () => {
 
 test("interactive imported pages need a full page load", () => {
   assert.equal(needsFullPageLoad("/mortgage-payment-calculator"), true);
-  assert.equal(needsFullPageLoad("/agent-co-branding/"), true);
+  assert.equal(needsFullPageLoad("/mortgage-payment-calculator/"), true);
   assert.equal(needsFullPageLoad("/mlo-marketing?x=1"), true);
   assert.equal(needsFullPageLoad("/mlo-marketing/local-seo-for-loan-officers"), false);
   assert.equal(needsFullPageLoad("/pricing"), false);

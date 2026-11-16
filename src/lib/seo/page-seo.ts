@@ -119,6 +119,11 @@ export const TOPIC_SEO: Readonly<Record<string, PageSeo>> = {
     description:
       "How loan officers build realtor co-marketing, attorney and past-client referral pipelines, with RESPA-aware plays and referral systems that compound.",
   },
+  "loan-officer-websites": {
+    title: "Loan Officer Website Guide: Pages, Speed & Rules",
+    description:
+      "What a loan officer website needs to bring in borrowers: local pages, speed, a simple way to start, and the NMLS and fair lending disclosures.",
+  },
   "loan-programs-and-niches": {
     title: "Mortgage Loan Programs & Niche Markets | YPN USA",
     description:

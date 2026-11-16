@@ -13,6 +13,7 @@ import { zipCodeCopyHtml } from "@/lib/zip-copy";
 import mediaManifest from "@/content/wp-import/media-manifest.json";
 import postsData from "@/content/wp-import/posts.json";
 import redirectsData from "@/content/wp-import/redirects.json";
+import consolidatedData from "@/content/consolidated-pages.json";
 
 /** Hosts that are this site. app.ypnus.com now 301s to ypnus.com. */
 const SAME_SITE_HOSTS = new Set(["ypnus.com", "www.ypnus.com", "app.ypnus.com"]);
@@ -20,7 +21,6 @@ const SAME_SITE_HOSTS = new Set(["ypnus.com", "www.ypnus.com", "app.ypnus.com"])
 /** Retired WordPress paths -> the page that replaced them (exact path match, after slash stripping). */
 const PATH_REWRITES: Readonly<Record<string, string>> = {
   "/check-zip.html": "/claim-territory",
-  "/territory": "/claim-territory",
   "/pricing-plans": "/pricing",
   "/pricing.html": "/pricing",
   "/va-loans": "/loan-types/va-loan-leads",
@@ -31,6 +31,8 @@ const PATH_REWRITES: Readonly<Record<string, string>> = {
   "/predictive-intelligence": "/predictive-lead-gen",
   "/ai-tools": "/features",
   "/marketing-tools": "/features",
+  // Old WordPress pages folded into a native page (src/content/consolidated-pages.json).
+  ...(consolidatedData as Record<string, string>),
 };
 
 /** Blog posts live under /blog/<slug>, but WordPress linked many of them at the site root. */
@@ -84,14 +86,7 @@ function rehostedSize(src: string): readonly number[] | undefined {
  */
 export const INTERACTIVE_WP_PATHS: ReadonlySet<string> = new Set([
   "/mortgage-payment-calculator",
-  "/free-property-analyzer",
-  "/agent-co-branding",
-  "/social-media-deployer",
-  "/gbp-ai-engine",
-  "/ml-engine",
   "/mlo-marketing",
-  "/ypn-usa-partner-suite",
-  "/ai-mortgage-loan-leads",
 ]);
 
 /** True when `href` points at an interactive imported page that needs a full page load. */

@@ -28,6 +28,7 @@ import { zipCodeCopy } from "@/lib/zip-copy";
 import pagesData from "./pages.json";
 import postsData from "./posts.json";
 import redirectsData from "./redirects.json";
+import consolidatedData from "@/content/consolidated-pages.json";
 import authorData from "./author.json";
 
 export interface WpImportedPage {
@@ -107,7 +108,14 @@ const SECTIONS: PageSections = Object.fromEntries(
   Object.entries(pagesData as PageSections).map(([section, pages]) => [section, pages.map(withZipCodeCopy)]),
 );
 
-export const WP_TOP_PAGES: readonly WpImportedPage[] = SECTIONS.top ?? [];
+/**
+ * Old top-level WordPress pages folded into a native page (thin, broken or duplicate copies of
+ * a page that already exists). They 301 to their replacement (next.config.ts), so they are not
+ * built, listed in the sitemap or linked.
+ */
+export const CONSOLIDATED_PAGES: Readonly<Record<string, string>> = consolidatedData as Record<string, string>;
+
+export const WP_TOP_PAGES: readonly WpImportedPage[] = (SECTIONS.top ?? []).filter((page) => !(`/${page.slug}` in CONSOLIDATED_PAGES));
 export const WP_MARKET_PAGES: readonly WpImportedPage[] = SECTIONS.markets ?? [];
 export const WP_LOAN_TYPE_PAGES: readonly WpImportedPage[] = SECTIONS["loan-types"] ?? [];
 export const WP_VS_PAGES: readonly WpImportedPage[] = SECTIONS.vs ?? [];

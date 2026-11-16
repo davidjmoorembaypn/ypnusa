@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
-import { WP_AUTHOR, type WpImportedPage } from "@/content/wp-import";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { NextStepBlock } from "@/components/next-step";
+import { nextStepForWpPage } from "@/lib/cta/next-steps";
+import { wpPageTrail } from "@/lib/seo/breadcrumbs";
+import {
+  WP_AUTHOR,
+  WP_LOAN_TYPE_PAGES,
+  WP_MARKET_PAGES,
+  WP_MLO_MARKETING_PAGES,
+  WP_VS_PAGES,
+  type WpImportedPage,
+} from "@/content/wp-import";
 import { FOUNDER_ID, faqJsonLd, jsonLdScript, softwareApplicationJsonLd } from "@/lib/seo";
 import { NMLS_CONSUMER_ACCESS_URL, NMLS_ID, CA_DRE_ID } from "@/lib/author";
 import { needsFullPageLoad, prepareWpHtml } from "@/lib/wp-html";
@@ -147,15 +157,28 @@ function AuthorBox({ reviewedDate }: { reviewedDate?: string }) {
   );
 }
 
+/**
+ * Section index pages (/vs, /markets, ...) were hand-written in WordPress and miss some of
+ * their own children. List every page in the section under the copy, so each child is one
+ * click from its hub and two from home.
+ */
+const SECTION_INDEXES: Readonly<Record<string, { heading: string; prefix: string; pages: readonly WpImportedPage[] }>> = {
+  "/vs": { heading: "All platform comparisons", prefix: "/vs", pages: WP_VS_PAGES },
+  "/loan-types": { heading: "Leads by loan type", prefix: "/loan-types", pages: WP_LOAN_TYPE_PAGES },
+  "/markets": { heading: "All markets", prefix: "/markets", pages: WP_MARKET_PAGES },
+  "/mlo-marketing": { heading: "All MLO marketing guides", prefix: "/mlo-marketing", pages: WP_MLO_MARKETING_PAGES },
+};
+
 export function WpImportedPageView({
   page,
   path,
-  breadcrumbLabel,
+  sectionPath,
   origin,
 }: {
   page: WpImportedPage;
   path: string;
-  breadcrumbLabel: string;
+  /** Route section ("" for top-level pages, "/vs", "/markets", ...): picks the breadcrumb hub and the next step. */
+  sectionPath: string;
   /** Protocol + host that served this request, for absolute schema URLs. */
   origin: string;
 }) {
@@ -165,16 +188,11 @@ export function WpImportedPageView({
   const related = page.related ?? [];
   // Normalized links/assets, and exactly one <h1> on the page.
   const body = prepareWpHtml(page.html, Boolean(page.showTitle));
+  const nextStep = nextStepForWpPage(sectionPath, path);
+  const sectionIndex = sectionPath === "" ? SECTION_INDEXES[path] : undefined;
   return (
     <div className="flex min-h-full flex-col bg-white text-slate-900">
       <SiteHeader />
-      <BreadcrumbSchema
-        items={[
-          { name: "Home", href: "/" },
-          { name: breadcrumbLabel, href: path },
-          { name: page.title, href: path },
-        ]}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd(page, url, origin)).replace(/</g, "\\u003c") }}
@@ -193,9 +211,7 @@ export function WpImportedPageView({
       ) : null}
       <main id="main-content" className="flex-1">
         <div className="mx-auto w-full max-w-3xl px-6 pt-4">
-          <Link href="/" className="text-sm font-semibold text-violet-700 hover:underline">
-            ← Back home
-          </Link>
+          <Breadcrumbs items={wpPageTrail(sectionPath, path, page.title)} tone="light" />
         </div>
         {page.showTitle ? (
           <article className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -212,6 +228,27 @@ export function WpImportedPageView({
             <div dangerouslySetInnerHTML={{ __html: body.html }} />
           </>
         )}
+        {sectionIndex ? (
+          <nav aria-labelledby="section-index-heading" className="mx-auto w-full max-w-3xl px-6 pt-10">
+            <h2 id="section-index-heading" className="text-xl font-semibold text-slate-900">
+              {sectionIndex.heading}
+            </h2>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {sectionIndex.pages.map((child) => (
+                <li key={child.slug}>
+                  <Link href={`${sectionIndex.prefix}/${child.slug}`} className="font-semibold text-violet-700 hover:underline">
+                    {child.title.replace(/\s*\|\s*YPN USA$/, "")}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ) : null}
+        {nextStep ? (
+          <div className="mx-auto w-full max-w-3xl px-6 pt-10">
+            <NextStepBlock step={nextStep} source={`wp_page:${sectionPath || "top"}`} />
+          </div>
+        ) : null}
         {related.length || wantAuthor ? (
           <div className="mx-auto w-full max-w-3xl px-6 pb-12">
             {related.length ? (

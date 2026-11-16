@@ -90,7 +90,12 @@ export function SiteFooter() {
             <li><Link href="/pricing" className="transition hover:text-white">Pricing</Link></li>
             <li><Link href="/loan-officers" className="transition hover:text-white">Loan officer markets</Link></li>
             <li><Link href="/loan-officers/visalia-ca" className="transition hover:text-white">Visalia loan officers</Link></li>
+            <li><Link href="/topics" className="transition hover:text-white">Guides by topic</Link></li>
             <li><Link href="/blog" className="transition hover:text-white">Blog</Link></li>
+            <li><Link href="/topics/loan-officer-websites" className="transition hover:text-white">Loan officer websites</Link></li>
+            <li><Link href="/vs" className="transition hover:text-white">Compare platforms</Link></li>
+            <li><Link href="/loan-types" className="transition hover:text-white">Leads by loan type</Link></li>
+            <li><Link href="/markets" className="transition hover:text-white">Markets we cover</Link></li>
             <li><Link href="/about" className="transition hover:text-white">About David</Link></li>
             <li><Link href="/book" className="transition hover:text-white">The book</Link></li>
             <li><Link href="/consultation" className="transition hover:text-white">Book a consultation</Link></li>
@@ -116,6 +121,15 @@ export function SiteFooter() {
               </Link>
               <Link href="/accessibility-statement" className="inline-block py-2 underline transition hover:text-white">
                 Accessibility
+              </Link>
+              <Link href="/refund-policy" className="inline-block py-2 underline transition hover:text-white">
+                Refunds
+              </Link>
+              <Link href="/cancellation-policy" className="inline-block py-2 underline transition hover:text-white">
+                Cancellations
+              </Link>
+              <Link href="/editorial-policy" className="inline-block py-2 underline transition hover:text-white">
+                Editorial policy
               </Link>
             </nav>
           </div>

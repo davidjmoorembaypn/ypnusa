@@ -5,6 +5,7 @@ import type { NextConfig } from "next";
 // imports "@/content/blog") would fail to resolve here.
 import wpRedirects from "./src/content/wp-import/redirects.json";
 import legacyRedirects from "./src/content/legacy-redirects.json";
+import consolidatedPages from "./src/content/consolidated-pages.json";
 
 function gitCommit(): string {
   try {
@@ -90,6 +91,13 @@ const nextConfig: NextConfig = {
       // (checked 2026-11-10), each sent to its closest live page. Kept apart from
       // redirects.json because that file is regenerated from the WordPress export.
       ...Object.entries(legacyRedirects as Record<string, string>).map(([source, destination]) => ({
+        source,
+        destination,
+        permanent: true,
+      })),
+      // Old WordPress top-level pages folded into the native page that covers the same topic
+      // (thin, broken or duplicate copies). See WP_TOP_PAGES in src/content/wp-import/index.ts.
+      ...Object.entries(consolidatedPages as Record<string, string>).map(([source, destination]) => ({
         source,
         destination,
         permanent: true,

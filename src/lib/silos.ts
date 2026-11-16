@@ -2,6 +2,7 @@ import { BLOG_POSTS } from "@/content/blog";
 import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { PROGRAM_LIST } from "@/lib/programs";
+import { WP_FEATURES_SUBPAGES, WP_PLATFORM_PAGES } from "@/content/wp-import";
 
 /**
  * Single source of truth for the site's topical silos. Every indexable page belongs to exactly one
@@ -40,8 +41,24 @@ const MORTGAGE_LINKS = (): SiloLink[] => [
   { label: "Home Equity Snapshot", href: "/tools/equity", group: "Free tools" },
 ];
 
+/** Migrated page titles carry a brand suffix or a sentence-long headline; nav links want a short label. */
+const NAV_LABELS: Readonly<Record<string, string>> = {
+  "Loan officer websites that capture leads while you close loans": "Loan officer websites",
+  "A Digital Front Door for Every Borrower Conversation": "Borrower intake",
+  "Lead Capture and Follow-Up That Works Alongside Your CRM": "Works with your CRM",
+};
+function navLabel(title: string): string {
+  return NAV_LABELS[title] ?? title.replace(/\s*\|\s*YPN USA$/, "");
+}
+
 const GROWTH_LINKS = (): SiloLink[] => [
   { label: "Pricing", href: "/pricing", group: "Platform" },
+  { label: "Cerebro AI assistant", href: "/cerebro", group: "Platform" },
+  { label: "How it works", href: "/how-it-works", group: "Platform" },
+  { label: "For teams", href: "/teams", group: "Platform" },
+  { label: "Compare platforms", href: "/vs", group: "Platform" },
+  ...WP_FEATURES_SUBPAGES.map((page) => ({ label: navLabel(page.title), href: `/features/${page.slug}`, group: "Feature details" })),
+  ...WP_PLATFORM_PAGES.map((page) => ({ label: navLabel(page.title), href: `/platform/${page.slug}`, group: "Feature details" })),
   { label: "Free embeddable tools", href: "/embed", group: "Platform" },
   { label: "Google Business Profile Optimizer", href: "/tools/gbp-optimizer", group: "Free tools" },
   { label: "Social Media Marketing Writer", href: "/tools/social-writer", group: "Free tools" },

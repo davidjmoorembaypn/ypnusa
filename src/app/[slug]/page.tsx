@@ -6,7 +6,7 @@ import { makeWpSectionRoute } from "@/lib/wp-page-route";
 // /pricing before falling through to this dynamic segment, so this never
 // shadows anything already in src/app/). Unknown slugs 404 via notFound()
 // inside makeWpSectionRoute, same as any other missing page.
-const route = makeWpSectionRoute(WP_TOP_PAGES, "", "YPN USA");
+const route = makeWpSectionRoute(WP_TOP_PAGES, "");
 
 export const generateStaticParams = route.generateStaticParams;
 export const generateMetadata = route.generateMetadata;

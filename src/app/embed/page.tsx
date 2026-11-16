@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { SiloNav } from "@/components/silo-nav";
+import { NextStepBlock } from "@/components/next-step";
+import { CLUSTER_NEXT_STEPS } from "@/lib/cta/next-steps";
 import Link from "next/link";
 import { CopySnippet } from "@/components/copy-snippet";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
@@ -77,6 +79,7 @@ export default async function EmbedLandingPage() {
         . Equal Housing Opportunity.
       </p>
 
+      <NextStepBlock step={CLUSTER_NEXT_STEPS["loan-officer-marketing"]} source="embed" tone="dark" className="mt-10" />
       <SiloNav silo="growth" currentPath="/embed" className="mt-10" />
 
       <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">

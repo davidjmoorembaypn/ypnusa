@@ -1,7 +1,7 @@
 import { WP_VS_PAGES } from "@/content/wp-import";
 import { makeWpSectionRoute } from "@/lib/wp-page-route";
 
-const route = makeWpSectionRoute(WP_VS_PAGES, "/vs", "Compare");
+const route = makeWpSectionRoute(WP_VS_PAGES, "/vs");
 
 export const generateStaticParams = route.generateStaticParams;
 export const generateMetadata = route.generateMetadata;

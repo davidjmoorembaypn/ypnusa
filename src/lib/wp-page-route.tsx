@@ -12,16 +12,12 @@ type Params = { params: Promise<{ slug: string }> };
  * (see src/content/wp-import/index.ts). Each app/<section>/[slug]/page.tsx
  * is just:
  *
- *   const route = makeWpSectionRoute(WP_MARKET_PAGES, "/markets", "Markets");
+ *   const route = makeWpSectionRoute(WP_MARKET_PAGES, "/markets");
  *   export const generateStaticParams = route.generateStaticParams;
  *   export const generateMetadata = route.generateMetadata;
  *   export default route.Page;
  */
-export function makeWpSectionRoute(
-  list: readonly WpImportedPage[],
-  sectionPath: string,
-  breadcrumbLabel: string,
-) {
+export function makeWpSectionRoute(list: readonly WpImportedPage[], sectionPath: string) {
   function generateStaticParams() {
     return list.map((p) => ({ slug: p.slug }));
   }
@@ -46,7 +42,7 @@ export function makeWpSectionRoute(
     if (!page) notFound();
     const origin = MARKETING_SITE_URL;
     return (
-      <WpImportedPageView page={page} path={`${sectionPath}/${slug}`} breadcrumbLabel={breadcrumbLabel} origin={origin} />
+      <WpImportedPageView page={page} path={`${sectionPath}/${slug}`} sectionPath={sectionPath} origin={origin} />
     );
   }
 

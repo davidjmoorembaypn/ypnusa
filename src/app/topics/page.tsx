@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { homeTrail } from "@/lib/seo/breadcrumbs";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { NextStepBlock } from "@/components/next-step";
+import { ZIP_STEP } from "@/lib/cta/next-steps";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TOPIC_CLUSTERS, getClusterPosts } from "@/lib/seo/clusters";
@@ -37,6 +41,7 @@ export default async function TopicsIndexPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main id="main-content" className="flex-1">
         <section className="mx-auto w-full max-w-4xl px-6 py-16 text-center sm:py-20">
+          <Breadcrumbs items={homeTrail({ name: "Topics", href: "/topics" })} className="mb-6 flex justify-center" />
           <h1 className="text-balance text-4xl font-semibold leading-[1.08] lg:text-5xl">
             Loan officer growth guides, organized by topic
           </h1>
@@ -60,6 +65,9 @@ export default async function TopicsIndexPage() {
                 <p className="mt-3 text-sm leading-relaxed text-slate-600">{cluster.description}</p>
               </Link>
             ))}
+          </div>
+          <div className="mx-auto mt-12 w-full max-w-5xl px-6">
+            <NextStepBlock step={ZIP_STEP} source="topics_index" />
           </div>
         </section>
       </main>

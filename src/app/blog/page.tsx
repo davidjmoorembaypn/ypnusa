@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
+import { homeTrail } from "@/lib/seo/breadcrumbs";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { INDEXABLE_POSTS, TOPIC_CLUSTERS } from "@/lib/seo/clusters";
 import { marketingMetadata } from "@/lib/seo";
 import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
+import { LIBRARY_GUIDES } from "@/content/library-guides";
+import { needsFullPageLoad } from "@/lib/wp-html";
 
 export async function generateMetadata(): Promise<Metadata> {
   const origin = MARKETING_SITE_URL;
@@ -40,6 +44,7 @@ export default function BlogIndexPage() {
         <section className="relative isolate overflow-hidden">
           <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative z-10 mx-auto w-full max-w-4xl px-6 py-16 text-center sm:py-20">
+            <Breadcrumbs items={homeTrail({ name: "Blog", href: "/blog" })} className="mb-6 flex justify-center" />
             <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
               YPN USA Blog
             </span>
@@ -77,6 +82,27 @@ export default function BlogIndexPage() {
                 </Link>
               ))}
             </div>
+            <section aria-labelledby="library-heading" className="mt-14">
+              <h2 id="library-heading" className="text-2xl font-semibold text-slate-900">
+                More in-depth guides
+              </h2>
+              <ul className="mt-4 space-y-2">
+                {LIBRARY_GUIDES.map((g) => (
+                  <li key={g.href}>
+                    {needsFullPageLoad(g.href) ? (
+                      // Interactive imported page: its inline scripts only run on a full load.
+                      <a href={g.href} className="font-semibold text-violet-700 hover:underline">
+                        {g.label}
+                      </a>
+                    ) : (
+                      <Link href={g.href} className="font-semibold text-violet-700 hover:underline">
+                        {g.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
         </section>
         <div className="mx-auto w-full max-w-4xl px-6 pb-16">

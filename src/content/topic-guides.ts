@@ -94,6 +94,36 @@ export const TOPIC_GUIDES: Readonly<Record<string, readonly TopicGuideSection[]>
       html: `<p>Track one number per channel: conversations started, not impressions. Then compare what each channel costs in money and time against the loans it produces. Our <a href="/roi">ROI calculator</a> shows how many extra closed loans a year would cover a YPN USA plan, using your own loan size and compensation. When marketing starts producing inquiries, make sure none go unanswered: <a href="/cerebro">Cerebro</a> answers and qualifies borrowers on your site day or night and hands the ready ones to you. You can <a href="/claim-territory">check whether your ZIP code is open</a> for free.</p>`,
     },
   ],
+  "loan-officer-websites": [
+    {
+      heading: "What your website is for",
+      html: `<p>Most borrowers find a loan officer somewhere else first: a Google search, a map result, a referral from an agent, a social post. Then they look you up. Your website is where that first impression turns into a conversation or quietly ends. It doesn't need to be large. It needs to answer three questions fast: can this person help someone like me, do they work where I live, and how do I start?</p>
+<p>Your profile on your company's site helps, but it is usually one page among hundreds and it stays with the company if you move. Pages you control, built around the borrowers and areas you serve, are what rank locally and what keep working for you over time.</p>`,
+    },
+    {
+      heading: "The pages that matter",
+      html: `<p>Start with a homepage that says plainly who you help ("first-time buyers and VA borrowers in Tulare County", not "your dream home awaits"), with your photo, a short bio and one clear button. Add a page for each city or ZIP code you serve with real local detail, a page for each loan program you focus on, and an about page that shows your experience and your NMLS ID.</p>
+<p>Every page should end in one obvious next step. A short pre-qualification form, a booking link or a chat window all work; what fails is a page with five competing buttons or none at all. Our walkthrough of <a href="/blog/how-to-build-a-mortgage-lead-capture-page-no-designer-needed">building a mortgage lead capture page without a designer</a> covers the basics, and <a href="/blog/9-mortgage-landing-page-examples-that-convert-and-why-they-work">nine mortgage landing page examples</a> shows the patterns that keep coming up. For a single campaign or ad, use a focused landing page; the <a href="/blog/loan-officer-landing-page-checklist">loan officer landing page checklist</a> lists what to put on it.</p>`,
+    },
+    {
+      heading: "Speed and mobile",
+      html: `<p>Most borrowers will see your site on a phone, often on a slow connection. Google's Core Web Vitals give you concrete targets: the main content should load within about 2.5 seconds (Largest Contentful Paint), the page should respond to a tap within about 200 milliseconds (Interaction to Next Paint), and things shouldn't jump around while it loads (Cumulative Layout Shift under 0.1). Large uncompressed images, autoplay video and piles of plugins are the usual culprits. <a href="/blog/maximizing-site-speed-core-web-vitals-for-high-converting-mlo-websites">Site speed and Core Web Vitals for loan officer websites</a> goes through the fixes.</p>`,
+    },
+    {
+      heading: "Forms people finish",
+      html: `<p>Ask for as little as you need to start the conversation: name, how to reach them, what they want to do and roughly when. You can collect the rest once you're talking. Say what happens after they submit and when they'll hear from you, then keep that promise. <a href="/blog/designing-high-converting-mlo-landing-pages-with-zero-code">Designing landing pages without code</a> and <a href="/blog/optimizing-mlo-digital-intake-forms-for-maximum-conversion-rate">optimizing intake forms</a> go deeper.</p>
+<p>A form only works if someone answers it. Inquiries that sit until the next morning often go to whoever replied first. That is why many loan officers add a chat assistant that can answer common questions and collect details after hours; see <a href="/blog/integrating-ai-chatbots-on-mortgage-websites-for-instant-engagement">adding an AI chat assistant to a mortgage website</a>.</p>`,
+    },
+    {
+      heading: "Disclosures and compliance",
+      html: `<p>Your website is advertising, so the same rules apply as anywhere else. Show your NMLS ID and your company's name and license information, link to NMLS Consumer Access, and include an Equal Housing Opportunity statement or logo. If a page mentions a rate or payment, Regulation Z's advertising rules require the APR and other disclosures, so many loan officers simply leave rates off. If you'll text or call people who fill in a form, get clear written consent first; <a href="/blog/tcpa-compliance-automated-lead-consent-for-mortgage-loan-officers">TCPA consent for mortgage lead forms</a> explains why. Add a privacy policy that says what you collect and how you use it. Most lenders also require compliance approval before a loan officer site goes live, so ask first.</p>`,
+    },
+    {
+      heading: "Getting found",
+      html: `<p>A good site still needs to be found. Connect it to your Google Business Profile, use the same name, address and phone everywhere, and add structured data so search engines understand who you are; <a href="/blog/schema-markup-for-loan-officers-how-to-win-rich-snippets-on-google">schema markup for loan officers</a> shows how. Local pages with real detail are what let a single loan officer compete with national portals, as covered in <a href="/blog/how-localized-mortgage-landing-pages-outrank-national-lead-portals">how local landing pages outrank lead portals</a>.</p>
+<p>YPN USA's <a href="/features/branded-mlo-website">branded loan officer website</a> is built on these ideas: your name and NMLS ID, local pages for your market, a compliance footer, and Cerebro answering borrowers on every page. Each paid plan also includes one ZIP code that's exclusive within YPN USA. <a href="/claim-territory">Check whether your ZIP code is open</a>; it's free.</p>`,
+    },
+  ],
   "local-seo-for-loan-officers": [
     {
       heading: "Why local SEO matters for loan officers",

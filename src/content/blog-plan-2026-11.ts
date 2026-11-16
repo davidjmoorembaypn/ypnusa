@@ -195,4 +195,89 @@ export const MORTGAGE_CRM_VS_AI_ASSISTANT: BlogPost = {
   closingHtml: `<p><strong>See how Cerebro would answer your borrowers:</strong> <a href="/cerebro">talk to Cerebro</a>, or <a href="/pricing">compare plans</a>.</p>`,
 };
 
-export const PLAN_POSTS: readonly BlogPost[] = [MORTGAGE_MARKETING_IDEAS, MORTGAGE_CRM_VS_AI_ASSISTANT];
+export const LOAN_OFFICER_LANDING_PAGE_CHECKLIST: BlogPost = {
+  slug: "loan-officer-landing-page-checklist",
+  title: "Loan Officer Landing Page Checklist: What to Put On It and What to Leave Off",
+  metaTitle: "Loan Officer Landing Page Checklist | YPN USA",
+  description:
+    "A plain checklist for a loan officer landing page: one audience, one offer, a short form, fast mobile load, and the NMLS, fair lending and consent details.",
+  date: "2026-11-16",
+  author: "David J. Moore, MBA",
+  byline: BYLINE,
+  readingMinutes: 6,
+  cluster: "loan-officer-websites",
+  html: `<p>A landing page is a single page built for one group of borrowers and one next step. Your full website introduces you; a landing page catches the people a specific ad, post, flyer or referral partner sends your way and gives them one easy thing to do. It's one part of your <a href="/topics/loan-officer-websites">loan officer website</a>, and it's where most of your paid and partner traffic should land.</p>
+<p>Use this checklist before you publish one, and again whenever a page stops producing conversations.</p>
+
+<h2>1. One audience, one offer</h2>
+<ul>
+<li><strong>Pick who the page is for.</strong> "First-time buyers in Visalia" or "veterans buying in Fresno County" beats "anyone who needs a mortgage". If you work three niches, build three pages.</li>
+<li><strong>Match the page to where people came from.</strong> If the ad talks about down payment help, the headline should too. A mismatch is the fastest way to lose a visitor.</li>
+<li><strong>Offer something useful.</strong> A pre-approval conversation, a short call, a first-time buyer checklist or a down payment assistance review. Make it specific and honest about what happens next.</li>
+</ul>
+
+<h2>2. A headline that says what you do</h2>
+<ul>
+<li><strong>Lead with the borrower's goal</strong>, not your title. "Buy your first home in Tulare County with as little as 3% down" (only if that's accurate for the programs you offer) tells people they're in the right place.</li>
+<li><strong>Add one supporting line</strong> about how you help: local, responsive, experienced with their situation.</li>
+<li><strong>Show your face and name.</strong> People choose a loan officer, not a logo. A real photo and a two-sentence bio build trust quickly.</li>
+</ul>
+
+<h2>3. A short form and one button</h2>
+<ul>
+<li><strong>Ask for the minimum:</strong> name, phone or email, what they want to do, and a rough timeline. Collect income, credit and assets once you're talking.</li>
+<li><strong>Use one call to action</strong>, repeated if the page is long. Remove the menu, the blog links and anything else that pulls attention away.</li>
+<li><strong>Say what happens next:</strong> "I'll call you within one business day" or "pick a time on my calendar". Then keep the promise.</li>
+<li><strong>Answer fast.</strong> A lead that waits until tomorrow often talks to someone else first. If you can't cover nights and weekends, an assistant that answers questions and books time can; that's what <a href="/cerebro">Cerebro</a> does.</li>
+</ul>
+
+<h2>4. Proof you can show honestly</h2>
+<ul>
+<li><strong>Use real reviews</strong> from your Google Business Profile or review platform, with permission, and never edit what borrowers said.</li>
+<li><strong>State facts you can back up:</strong> years in the business, programs you're approved for, areas you serve. Skip "lowest rates" and "guaranteed approval"; you can't promise either, and both invite complaints.</li>
+<li><strong>Explain the process</strong> in three or four steps. Borrowers who know what to expect are more likely to start.</li>
+</ul>
+
+<h2>5. Fast on a phone</h2>
+<ul>
+<li><strong>Test on your own phone</strong>, on cellular data, before you spend a dollar sending traffic.</li>
+<li><strong>Aim for Google's "good" Core Web Vitals:</strong> main content visible within about 2.5 seconds, taps that respond within about 200 milliseconds, and no layout jumping as the page loads.</li>
+<li><strong>Compress images</strong> and skip autoplay video, sliders and heavy chat widgets that load before the content. Our guide to <a href="/blog/maximizing-site-speed-core-web-vitals-for-high-converting-mlo-websites">site speed for loan officer websites</a> covers the common fixes.</li>
+</ul>
+
+<h2>6. Compliance details</h2>
+<ul>
+<li><strong>Your NMLS ID</strong> and your company's name and license details, with a link to NMLS Consumer Access.</li>
+<li><strong>An Equal Housing Opportunity statement or logo.</strong></li>
+<li><strong>Careful with rates and payments.</strong> If the page states a rate, a payment or certain loan terms, Regulation Z requires the APR and other disclosures. Many loan officers leave numbers off landing pages for that reason.</li>
+<li><strong>Consent to contact.</strong> If you'll text or call with automated tools, get clear written consent on the form, in plain words, before you do.</li>
+<li><strong>A privacy policy</strong> that explains what you collect and how you use it, linked near the form.</li>
+<li><strong>Approval.</strong> Most lenders require compliance to review marketing pages. Send it before it goes live, not after.</li>
+<li><strong>Referral partners.</strong> If an agent co-brands the page, split costs according to each party's share of the space and benefit, and never pay for referrals (RESPA Section 8).</li>
+</ul>
+
+<h2>7. Measure one number</h2>
+<p>Track how many visitors become conversations, not just how many visit. Count form submissions, booked calls and chats, then compare pages and sources. If a page gets traffic but no conversations, the problem is usually the offer, the form length or the follow-up time, in that order. Change one thing at a time so you know what helped.</p>
+<p>For examples of pages that follow these rules, see <a href="/blog/9-mortgage-landing-page-examples-that-convert-and-why-they-work">nine mortgage landing page examples that convert</a>, and for building one without a designer, <a href="/blog/how-to-build-a-mortgage-lead-capture-page-no-designer-needed">how to build a mortgage lead capture page</a>.</p>`,
+  faq: [
+    {
+      q: "What is the difference between a loan officer website and a landing page?",
+      a: "Your website introduces you and covers everything you do. A landing page is one page for one group of borrowers and one next step, usually the place an ad, post or partner sends people.",
+    },
+    {
+      q: "How long should a mortgage landing page form be?",
+      a: "As short as you can make it: name, a way to reach them, what they want to do and a rough timeline. Collect the rest once you're talking.",
+    },
+    {
+      q: "Do I need my NMLS ID on a landing page?",
+      a: "Yes. Treat every landing page as advertising: show your NMLS ID and your company's license details, and check your state's rules and your lender's compliance policy.",
+    },
+    {
+      q: "Can I show interest rates on a landing page?",
+      a: "You can, but a stated rate or payment triggers Regulation Z disclosures such as the APR. Many loan officers leave rates off and invite borrowers to ask for a quote instead.",
+    },
+  ],
+  closingHtml: `<p><strong>Want a loan officer site with local pages, a compliance footer and Cerebro answering borrowers?</strong> <a href="/features/branded-mlo-website">See the branded website</a>, or <a href="/claim-territory">check whether your ZIP code is open</a>.</p>`,
+};
+
+export const PLAN_POSTS: readonly BlogPost[] = [MORTGAGE_MARKETING_IDEAS, MORTGAGE_CRM_VS_AI_ASSISTANT, LOAN_OFFICER_LANDING_PAGE_CHECKLIST];

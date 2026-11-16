@@ -44,3 +44,25 @@ export function topicTrail(cluster: { slug: string; name: string }, post?: { slu
     ...(post ? [{ name: post.title, href: `/blog/${post.slug}` }] : []),
   );
 }
+
+/**
+ * Hub each section of migrated WordPress pages hangs from. /platform pages describe features,
+ * and the old /territory and /agents indexes now redirect, so those trails point at the page
+ * that replaced them.
+ */
+const WP_SECTION_HUBS: Readonly<Record<string, Crumb>> = {
+  "/vs": { name: "Compare", href: "/vs" },
+  "/markets": { name: "Markets", href: "/markets" },
+  "/loan-types": { name: "Lead types", href: "/loan-types" },
+  "/features": { name: "Features", href: "/features" },
+  "/platform": { name: "Features", href: "/features" },
+  "/mlo-marketing": { name: "MLO marketing", href: "/mlo-marketing" },
+  "/territory": { name: "Claim your ZIP code", href: "/claim-territory" },
+  "/agents": { name: "Loan officers", href: "/loan-officers" },
+};
+
+/** Home > {section hub} > {page} for a migrated page; Home > {page} for top-level ones. */
+export function wpPageTrail(sectionPath: string, path: string, title: string): Crumb[] {
+  const hub = WP_SECTION_HUBS[sectionPath];
+  return homeTrail(...(hub ? [hub] : []), { name: title, href: path });
+}

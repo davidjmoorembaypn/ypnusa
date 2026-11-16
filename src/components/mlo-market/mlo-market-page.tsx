@@ -100,6 +100,16 @@ function FaqSection({ faq }: { faq: Array<{ q: string; a: string }> }) {
  * given. Server-rendered; the only client pieces are the ZIP code checker and the Cerebro
  * launcher.
  */
+/** Older city pages for loan officers (migrated from WordPress), linked so none sits more than two clicks from home. */
+const MORE_MARKET_LINKS: readonly { label: string; href: string }[] = [
+  { label: "Dallas, TX", href: "/dallas-tx-mortgage-loan-officer" },
+  { label: "Houston, TX", href: "/houston-tx-mortgage-loan-officer" },
+  { label: "Atlanta, GA", href: "/atlanta-ga-mortgage-loan-officer" },
+  { label: "Tampa, FL", href: "/tampa-fl-mortgage-loan-officer" },
+  { label: "Phoenix, AZ", href: "/territory/phoenix-az-mortgage-loan-officer" },
+  { label: "All markets we cover", href: "/markets" },
+];
+
 export function MloMarketPage({ market, origin }: { market?: MloMarket; origin: string }) {
   return market ? <MarketPage market={market} origin={origin} /> : <HubPage origin={origin} />;
 }
@@ -205,6 +215,16 @@ function HubPage({ origin }: { origin: string }) {
                   </h3>
                   <p className="mt-2 text-sm text-slate-700">{m.cardBlurb}</p>
                   <p className="mt-2 text-xs font-semibold text-slate-700">ZIP codes: {m.zipCodes.join(", ")}</p>
+                </li>
+              ))}
+            </ul>
+            <h3 className="mt-10 text-lg font-semibold text-[#13254a]">More markets</h3>
+            <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              {MORE_MARKET_LINKS.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className="font-semibold text-[#13254a] underline underline-offset-2">
+                    {l.label}
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { libraryGuidesFor } from "@/content/library-guides";
+import { NextStepBlock } from "@/components/next-step";
+import { nextStepForCluster } from "@/lib/cta/next-steps";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -133,6 +136,26 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
                 </li>
               ))}
             </ul>
+            {libraryGuidesFor(cluster.slug).length ? (
+              <>
+                <h2 className="mt-14 text-2xl font-semibold">In-depth guides</h2>
+                <ul className="mt-4 space-y-2">
+                  {libraryGuidesFor(cluster.slug).map((g) => (
+                    <li key={g.href}>
+                      {needsFullPageLoad(g.href) ? (
+                        <a href={g.href} className="font-semibold text-violet-700 hover:underline">
+                          {g.label}
+                        </a>
+                      ) : (
+                        <Link href={g.href} className="font-semibold text-violet-700 hover:underline">
+                          {g.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
 
             <h2 className="mt-14 text-2xl font-semibold">Frequently asked questions</h2>
             <dl className="mt-6 space-y-6">
@@ -143,6 +166,8 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
                 </div>
               ))}
             </dl>
+
+            <NextStepBlock step={nextStepForCluster(cluster.slug)} source={`topic:${cluster.slug}`} className="mt-14" />
 
             <h2 className="mt-14 text-2xl font-semibold">Other topics</h2>
             <ul className="mt-4 flex flex-wrap gap-3">

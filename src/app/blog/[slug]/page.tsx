@@ -13,6 +13,8 @@ import { AUTHOR_NAME } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { getPostCluster, getRelatedPosts, isThinPost } from "@/lib/seo/clusters";
 import { prepareWpHtml } from "@/lib/wp-html";
+import { NextStepBlock } from "@/components/next-step";
+import { nextStepForCluster } from "@/lib/cta/next-steps";
 
 export function generateStaticParams() {
   return ALL_BLOG_POSTS.map((post) => ({ slug: post.slug }));
@@ -160,6 +162,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               dangerouslySetInnerHTML={{ __html: post.closingHtml }}
             />
           ) : null}
+          {post.closingHtml ? null : (
+            <NextStepBlock step={nextStepForCluster(cluster?.slug)} source={`blog_post:${cluster?.slug ?? "none"}`} className="mt-12" />
+          )}
           {byFounder ? <PostAuthorBox /> : null}
         </article>
         {cluster ? (

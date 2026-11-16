@@ -14,6 +14,8 @@ export async function GET() {
     return jsonOk({
       service: "ypnusa-app",
       storage: { persistent, degraded: Boolean(error), piiEncryption: piiEncryptionStatus() },
+      // Whether outgoing email (Cerebro's borrower follow-ups, lead alerts) can send. On/off only.
+      email: process.env.RESEND_API_KEY?.trim() ? "on" : "off",
       build: { commit: process.env.APP_COMMIT, builtAt: process.env.APP_BUILT_AT },
       timestamp: new Date().toISOString(),
     });

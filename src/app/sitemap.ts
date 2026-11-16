@@ -4,6 +4,7 @@ import { PROGRAM_LIST } from "@/lib/programs";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { MLO_MARKETS } from "@/content/mlo-markets";
+import { REPORT_COUNTIES } from "@/content/market-report";
 import {
   WP_TOP_PAGES,
   WP_MARKET_PAGES,
@@ -49,6 +50,8 @@ const SITEMAP_EXCLUDED_TOP_SLUGS = new Set([
 const MARKETING_LAST_MODIFIED = new Date("2026-10-15T00:00:00.000Z");
 /** Pages added or rewritten for the Nov 2026 SEO plan (home, /cerebro, /teams, /roi, /loan-officers, pillars, /book). */
 const SEO_PLAN_LAST_MODIFIED = new Date("2026-11-08T00:00:00.000Z");
+/** Loan Officer Market Report (HMDA county data), first published Nov 2026. */
+const MARKET_REPORT_LAST_MODIFIED = new Date("2026-11-16T00:00:00.000Z");
 const LEGAL_PAGES_LAST_MODIFIED = new Date("2026-09-13T00:00:00.000Z");
 
 function wpPageEntries(origin: string, sectionPath: string, pages: readonly WpImportedPage[]) {
@@ -75,6 +78,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: MARKETING_LAST_MODIFIED,
       changeFrequency: "monthly" as const,
       priority: 0.8,
+    })),
+    { url: `${origin}/research`, lastModified: MARKET_REPORT_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
+    ...REPORT_COUNTIES.map((county) => ({
+      url: `${origin}/research/${county.slug}`,
+      lastModified: MARKET_REPORT_LAST_MODIFIED,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
     })),
     { url: `${origin}/about`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/book`, lastModified: SEO_PLAN_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },

@@ -7,6 +7,7 @@ import {
   requireSecret,
 } from "@/lib/http";
 import { generateId } from "@/lib/id";
+import { claimKey, leadFingerprint, releaseKey, setKeyRef } from "@/lib/idempotency";
 import { finalizeIntakeArtifacts } from "@/lib/intake-pipeline";
 import { coerceLoanProgram } from "@/lib/programs";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -15,6 +16,8 @@ import { optionalText } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const IDEMPOTENCY_SCOPE = "webhooks-leads";
 
 interface InboundLeadPayload {
   name?: unknown;
@@ -26,6 +29,8 @@ interface InboundLeadPayload {
   purchaseRefiIntent?: unknown;
   funnelSource?: unknown;
   contactConsent?: unknown;
+  /** The sender's own id for this lead; the same id is only processed once. */
+  externalId?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -77,6 +82,17 @@ export async function POST(request: Request) {
     funnelSource: optionalText(parsed.data.funnelSource, 160) ?? "lead_webhook",
   };
 
+  // A retried delivery must not create a second lead: dedupe on the sender's
+  // Idempotency-Key header or externalId, else on email + phone + program + day.
+  const idempotencyKey =
+    optionalText(request.headers.get("idempotency-key"), 200) ??
+    optionalText(parsed.data.externalId, 200) ??
+    leadFingerprint({ email, phone, program });
+  const claim = claimKey(IDEMPOTENCY_SCOPE, idempotencyKey);
+  if (!claim.claimed) {
+    return jsonOk({ duplicate: true, borrowerLeadId: claim.ref ?? null }, { status: 200 });
+  }
+
   const session: IntakeSessionRecord = {
     id: generateId("sess"),
     createdAt: new Date().toISOString(),
@@ -85,12 +101,19 @@ export async function POST(request: Request) {
     answers,
     status: "qualified",
   };
-  persistSession(session);
-
-  const result = await finalizeIntakeArtifacts(session);
+  let result: Awaited<ReturnType<typeof finalizeIntakeArtifacts>>;
+  try {
+    persistSession(session);
+    result = await finalizeIntakeArtifacts(session);
+  } catch (error) {
+    releaseKey(IDEMPOTENCY_SCOPE, idempotencyKey);
+    throw error;
+  }
   if ("message" in result) {
+    releaseKey(IDEMPOTENCY_SCOPE, idempotencyKey);
     return jsonError(result.message, 422, "LEAD_FINALIZATION_FAILED");
   }
+  if (result.borrowerLeadId) setKeyRef(IDEMPOTENCY_SCOPE, idempotencyKey, result.borrowerLeadId);
 
   return jsonOk(
     {

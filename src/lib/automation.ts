@@ -1,4 +1,5 @@
 import { appendAnalytics, persistFollowUpsBatch, readDb, writeDb } from "./db";
+import { canContact } from "./consent";
 import { automationDailyLimitFor, resolveOfficerEntitlement } from "./entitlements";
 import { generateId } from "./id";
 import { deliverOutreach, OutreachNotConfiguredError } from "./outreach";
@@ -159,9 +160,14 @@ export function scheduleBorrowerJourney(
   return created;
 }
 
+/** How long after a lead arrives its instant acknowledgment may still go out during quiet hours. */
+const IMMEDIATE_REPLY_WINDOW_MS = 10 * 60_000;
+
 export async function processDueFollowUps(options?: {
   borrowerLeadId?: string;
   limit?: number;
+  /** Clock override for tests; defaults to the real time. */
+  now?: Date;
 }): Promise<{
   processed: number;
   failed: number;
@@ -173,8 +179,9 @@ export async function processDueFollowUps(options?: {
   const claimedIds: string[] = [];
   const limit = Math.max(1, Math.min(options?.limit ?? 50, 100));
 
+  const clock = options?.now ?? new Date();
   writeDb((db) => {
-    const now = Date.now();
+    const now = clock.getTime();
     for (const job of db.followUps) {
       if (claimedIds.length >= limit) break;
       if (job.status !== "pending") continue;
@@ -204,6 +211,38 @@ export async function processDueFollowUps(options?: {
         current.lastError = "Lead or assigned MLO context is missing.";
       });
       failed += 1;
+      continue;
+    }
+
+    // Consent ledger and quiet hours (src/lib/consent.ts): an opt-out cancels the job,
+    // a text due overnight waits for the borrower's morning.
+    const decision = canContact({
+      db: snapshot,
+      borrowerLeadId: lead.id,
+      channel: job.channel,
+      legacyConsent: lead.answers.contactConsent === true,
+      now: clock,
+    });
+    // Exception: the instant "we got your request" reply to a borrower who submitted
+    // a minute ago is an answer they just asked for, not an unprompted overnight text.
+    const isFreshImmediateReply =
+      job.plan.startsWith("immediate_") && clock.getTime() - new Date(job.createdAt).getTime() < IMMEDIATE_REPLY_WINDOW_MS;
+    if (!decision.allowed && !(decision.reason === "quiet_hours" && isFreshImmediateReply)) {
+      writeDb((db) => {
+        const current = db.followUps.find((item) => item.id === jobId);
+        if (!current) return;
+        if (decision.reason === "quiet_hours") {
+          current.status = "pending";
+          current.attemptCount = Math.max(0, (current.attemptCount ?? 1) - 1);
+          current.scheduledAt = decision.retryAt;
+          current.lastError = "Deferred: outside 8am-9pm for texts and calls.";
+        } else {
+          current.status = "cancelled";
+          current.lastError =
+            decision.reason === "opted_out" ? "Cancelled: borrower opted out." : "Cancelled: no contact consent.";
+        }
+      });
+      events.push(`${job.plan}:${job.channel}:${decision.reason}`);
       continue;
     }
 

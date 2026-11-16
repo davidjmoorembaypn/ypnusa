@@ -5,6 +5,9 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // First, before anything can log: mask borrower emails, phones and keys in every log line.
+  const { installConsoleRedaction } = await import("./lib/log-redact");
+  installConsoleRedaction();
   const { loadAppEnvFile } = await import("./lib/app-env");
   const names = loadAppEnvFile();
   if (names.length > 0) console.log(`[env] loaded ${names.length} setting(s) from the app settings file: ${names.join(", ")}`);

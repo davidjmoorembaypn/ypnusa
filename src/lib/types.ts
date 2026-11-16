@@ -639,6 +639,34 @@ export interface SiteOptimizerState {
   lastRunSummary?: string;
 }
 
+/** Contact channels covered by the consent ledger (TCPA: texts and calls; CAN-SPAM: email). */
+export type ConsentChannel = "sms" | "call" | "email" | "ai_voice";
+
+/**
+ * One consent event for one borrower and one channel. Append-only: the newest record for a
+ * lead and channel wins, so the history of grants and opt-outs is kept for audit.
+ */
+export interface ConsentRecord {
+  id: string;
+  borrowerLeadId: string;
+  channel: ConsentChannel;
+  granted: boolean;
+  /** Where it came from, e.g. "intake_form", "sms_stop", "officer_marked". */
+  source: string;
+  /** The exact consent wording the borrower saw, when there was one (encrypted at rest). */
+  textShown?: string;
+  at: string;
+}
+
+/** A webhook or job key already handled, so a retried delivery is not processed twice. */
+export interface ProcessedKeyRecord {
+  key: string;
+  scope: string;
+  at: string;
+  /** Id of what the first delivery created, returned again on a duplicate. */
+  ref?: string;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -663,4 +691,6 @@ export interface DbShape {
   cerebroActions: CerebroQueuedActionRecord[];
   siteOverrides: SiteOverrideRecord[];
   siteOptimizer: SiteOptimizerState;
+  consents: ConsentRecord[];
+  processedKeys: ProcessedKeyRecord[];
 }

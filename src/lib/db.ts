@@ -1,5 +1,6 @@
 import fs from "fs";
 import { isLiveSubscription } from "@/lib/subscription-live";
+import { openSnapshot, sealSnapshot } from "@/lib/crypto/pii-snapshot";
 import type { Stats } from "fs";
 import path from "path";
 import type {
@@ -8,6 +9,8 @@ import type {
   StarterKitRecord,
   OfficerProspectRecord,
   CerebroQueuedActionRecord,
+  ConsentRecord,
+  ProcessedKeyRecord,
   SiteOverrideRecord,
   SiteOptimizerState,
   DbShape,
@@ -188,6 +191,8 @@ const emptyDb = (): DbShape => ({
   cerebroActions: [],
   siteOverrides: [],
   siteOptimizer: {},
+  consents: [],
+  processedKeys: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -247,6 +252,8 @@ function normalize(snapshot: unknown): DbShape {
     cerebroActions: arrayOrEmpty<CerebroQueuedActionRecord>(parsed.cerebroActions),
     siteOverrides: arrayOrEmpty<SiteOverrideRecord>(parsed.siteOverrides),
     siteOptimizer: isPlainRecord(parsed.siteOptimizer) ? (parsed.siteOptimizer as SiteOptimizerState) : {},
+    consents: arrayOrEmpty<ConsentRecord>(parsed.consents),
+    processedKeys: arrayOrEmpty<ProcessedKeyRecord>(parsed.processedKeys),
   };
 }
 
@@ -337,7 +344,9 @@ function flushToDisk(db: DbShape): void {
   try {
     const fd = fs.openSync(/*turbopackIgnore: true*/ tmp, "w");
     try {
-      fs.writeSync(fd, JSON.stringify(db, null, 2));
+      // Personal fields are encrypted on the way to disk when PII_ENCRYPTION_KEY is set
+      // (see src/lib/crypto/pii-snapshot.ts); memory always holds plain values.
+      fs.writeSync(fd, JSON.stringify(sealSnapshot(db), null, 2));
       fs.fsyncSync(fd);
     } finally {
       fs.closeSync(fd);
@@ -366,7 +375,7 @@ function flushToDisk(db: DbShape): void {
 
 /** Reads and validates one snapshot file. Throws if it is missing, unreadable or not valid JSON. */
 function readSnapshot(file: string): DbShape {
-  return normalize(JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8")) as unknown);
+  return normalize(openSnapshot(JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8")) as unknown));
 }
 
 /**

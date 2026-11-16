@@ -22,6 +22,12 @@ function stateTone(state: NurtureDashboardRow["state"]): string {
   return "bg-amber-100 text-amber-800";
 }
 
+function scoreTone(band: NurtureDashboardRow["leadScoreBand"]): string {
+  if (band === "hot") return "bg-emerald-400/20 text-emerald-100";
+  if (band === "warm") return "bg-amber-400/20 text-amber-100";
+  return "bg-white/10 text-white";
+}
+
 function urgencyTone(urgency: NurtureDashboardRow["urgency"]): string {
   if (urgency === "critical") return "border-rose-400/40 bg-rose-400/15 text-rose-200";
   if (urgency === "high") return "border-amber-400/40 bg-amber-400/15 text-amber-100";
@@ -199,11 +205,24 @@ export function NurturePipeline({ rows }: NurturePipelineProps) {
                     <p className="mt-1 text-xs text-white/60">
                       {row.creditTier} · {row.timeline}
                     </p>
+                    <p className="mt-1 text-xs text-white/60">Program fit {row.score}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 font-semibold">
-                      {row.score}
-                    </span>
+                    <div className="flex items-start gap-3">
+                      <span
+                        className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-semibold ${scoreTone(row.leadScoreBand)}`}
+                        aria-label={`Lead score ${row.leadScore} out of 100, ${row.leadScoreBand}`}
+                      >
+                        {row.leadScore}
+                      </span>
+                      {row.leadScoreReasons.length > 0 ? (
+                        <ul className="max-w-[14rem] space-y-0.5 text-xs text-white/60">
+                          {row.leadScoreReasons.map((reason) => (
+                            <li key={reason}>{reason}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <span

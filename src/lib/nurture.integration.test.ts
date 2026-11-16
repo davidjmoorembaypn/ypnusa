@@ -150,6 +150,19 @@ describe("borrower nurture and booking integration", async () => {
     );
   });
 
+  it("shows a 0-100 readiness score with up to 3 reasons and no contact details", () => {
+    const dashboard = buildNurtureDashboard(lead.assignedLoId);
+    assert.ok(dashboard.rows.length > 0);
+    for (const row of dashboard.rows) {
+      assert.ok(row.leadScore >= 0 && row.leadScore <= 100);
+      assert.ok(["hot", "warm", "nurture"].includes(row.leadScoreBand));
+      assert.ok(row.leadScoreReasons.length <= 3);
+      const text = row.leadScoreReasons.join(" ");
+      if (lead.answers.email) assert.ok(!text.includes(lead.answers.email));
+      if (lead.answers.phone) assert.ok(!text.includes(lead.answers.phone));
+    }
+  });
+
   it("surfaces an agent escalation only past the initial routing alert, ranked ahead of urgency/score", () => {
     const rankedLeads: BorrowerLeadRecord[] = [
       { ...lead, id: "lead_no_escalation", qualification: { ...lead.qualification, urgency: "critical" } },

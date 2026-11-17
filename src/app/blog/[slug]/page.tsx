@@ -13,10 +13,10 @@ import { homeTrail, topicTrail } from "@/lib/seo/breadcrumbs";
 import { AUTHOR_NAME } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { getPostCluster, getRelatedPosts, isThinPost } from "@/lib/seo/clusters";
-import { prepareWpHtml } from "@/lib/wp-html";
 import { clampDescription } from "@/lib/seo/meta-description";
 import { NextStepBlock } from "@/components/next-step";
 import { nextStepForCluster } from "@/lib/cta/next-steps";
+import { blogImageFor, blogBodyHtml } from "@/lib/blog-images";
 
 export function generateStaticParams() {
   return ALL_BLOG_POSTS.map((post) => ({ slug: post.slug }));
@@ -36,7 +36,8 @@ export async function generateMetadata({
   if (isThinPost(post)) {
     return { title, robots: { index: false, follow: true }, alternates: { canonical: url } };
   }
-  const image = socialImageFor(origin);
+  const photo = blogImageFor(post.slug);
+  const image = photo ? { url: photo.ogUrl, width: 1200, height: 630, alt: photo.alt } : socialImageFor(origin);
   const socialTitle = post.metaTitle ?? post.title;
   const description = clampDescription(post.description);
   return {
@@ -97,6 +98,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const cluster = getPostCluster(post.slug);
   const related = getRelatedPosts(post.slug, 5);
   const byFounder = post.author === AUTHOR_NAME;
+  const photo = blogImageFor(post.slug);
   // Home > Topics > Pillar > Post (the plan's trail); Home > Blog > Post when the post has no pillar.
   const crumbs = cluster
     ? topicTrail(cluster, post)
@@ -115,7 +117,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       : { "@type": "Person", name: post.author },
     // Always the marketing-site entity id (see layout.tsx's @graph).
     publisher: { "@id": ORGANIZATION_ID },
-    image: `${origin}/opengraph-image`,
+    image: photo
+      ? [
+          { "@type": "ImageObject", url: photo.url, width: photo.width, height: photo.height },
+          { "@type": "ImageObject", url: photo.ogUrl, width: 1200, height: 630 },
+        ]
+      : `${origin}/opengraph-image`,
     mainEntityOfPage: `${origin}/blog/${post.slug}`,
   };
 
@@ -136,7 +143,24 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{post.title}</h1>
           {post.byline ? <p className="mt-3 text-sm text-slate-600">{post.byline}</p> : null}
-          <div className={`mt-10 ${PROSE}`} dangerouslySetInnerHTML={{ __html: prepareWpHtml(post.html, true).html }} />
+          {photo ? (
+            <figure className="mt-8">
+              {/* The header photo is this page's largest element: load it first, never lazily. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.src}
+                srcSet={photo.srcSet}
+                sizes="(min-width: 768px) 720px, 100vw"
+                width={photo.width}
+                height={photo.height}
+                alt={photo.alt}
+                fetchPriority="high"
+                decoding="async"
+                className="aspect-[16/9] w-full rounded-2xl bg-slate-100 object-cover shadow-sm"
+              />
+            </figure>
+          ) : null}
+          <div className={`mt-10 ${PROSE}`} dangerouslySetInnerHTML={{ __html: blogBodyHtml(post.html, Boolean(photo)) }} />
           {post.faq?.length ? (
             <section aria-labelledby="post-faq-heading" className="mt-12">
               <h2 id="post-faq-heading" className="text-2xl font-semibold tracking-tight text-slate-900">

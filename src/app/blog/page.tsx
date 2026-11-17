@@ -11,6 +11,7 @@ import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { LIBRARY_GUIDES } from "@/content/library-guides";
 import { needsFullPageLoad } from "@/lib/wp-html";
+import { PostThumb } from "@/components/blog/post-thumb";
 
 export async function generateMetadata(): Promise<Metadata> {
   const origin = MARKETING_SITE_URL;
@@ -67,18 +68,21 @@ export default function BlogIndexPage() {
               ))}
             </nav>
             <div className="space-y-6">
-              {posts.map((post) => (
+              {posts.map((post, i) => (
                 <Link
                   key={post.slug}
                   href={`/blog/${post.slug}`}
-                  className="block rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md md:p-8"
+                  className="grid gap-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md sm:grid-cols-[220px_1fr] sm:items-center md:p-6"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                    {formatDate(post.date)} · {post.readingMinutes} min read
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">{post.title}</h2>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{post.description}</p>
-                  <span className="mt-4 inline-flex text-sm font-semibold text-violet-700">Read the guide →</span>
+                  <PostThumb slug={post.slug} eager={i < 2} />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                      {formatDate(post.date)} · {post.readingMinutes} min read
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-900">{post.title}</h2>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-600">{post.description}</p>
+                    <span className="mt-4 inline-flex text-sm font-semibold text-violet-700">Read the guide →</span>
+                  </div>
                 </Link>
               ))}
             </div>

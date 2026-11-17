@@ -1,0 +1,42 @@
+name: Blog images
+
+# Downloads the blog header photos listed in src/content/blog-images/photos.json into
+# public/images/blog/ (scripts/fetch-blog-images.mjs) and commits them to the same branch.
+# Runs on branches only, never main: the photos land in a pull request first. A commit made
+# with GITHUB_TOKEN does not trigger workflows, so this cannot loop.
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - src/content/blog-images/photos.json
+      - scripts/fetch-blog-images.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-images-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/fetch-blog-images.mjs
+      - name: Commit new photos
+        run: |
+          set -euo pipefail
+          git add -A public/images/blog
+          if git diff --cached --quiet; then
+            echo "No photo changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Download blog header photos"
+          git push

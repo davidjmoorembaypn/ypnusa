@@ -14,6 +14,7 @@ import { topicTrail } from "@/lib/seo/breadcrumbs";
 import { TOPIC_GUIDES } from "@/content/topic-guides";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { needsFullPageLoad } from "@/lib/wp-html";
+import { PostThumb } from "@/components/blog/post-thumb";
 
 export const dynamicParams = false;
 
@@ -128,12 +129,17 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
             <h2 className="text-2xl font-semibold">All {posts.length} guides in this topic</h2>
             <ul className="mt-6 space-y-4">
               {posts.map((post) => (
-                <li key={post.slug} className="rounded-2xl border border-slate-200 p-5">
-                  <Link href={`/blog/${post.slug}`} className="text-lg font-semibold text-violet-700 hover:underline">
-                    {post.title}
+                <li key={post.slug} className="grid gap-4 rounded-2xl border border-slate-200 p-5 sm:grid-cols-[160px_1fr] sm:items-center">
+                  <Link href={`/blog/${post.slug}`} tabIndex={-1} aria-hidden="true">
+                    <PostThumb slug={post.slug} className="rounded-xl" />
                   </Link>
-                  <p className="mt-1 text-sm text-slate-600">{post.description}</p>
-                  <p className="mt-2 text-xs text-slate-500">{formatDate(post.date)} · {post.readingMinutes} min read</p>
+                  <div>
+                    <Link href={`/blog/${post.slug}`} className="text-lg font-semibold text-violet-700 hover:underline">
+                      {post.title}
+                    </Link>
+                    <p className="mt-1 text-sm text-slate-600">{post.description}</p>
+                    <p className="mt-2 text-xs text-slate-500">{formatDate(post.date)} · {post.readingMinutes} min read</p>
+                  </div>
                 </li>
               ))}
             </ul>

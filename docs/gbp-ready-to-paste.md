@@ -88,7 +88,7 @@ If your dashboard still offers Q&A, post these. The first two and the fourth als
 | File | Change |
 | --- | --- |
 | `src/lib/business-profile.ts` | New: one source for name, address, phone, hours, description and the 6 services |
-| `src/app/layout.tsx` | Site-wide Organization + ProfessionalService schema now uses it: alternate name, description, hours, nationwide + Central Valley service area, 6-service offer catalog. Open Graph site name is now "YPN USA" |
+| `src/app/layout.tsx` | Site-wide Organization + ProfessionalService schema now uses it: legal name YPN Inc., description, hours, nationwide + Central Valley service area, 6-service offer catalog. Open Graph site name is now "YPN USA" |
 | `src/app/page.tsx` | Homepage FAQ (visible accordion + FAQPage schema): added "What is YPN USA", "Where is YPN USA located", reworded the ZIP code question |
 | `src/components/site-footer.tsx` | Footer line now reads "YPN USA · 247 N L St, Dinuba, CA 93618 · (559) 512-0372" |
 | `src/content/wp-import/pages.json` | Agent page company line: "YPN INC" to "YPN USA" |
@@ -101,6 +101,6 @@ robots.txt: already allowed `/`, blocked `/api/`, `/dashboard/`, `/admin/`, `/em
 Old references searched for:
 - `http://ypnus.com`: only in the Search Console reporting code, which must match Google's property names. Left alone.
 - Old Reedley address (1522 River Bluff Dr, 93654): not found.
-- "Young Professional Networks Inc": not found. "Young Professionals Network" appears once, in the description of the imported book page (/top-9-real-estate-leads-book). Left for you to decide.
+- Old business name: removed everywhere (Nov 17, 2026). The company is YPN Inc. and the brand is YPN USA. Use no other business name in Google.
 - "YPN Inc." / "YPN INC": kept in legal and publisher text (Terms, Privacy, Licensing, Accessibility, comparison page disclosures, the copyright line, the consent checkbox text, `legalName` in the schema). YPN Inc. is still the legal company name (confirmed Nov 17, 2026).
 - LinkedIn: every link and schema entry now points to linkedin.com/in/davidjmoorembaypninc (confirmed Nov 17, 2026). The old /in/davidjmooreypn link is gone.

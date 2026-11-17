@@ -3,6 +3,8 @@ import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { FREE_SIGNUP_HREF } from "@/lib/checkout";
+import { BUSINESS_ADDRESS_LINE, BUSINESS_NAME, BUSINESS_TELEPHONE_DISPLAY } from "@/lib/business-profile";
+import { BUSINESS_PHONE_E164 } from "@/lib/author";
 
 export function SiteFooter() {
   return (
@@ -145,7 +147,12 @@ export function SiteFooter() {
               NMLS Consumer Access
             </a>
           </p>
-          <p>YPN Inc. · 247 N L Street, Dinuba, CA 93618</p>
+          <p>
+            {BUSINESS_NAME} · {BUSINESS_ADDRESS_LINE} ·{" "}
+            <a href={`tel:${BUSINESS_PHONE_E164}`} className="inline-block py-2 underline transition hover:text-white">
+              {BUSINESS_TELEPHONE_DISPLAY}
+            </a>
+          </p>
         </div>
       </div>
     </footer>

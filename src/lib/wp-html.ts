@@ -155,6 +155,21 @@ function srcPath(src: string): string | null {
   return m[2];
 }
 
+/**
+ * True for a <meta> tag that only makes sense in a document <head> (charset, http-equiv or
+ * name="viewport"), read as real attributes so words inside another attribute's quoted value
+ * never count. Microdata (<meta itemprop>) is never document metadata.
+ */
+function isDocumentMeta(tag: string): boolean {
+  const attrs = new Map<string, string>();
+  const attrRe = /([^\s=/>"']+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+)))?/g;
+  for (const m of tag.replace(/^<meta\b/i, "").matchAll(attrRe)) {
+    attrs.set(m[1].toLowerCase(), (m[2] ?? m[3] ?? m[4] ?? "").trim().toLowerCase());
+  }
+  if (attrs.has("itemprop")) return false;
+  return attrs.has("charset") || attrs.has("http-equiv") || attrs.get("name") === "viewport";
+}
+
 /** Link and asset cleanup for imported WordPress HTML. Safe to run more than once. */
 export function normalizeWpHtml(html: string): string {
   let out = html;
@@ -169,10 +184,7 @@ export function normalizeWpHtml(html: string): string {
     .map((part) => (/^<svg\b/i.test(part) ? part : part.replace(/<title\b[^>]*>[\s\S]*?<\/title>\s*/gi, "")))
     .join("");
   // Only real document metadata (charset, viewport, http-equiv as attributes); microdata <meta itemprop> stays.
-  out = out.replace(
-    /<meta\b(?![^>]*\sitemprop\s*=)(?=[^>]*\s(?:charset\s*=|http-equiv\s*=|name\s*=\s*["']?viewport["'\s>]))[^>]*>\s*/gi,
-    "",
-  );
+  out = out.replace(/<meta\b(?:[^>"']|"[^"]*"|'[^']*')*>\s*/gi, (tag) => (isDocumentMeta(tag) ? "" : tag));
   out = out.replace(/<\/?(?:html|head|body)\b[^>]*>\s*/gi, "");
 
   // WordPress-only endpoints.

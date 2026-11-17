@@ -12,9 +12,8 @@
  *   <key>-480.webp   480x270  thumbnail on /blog and topic pages
  *   <key>-og.jpg    1200x630  social share image (og:image, twitter:image, JSON-LD)
  *
- * Files already downloaded within budget are kept, so only new photos download. Files for
- * photos no longer in the
-^ * manifest are deleted. Run by .github/workflows/blog-images.yml when photos.json changes
+ * Files already present are kept, so only new photos download; files for photos no longer
+ * in the manifest are deleted. Run by .github/workflows/blog-images.yml when photos.json changes
  * on a branch; it can also be run locally with `node scripts/fetch-blog-images.mjs`.
  */
 import fs from "node:fs/promises";
@@ -75,8 +74,8 @@ for (const key of Object.keys(photos)) {
     wanted.add(name);
     const file = path.join(OUT_DIR, name);
     try {
-      // Keep a file already downloaded within its budget; re-fetch one that is over it.
-      if ((await fs.stat(file)).size <= v.maxBytes) continue;
+      await fs.access(file);
+      continue;
     } catch {}
     try {
       await download(key, v, file);

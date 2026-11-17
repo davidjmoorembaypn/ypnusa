@@ -68,3 +68,12 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* Imported WordPress pages: a link inside running text must not rely on color alone
+   (WCAG 1.4.1; Lighthouse "link-in-text-block" on /how-it-works). */
+.ypn-pg p a:not(.btn),
+.ypn-pg li a:not(.btn),
+.ypn-p p a:not(.btn) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

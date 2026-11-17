@@ -1,5 +1,6 @@
 import type { AnalyticsEventRecord, DemoRequestRecord, PaymentConversionRecord, RevenueSubscriptionRecord } from "@/lib/types";
 import type { ConversionSummary } from "@/lib/conversions";
+import { isTerritoryRequest } from "@/lib/lead-sources";
 
 /**
  * Owner-facing results funnel: territory requests -> trials -> active paid plans -> verified payments.
@@ -10,7 +11,7 @@ import type { ConversionSummary } from "@/lib/conversions";
 
 export interface ResultsFunnelInput {
   analyticsEvents: Pick<AnalyticsEventRecord, "type" | "createdAt">[];
-  demoRequests: Pick<DemoRequestRecord, "createdAt">[];
+  demoRequests: Pick<DemoRequestRecord, "createdAt" | "source">[];
   revenueSubscriptions: Pick<RevenueSubscriptionRecord, "status" | "source" | "startedAt">[];
   paymentConversions: Pick<PaymentConversionRecord, "paidAt">[];
   conversions: Pick<ConversionSummary, "qualifyingConversions" | "paidButNotFulfilled" | "goal">;
@@ -47,13 +48,15 @@ export function buildResultsFunnel(input: ResultsFunnelInput): ResultsFunnel {
   const now = input.now ?? new Date();
   const real = input.revenueSubscriptions.filter((item) => item.source !== "seed");
 
+  // Contact messages and briefing sign-ups share the lead endpoint but are not territory requests.
+  const requests = input.demoRequests.filter(isTerritoryRequest);
   const ctaClicks = input.analyticsEvents.filter((event) => event.type === "funnel_cta_clicked");
   const trials = real.filter((item) => item.status === "trialing");
   const active = real.filter((item) => item.status === "active");
 
   const raw: Array<Omit<FunnelStage, "conversionFromPrevious">> = [
     { id: "cta_clicks", label: "Clicked a call to action", total: ctaClicks.length, last7Days: ctaClicks.filter((e) => withinDays(e.createdAt, 7, now)).length },
-    { id: "requests", label: "Requested a territory", total: input.demoRequests.length, last7Days: input.demoRequests.filter((r) => withinDays(r.createdAt, 7, now)).length },
+    { id: "requests", label: "Requested a territory", total: requests.length, last7Days: requests.filter((r) => withinDays(r.createdAt, 7, now)).length },
     { id: "trials", label: "Started a trial", total: trials.length, last7Days: trials.filter((s) => withinDays(s.startedAt, 7, now)).length },
     { id: "active", label: "Active paid plan", total: active.length, last7Days: active.filter((s) => withinDays(s.startedAt, 7, now)).length },
     {

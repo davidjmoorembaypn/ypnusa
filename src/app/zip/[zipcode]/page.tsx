@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LocationPage } from "@/components/local-seo/location-page";
+import { clampDescription, firstSentence } from "@/lib/seo/meta-description";
+import { socialImageFor } from "@/lib/seo";
 import {
   LOCAL_SEO_PROFILES,
   LOCAL_SEO_PUBLIC_ORIGIN,
@@ -26,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const path = getLocalSeoPath(profile);
   const title = `Mortgage Help in ${profile.city}, ${profile.stateCode} ${profile.slug}`;
-  const description = `${profile.introduction} Review public local resources and connect with a licensed loan officer for ZIP code ${profile.slug}.`;
+  // Lead with the page's first sentence and the next step: the full introduction runs ~300 characters.
+  const description = clampDescription(`${firstSentence(profile.introduction)} Connect with a licensed loan officer for ZIP code ${profile.slug}.`);
 
   return {
     title,
@@ -44,6 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       siteName: "YPN USA",
+      images: [socialImageFor(LOCAL_SEO_PUBLIC_ORIGIN)],
     },
     robots: { index: true, follow: true },
   };

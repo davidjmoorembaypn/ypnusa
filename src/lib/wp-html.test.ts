@@ -19,7 +19,7 @@ test("same-site hrefs lose trailing slashes and absolute ypnus.com hosts", () =>
 
 test("query strings and fragments are kept", () => {
   assert.equal(normalizeWpHref("https://ypnus.com/pricing/?plan=pro#faq"), "/pricing?plan=pro#faq");
-  assert.equal(normalizeWpHref("/blog/?utm_source=x"), "/blog?utm_source=x");
+  assert.equal(normalizeWpHref("/blog/?ref=x"), "/blog?ref=x");
   assert.equal(normalizeWpHref("https://ypnus.com/lo-signup.html?plan=free"), "/login?next=%2Fonboarding");
 });
 
@@ -145,5 +145,57 @@ test("replaces old file-name link text in imported posts with words", () => {
   assert.match(out, />whether your ZIP code is open<\/a>/);
   assert.match(out, />create your free account<\/a>/);
   assert.doesNotMatch(out, /\.html<\/a>/);
-  assert.match(out, /href="\/claim-territory\?utm_source=ypnus"/);
+  assert.match(out, /href="\/claim-territory"/);
+});
+
+test("campaign tags come off internal links, other parameters stay", () => {
+  assert.equal(normalizeWpHref("/blog/?utm_source=x"), "/blog");
+  assert.equal(
+    normalizeWpHref("https://ypnus.com/pricing?utm_source=ypnus&utm_medium=cta&utm_campaign=post_x&utm_content=depth"),
+    "/pricing",
+  );
+  assert.equal(normalizeWpHref("/claim-territory?utm_source=ypnus&amp;zip=93277&amp;utm_medium=body#form"), "/claim-territory?zip=93277#form");
+  assert.equal(normalizeWpHref("/pricing?plan=pro&utm_source=a"), "/pricing?plan=pro");
+  // Other sites keep their tags: that is how they credit a visit from us.
+  assert.equal(
+    normalizeWpHref("https://toinvested.com/property-analyzer/?utm_source=ypnus"),
+    "https://toinvested.com/property-analyzer/?utm_source=ypnus",
+  );
+});
+
+test("WordPress ZIP code forms submit to the live checker without campaign tags", () => {
+  const html =
+    '<form class="zipf" action="https://ypnus.com/check-zip.html" method="get"><input type="hidden" name="utm_source" value="guide">' +
+    '<input type="hidden" name="utm_medium" value="zip_form"><input name="zip" type="text"></form>';
+  const out = normalizeWpHtml(html);
+  assert.match(out, /<form class="zipf" action="\/claim-territory" method="get">/);
+  assert.doesNotMatch(out, /utm_/);
+  assert.match(out, /<input name="zip" type="text">/);
+});
+
+test("the dead WordPress briefing script is removed, other scripts stay", () => {
+  const html =
+    '<form id="ypnHubBrief"></form><script>(function(){fetch("/wp-json/ypnusa-homepage/v1/lead",{method:"POST"})})();</script>' +
+    "<script>var calc = 1;</script>";
+  const out = normalizeWpHtml(html);
+  assert.doesNotMatch(out, /ypnusa-homepage/);
+  assert.match(out, /<script>var calc = 1;<\/script>/);
+  assert.match(out, /<form method="post" id="ypnHubBrief"><\/form>/);
+});
+
+test("WordPress's &#038; escapes are separators, not fragments", () => {
+  assert.equal(normalizeWpHref("https://ypnus.com/pricing-plans/?utm_source=ypnus&#038;utm_medium=cta&#038;utm_campaign=x"), "/pricing");
+  assert.equal(normalizeWpHref("/pricing?a=1&#38;b=2&#038;utm_source=x#faq"), "/pricing?a=1&amp;b=2#faq");
+});
+
+test("bridged lead forms post even before JavaScript loads", () => {
+  const out = normalizeWpHtml('<form id="contact-form"><input name="ct_name"></form><form id="other"></form>');
+  assert.match(out, /<form method="post" id="contact-form">/);
+  assert.match(out, /<form id="other">/);
+  assert.match(normalizeWpHtml('<form class="brief" id="ypnHubBrief" novalidate>'), /<form method="post" class="brief" id="ypnHubBrief" novalidate>/);
+});
+
+test("only real hidden utm inputs are removed", () => {
+  const html = '<input data-type="hidden" name="utm_source"><input type="hidden" name="utm_medium" value="x">';
+  assert.equal(normalizeWpHtml(html), '<input data-type="hidden" name="utm_source">');
 });

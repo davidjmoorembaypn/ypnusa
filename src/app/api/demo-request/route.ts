@@ -1,6 +1,7 @@
 import { addDemoRequestDetails, appendAnalytics, appendDemoRequest } from "@/lib/db";
 import { isRecord, jsonError, jsonOk, logApiError, parseJsonBody } from "@/lib/http";
 import { generateId } from "@/lib/id";
+import { LEAD_MESSAGE_MAX_LENGTH } from "@/lib/lead-sources";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { isValidZip, normalizeZip } from "@/lib/territory";
@@ -99,6 +100,19 @@ async function handlePatch(request: Request) {
   }
 }
 
+/** Forms that never ask for a ZIP code get a reply about what they did send. */
+const NO_ZIP_REPLIES: Readonly<Record<string, string>> = {
+  contact_page: "Message sent. We'll be in touch within 1 business day.",
+  mlo_hub_briefing: "Thanks, you're on the list.",
+};
+
+/** First line of the owner's email, so a contact message doesn't read as a demo request. */
+function leadHeading(source: string | undefined): string {
+  if (source === "contact_page") return "New contact form message";
+  if (source === "mlo_hub_briefing") return "New MLO briefing sign-up";
+  return "New demo request";
+}
+
 async function handlePost(request: Request) {
   try {
     const limited = enforceRateLimit(request, {
@@ -148,7 +162,7 @@ async function handlePost(request: Request) {
       role: optionalText(body.role, 80),
       zip: zip || undefined,
       monthlyLeadVolume: optionalText(body.monthlyLeadVolume, 40),
-      message: optionalText(body.message, 1000),
+      message: optionalText(body.message, LEAD_MESSAGE_MAX_LENGTH),
       source: optionalText(body.source, 80) ?? "marketing_site",
       status: "new",
       // Not rejected when absent yet: ypnus.com's own marketing forms call this
@@ -184,7 +198,7 @@ async function handlePost(request: Request) {
       kind: "demo_request",
       replyTo: record.workEmail,
       summaryHtml: `
-        <h2>New demo request</h2>
+        <h2>${escapeHtml(leadHeading(record.source))}</h2>
         <p><strong>${escapeHtml(record.name)}</strong>${record.company ? ` (${escapeHtml(record.company)})` : ""}</p>
         <p>Email: ${escapeHtml(record.workEmail)}</p>
         ${record.phone ? `<p>Phone: ${escapeHtml(record.phone)}</p>` : ""}
@@ -204,7 +218,9 @@ async function handlePost(request: Request) {
       message:
         territory && !territory.available
           ? "We've logged your request and added you to the waitlist for that territory."
-          : "Your inquiry is saved. This does not reserve a ZIP code. Availability and paid-plan activation must be confirmed before exclusivity begins.",
+          : !zip && record.source && Object.hasOwn(NO_ZIP_REPLIES, record.source)
+            ? NO_ZIP_REPLIES[record.source]
+            : "Your inquiry is saved. This does not reserve a ZIP code. Availability and paid-plan activation must be confirmed before exclusivity begins.",
     });
   } catch (error) {
     logApiError("/api/demo-request", error);

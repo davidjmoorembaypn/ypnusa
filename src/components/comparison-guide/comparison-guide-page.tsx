@@ -7,7 +7,7 @@ import { homeTrail } from "@/lib/seo/breadcrumbs";
 import { FOUNDER_ID, ORGANIZATION_ID, faqJsonLd, jsonLdScript } from "@/lib/seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { AUTHOR_NAME, NMLS_ID } from "@/lib/author";
-import type { ComparisonGuide, GuideOption } from "@/content/comparison-guides";
+import type { ComparisonGuide, GuideImage, GuideOption } from "@/content/comparison-guides";
 
 /**
  * "Best X" / "X alternatives" guides for loan officers (src/content/comparison-guides.ts).
@@ -25,6 +25,39 @@ export function formatGuideDate(date: string) {
     day: "numeric",
     timeZone: "UTC",
   });
+}
+
+/** Paths of a blog-library photo: 1200x675 WebP, 480px WebP and a 1200x630 JPEG for sharing. */
+export function guidePhoto(image: GuideImage) {
+  return {
+    src: `/images/blog/${image.key}.webp`,
+    srcSet: `/images/blog/${image.key}-480.webp 480w, /images/blog/${image.key}.webp 1200w`,
+    og: `/images/blog/${image.key}-og.jpg`,
+    width: 1200,
+    height: 675,
+    alt: image.alt,
+  };
+}
+
+function GuidePhoto({ image, priority = false, className = "" }: { image: GuideImage; priority?: boolean; className?: string }) {
+  const photo = guidePhoto(image);
+  return (
+    <figure className={className}>
+      {/* Self-hosted blog-library photo with fixed dimensions, so nothing shifts while it loads. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photo.src}
+        srcSet={photo.srcSet}
+        sizes="(min-width: 1024px) 896px, 100vw"
+        width={photo.width}
+        height={photo.height}
+        alt={photo.alt}
+        {...(priority ? { fetchPriority: "high" as const } : { loading: "lazy" as const })}
+        decoding="async"
+        className="aspect-[16/9] w-full rounded-2xl bg-slate-100 object-cover shadow-sm"
+      />
+    </figure>
+  );
 }
 
 function optionAnchor(option: GuideOption) {
@@ -53,6 +86,14 @@ export function guideJsonLd(guide: ComparisonGuide, origin: string = MARKETING_S
         isPartOf: { "@type": "WebSite", url: origin, name: "YPN USA" },
         about: guide.about.map((name) => ({ "@type": "Thing", name })),
         mainEntity: { "@id": `${url}#list` },
+        primaryImageOfPage: {
+          "@type": "ImageObject",
+          url: `${origin}${guidePhoto(guide.images.hero).src}`,
+          width: 1200,
+          height: 675,
+          caption: guide.images.hero.alt,
+        },
+        image: `${origin}${guidePhoto(guide.images.hero).og}`,
       },
       {
         "@type": "ItemList",
@@ -150,6 +191,7 @@ export function ComparisonGuidePage({ guide, origin = MARKETING_SITE_URL }: { gu
             <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-amber-800">{guide.eyebrow}</p>
             <h1 className="mt-3 text-balance text-4xl font-semibold leading-tight text-[#13254a] lg:text-5xl">{guide.h1}</h1>
             <p className="mt-5 text-lg leading-relaxed text-slate-700">{guide.intro}</p>
+            <GuidePhoto image={guide.images.hero} priority className="mt-8" />
             <p className="mt-5 text-sm text-slate-600">
               By{" "}
               <Link href={AUTHOR_PATH} rel="author" className="font-semibold text-[#13254a] underline">
@@ -223,6 +265,7 @@ export function ComparisonGuidePage({ guide, origin = MARKETING_SITE_URL }: { gu
         </section>
 
         <div className="mx-auto w-full max-w-4xl space-y-10 px-4 pb-12 sm:px-6">
+          {guide.images.inline[0] ? <GuidePhoto image={guide.images.inline[0]} /> : null}
           {guide.baseline ? <OptionSection option={guide.baseline} heading={`First, what ${guide.baseline.trademarkName ?? guide.baseline.name} offers`} /> : null}
           {guide.options.map((option, index) => (
             <OptionSection key={option.id} option={option} heading={`${index + 1}. ${option.name}`} />
@@ -231,6 +274,7 @@ export function ComparisonGuidePage({ guide, origin = MARKETING_SITE_URL }: { gu
 
         <section className="border-t border-slate-200 py-12">
           <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
+            {guide.images.inline[1] ? <GuidePhoto image={guide.images.inline[1]} className="mb-8" /> : null}
             <h2 className="text-2xl font-semibold text-[#13254a]">How to choose</h2>
             <ul className="mt-4 list-disc space-y-2 pl-5 leading-7 text-slate-700">
               {guide.howToChoose.map((line) => (

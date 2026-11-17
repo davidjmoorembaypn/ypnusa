@@ -36,6 +36,13 @@ export interface GuideOption {
   isYpn?: boolean;
 }
 
+/** A photo from the blog library (src/content/blog-images/photos.json, Unsplash License, files in public/images/blog). */
+export interface GuideImage {
+  key: string;
+  /** Alt text written for this page. */
+  alt: string;
+}
+
 export interface ComparisonGuide {
   slug: string;
   path: string;
@@ -53,6 +60,8 @@ export interface ComparisonGuide {
   shortAnswer: string[];
   tableCaption: string;
   columns: { key: string; label: string }[];
+  /** Header photo, then up to two in-body photos (after the table, before "How to choose"). */
+  images: { hero: GuideImage; inline: GuideImage[] };
   /** The product the page is about, when it is an "alternatives" page. Shown first, not in the ItemList. */
   baseline?: GuideOption;
   options: GuideOption[];
@@ -134,6 +143,13 @@ export const BEST_AI_ASSISTANTS_GUIDE: ComparisonGuide = {
     "Working mainly with past clients rather than new inquiries? Homebot's HomebotAI focuses on client signals and referral partners.",
     "Buying for a whole lender, bank or credit union? Total Expert and Addy AI are built and sold for institutions.",
   ],
+  images: {
+    hero: { key: "photo-1758519288445-5847dd89f313", alt: "Loan officer in a suit on a phone call at his desk, laptop open beside him" },
+    inline: [
+      { key: "photo-1744640326166-433469d102f2", alt: "Circuit board with a glowing chip labeled AI" },
+      { key: "photo-1568658176307-bfbd2873abda", alt: "Two colleagues comparing software options on a laptop" },
+    ],
+  },
   tableCaption: "AI assistants for mortgage loan officers compared on what the AI does, borrower contact, published price and fit",
   columns: AI_COLUMNS,
   options: [
@@ -382,6 +398,13 @@ export const LEADPOPS_ALTERNATIVES_GUIDE: ComparisonGuide = {
     "Want landing pages inside a full CRM with AI calling? Shape, priced by quote.",
     "Already have leads and need follow-up or past-client engagement, not a website? Bonzo or Homebot.",
   ],
+  images: {
+    hero: { key: "photo-1558174685-430919a96c8d", alt: "Laptop showing a website on a sunny desk with plants and a coffee mug" },
+    inline: [
+      { key: "photo-1551288049-bebda4e38f71", alt: "Website traffic and conversion charts on a laptop screen" },
+      { key: "photo-1713946598501-d6b32e7c2464", alt: "Loan officer smiling on a phone call while working on her laptop" },
+    ],
+  },
   tableCaption: "LeadPops and six alternatives compared on what you get, website and lead capture, published price and fit",
   columns: LEADPOPS_COLUMNS,
   baseline: {
@@ -629,6 +652,13 @@ export const ZILLOW_ALTERNATIVES_GUIDE: ComparisonGuide = {
     "Want to stop renting leads and build demand under your own name? YPN USA gives you a local page, an AI that answers borrowers and a ZIP code no other YPN USA loan officer can claim, starting free.",
     "Want more business from people who already know you? Homebot works your past clients instead of buying leads.",
   ],
+  images: {
+    hero: { key: "photo-1758304480344-f8d0de5f4f25", alt: "Aerial view of a suburban neighborhood with homes, trees and hills" },
+    inline: [
+      { key: "photo-1725379448168-e33c5e09d47e", alt: "For sale sign in front of a home" },
+      { key: "photo-1722680001761-75450b9f085e", alt: "Hand placing colored pins on a city map to mark local areas" },
+    ],
+  },
   tableCaption: "Zillow and six alternatives compared on lead source, sharing, how you pay and fit",
   columns: ZILLOW_COLUMNS,
   baseline: {

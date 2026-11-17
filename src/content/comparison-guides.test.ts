@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import sitemap from "../app/sitemap";
 import { COMPARISON_GUIDES, type ComparisonGuide, type GuideOption } from "./comparison-guides";
+import photos from "./blog-images/photos.json";
 
 function allOptions(guide: ComparisonGuide): GuideOption[] {
   return guide.baseline ? [guide.baseline, ...guide.options] : guide.options;
@@ -71,6 +72,19 @@ describe("comparison guides", () => {
             assert.match(source.checked, /^\d{4}-\d{2}-\d{2}$/);
             assert.ok(source.url.startsWith("https://") || source.url.startsWith("/"), source.url);
           }
+        }
+      });
+
+      it("uses licensed library photos that exist on disk, with alt text", () => {
+        const images = [guide.images.hero, ...guide.images.inline];
+        assert.ok(guide.images.inline.length >= 1 && guide.images.inline.length <= 2);
+        for (const image of images) {
+          assert.ok((photos as Record<string, unknown>)[image.key], image.key);
+          for (const suffix of [".webp", "-480.webp", "-og.jpg"]) {
+            assert.ok(existsSync(join(process.cwd(), "public/images/blog", `${image.key}${suffix}`)), `${image.key}${suffix}`);
+          }
+          assert.ok(image.alt.length >= 15, image.alt);
+          assert.ok(!/[\u2013\u2014]/.test(image.alt), image.alt);
         }
       });
 

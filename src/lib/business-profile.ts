@@ -11,7 +11,7 @@ import { AUTHOR_PROFILES, BUSINESS_EMAIL, BUSINESS_PHONE_DISPLAY } from "@/lib/a
  */
 export const BUSINESS_NAME = "YPN USA";
 export const BUSINESS_ALTERNATE_NAME = "Young Professional Networks Inc";
-/** Legal entity used in Terms, Privacy and disclosures. Left as-is until David confirms it. */
+/** Legal entity used in Terms, Privacy and disclosures (David confirmed Nov 17, 2026). */
 export const BUSINESS_LEGAL_NAME = "YPN INC";
 export const BUSINESS_TELEPHONE = "+1-559-512-0372";
 export const BUSINESS_TELEPHONE_DISPLAY = BUSINESS_PHONE_DISPLAY;

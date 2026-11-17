@@ -102,4 +102,5 @@ Old references searched for:
 - `http://ypnus.com`: only in the Search Console reporting code, which must match Google's property names. Left alone.
 - Old Reedley address (1522 River Bluff Dr, 93654): not found.
 - "Young Professional Networks Inc": not found. "Young Professionals Network" appears once, in the description of the imported book page (/top-9-real-estate-leads-book). Left for you to decide.
-- "YPN Inc." / "YPN INC": left in legal and publisher text (Terms, Privacy, Licensing, Accessibility, comparison page disclosures, the copyright line, the consent checkbox text, `legalName` in the schema). Confirm the legal entity name and these can be updated together.
+- "YPN Inc." / "YPN INC": kept in legal and publisher text (Terms, Privacy, Licensing, Accessibility, comparison page disclosures, the copyright line, the consent checkbox text, `legalName` in the schema). YPN Inc. is still the legal company name (confirmed Nov 17, 2026).
+- LinkedIn: every link and schema entry now points to linkedin.com/in/davidjmoorembaypninc (confirmed Nov 17, 2026). The old /in/davidjmooreypn link is gone.

@@ -7,6 +7,8 @@ import { findZipOwnerSubscription, HOUSE_OFFICER_ID, logCrmActivity, routeLead }
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import { emailNewLeadAlert, notifyAssignedOfficer } from "@/lib/notifications";
 import { marketingUrl } from "@/lib/site";
+import { FREE_SIGNUP_HREF } from "@/lib/checkout";
+import { FREE_VISITOR_DAILY_MESSAGES } from "@/lib/free-tier";
 import type {
   AssistantMode,
   BorrowerAnswers,
@@ -51,7 +53,7 @@ import {
   START_SIGNUP_TOOL,
   type LeadQualificationToolInput,
 } from "./prompts";
-import { runWebsiteAutopilot, type WebsiteAutopilotPlan } from "./website-autopilot";
+import { generateWebsiteAutopilotPlan, runWebsiteAutopilot, type WebsiteAutopilotPlan } from "./website-autopilot";
 import { alertOfficerOfNewChat } from "@/lib/push-alerts";
 import { queueLeadForOfficer } from "@/lib/integrations/crm/link";
 import {
@@ -214,6 +216,23 @@ async function executeTerritoryCheck(zip: string, viewerEmail?: string): Promise
   });
 }
 
+/** Tools that show a public chat is a loan officer's (counts toward the visitor cap). */
+const OFFICER_SIGNAL_TOOLS = new Set(["create_starter_kit", "save_officer_prospect", "start_signup", "get_pricing"]);
+/** Tools that show a public chat is a homebuyer's or homeowner's (never capped). */
+const BORROWER_SIGNAL_TOOLS = new Set([
+  "capture_lead_qualification",
+  "schedule_meeting",
+  "request_callback",
+  "save_prequal_details",
+  "subscribe_rate_alerts",
+]);
+
+/** A borrower signal always wins: once a chat is a homebuyer's it is never capped. */
+export function noteAudience(session: ChatSessionRecord, toolName: string): void {
+  if (BORROWER_SIGNAL_TOOLS.has(toolName)) session.audience = "borrower";
+  else if (OFFICER_SIGNAL_TOOLS.has(toolName) && session.audience !== "borrower") session.audience = "officer";
+}
+
 /** Runs one real-world action tool and returns a plain-text result for the model. Never throws. */
 async function executeActionTool(
   call: AiToolCall,
@@ -221,6 +240,7 @@ async function executeActionTool(
   ctx: MloToolContext = {},
 ): Promise<string> {
   try {
+    if (session.mode === "public_site") noteAudience(session, call.toolName);
     if (MLO_TOOL_NAMES.has(call.toolName)) {
       // Only a signed-in officer's own session may run these; a public session never can.
       if (session.mode !== "mlo_dashboard") return JSON.stringify({ error: "not_available" });
@@ -446,6 +466,8 @@ export interface AssistantTurnInput {
   funnelSource?: string;
   /** Slug of the loan officer page the borrower is chatting on (lead_qualification only). */
   officerSlug?: string;
+  /** public_site only: hashed network address for the Free visitor cap (src/lib/free-tier.ts). Never the raw address. */
+  visitorKey?: string;
   userMessage: string;
 }
 
@@ -504,6 +526,7 @@ function loadOrCreateSession(input: AssistantTurnInput): ChatSessionRecord {
     updatedAt: nowIso(),
     userId: input.userId,
     funnelSource: input.funnelSource,
+    ...(input.mode === "public_site" && input.visitorKey ? { visitorKey: input.visitorKey } : {}),
     ...officerFieldsFor(input),
     messages: [],
     capturedFields: {},
@@ -783,14 +806,18 @@ export function matchesAutopilotCommand(message: string): boolean {
  * only drafts changes (deduplicated in runWebsiteAutopilot); nothing is published here.
  */
 function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput): AssistantTurnResult {
-  const plan: WebsiteAutopilotPlan = runWebsiteAutopilot({
-    userId: input.userId,
-    pageType: "profile",
-    leadGoal: "all",
-    autonomy: input.userId ? readAgentOnboarding(input.userId)?.autonomy : undefined,
-  });
+  // Free plan: the same check as a preview, saved and applied nowhere (src/lib/free-tier.ts).
+  const preview = input.paidPlan !== true;
+  const plan: WebsiteAutopilotPlan = preview
+    ? generateWebsiteAutopilotPlan({ userId: input.userId, pageType: "profile", leadGoal: "all" })
+    : runWebsiteAutopilot({
+        userId: input.userId,
+        pageType: "profile",
+        leadGoal: "all",
+        autonomy: input.userId ? readAgentOnboarding(input.userId)?.autonomy : undefined,
+      });
 
-  const reply = plan.summaryForMlo;
+  const reply = preview ? autopilotPreviewReply(plan) : plan.summaryForMlo;
   appendMessage(session, "assistant", reply);
   session.updatedAt = nowIso();
   saveChatSession(session);
@@ -807,15 +834,29 @@ function runAutopilotTurn(session: ChatSessionRecord, input: AssistantTurnInput)
     crmLeadId: session.crmLeadId,
     providerConfigured: getAiProvider() !== null,
     autopilot: {
-      summaryForMlo: plan.summaryForMlo,
-      autoAppliedCount: plan.autoAppliedCount,
-      needsApprovalCount: plan.needsApprovalCount,
+      summaryForMlo: preview ? reply : plan.summaryForMlo,
+      autoAppliedCount: preview ? 0 : plan.autoAppliedCount,
+      needsApprovalCount: preview ? 0 : plan.needsApprovalCount,
       dryRun: true,
       topChanges: plan.changes
         .slice(0, 5)
         .map((c) => ({ title: c.title, status: c.status, riskLevel: c.riskLevel, expectedBenefit: c.expectedBenefit })),
     },
   };
+}
+
+/** What a Free-plan autopilot run shows: the changes Cerebro would make, none applied. */
+export function autopilotPreviewReply(plan: WebsiteAutopilotPlan): string {
+  const lines = plan.changes.slice(0, 5).map((change) => `- ${change.title}`);
+  if (lines.length === 0) {
+    return `Autopilot preview: your page looks good right now. On a paid plan Cerebro keeps checking it and applies improvements for you: ${marketingUrl("/pricing")}`;
+  }
+  return [
+    `Autopilot preview: here's what I'd change on your page.`,
+    ...lines,
+    "",
+    `Nothing was changed: on the Free plan this is a preview. A paid plan has me apply these and keep your page improving on autopilot: ${marketingUrl("/pricing")}`,
+  ].join("\n");
 }
 
 /**
@@ -837,7 +878,8 @@ function describeProviderError(error: unknown, mode: AssistantMode): string {
 
 /** Daily cap on model-answered dashboard messages per signed-in user (cost guard). */
 export const PAID_DAILY_MESSAGE_LIMIT = 200;
-export const FREE_DAILY_MESSAGE_LIMIT = 30;
+/** Free plan: a taste of Cerebro, not the whole thing (src/lib/free-tier.ts). Was 30 before Nov 2026. */
+export const FREE_DAILY_MESSAGE_LIMIT = 15;
 
 export function dailyMessageLimit(paidPlan: boolean): number {
   return paidPlan ? PAID_DAILY_MESSAGE_LIMIT : FREE_DAILY_MESSAGE_LIMIT;
@@ -853,6 +895,23 @@ export function countUserMessagesToday(userId: string, now: Date = new Date()): 
   return readDb()
     .chatSessions.filter(
       (session) => session.mode === "mlo_dashboard" && session.userId === userId && session.usageDay === today,
+    )
+    .reduce((total, session) => total + (session.usageCount ?? 0), 0);
+}
+
+/**
+ * Model-answered messages today in this device's loan-officer chats on the public site
+ * (homebuyer chats and chats with no signal yet are not counted).
+ */
+export function countVisitorOfficerMessagesToday(visitorKey: string, now: Date = new Date()): number {
+  const today = utcDay(now);
+  return readDb()
+    .chatSessions.filter(
+      (session) =>
+        session.mode === "public_site" &&
+        session.visitorKey === visitorKey &&
+        session.audience === "officer" &&
+        session.usageDay === today,
     )
     .reduce((total, session) => total + (session.usageCount ?? 0), 0);
 }
@@ -929,6 +988,27 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
     }
   }
 
+  if (
+    input.mode === "public_site" &&
+    session.visitorKey &&
+    session.audience !== "borrower" &&
+    countVisitorOfficerMessagesToday(session.visitorKey) >= FREE_VISITOR_DAILY_MESSAGES
+  ) {
+    // Only reached once this device's loan-officer chats used today's free replies; homebuyers never are.
+    const reply = `That's today's free Cerebro chat on the site. Create a free account to keep going (it adds more messages and one real Cerebro action a day): ${marketingUrl(FREE_SIGNUP_HREF)} Or see what a paid plan does on autopilot: ${marketingUrl("/pricing")}`;
+    appendMessage(session, "assistant", reply);
+    session.updatedAt = nowIso();
+    saveChatSession(session);
+    return {
+      sessionId: session.id,
+      reply,
+      capturedFields: session.capturedFields,
+      status: session.status,
+      providerConfigured: getAiProvider() !== null,
+      limitReached: true,
+    };
+  }
+
   const provider = getAiProvider();
   if (!provider) {
     // Once an AI provider key is set in the deployment environment this branch stops
@@ -955,7 +1035,7 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
 
   const system = systemPromptFor(session);
   const history = trimHistoryForModel(session.messages);
-  if (input.mode === "mlo_dashboard") recordModelUsage(session);
+  if (input.mode === "mlo_dashboard" || input.mode === "public_site") recordModelUsage(session);
 
   let reply: string;
   let handoffPhone: string | undefined;
@@ -977,9 +1057,9 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
           console.error("[chat-agent] linkQualifiedLead (mid-turn) failed", error);
         }
       },
-      { userId: input.userId, userEmail: input.userEmail },
+      { userId: input.userId, userEmail: input.userEmail, paidPlan: input.paidPlan === true },
       // The starter kit is written inside one tool call, so public chats get a larger output cap.
-      input.mode === "public_site" ? { maxTokens: 8192 } : {},
+      input.mode === "public_site" ? { maxTokens: 4096 } : {},
     );
 
     reply = text.trim() || fallbackReply(session);

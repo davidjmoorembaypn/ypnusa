@@ -1,4 +1,5 @@
 import {
+  consumeFreeAction,
   listCerebroActions,
   listWebsiteAutopilotChanges,
   readAgentOnboarding,
@@ -15,6 +16,7 @@ import type { AutopilotPageType } from "@/lib/types";
 import { CUSTOMER_PORTAL_URL, marketingUrl } from "@/lib/site";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { getWordPressAutopilotStatus } from "@/lib/wordpress";
+import { FREE_DAILY_ACTIONS, FREE_METERED_TOOLS, PAID_ONLY_TOOLS, upgradeRequiredResult, utcDay } from "@/lib/free-tier";
 import {
   complianceOfficerOf,
   executeDraftPrequalLetter,
@@ -26,6 +28,7 @@ import {
 import type { AiToolCall, AiToolDefinition } from "./provider";
 import {
   buildAutopilotRunRecord,
+  generateWebsiteAutopilotPlan,
   runWebsiteAutopilot,
   type AutopilotAutonomy,
   type LeadGoal,
@@ -42,6 +45,8 @@ import {
 export interface MloToolContext {
   userId?: string;
   userEmail?: string;
+  /** True for an active paid plan or an admin. Free accounts get previews and FREE_DAILY_ACTIONS a day (src/lib/free-tier.ts). */
+  paidPlan?: boolean;
 }
 
 export const MLO_TOOL_NAMES = new Set([
@@ -263,6 +268,44 @@ function getMyPipeline(call: AiToolCall, ctx: MloToolContext): string {
 
 const PAGE_TYPES = new Set<AutopilotPageType>(["profile", "landing_page", "seo", "chatbot", "lead_form"]);
 const LEAD_GOALS = new Set<LeadGoal>(["buyer", "seller", "refinance", "all"]);
+
+/**
+ * Free plan: the same website check, saved nowhere and applied to nothing. Cerebro shows what
+ * it would change; a paid plan applies and keeps the changes.
+ */
+function previewAutopilot(call: AiToolCall, ctx: MloToolContext): string {
+  const pageType = PAGE_TYPES.has(call.input.pageType as AutopilotPageType)
+    ? (call.input.pageType as AutopilotPageType)
+    : "profile";
+  const leadGoal = LEAD_GOALS.has(call.input.leadGoal as LeadGoal) ? (call.input.leadGoal as LeadGoal) : "all";
+  const officer = findOfficer(ctx);
+  const plan = generateWebsiteAutopilotPlan({
+    userId: ctx.userId,
+    mloProfileId: officer?.id,
+    mloProfile: officer ? { name: officer.name } : undefined,
+    pageType,
+    leadGoal,
+    marketCity: str(call.input.marketCity, 80),
+    marketState: str(call.input.marketState, 2)?.toUpperCase(),
+    currentCopy: str(call.input.currentCopy, 1500),
+    currentChatbotIntro: str(call.input.currentChatbotIntro, 600),
+    existingSeoTitle: str(call.input.existingSeoTitle, 200),
+    existingMetaDescription: str(call.input.existingMetaDescription, 400),
+  });
+  return JSON.stringify({
+    preview: true,
+    applied: 0,
+    wouldChange: plan.changes.slice(0, 10).map((change) => ({
+      title: change.title,
+      risk: change.riskLevel,
+      afterText: change.afterText,
+      expectedBenefit: change.expectedBenefit,
+    })),
+    pricingUrl: marketingUrl("/pricing"),
+    howToReply:
+      "Show the changes Cerebro would make, one short line each. Say plainly this is a preview on the Free plan: nothing was changed, and a paid plan has Cerebro apply these and keep the page improving on autopilot. Give the pricing link once.",
+  });
+}
 
 function runAutopilot(call: AiToolCall, ctx: MloToolContext): string {
   const pageType = PAGE_TYPES.has(call.input.pageType as AutopilotPageType)
@@ -576,6 +619,15 @@ function decideQueued(call: AiToolCall, ctx: MloToolContext): string {
 /** Runs one MLO tool. Never throws; always returns a plain-text (JSON) result for the model. */
 export async function executeMloTool(call: AiToolCall, ctx: MloToolContext): Promise<string> {
   try {
+    if (ctx.paidPlan !== true) {
+      if (PAID_ONLY_TOOLS.has(call.toolName)) return upgradeRequiredResult("paid_only");
+      if (call.toolName === "run_website_autopilot") return previewAutopilot(call, ctx);
+      if (FREE_METERED_TOOLS.has(call.toolName)) {
+        if (!ctx.userId || !consumeFreeAction(ctx.userId, utcDay(), FREE_DAILY_ACTIONS)) {
+          return upgradeRequiredResult("daily_action_used");
+        }
+      }
+    }
     switch (call.toolName) {
       case "get_my_pipeline":
         return getMyPipeline(call, ctx);

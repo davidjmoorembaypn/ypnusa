@@ -19,18 +19,28 @@ import type { AiToolCall, AiToolDefinition } from "./provider";
 
 export const PUBLIC_ACTION_TOOL_NAMES = new Set(["create_starter_kit", "save_officer_prospect", "request_callback"]);
 
+/**
+ * The free starter kit is a preview: Cerebro writes the bio in full and the opening of one
+ * local blog post. The Google Business Profile description and post, the rest of the blog
+ * post and the welcome email are named on the kit page and written only on a paid plan,
+ * so the free kit costs one short model call.
+ */
 const LIMITS = {
   bio: { min: 250, max: 1300 },
-  gbpDescription: { min: 250, max: 750 },
-  gbpPost: { min: 150, max: 1500 },
   blogTitle: { min: 15, max: 90 },
-  blogPost: { min: 1200, max: 6000 },
-  welcomeEmailSubject: { min: 8, max: 90 },
-  welcomeEmailBody: { min: 200, max: 2000 },
+  blogOpening: { min: 200, max: 1200 },
 } as const;
 
 type KitField = keyof typeof LIMITS;
 const KIT_FIELDS = Object.keys(LIMITS) as KitField[];
+
+/** The pieces a paid plan adds, named (never written) on the free kit page and in the chat. */
+export const LOCKED_KIT_PIECES = [
+  "Google Business Profile description",
+  "First Google Business Profile post",
+  "The rest of the blog post",
+  "Welcome email to past clients and referral partners",
+] as const;
 
 /** Cost guard on the free model tier: kits per chat session and per day across the site. */
 export const MAX_KITS_PER_SESSION = 2;
@@ -39,7 +49,7 @@ export const MAX_KITS_PER_DAY = 300;
 export const CREATE_STARTER_KIT_TOOL: AiToolDefinition = {
   name: "create_starter_kit",
   description:
-    "Build a loan officer's first-week marketing kit right now and save it as a private draft page they can open: a professional bio, a Google Business Profile description and first post, a first local blog post, and a welcome email to send their past clients and referral partners. You write every piece yourself in the arguments. Call it once you know their name, city and state (ask for those in one short question if missing). Write only from facts they gave you: never invent years in business, loan counts, reviews, awards or an NMLS number, and never include rates, APRs, percentages, payment amounts, guarantees or approval timelines. If it returns problems, fix exactly those and call it again.",
+    "Build a loan officer's free starter kit preview right now and save it as a private draft page they can open: a professional bio written in full, plus the title and opening paragraph of a first local blog post. Paid plans add the Google Business Profile description and first post, the rest of the blog post and a welcome email; do not write those. Call it once you know their name, city and state (ask for those in one short question if missing). Write only from facts they gave you: never invent years in business, loan counts, reviews, awards or an NMLS number, and never include rates, APRs, percentages, payment amounts, guarantees or approval timelines. If it returns problems, fix exactly those and call it again.",
   inputSchema: {
     type: "object",
     properties: {
@@ -54,14 +64,10 @@ export const CREATE_STARTER_KIT_TOOL: AiToolDefinition = {
         description: "Everything they told you about themselves (experience, specialties, languages, community ties), in their words. Empty if nothing.",
       },
       bio: { type: "string", description: "First-person professional bio, 80-200 words, warm and specific to their city." },
-      gbpDescription: { type: "string", description: "Google Business Profile 'from the business' description, under 750 characters." },
-      gbpPost: { type: "string", description: "A first Google Business Profile update post, 60-200 words, with a soft call to action." },
       blogTitle: { type: "string", description: "Local blog post title aimed at a search their borrowers make, e.g. 'Buying your first home in Visalia: a step-by-step guide'." },
-      blogPost: { type: "string", description: "The blog post body, 250-600 words, plain helpful guidance for their city, short paragraphs, no rates." },
-      welcomeEmailSubject: { type: "string" },
-      welcomeEmailBody: {
+      blogOpening: {
         type: "string",
-        description: "A short email they can send their past clients and referral partners announcing they are taking new clients; first person, 60-200 words.",
+        description: "The blog post's opening paragraph only, 40-150 words, plain helpful guidance for their city that makes the reader want the rest. No rates.",
       },
     },
     required: ["officerName", "city", "state", ...KIT_FIELDS],
@@ -175,9 +181,8 @@ export function executeCreateStarterKit(call: AiToolCall, session: ChatSessionRe
   const complianceNotes = [
     "Drafts only. Review every piece before you publish or send it; you are responsible for your own advertising compliance.",
     nmlsId
-      ? `Your NMLS ID (#${nmlsId}) and Equal Housing Opportunity were added to the bio, blog post and email.`
+      ? `Your NMLS ID (#${nmlsId}) and Equal Housing Opportunity were added to the bio.`
       : "Add your NMLS ID where it says [add your NMLS ID] before using these.",
-    "Send the welcome email only to people who know you or agreed to hear from you.",
   ];
 
   const kit: StarterKitRecord = {
@@ -190,12 +195,14 @@ export function executeCreateStarterKit(call: AiToolCall, session: ChatSessionRe
     zip: isValidZip(zipRaw) ? zipRaw : undefined,
     nmlsId,
     bio: `${fields.bio}\n\n${disclosure}`,
-    gbpDescription: fields.gbpDescription,
-    gbpPost: fields.gbpPost,
+    gbpDescription: "",
+    gbpPost: "",
     blogTitle: fields.blogTitle,
-    blogPost: `${fields.blogPost}\n\n${disclosure}`,
-    welcomeEmailSubject: fields.welcomeEmailSubject,
-    welcomeEmailBody: `${fields.welcomeEmailBody}\n\n${disclosure}`,
+    blogPost: "",
+    blogOpening: fields.blogOpening,
+    welcomeEmailSubject: "",
+    welcomeEmailBody: "",
+    preview: true,
     complianceNotes,
   };
   saveStarterKit(kit);
@@ -204,12 +211,12 @@ export function executeCreateStarterKit(call: AiToolCall, session: ChatSessionRe
     saved: true,
     starterKitUrl: marketingUrl(`/starter-kit/${kit.id}`),
     bio: kit.bio,
-    gbpDescription: kit.gbpDescription,
     blogTitle: kit.blogTitle,
-    welcomeEmailSubject: kit.welcomeEmailSubject,
+    blogOpening: kit.blogOpening,
+    lockedPieces: LOCKED_KIT_PIECES,
     complianceNotes,
     howToReply:
-      "Show the bio in full, list the other pieces by name, and give the starterKitUrl so they can copy everything. Then offer the free account (start_signup) to keep building, and a ZIP code check if they have not done one.",
+      "Show the bio in full and the blog post's title and opening paragraph. Then name the locked pieces in one short line: a paid plan has Cerebro write them, keep them current and post for them. Give the starterKitUrl. Then offer the free account (start_signup) to keep building, and a ZIP code check if they have not done one. Never call the locked pieces free.",
   });
 }
 

@@ -14,6 +14,7 @@ import type {
   PushSubscriptionRecord,
   CrmConnectionRecord,
   CrmDeliveryRecord,
+  FreeUsageRecord,
   SiteOverrideRecord,
   SiteOptimizerState,
   DbShape,
@@ -199,6 +200,7 @@ const emptyDb = (): DbShape => ({
   pushSubscriptions: [],
   crmConnections: [],
   crmDeliveries: [],
+  freeUsage: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -263,6 +265,7 @@ function normalize(snapshot: unknown): DbShape {
     pushSubscriptions: arrayOrEmpty<PushSubscriptionRecord>(parsed.pushSubscriptions),
     crmConnections: arrayOrEmpty<CrmConnectionRecord>(parsed.crmConnections),
     crmDeliveries: arrayOrEmpty<CrmDeliveryRecord>(parsed.crmDeliveries),
+    freeUsage: arrayOrEmpty<FreeUsageRecord>(parsed.freeUsage),
   };
 }
 
@@ -941,4 +944,34 @@ export function saveSiteOptimizerState(state: SiteOptimizerState): void {
   writeDb((db) => {
     db.siteOptimizer = { ...db.siteOptimizer, ...state };
   });
+}
+
+/** Keeps the free-usage ledger to the last few days (it only answers "how much today?"). */
+const FREE_USAGE_KEEP_DAYS = 3;
+
+/** Free-plan actions this account has used on `day` (UTC, YYYY-MM-DD). */
+export function freeActionsUsed(userId: string, day: string): number {
+  return readDb().freeUsage.find((row) => row.userId === userId && row.day === day)?.actions ?? 0;
+}
+
+/**
+ * Atomically uses one free-plan action for `day` if fewer than `limit` were used.
+ * Returns true when the action may run.
+ */
+export function consumeFreeAction(userId: string, day: string, limit: number): boolean {
+  let allowed = false;
+  writeDb((db) => {
+    const cutoff = new Date(Date.parse(`${day}T00:00:00Z`) - FREE_USAGE_KEEP_DAYS * 86_400_000).toISOString().slice(0, 10);
+    db.freeUsage = db.freeUsage.filter((row) => row.day > cutoff);
+    let row = db.freeUsage.find((entry) => entry.userId === userId && entry.day === day);
+    if (!row) {
+      row = { userId, day, actions: 0 };
+      db.freeUsage.push(row);
+    }
+    if (row.actions < limit) {
+      row.actions += 1;
+      allowed = true;
+    }
+  });
+  return allowed;
 }

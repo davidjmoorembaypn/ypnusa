@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Metadata, Viewport } from "next";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
+import { DashboardUpsell } from "@/components/upsell/dashboard-upsell";
+import { FREE_DAILY_MESSAGE_LIMIT } from "@/lib/ai/chat-agent";
+import { FREE_DAILY_ACTIONS } from "@/lib/free-tier";
+import { upgradeOptions } from "@/lib/upgrade-options";
 import { SessionBar } from "@/components/session-bar";
 import { InstallAppCard } from "@/components/pwa/install-app-card";
 import { PhoneAlertsCard } from "@/components/pwa/phone-alerts-card";
@@ -166,6 +170,9 @@ export default async function DashboardHubPage({
   const statusLabel = STATUS_LABEL[entitlement.status] ?? "";
   const sections = SECTIONS.filter((section) => !section.adminOnly || isAdmin);
   const borrowerPage = publicOfficerPageForUser(session.sub);
+  const upsellOptions = upgradeOptions();
+  // Admins see the paid experience (they're not a sales target).
+  const upsellPaid = paid || isAdmin;
 
   return (
     <main className="min-h-full bg-slate-50 px-4 py-10 text-slate-900 sm:px-6 sm:py-12">
@@ -244,9 +251,25 @@ export default async function DashboardHubPage({
           </section>
         ) : null}
 
+        <DashboardUpsell
+          part="feed"
+          paid={upsellPaid}
+          options={upsellOptions}
+          freeMessages={FREE_DAILY_MESSAGE_LIMIT}
+          freeActions={FREE_DAILY_ACTIONS}
+        />
+
         <VisibilityScoreCard
           score={computeVisibilityScore({ userId: session.sub, email: session.email })}
           chatAnchorId="cerebro-chat"
+        />
+
+        <DashboardUpsell
+          part="cerebro"
+          paid={upsellPaid}
+          options={upsellOptions}
+          freeMessages={FREE_DAILY_MESSAGE_LIMIT}
+          freeActions={FREE_DAILY_ACTIONS}
         />
 
         <section id="cerebro-chat" aria-label="Cerebro" className="mt-8 scroll-mt-6">

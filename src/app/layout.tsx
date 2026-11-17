@@ -28,8 +28,8 @@ export const metadata: Metadata = {
     "The mortgage growth platform for loan officers: claim an exclusive ZIP code, capture borrowers with Cerebro AI intake, and turn local demand into leads.",
   applicationName: "YPN USA App",
   authors: [{ name: "David J. Moore, MBA" }],
-  creator: "YPN Inc.",
-  publisher: "YPN Inc.",
+  creator: "YPN USA",
+  publisher: "YPN USA",
   category: "Business",
   robots: {
     index: true,

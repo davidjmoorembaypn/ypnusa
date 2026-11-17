@@ -47,6 +47,26 @@ const securityHeaders = [
   },
 ];
 
+type Redirect = { source: string; destination: string; permanent: boolean };
+
+/**
+ * Lets each redirect source match with or without a trailing slash ("{/}?"), so "/old"
+ * and "/old/" both reach the target in one hop from one rule. The WordPress map lists
+ * both spellings of most paths; they collapse into one rule here, keeping the redirect
+ * count well under Next's 1,000-route performance guideline.
+ */
+function withOptionalTrailingSlash(redirects: Redirect[]): Redirect[] {
+  const seen = new Set<string>();
+  const out: Redirect[] = [];
+  for (const r of redirects) {
+    const base = r.source === "/" ? "/" : r.source.replace(/\/+$/, "");
+    if (seen.has(base)) continue;
+    seen.add(base);
+    out.push(base === "/" ? r : { ...r, source: `${base}{/}?` });
+  }
+  return out;
+}
+
 const nextConfig: NextConfig = {
   // Smaller Hostinger / Node host deploys; `next start` still works.
   output: "standalone",
@@ -63,8 +83,13 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: "https", hostname: "ypnus.com", pathname: "/wp-content/uploads/**" }],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
+  // Old WordPress URLs end in "/" (that is what Google has indexed). Next's own
+  // trailing-slash redirect ran before ours, so each old URL took two hops: "/x/" -> "/x"
+  // -> its new page. Handling the slash ourselves sends every old URL to its final page in
+  // one 308, and still strips the slash from any other URL (last rule in redirects()).
+  skipTrailingSlashRedirect: true,
   async redirects() {
-    return [
+    return withOptionalTrailingSlash([
       {
         // Marketing copy, Stripe success URLs and prior deploy docs point at
         // /register. WordPress's lo-signup.html is gone now that ypnus.com runs this
@@ -102,7 +127,21 @@ const nextConfig: NextConfig = {
         destination,
         permanent: true,
       })),
-    ];
+      // WordPress addresses Search Console still lists that 404ed (checked 2026-11-17).
+      // Junk pages (test posts, form-plugin screens) stay 404 so Google drops them.
+      { source: "/about-us", destination: "/about", permanent: true },
+      { source: "/contact-3", destination: "/contact", permanent: true },
+      { source: "/cart", destination: "/pricing", permanent: true },
+      { source: "/real-estate-coaching-technology", destination: "/features", permanent: true },
+      { source: "/top-5-tips-for-stress-free-home-buying-in-2025", destination: "/blog", permanent: true },
+      { source: "/keywords/:tag", destination: "/blog", permanent: true },
+      { source: "/category/:name", destination: "/blog", permanent: true },
+      { source: "/:year(\\d{4})/:month(\\d{2})/:day(\\d{2})", destination: "/blog", permanent: true },
+    ]).concat([
+      // Every other URL with a trailing slash: one hop to the slash-less URL (what
+      // Next did on its own before skipTrailingSlashRedirect). Must stay last.
+      { source: "/:path+/", destination: "/:path+", permanent: true },
+    ]);
   },
   async headers() {
     return [

@@ -313,7 +313,7 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <SiteHeader />
-      <main>
+      <main id="main-content">
         <section className="relative isolate overflow-hidden bg-[#09081b] text-white">
           <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative mx-auto max-w-6xl px-6 py-16 lg:py-24">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WpFormBridge } from "@/components/wp-form-bridge";
 import { StickyCtaBar } from "@/components/sticky-cta-bar";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -99,6 +100,8 @@ function pageJsonLd(page: WpImportedPage, url: string, origin: string) {
       ...(page.modified ? { dateModified: page.modified } : {}),
       ...(person ? { author: { "@id": person["@id"] } } : {}),
       publisher: { "@type": "Organization", name: "YPN USA", url: origin },
+      // Google's Article rich result needs an image; the site's social card is the page's.
+      image: `${origin}/opengraph-image`,
     });
   }
   return { "@context": "https://schema.org", "@graph": graph };
@@ -278,6 +281,7 @@ export function WpImportedPageView({
         ) : null}
       </main>
       <SiteFooter />
+      <WpFormBridge />
       {nextStep ? <StickyCtaBar source={`wp_page:${sectionPath || "top"}`} /> : null}
     </div>
   );

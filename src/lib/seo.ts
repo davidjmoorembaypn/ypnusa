@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { liveSiteOverride } from "@/lib/db";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
+import { clampDescription } from "@/lib/seo/meta-description";
 
 const SITE_NAME = "YPN USA";
 
@@ -97,6 +98,8 @@ export function marketingMetadata({
     absoluteTitle = true;
   }
   if (descriptionOverride) description = descriptionOverride;
+  // Search results show ~160 characters; longer text gets cut mid-word.
+  description = clampDescription(description);
   const url = `${origin}${path === "/" ? "" : path}`;
   const resolvedTitle = pageTitle(title, { absolute: absoluteTitle });
   const socialTitle = typeof resolvedTitle === "string" ? `${title} | ${SITE_NAME}` : title;

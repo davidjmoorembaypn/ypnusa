@@ -123,9 +123,27 @@ export function normalizeWpHref(href: string): string {
   if (!path.startsWith("/")) path = `/${path}`;
   if (path.length > 1) path = path.replace(/\/+$/, "") || "/";
   path = resolveInternalPath(path);
+  const cleanSuffix = withoutUtmParams(suffix);
   // A rewrite target may carry its own query (e.g. /login?next=...): keep it, then any original suffix.
-  if (path.includes("?") && suffix.startsWith("?")) return path;
-  return `${path}${suffix}`;
+  if (path.includes("?") && cleanSuffix.startsWith("?")) return path;
+  return `${path}${cleanSuffix}`;
+}
+
+/**
+ * Drops utm_* parameters from a same-site link's "?query#hash". Campaign tags on internal
+ * links start a new session in Google Analytics and credit the visit to "ypnus / cta"
+ * instead of the search or referral that brought the reader, so sign-ups lose their real
+ * source. They also turn one page into hundreds of crawlable URL variants.
+ */
+function withoutUtmParams(suffix: string): string {
+  if (!suffix.startsWith("?")) return suffix;
+  const hashAt = suffix.indexOf("#");
+  const query = hashAt === -1 ? suffix.slice(1) : suffix.slice(1, hashAt);
+  const hash = hashAt === -1 ? "" : suffix.slice(hashAt);
+  // Hrefs read from HTML may still escape "&" as "&amp;": keep whichever the link used.
+  const separator = query.includes("&amp;") ? "&amp;" : "&";
+  const kept = query.split(/&amp;|&/i).filter((pair) => pair && !/^utm_[a-z_]*(=|$)/i.test(pair));
+  return `${kept.length ? `?${kept.join(separator)}` : ""}${hash}`;
 }
 
 function srcPath(src: string): string | null {
@@ -184,6 +202,16 @@ export function normalizeWpHtml(html: string): string {
   out = out.replace(/(<a\b[^>]*?\bhref=)(["'])([^"']*)\2/gi, (_m, pre: string, q: string, href: string) => {
     return `${pre}${q}${normalizeWpHref(href)}${q}`;
   });
+  // Forms too: WordPress ZIP code forms submitted to the retired check-zip.html page.
+  out = out.replace(/(<form\b[^>]*?\baction=)(["'])([^"']*)\2/gi, (_m, pre: string, q: string, href: string) => {
+    return `${pre}${q}${normalizeWpHref(href)}${q}`;
+  });
+  // ...and stop tagging those submissions as a new campaign (see withoutUtmParams).
+  out = out.replace(/<input\b(?=[^>]*\btype=["']?hidden)(?=[^>]*\bname=["']?utm_)[^>]*>/gi, "");
+
+  // The MLO hub's briefing form posted to a WordPress REST route that no longer exists
+  // (every submit failed). WpFormBridge handles that form now; drop the dead script.
+  out = out.replace(/<script\b[^>]*>(?:(?!<\/script>)[\s\S])*\/wp-json\/ypnusa-homepage\/v1\/lead[\s\S]*?<\/script>/gi, "");
 
   // WordPress posts linked to /claim-territory and signup with the old file names as the
   // visible link text ("See check-zip.html and lo-signup.html."). Readers see words instead.

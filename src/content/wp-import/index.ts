@@ -25,6 +25,7 @@
  */
 import type { BlogPost } from "@/content/blog";
 import { zipCodeCopy } from "@/lib/zip-copy";
+import { bestDescription, clampDescription } from "@/lib/seo/meta-description";
 import pagesData from "./pages.json";
 import postsData from "./posts.json";
 import redirectsData from "./redirects.json";
@@ -97,7 +98,8 @@ function withZipCodeCopy(page: WpImportedPage): WpImportedPage {
   return {
     ...page,
     title: zipCodeCopy(page.title),
-    description: zipCodeCopy(page.description),
+    // Some exports carry CSS, a breadcrumb trail or a slogan here: use the opening paragraph instead.
+    description: clampDescription(zipCodeCopy(bestDescription(page.description, page.html))),
     ...(page.seoTitle ? { seoTitle: zipCodeCopy(page.seoTitle) } : {}),
     ...(page.faq ? { faq: page.faq.map((item) => ({ q: zipCodeCopy(item.q), a: zipCodeCopy(item.a) })) } : {}),
     ...(page.related ? { related: page.related.map((link) => ({ ...link, label: zipCodeCopy(link.label) })) } : {}),
@@ -135,7 +137,7 @@ export function getWpPage(list: readonly WpImportedPage[], slug: string): WpImpo
 export const WP_POSTS: readonly BlogPost[] = (postsData as RawPost[]).map((p) => ({
   slug: p.slug,
   title: zipCodeCopy(p.title),
-  description: zipCodeCopy(p.description),
+  description: clampDescription(zipCodeCopy(bestDescription(p.description, p.html))),
   date: p.date,
   author: p.author,
   readingMinutes: p.readingMinutes,

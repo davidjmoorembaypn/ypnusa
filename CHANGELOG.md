@@ -12,7 +12,30 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
-## Nov 16, 2026 — app-build-17e6e2d (live)
+## Nov 16, 2026 — site audit fixes (#153)
+
+- **Contact page form works again:** the form on /contact had no handler since the move off WordPress, so a visitor's
+  message went nowhere. It now reaches the YPN USA lead inbox and the owner gets an email ("New contact form message").
+- **MLO marketing hub briefing form works again:** it posted to a WordPress address that no longer exists, so every
+  sign-up showed an error. Sign-ups now reach the lead inbox ("New MLO briefing sign-up").
+- **ZIP code forms in imported guides** submit to the live ZIP code check instead of the old WordPress page.
+- **Old Google results land in one hop:** about 300 old WordPress addresses ending in "/" took two redirects to reach
+  their new page; now one. A few more old addresses that showed "not found" go to their closest page, and the old
+  /disclaimer page (which held a calculator, not a disclaimer) goes to Licensing & Disclosures.
+- **Analytics keeps the real traffic source:** links between our own pages no longer carry campaign tags, which made
+  Google Analytics credit sign-ups to "ypnus / cta" instead of the search or site that brought the visitor.
+- **Search snippets:** pages whose description was CSS code, a breadcrumb trail or a five-word slogan now use the
+  page's opening paragraph; long descriptions are trimmed at a word or sentence to fit search results. Local pages,
+  loan program pages and comparison articles get their own social image and URL.
+- **Accessibility:** "Skip to main content" works on the local mortgage pages; links in imported page text are
+  underlined.
+
+## Nov 16, 2026 — app-build-1577b79 (live)
+
+- **Loan Officer Market Report:** /research and eight Central Valley county pages with 2024 vs 2023 public HMDA loan
+  data, linked from the sitemap. (#152)
+
+## Nov 16, 2026 — app-build-17e6e2d
 
 - **Lead form, step 2:** if saving the optional company and team size fails, the visitor is told the extra details
   weren't saved (their request itself still went through), instead of a false "thanks". When step 2 adds new details,

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { marketingMetadata } from "@/lib/seo";
 import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
@@ -31,10 +32,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const content = PROGRAM_CONTENT[program];
   // Canonical URLs use the lowercase program slug (/mortgage-loans/fha, not /FHA).
   const path = `/mortgage-loans/${program.toLowerCase()}`;
+  // marketingMetadata also gives the page its own Open Graph URL and image (the root
+  // layout's point at the homepage) and keeps the description to search-result length.
   return {
-    title: content.label,
-    description: content.summary,
-    alternates: { canonical: marketingUrl(path) },
+    ...marketingMetadata({ title: content.label, description: content.summary, path }),
     robots: { index: true, follow: true },
   };
 }

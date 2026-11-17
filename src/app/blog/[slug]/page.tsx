@@ -14,6 +14,7 @@ import { AUTHOR_NAME } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { getPostCluster, getRelatedPosts, isThinPost } from "@/lib/seo/clusters";
 import { prepareWpHtml } from "@/lib/wp-html";
+import { clampDescription } from "@/lib/seo/meta-description";
 import { NextStepBlock } from "@/components/next-step";
 import { nextStepForCluster } from "@/lib/cta/next-steps";
 
@@ -37,21 +38,22 @@ export async function generateMetadata({
   }
   const image = socialImageFor(origin);
   const socialTitle = post.metaTitle ?? post.title;
+  const description = clampDescription(post.description);
   return {
     title,
-    description: post.description,
+    description,
     alternates: { canonical: url },
     openGraph: {
       type: "article",
       title: socialTitle,
-      description: post.description,
+      description,
       publishedTime: post.date,
       authors: [post.author],
       url,
       siteName: "YPN USA",
       images: [image],
     },
-    twitter: { card: "summary_large_image", title: socialTitle, description: post.description, images: [image.url] },
+    twitter: { card: "summary_large_image", title: socialTitle, description, images: [image.url] },
   };
 }
 

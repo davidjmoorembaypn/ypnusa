@@ -489,7 +489,9 @@ describe("ZIP code lock messaging", () => {
     const json = JSON.parse(fedBack.replace(/^[\s\S]*?\n/, "").replace(/\n<\/tool_data>[\s\S]*$/, ""));
     assert.equal(json.available, true);
     assert.equal(json.lockNote, ZIP_LOCK_NOTE);
-    assert.match(json.lockCheckoutUrl, /growth|client_reference_id/);
+    // The "lock it today" link is the Pro pay-now checkout (no trial), never the trial link.
+    assert.equal(json.lockCheckoutUrl, "https://buy.stripe.com/14A00idwm3xf9qhe983AY0O?client_reference_id=93720");
+    assert.equal(json.trialCheckoutUrl, "https://buy.stripe.com/bJe5kC4ZQffXdGxghg3AY0L?client_reference_id=93720");
     assert.match(json.pricingUrl, /\/pricing$/);
     assert.equal(json.suggestedReply, OPEN_ZIP_REPLY_HINT);
     assert.match(json.lockNote, /first payment/);
@@ -512,6 +514,7 @@ describe("ZIP code lock messaging", () => {
     const json = JSON.parse(fedBack.replace(/^[\s\S]*?\n/, "").replace(/\n<\/tool_data>[\s\S]*$/, ""));
     assert.doesNotMatch(json.url, /93720/);
     assert.equal(json.lockNote, ZIP_LOCK_NOTE);
-    assert.ok(typeof json.lockCheckoutUrl === "string" && json.lockCheckoutUrl.length > 0);
+    assert.equal(json.lockCheckoutUrl, "https://buy.stripe.com/14A00idwm3xf9qhe983AY0O?client_reference_id=93720");
+    assert.match(json.trialCheckoutUrl, /bJe5kC4ZQffXdGxghg3AY0L/);
   });
 });

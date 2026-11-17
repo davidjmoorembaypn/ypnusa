@@ -3,7 +3,7 @@ import { findZipOwnerSubscription, HOUSE_OFFICER_ID } from "@/lib/crm";
 import { readAgentOnboarding, readDb, writeDb } from "@/lib/db";
 import { queueLeadForOfficer } from "@/lib/integrations/crm/link";
 import { isValidZip, normalizeZip } from "@/lib/territory";
-import type { BorrowerLeadRecord, LoanProgram } from "@/lib/types";
+import type { BorrowerLeadRecord, CerebroQueuedActionRecord, LoanProgram } from "@/lib/types";
 
 /**
  * The dashboard's ZIP code lead feed ("Blurred Lead Match").
@@ -22,6 +22,9 @@ import type { BorrowerLeadRecord, LoanProgram } from "@/lib/types";
  *
  * Nothing routes leads between officers on a timer: there is no county overflow.
  */
+
+/** Queued items that are the borrower's own requests; every other kind is a draft in an officer's name. */
+const BORROWER_REQUEST_KINDS: ReadonlySet<CerebroQueuedActionRecord["kind"]> = new Set(["callback_request", "prequal_request"]);
 
 /** How far back the feed and the one-time move to a new ZIP code owner reach. */
 export const CLAIM_WINDOW_DAYS = 14;
@@ -157,13 +160,32 @@ export function moveHouseLeadsToZipOwner(officerId: string, zip: string, now: Da
         crm.notes.push(`Moved to the loan officer who claimed ZIP code ${zip}.`);
       }
       for (const action of db.cerebroActions) {
-        if (action.borrowerLeadId === id && action.status === "awaiting_approval") action.loId = officerId;
+        if (action.borrowerLeadId !== id || action.status === "sent" || action.status === "dismissed") continue;
+        if (BORROWER_REQUEST_KINDS.has(action.kind)) {
+          // The borrower's own request (a callback, a prequal letter): the new officer answers it.
+          action.loId = officerId;
+        } else {
+          // A draft written in the house officer's name: never send it for the new officer.
+          action.status = "dismissed";
+          action.holdReason = `Lead moved to the loan officer who claimed ZIP code ${zip}.`;
+        }
+        action.updatedAt = now.toISOString();
       }
       moved.push(id);
     }
   });
   for (const id of moved) queueLeadForOfficer(officerId, id);
   return moved.length;
+}
+
+/** True when the viewer holds a locked ZIP code right now (paid, not just a trial's pending pick). */
+export function viewerHoldsZip(viewer: Pick<LeadFeedViewer, "email">): boolean {
+  const email = normalizeEmail(viewer.email);
+  if (!email) return false;
+  return readDb()
+    .revenueSubscriptions.filter((sub) => normalizeEmail(sub.ownerEmail) === email)
+    .flatMap((sub) => sub.claimedZips)
+    .some((zip) => normalizeEmail(findZipOwnerSubscription(zip)?.ownerEmail) === email);
 }
 
 /** The ZIP code the feed opens on: the viewer's own locked one, else the one they chose at onboarding. */

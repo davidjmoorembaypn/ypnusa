@@ -96,6 +96,16 @@ describe("Cerebro dispatch", () => {
     assert.equal(again.sent.filter((mail) => mail.replyTo === officer.email).length, 0);
   });
 
+  it("never sends a draft written for an officer the lead no longer belongs to", async () => {
+    const before = addOfficer();
+    const after = addOfficer();
+    const leadId = addLead(after.id);
+    const action = queue(before.id, leadId, { status: "approved", approvedAt: noon.toISOString() });
+    const { sent } = await run();
+    assert.equal(sent.filter((mail) => mail.replyTo === before.email).length, 0);
+    assert.equal(stored(action.id).status, "approved");
+  });
+
   it("waits for the officer in approve mode, then sends once approved", async () => {
     const officer = addOfficer({ cerebroReplyMode: "approve" });
     const action = queue(officer.id, addLead(officer.id));

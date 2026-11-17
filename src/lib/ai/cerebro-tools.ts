@@ -1,6 +1,7 @@
 import {
   consumeFreeAction,
   listCerebroActions,
+  releaseFreeAction,
   listWebsiteAutopilotChanges,
   readAgentOnboarding,
   readDb,
@@ -618,16 +619,35 @@ function decideQueued(call: AiToolCall, ctx: MloToolContext): string {
 
 /** Runs one MLO tool. Never throws; always returns a plain-text (JSON) result for the model. */
 export async function executeMloTool(call: AiToolCall, ctx: MloToolContext): Promise<string> {
-  try {
-    if (ctx.paidPlan !== true) {
-      if (PAID_ONLY_TOOLS.has(call.toolName)) return upgradeRequiredResult("paid_only");
-      if (call.toolName === "run_website_autopilot") return previewAutopilot(call, ctx);
-      if (FREE_METERED_TOOLS.has(call.toolName)) {
-        if (!ctx.userId || !consumeFreeAction(ctx.userId, utcDay(), FREE_DAILY_ACTIONS)) {
-          return upgradeRequiredResult("daily_action_used");
-        }
+  if (ctx.paidPlan !== true) {
+    if (PAID_ONLY_TOOLS.has(call.toolName)) return upgradeRequiredResult("paid_only");
+    if (call.toolName === "run_website_autopilot") return previewAutopilot(call, ctx);
+    if (FREE_METERED_TOOLS.has(call.toolName)) {
+      const day = utcDay();
+      // Reserve first (atomic, so two calls at once can't both use the one daily action) ...
+      if (!ctx.userId || !consumeFreeAction(ctx.userId, day, FREE_DAILY_ACTIONS)) {
+        return upgradeRequiredResult("daily_action_used");
       }
+      const result = await runMloTool(call, ctx);
+      // ... and give it back when the tool finished nothing (an error or a fix-and-retry).
+      if (producedNoWork(result)) releaseFreeAction(ctx.userId, day);
+      return result;
     }
+  }
+  return runMloTool(call, ctx);
+}
+
+function producedNoWork(result: string): boolean {
+  try {
+    const parsed = JSON.parse(result) as { error?: unknown };
+    return Boolean(parsed && typeof parsed === "object" && parsed.error);
+  } catch {
+    return false;
+  }
+}
+
+async function runMloTool(call: AiToolCall, ctx: MloToolContext): Promise<string> {
+  try {
     switch (call.toolName) {
       case "get_my_pipeline":
         return getMyPipeline(call, ctx);

@@ -5,6 +5,7 @@ import { DashboardUpsell } from "@/components/upsell/dashboard-upsell";
 import { FREE_DAILY_MESSAGE_LIMIT } from "@/lib/ai/chat-agent";
 import { FREE_DAILY_ACTIONS } from "@/lib/free-tier";
 import { upgradeOptions } from "@/lib/upgrade-options";
+import { defaultFeedZip, viewerHoldsZip } from "@/lib/lead-feed";
 import { SessionBar } from "@/components/session-bar";
 import { InstallAppCard } from "@/components/pwa/install-app-card";
 import { PhoneAlertsCard } from "@/components/pwa/phone-alerts-card";
@@ -173,6 +174,11 @@ export default async function DashboardHubPage({
   const upsellOptions = upgradeOptions();
   // Admins see the paid experience (they're not a sales target).
   const upsellPaid = paid || isAdmin;
+  const feedViewer = { userId: session.sub, email: session.email ?? "" };
+  // A trial hasn't locked its ZIP code yet; any other paid plan arranges more ZIP codes with support.
+  const upsellMode =
+    isAdmin || viewerHoldsZip(feedViewer) ? "owner" : entitlement.status === "trialing" ? "trial" : paid ? "owner" : "free";
+  const upsellZip = defaultFeedZip(feedViewer);
 
   return (
     <main className="min-h-full bg-slate-50 px-4 py-10 text-slate-900 sm:px-6 sm:py-12">
@@ -254,6 +260,8 @@ export default async function DashboardHubPage({
         <DashboardUpsell
           part="feed"
           paid={upsellPaid}
+          mode={upsellMode}
+          defaultZip={upsellZip}
           options={upsellOptions}
           freeMessages={FREE_DAILY_MESSAGE_LIMIT}
           freeActions={FREE_DAILY_ACTIONS}
@@ -267,6 +275,8 @@ export default async function DashboardHubPage({
         <DashboardUpsell
           part="cerebro"
           paid={upsellPaid}
+          mode={upsellMode}
+          defaultZip={upsellZip}
           options={upsellOptions}
           freeMessages={FREE_DAILY_MESSAGE_LIMIT}
           freeActions={FREE_DAILY_ACTIONS}

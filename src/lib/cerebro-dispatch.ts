@@ -122,6 +122,8 @@ export function decideDispatch(
   if (action.status === "awaiting_approval" && (!live || action.holdReason)) return { action: "skip" };
   if (action.status === "held" && !approved && !live) return { action: "skip" };
   if (!lead) return { action: "needs_officer", reason: "Needs your OK: the lead no longer exists." };
+  // Written for another officer before the lead moved (a ZIP code claim or a reroute): never send it.
+  if (lead.assignedLoId !== action.loId) return { action: "skip" };
   if (isTestLead(lead)) return { action: "skip" };
   if (!approved && Date.parse(action.createdAt) < Date.parse(LIVE_REPLIES_SINCE)) {
     return action.status === "awaiting_approval" ? { action: "skip" } : { action: "needs_officer", reason: "Needs your OK: drafted before Cerebro sent emails on its own." };

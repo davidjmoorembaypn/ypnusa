@@ -10,6 +10,7 @@ process.env.LOANPILOT_DATA_DIR = dataDir;
 describe("territory inquiry capture", async () => {
   const { POST, PATCH } = await import("../app/api/demo-request/route");
   const { readDb, writeDb, addDemoRequestDetails, DEMO_REQUEST_DETAILS_WINDOW_MS } = await import("./db");
+  const { LEAD_MESSAGE_MAX_LENGTH } = await import("./lead-sources");
   afterEach(() => mock.restoreAll());
   after(() => fs.rmSync(dataDir, { recursive: true, force: true }));
 
@@ -61,6 +62,29 @@ describe("territory inquiry capture", async () => {
     const saved = readDb().demoRequests.find((item) => item.id === body.id);
     assert.equal(saved?.company, undefined);
     assert.equal(saved?.consent, true);
+  });
+
+  it("saves a long contact message whole, with nothing cut off", async () => {
+    const message = `${"Line of a long note from a loan officer. ".repeat(100)}THE END`; // ~4,100 characters
+    assert.ok(message.length > 4000 && message.length <= LEAD_MESSAGE_MAX_LENGTH);
+    const response = await post({ name: "Long Note", workEmail: "long@example.com", message, source: "contact_page" }, "203.0.113.30");
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    const saved = readDb().demoRequests.find((item) => item.id === body.id);
+    assert.equal(saved?.message, message);
+  });
+
+  it("refuses a message over the limit with a clear error instead of cutting it", async () => {
+    const before = readDb().demoRequests.length;
+    const response = await post(
+      { name: "Too Long", workEmail: "toolong@example.com", message: "x".repeat(LEAD_MESSAGE_MAX_LENGTH + 1), source: "contact_page" },
+      "203.0.113.31",
+    );
+    const body = await response.json();
+    assert.equal(response.status, 400);
+    assert.equal(body.code, "MESSAGE_TOO_LONG");
+    assert.match(body.error, /shorten your message to 5,000 characters/);
+    assert.equal(readDb().demoRequests.length, before);
   });
 
   it("still requires name and a valid email", async () => {

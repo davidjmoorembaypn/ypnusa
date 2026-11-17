@@ -69,9 +69,12 @@ export function wpFormPayload(spec: WpFormSpec, values: WpFormValues): WpFormChe
   if (spec.requiredCheckbox && !values.checkboxTicked) return { ok: false, error: "Please confirm we may email you." };
   const phone = values.phone?.trim();
   const message = [values.message?.trim(), spec.note].filter(Boolean).join("\n\n");
-  // The endpoint keeps only the first LEAD_MESSAGE_MAX_LENGTH characters, so say so instead of losing the rest.
+  // The endpoint refuses anything longer than LEAD_MESSAGE_MAX_LENGTH, so say so before sending.
   if (message.length > LEAD_MESSAGE_MAX_LENGTH) {
-    return { ok: false, error: `Please shorten your message to ${LEAD_MESSAGE_MAX_LENGTH} characters or fewer (it's ${message.length} now).` };
+    return {
+      ok: false,
+      error: `Please shorten your message to ${LEAD_MESSAGE_MAX_LENGTH.toLocaleString("en-US")} characters or fewer (it's ${message.length.toLocaleString("en-US")} now).`,
+    };
   }
   return {
     ok: true,

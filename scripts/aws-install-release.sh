@@ -11,24 +11,49 @@
 # YPNUS_BUILD_URL overrides the source directory (it must hold app-build.tar.gz
 # and app-build.tar.gz.sha256), e.g. the deploy/app-build branch's raw URL, for
 # when GitHub Actions can't run.
-set -euo pipefail
+#
+# Exit codes: 0 = new build live (or already live), 1 = failed before anything was
+# switched, 3 = the new build was switched in, failed, and the previous build was
+# put back ("rolling back" is also printed), 4 = it failed AND the rollback failed
+# too (the site may be down: check `systemctl status ypnusa`).
+#
+# YPNUSA_ABORT_IF_FILE (set by the auto-updater to its pause file): if that file
+# exists once this install holds the deploy lock, or right before the switch, the
+# install stops with nothing switched. So `ypnusa-auto-update pause` also stops an
+# auto-install that is already downloading or backing up.
+#
+# The YPNUSA_INSTALL_* variables exist only so the test suite can run this script
+# against a temporary directory; production uses the defaults.
+set -Eeuo pipefail
 
 REPO="davidjmoorembaypn/ypnusa"
-BASE=/opt/ypnusa
+BASE="${YPNUSA_INSTALL_BASE:-/opt/ypnusa}"
 SERVICE=ypnusa.service
-HEALTH_URL="http://127.0.0.1:3000/api/health"
-APP_URL="http://127.0.0.1:3000"
-BACKUP_TOOL=/usr/local/sbin/ypnusa-backup
+HEALTH_URL="${YPNUSA_INSTALL_HEALTH_URL:-http://127.0.0.1:3000/api/health}"
+APP_URL="${YPNUSA_INSTALL_APP_URL:-http://127.0.0.1:3000}"
+BACKUP_TOOL="${YPNUSA_INSTALL_BACKUP_TOOL:-/usr/local/sbin/ypnusa-backup}"
+LOCK_DIR="${YPNUSA_INSTALL_LOCK_DIR:-/run/lock}"
+VERIFY_TRIES="${YPNUSA_INSTALL_VERIFY_TRIES:-15}"
+ABORT_FILE="${YPNUSA_ABORT_IF_FILE:-}"
 TAG="${1:-}"
+
+# Stop before any switch when the auto-updater was paused mid-run.
+stop_if_paused() {
+  if [ -n "$ABORT_FILE" ] && [ -e "$ABORT_FILE" ]; then
+    echo "=== Auto-update was paused ($ABORT_FILE); stopping before any change. Nothing was switched."
+    exit 1
+  fi
+}
 
 # One install at a time: a hand install and the auto-updater (scripts/aws-auto-update.sh)
 # must never switch releases at the same moment.
-mkdir -p /run/lock
-exec 8>/run/lock/ypnusa-deploy.lock
+mkdir -p "$LOCK_DIR"
+exec 8>"$LOCK_DIR/ypnusa-deploy.lock"
 if ! flock -w 900 8; then
   echo "ERROR: another install is still running; nothing was changed. Try again in a few minutes." >&2
   exit 1
 fi
+stop_if_paused
 
 if [ -n "${YPNUS_BUILD_URL:-}" ]; then
   url="$YPNUS_BUILD_URL"
@@ -101,7 +126,7 @@ switch_to() {
 # durable AND the main public pages render. Anything less rolls back.
 verify() {
   local body path code
-  for _ in $(seq 1 15); do
+  for _ in $(seq 1 "$VERIFY_TRIES"); do
     body="$(curl -fsS --max-time 8 "$HEALTH_URL" 2>/dev/null || true)"
     if printf '%s' "$body" | grep -q "\"commit\":\"$commit\"" \
       && printf '%s' "$body" | grep -q '"persistent":true' \
@@ -122,26 +147,54 @@ verify() {
   return 1
 }
 
+# Put the previous build back after the new one was switched in and failed. Exits 3
+# when the old build is serving again, 4 when even that failed.
+roll_back() {
+  trap - ERR
+  set +e
+  echo "ERROR: release $commit $1; rolling back to ${prev:-<none>}" >&2
+  if [ -z "$prev" ]; then
+    echo "ROLLBACK FAILED: there is no previous build to go back to." >&2
+    exit 4
+  fi
+  switch_to "$prev"
+  if ! systemctl restart "$SERVICE"; then
+    echo "ROLLBACK FAILED: $SERVICE did not restart on the previous build $(basename "$prev")." >&2
+    exit 4
+  fi
+  local body=""
+  for _ in $(seq 1 "$VERIFY_TRIES"); do
+    body="$(curl -fsS --max-time 8 "$HEALTH_URL" 2>/dev/null || true)"
+    if printf '%s' "$body" | grep -q "\"commit\":\"$(basename "$prev")\""; then
+      echo "$body"
+      echo "=== ROLLED BACK: previous build $(basename "$prev") is live again; $commit was not kept."
+      exit 3
+    fi
+    sleep 2
+  done
+  echo "ROLLBACK FAILED: the previous build $(basename "$prev") did not answer its health check; last response: ${body:-<none>}" >&2
+  exit 4
+}
+
+stop_if_paused
+
 echo "=== Switch current: ${prev:-<none>} -> $dest"
 switch_to "$dest"
+# From here on, any unexpected failure puts the previous build back.
+trap 'roll_back "hit an error after the switch"' ERR
 
 echo "=== Restart $SERVICE"
-systemctl restart "$SERVICE"
+if ! systemctl restart "$SERVICE"; then
+  roll_back "did not start ($SERVICE restart failed)"
+fi
 
 echo "=== Verify $HEALTH_URL reports commit=$commit (healthy storage + smoke pages)"
 if verify; then
   echo "=== DEPLOY OK: live build $commit"
 else
-  echo "ERROR: release $commit failed verification; rolling back" >&2
-  if [ -n "$prev" ]; then
-    switch_to "$prev"
-    systemctl restart "$SERVICE"
-    sleep 3
-    curl -fsS --max-time 8 "$HEALTH_URL" 2>/dev/null || true
-    echo
-  fi
-  exit 1
+  roll_back "failed verification"
 fi
+trap - ERR
 
 echo "=== Prune old releases (keep the 5 newest, skip the live one)"
 cd "$BASE/releases"

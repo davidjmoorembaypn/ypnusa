@@ -14,7 +14,8 @@
 #
 # Day to day (all as root):
 #   ypnusa-auto-update status    # paused?, live build, last result, next check
-#   ypnusa-auto-update pause     # stop auto-installs (e.g. before a rollback)
+#   ypnusa-auto-update pause     # stop auto-installs (e.g. before a rollback); waits for a
+#                                # run already in progress to stop or finish first
 #   ypnusa-auto-update resume    # start them again
 #   ypnusa-auto-update run       # check now (what the timer does)
 #
@@ -82,6 +83,8 @@ is_newer() {
   esac
 }
 
+paused() { [ -e "$PAUSE_FILE" ]; }
+
 is_failed() { [ -f "$FAILED_FILE" ] && grep -qx "$1" "$FAILED_FILE"; }
 mark_failed() { mkdir -p "$STATE_DIR"; is_failed "$1" || echo "$1" >> "$FAILED_FILE"; }
 attempts_for() { [ -f "$ATTEMPTS_FILE" ] && awk -v t="$1" '$1==t {print $2}' "$ATTEMPTS_FILE" | tail -n1 || true; }
@@ -112,6 +115,13 @@ cmd_run() {
   exec 9>"$LOCK_FILE"
   if ! flock -n 9; then
     log "another update run is still going; skipping this one"
+    return 0
+  fi
+
+  # Checked again now that this run holds the lock: a pause issued while the
+  # previous run was going must stop this one too.
+  if paused; then
+    log "paused ($PAUSE_FILE exists); nothing checked"
     return 0
   fi
 
@@ -154,8 +164,18 @@ cmd_run() {
     return 1
   fi
 
+  if paused; then
+    rm -rf "$work"
+    set_attempts "$latest" "$attempts"
+    log "paused while checking; $latest was not installed (live stays ${live:-none})"
+    record "PAUSED before installing $latest"
+    return 0
+  fi
+
   set +e
-  out="$(bash "$work/install.sh" "$latest" 2>&1)"; rc=$?
+  # The installer re-checks the pause file once it holds the deploy lock and right
+  # before it switches builds, so a pause stops an install already under way.
+  out="$(YPNUSA_ABORT_IF_FILE="$PAUSE_FILE" bash "$work/install.sh" "$latest" 2>&1)"; rc=$?
   set -e
   rm -rf "$work"
   printf '%s\n' "$out"
@@ -167,15 +187,44 @@ cmd_run() {
     refresh_self
     return 0
   fi
-  if printf '%s' "$out" | grep -q 'rolling back'; then
+  if [ "$rc" -eq 4 ] || printf '%s' "$out" | grep -q 'ROLLBACK FAILED'; then
+    mark_failed "$latest"
+    record "ROLLBACK_FAILED $latest (exit $rc): check the site now"
+    log "$latest failed AND putting $live back failed. The site may be down: check 'systemctl status ypnusa'. It won't be retried."
+  elif [ "$rc" -eq 3 ] || printf '%s' "$out" | grep -q 'rolling back'; then
     mark_failed "$latest"
     record "ROLLED_BACK $latest"
     log "$latest failed its checks and was rolled back; live stays $live. It won't be retried."
+  elif printf '%s' "$out" | grep -q 'Auto-update was paused'; then
+    set_attempts "$latest" "$attempts"
+    record "PAUSED during install of $latest (nothing switched)"
+    log "paused during the install of $latest; nothing was switched (live stays ${live:-none})"
+    return 0
   else
     record "FAILED $latest (exit $rc, before any change)"
     log "$latest did not install (exit $rc); nothing was switched. Will retry next run."
   fi
   return 1
+}
+
+# Pause, then wait until no run is in progress, so that when this returns nothing
+# will switch builds behind your back (e.g. right before a hand rollback). A run
+# that already switched builds still finishes its checks, or rolls itself back.
+cmd_pause() {
+  mkdir -p "$(dirname "$PAUSE_FILE")"
+  touch "$PAUSE_FILE"
+  mkdir -p "$(dirname "$LOCK_FILE")"
+  exec 9>"$LOCK_FILE"
+  if ! flock -n 9; then
+    echo "An auto-install is in progress; waiting for it to stop (it stops before switching builds if it hasn't yet)..."
+    if ! flock -w "${YPNUSA_AU_PAUSE_WAIT:-1200}" 9; then
+      echo "Auto-update PAUSED, but the run in progress has not finished yet. Check: sudo ypnusa-auto-update status" >&2
+      return 1
+    fi
+  fi
+  flock -u 9
+  echo "Auto-update PAUSED. Nothing is installing now. Live build: app-build-$(live_commit || echo '?')"
+  echo "Resume with: sudo ypnusa-auto-update resume"
 }
 
 cmd_status() {
@@ -237,7 +286,7 @@ EOF
 case "${1:-}" in
   run) cmd_run ;;
   status) cmd_status ;;
-  pause) mkdir -p "$(dirname "$PAUSE_FILE")"; touch "$PAUSE_FILE"; echo "Auto-update PAUSED. Resume with: sudo ypnusa-auto-update resume" ;;
+  pause) cmd_pause ;;
   resume) rm -f "$PAUSE_FILE"; echo "Auto-update RESUMED. The next check runs within 10 minutes." ;;
   install) cmd_install ;;
   *) echo "usage: $0 {run|status|pause|resume|install}" >&2; exit 2 ;;

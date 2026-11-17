@@ -150,6 +150,16 @@ async function handlePost(request: Request) {
       return jsonError("Enter a valid 5-digit ZIP code.", 400, "INVALID_ZIP");
     }
 
+    // Refuse, never cut: a cut message would reach the owner missing its end with no sign of it.
+    const rawMessage = typeof body.message === "string" ? body.message.trim() : "";
+    if (rawMessage.length > LEAD_MESSAGE_MAX_LENGTH) {
+      return jsonError(
+        `Please shorten your message to ${LEAD_MESSAGE_MAX_LENGTH.toLocaleString("en-US")} characters or fewer (it's ${rawMessage.length.toLocaleString("en-US")} now). Nothing was sent yet.`,
+        400,
+        "MESSAGE_TOO_LONG",
+      );
+    }
+
     const consent = body.consent === true;
 
     const record: DemoRequestRecord = {
@@ -205,7 +215,7 @@ async function handlePost(request: Request) {
         ${record.zip ? `<p>ZIP code: ${escapeHtml(record.zip)} — ${territory?.available ? "available" : territory ? "already claimed" : "not checked"}</p>` : ""}
         ${record.role ? `<p>Role: ${escapeHtml(record.role)}</p>` : ""}
         ${record.monthlyLeadVolume ? `<p>Team size: ${escapeHtml(record.monthlyLeadVolume)}</p>` : ""}
-        ${record.message ? `<p>Message: ${escapeHtml(record.message)}</p>` : ""}
+        ${record.message ? `<p>Message:</p><p style="white-space:pre-wrap">${escapeHtml(record.message)}</p>` : ""}
         <p>Source: ${escapeHtml(record.source ?? "marketing_site")}</p>
       `,
     });

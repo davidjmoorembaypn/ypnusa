@@ -83,6 +83,12 @@ hand install. Details:
 - Pause: `sudo ypnusa-auto-update pause` (creates `/etc/ypnusa/auto-update.paused`);
   `resume` removes it; `status` shows the live build and the last result.
   Pause **before** a manual rollback, or the next run reinstalls the latest build.
+  `pause` waits for a run in progress: the installer gets the pause file as
+  `YPNUSA_ABORT_IF_FILE` and stops before switching builds if it appears.
+- Installer exit codes: 0 live, 1 nothing switched, 3 switched then rolled back
+  (old build confirmed healthy, including when `systemctl restart` itself fails),
+  4 rollback failed too. The updater records 3 as `ROLLED_BACK`, 4 as
+  `ROLLBACK_FAILED`; both are never retried.
 - Logs: `journalctl -u ypnusa-auto-update.service`.
 - After each good install it copies the bundle's `scripts/aws-auto-update.sh`
   over `/usr/local/sbin/ypnusa-auto-update`, so updater fixes ship with releases.

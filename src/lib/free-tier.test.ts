@@ -9,9 +9,10 @@ import type { ChatSessionRecord } from "./types";
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-free-tier-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
-import { consumeFreeAction, freeActionsUsed, readDb, saveChatSession, saveWebsiteAutopilotChange } from "./db";
+import { consumeFreeAction, freeActionsUsed, readDb, releaseFreeAction, saveChatSession, saveWebsiteAutopilotChange } from "./db";
 import { executeMloTool } from "./ai/cerebro-tools";
-import { autopilotPreviewReply, countVisitorOfficerMessagesToday, FREE_DAILY_MESSAGE_LIMIT, noteAudience, runAssistantTurn } from "./ai/chat-agent";
+import { autopilotPreviewReply, countVisitorOfficerMessagesToday, FREE_DAILY_MESSAGE_LIMIT, noteAudience, runAssistantTurn, runWithTools } from "./ai/chat-agent";
+import type { AiGenerateResult, AiProvider } from "./ai/provider";
 import { generateWebsiteAutopilotPlan } from "./ai/website-autopilot";
 import { FREE_DAILY_ACTIONS, FREE_VISITOR_DAILY_MESSAGES, utcDay } from "./free-tier";
 
@@ -42,6 +43,10 @@ describe("free plan limits", () => {
     assert.equal(consumeFreeAction("user_free_2", day, 1), true);
     assert.equal(consumeFreeAction("user_free_1", "2026-11-18", 1), true);
     assert.equal(freeActionsUsed("user_free_1", day), 1);
+    releaseFreeAction("user_free_1", day);
+    assert.equal(freeActionsUsed("user_free_1", day), 0);
+    releaseFreeAction("user_free_1", day);
+    assert.equal(freeActionsUsed("user_free_1", day), 0);
   });
 });
 
@@ -58,6 +63,19 @@ describe("free dashboard Cerebro", () => {
     assert.equal(second.error, "upgrade_required");
     assert.equal(second.reason, "daily_action_used");
     assert.match(second.pricingUrl, /\/pricing$/);
+  });
+
+  it("gives the daily action back when the tool finished nothing, so a fixed retry still runs", async () => {
+    const ctx = { userId: "user_free_retry", paidPlan: false };
+    const failed = JSON.parse(await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post" } }, ctx));
+    assert.ok(failed.error);
+    assert.notEqual(failed.error, "upgrade_required");
+    assert.equal(freeActionsUsed("user_free_retry", utcDay()), 0);
+    const fixed = JSON.parse(
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Buyer tips" } }, ctx),
+    );
+    assert.equal(fixed.error, undefined);
+    assert.equal(freeActionsUsed("user_free_retry", utcDay()), 1);
   });
 
   it("never meters a paid plan", async () => {
@@ -122,6 +140,25 @@ describe("public site visitor cap", () => {
     saveChatSession(publicSession({ visitorKey: "dev_a", audience: "officer", usageDay: "2020-01-01", usageCount: 9 }));
     assert.equal(countVisitorOfficerMessagesToday("dev_a"), 10);
     assert.equal(countVisitorOfficerMessagesToday("dev_b"), 9);
+  });
+
+  it("never caps a new, unclassified chat on a device whose loan-officer chats used today's replies", async () => {
+    const today = utcDay();
+    saveChatSession(publicSession({ visitorKey: "dev_office", audience: "officer", usageDay: today, usageCount: FREE_VISITOR_DAILY_MESSAGES }));
+    const fresh = await runAssistantTurn({ mode: "public_site", visitorKey: "dev_office", userMessage: "I want to buy a home" });
+    assert.notEqual((fresh as { limitReached?: boolean }).limitReached, true);
+  });
+
+  it("a borrower capture inside the model loop marks the chat a homebuyer's", async () => {
+    const result: AiGenerateResult = {
+      text: "Great, let's get you started.",
+      toolCalls: [{ toolName: "capture_lead_qualification", input: { leadType: "buyer" } }],
+      stopReason: "end_turn",
+    };
+    const provider: AiProvider = { name: "fake", generate: async () => result };
+    const s = publicSession({ audience: "officer" });
+    await runWithTools(provider, "sys", [], [], s, () => undefined);
+    assert.equal(s.audience, "borrower");
   });
 
   it("stops a capped loan officer's public chat with a sign-up line, but never a homebuyer's", async () => {

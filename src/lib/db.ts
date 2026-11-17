@@ -949,6 +949,14 @@ export function saveSiteOptimizerState(state: SiteOptimizerState): void {
 /** Keeps the free-usage ledger to the last few days (it only answers "how much today?"). */
 const FREE_USAGE_KEEP_DAYS = 3;
 
+/** Gives back a free-plan action that produced no finished work (the tool failed or asked for a fix). */
+export function releaseFreeAction(userId: string, day: string): void {
+  writeDb((db) => {
+    const row = db.freeUsage.find((entry) => entry.userId === userId && entry.day === day);
+    if (row && row.actions > 0) row.actions -= 1;
+  });
+}
+
 /** Free-plan actions this account has used on `day` (UTC, YYYY-MM-DD). */
 export function freeActionsUsed(userId: string, day: string): number {
   return readDb().freeUsage.find((row) => row.userId === userId && row.day === day)?.actions ?? 0;

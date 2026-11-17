@@ -412,6 +412,8 @@ export async function runWithTools(
       ...(options.maxTokens ? { maxTokens: options.maxTokens } : {}),
     });
     if (result.text.trim()) lastText = result.text.trim();
+    // Every tool the model picked tells who the visitor is, captures included (a homebuyer wins).
+    if (session.mode === "public_site") for (const call of result.toolCalls) noteAudience(session, call.toolName);
     for (const call of result.toolCalls) {
       if (call.toolName === "capture_lead_qualification") {
         captureCalls.push(call);
@@ -991,7 +993,8 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
   if (
     input.mode === "public_site" &&
     session.visitorKey &&
-    session.audience !== "borrower" &&
+    // Only a chat already known to be a loan officer's: a new or unclassified chat may be a homebuyer.
+    session.audience === "officer" &&
     countVisitorOfficerMessagesToday(session.visitorKey) >= FREE_VISITOR_DAILY_MESSAGES
   ) {
     // Only reached once this device's loan-officer chats used today's free replies; homebuyers never are.

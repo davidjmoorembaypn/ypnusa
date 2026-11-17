@@ -8,9 +8,9 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-lead-feed-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
 import { HOUSE_OFFICER_ID } from "./crm";
-import { appendBorrowerLead, appendCrmLead, readDb, saveRevenueSubscription } from "./db";
+import { appendBorrowerLead, appendCrmLead, readDb, saveCerebroAction, saveRevenueSubscription } from "./db";
 import { generateId } from "./id";
-import { buildZipLeadFeed, CLAIM_WINDOW_DAYS, loanAmountBand, moveHouseLeadsToZipOwner } from "./lead-feed";
+import { buildZipLeadFeed, CLAIM_WINDOW_DAYS, defaultFeedZip, loanAmountBand, moveHouseLeadsToZipOwner, viewerHoldsZip } from "./lead-feed";
 import type { BorrowerLeadRecord, QualificationSummary } from "./types";
 
 const NOW = new Date("2026-11-17T12:00:00Z");
@@ -146,5 +146,50 @@ describe("buildZipLeadFeed", () => {
 
     assert.equal(moveHouseLeadsToZipOwner(viewer.userId, zip, NOW), 0);
     assert.equal(buildZipLeadFeed(viewer, zip, NOW)!.movedToYou, 0);
+  });
+
+  it("drops the house officer's unsent drafts on a moved lead and hands the borrower's own requests over", () => {
+    const zip = "93620";
+    const moved = lead(zip);
+    const base = { createdAt: hoursAgo(4), updatedAt: hoursAgo(4), loId: HOUSE_OFFICER_ID, borrowerLeadId: moved.id, channel: "email" as const, body: "Hi from the house", source: "public_chat" as const };
+    saveCerebroAction({ ...base, id: "act_draft_wait", kind: "follow_up_draft", status: "awaiting_approval" });
+    saveCerebroAction({ ...base, id: "act_draft_held", kind: "follow_up_draft", status: "held", approvedAt: hoursAgo(3) });
+    saveCerebroAction({ ...base, id: "act_draft_ok", kind: "nudge_draft", status: "approved", approvedAt: hoursAgo(3) });
+    saveCerebroAction({ ...base, id: "act_callback", kind: "callback_request", status: "awaiting_approval" });
+    saveCerebroAction({ ...base, id: "act_sent", kind: "follow_up_draft", status: "sent" });
+    owns(viewer.email, zip);
+    assert.equal(moveHouseLeadsToZipOwner(viewer.userId, zip, NOW), 1);
+    const byId = new Map(readDb().cerebroActions.map((a) => [a.id, a]));
+    for (const id of ["act_draft_wait", "act_draft_held", "act_draft_ok"]) {
+      assert.equal(byId.get(id)?.status, "dismissed", id);
+      assert.equal(byId.get(id)?.loId, HOUSE_OFFICER_ID, id);
+    }
+    assert.equal(byId.get("act_callback")?.status, "awaiting_approval");
+    assert.equal(byId.get("act_callback")?.loId, viewer.userId);
+    assert.equal(byId.get("act_sent")?.status, "sent");
+    assert.equal(buildZipLeadFeed(viewer, zip, NOW)!.movedToYou, 0);
+  });
+});
+
+describe("viewerHoldsZip and defaultFeedZip", () => {
+  it("a trial's pending ZIP code is not held; a locked one is, and the feed opens on it", () => {
+    const trial = { userId: "acct_trial", email: "trial@example.com" };
+    saveRevenueSubscription({
+      id: generateId("sub"),
+      createdAt: hoursAgo(10),
+      startedAt: hoursAgo(10),
+      tier: "growth",
+      status: "trialing",
+      source: "stripe_webhook",
+      ownerEmail: trial.email,
+      claimedZips: [],
+      pendingZip: "93630",
+    });
+    assert.equal(viewerHoldsZip(trial), false);
+    assert.equal(defaultFeedZip(trial), null);
+    const owner = { userId: "acct_owner2", email: "owner2@example.com" };
+    owns(owner.email, "93631");
+    assert.equal(viewerHoldsZip(owner), true);
+    assert.equal(defaultFeedZip(owner), "93631");
   });
 });

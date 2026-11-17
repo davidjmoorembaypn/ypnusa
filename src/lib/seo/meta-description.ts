@@ -73,7 +73,9 @@ export function firstParagraphText(html: string, minLength = 80): string {
 
 /** A byline or date line ("Updated September 26, 2026 · By ..."), not a summary. */
 function isByline(text: string): boolean {
-  return /^(updated|last updated|published|posted|by)\b/i.test(text) || /^table of contents\b/i.test(text);
+  // "By" counts only before a capitalized name ("By David J. Moore, MBA"), so prose like
+  // "By comparing local options, borrowers..." can still summarize a page.
+  return /^(updated|last updated|published|posted)\b/i.test(text) || /^by\s+[A-Z]/.test(text) || /^table of contents\b/i.test(text);
 }
 
 /** Every paragraph long enough to summarize the page, in order (see firstParagraphText). */
@@ -135,13 +137,19 @@ export function uniqueDescriptions(items: readonly { description?: string; html:
   const counts = new Map<string, number>();
   for (const list of options) counts.set(list[0], (counts.get(list[0]) ?? 0) + 1);
   const taken = new Set(options.filter((list) => counts.get(list[0]) === 1).map((list) => list[0]));
-  return options.map((list) => {
-    if (counts.get(list[0]) === 1) return list[0];
-    const next = list.find((candidate) => candidate && !taken.has(candidate));
-    const pick = next ?? list[0];
+  const picks = options.map((list) => (counts.get(list[0]) === 1 ? list[0] : ""));
+  // Pages with the fewest alternatives choose first, so a page whose only option is the
+  // shared paragraph keeps it and pages with other paragraphs move on to those.
+  const contested = options
+    .map((list, index) => ({ list, index }))
+    .filter(({ index }) => !picks[index])
+    .sort((a, b) => a.list.length - b.list.length);
+  for (const { list, index } of contested) {
+    const pick = list.find((candidate) => candidate && !taken.has(candidate)) ?? list[0];
     taken.add(pick);
-    return pick;
-  });
+    picks[index] = pick;
+  }
+  return picks;
 }
 
 /** The first sentence of a paragraph (the whole text when it has no sentence break). */

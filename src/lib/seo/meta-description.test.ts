@@ -98,3 +98,19 @@ test("imported posts do not share descriptions", () => {
     seen.set(post.description, post.slug);
   }
 });
+
+test("a page whose only option is the shared paragraph keeps it; the other page moves on", () => {
+  const shared = "<p>Every loan officer in a crowded market needs a faster way to answer borrowers before a competitor does.</p>";
+  const out = uniqueDescriptions([
+    { description: "Home » A", html: `${shared}<p>Page A covers rate alerts that bring past borrowers back when refinancing makes sense again.</p>` },
+    { description: "Home » B", html: shared },
+  ]);
+  assert.equal(new Set(out).size, 2);
+  assert.match(out[0], /^Page A/);
+  assert.match(out[1], /^Every loan officer/);
+});
+
+test("prose that starts with \"By\" is still a usable description", () => {
+  const html = "<p>By comparing local mortgage options, borrowers can choose a loan program that fits their budget and long-term goals.</p>";
+  assert.match(bestDescription("Home » Loans", html), /^By comparing/);
+});

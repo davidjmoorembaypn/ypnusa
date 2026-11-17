@@ -10,9 +10,8 @@ import { AUTHOR_PROFILES, BUSINESS_EMAIL, BUSINESS_PHONE_DISPLAY } from "@/lib/a
  * paste sheet for GBP wording David asked for that the product does not support yet.
  */
 export const BUSINESS_NAME = "YPN USA";
-export const BUSINESS_ALTERNATE_NAME = "Young Professional Networks Inc";
 /** Legal entity used in Terms, Privacy and disclosures (David confirmed Nov 17, 2026). */
-export const BUSINESS_LEGAL_NAME = "YPN INC";
+export const BUSINESS_LEGAL_NAME = "YPN Inc.";
 export const BUSINESS_TELEPHONE = "+1-559-512-0372";
 export const BUSINESS_TELEPHONE_DISPLAY = BUSINESS_PHONE_DISPLAY;
 export const BUSINESS_ADDRESS = {
@@ -82,7 +81,6 @@ export function businessEntityJsonLd(founder: { "@id": string; name: string }) {
     "@type": ["Organization", "ProfessionalService"],
     "@id": `${MARKETING_SITE_URL}/#organization`,
     name: BUSINESS_NAME,
-    alternateName: BUSINESS_ALTERNATE_NAME,
     legalName: BUSINESS_LEGAL_NAME,
     url: MARKETING_SITE_URL,
     description: BUSINESS_DESCRIPTION,

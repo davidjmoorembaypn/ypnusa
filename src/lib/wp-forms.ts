@@ -6,6 +6,8 @@
  * every other site lead is saved and emailed to the owner.
  */
 
+import { LEAD_MESSAGE_MAX_LENGTH } from "@/lib/lead-sources";
+
 export interface WpFormSpec {
   /** id of the <form> in the imported HTML. */
   formId: string;
@@ -67,6 +69,10 @@ export function wpFormPayload(spec: WpFormSpec, values: WpFormValues): WpFormChe
   if (spec.requiredCheckbox && !values.checkboxTicked) return { ok: false, error: "Please confirm we may email you." };
   const phone = values.phone?.trim();
   const message = [values.message?.trim(), spec.note].filter(Boolean).join("\n\n");
+  // The endpoint keeps only the first LEAD_MESSAGE_MAX_LENGTH characters, so say so instead of losing the rest.
+  if (message.length > LEAD_MESSAGE_MAX_LENGTH) {
+    return { ok: false, error: `Please shorten your message to ${LEAD_MESSAGE_MAX_LENGTH} characters or fewer (it's ${message.length} now).` };
+  }
   return {
     ok: true,
     payload: {

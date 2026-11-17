@@ -1,6 +1,7 @@
 import { addDemoRequestDetails, appendAnalytics, appendDemoRequest } from "@/lib/db";
 import { isRecord, jsonError, jsonOk, logApiError, parseJsonBody } from "@/lib/http";
 import { generateId } from "@/lib/id";
+import { LEAD_MESSAGE_MAX_LENGTH } from "@/lib/lead-sources";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { isValidZip, normalizeZip } from "@/lib/territory";
@@ -161,7 +162,7 @@ async function handlePost(request: Request) {
       role: optionalText(body.role, 80),
       zip: zip || undefined,
       monthlyLeadVolume: optionalText(body.monthlyLeadVolume, 40),
-      message: optionalText(body.message, 1000),
+      message: optionalText(body.message, LEAD_MESSAGE_MAX_LENGTH),
       source: optionalText(body.source, 80) ?? "marketing_site",
       status: "new",
       // Not rejected when absent yet: ypnus.com's own marketing forms call this

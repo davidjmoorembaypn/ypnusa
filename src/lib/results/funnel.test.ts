@@ -95,4 +95,26 @@ describe("results funnel", () => {
     });
     assert.equal(funnel.stages.find((s) => s.id === "requests")?.last7Days, 0);
   });
+
+  it("leaves contact messages and briefing sign-ups out of territory requests", () => {
+    const funnel = buildResultsFunnel({
+      ...base,
+      demoRequests: [
+        { createdAt: day(1), source: "contact_page" },
+        { createdAt: day(1), source: "mlo_hub_briefing" },
+        { createdAt: day(2), source: "claim_territory" },
+        { createdAt: day(3) },
+      ],
+      revenueSubscriptions: [{ status: "trialing", source: "stripe_webhook", startedAt: day(1) }],
+    });
+    const requests = funnel.stages.find((s) => s.id === "requests");
+    assert.equal(requests?.total, 2);
+    assert.equal(requests?.last7Days, 2);
+    assert.equal(funnel.stages.find((s) => s.id === "trials")?.conversionFromPrevious, 0.5);
+  });
+
+  it("does not report territory requests when the only leads are contact messages", () => {
+    const funnel = buildResultsFunnel({ ...base, demoRequests: [{ createdAt: day(1), source: "mlo_hub_briefing" }] });
+    assert.match(funnel.headline, /No territory requests/);
+  });
 });

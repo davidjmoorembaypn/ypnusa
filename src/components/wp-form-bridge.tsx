@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { track } from "@/lib/track";
+import { LEAD_MESSAGE_MAX_LENGTH } from "@/lib/lead-sources";
 import { WP_FORMS, wpFormPayload, type WpFormSpec } from "@/lib/wp-forms";
 
 function fieldValue(form: HTMLFormElement, name: string | undefined): string {
@@ -35,6 +36,11 @@ function attach(spec: WpFormSpec): (() => void) | null {
   if (!(form instanceof HTMLFormElement)) return null;
   form.setAttribute("method", "post");
   form.setAttribute("action", "#");
+  if (spec.fields.message) {
+    const box = form.elements.namedItem(spec.fields.message);
+    // The endpoint stores at most this many characters; a browser limit stops the visitor typing more.
+    if (box instanceof HTMLTextAreaElement && box.maxLength < 0) box.maxLength = LEAD_MESSAGE_MAX_LENGTH;
+  }
 
   const onSubmit = async (event: SubmitEvent) => {
     event.preventDefault();

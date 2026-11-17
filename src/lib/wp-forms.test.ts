@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { WP_FORMS, wpFormPayload } from "@/lib/wp-forms";
+import { LEAD_MESSAGE_MAX_LENGTH } from "@/lib/lead-sources";
 import { WP_TOP_PAGES } from "@/content/wp-import";
 import { prepareWpHtml } from "@/lib/wp-html";
 
@@ -61,4 +62,13 @@ test("briefing form needs the email permission box and notes what was asked for"
 test("a filled honeypot is treated as spam and never sent", () => {
   const check = wpFormPayload(hub, { name: "Bot", email: "bot@example.com", checkboxTicked: true, honeypot: "http://spam" });
   assert.deepEqual(check, { ok: false, spam: true });
+});
+
+test("a contact message over the stored length is refused with a clear note, not cut short", () => {
+  const long = "x".repeat(LEAD_MESSAGE_MAX_LENGTH + 200);
+  const check = wpFormPayload(contact, { name: "Pat", email: "pat@example.com", message: long });
+  assert.equal(check.ok, false);
+  assert.ok(!check.ok && !check.spam && /shorten your message/.test(check.error));
+  const fits = wpFormPayload(contact, { name: "Pat", email: "pat@example.com", message: "x".repeat(LEAD_MESSAGE_MAX_LENGTH) });
+  assert.equal(fits.ok, true);
 });

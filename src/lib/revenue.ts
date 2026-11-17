@@ -1,4 +1,5 @@
 import { readDb } from "./db";
+import { isTerritoryRequest } from "@/lib/lead-sources";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { getPricingTier, PRICING_TIERS, type PricingTierId } from "./pricing";
 import type {
@@ -230,6 +231,7 @@ function countMatchedDemos(
   ownerEmails.add(officer.email.toLowerCase());
 
   return demos.filter((demo) => {
+    if (!isTerritoryRequest(demo)) return false;
     if (attributedIds.has(demo.id)) return true;
     return ownerEmails.has(demo.workEmail.toLowerCase());
   }).length;
@@ -314,7 +316,7 @@ function buildRevenueFlow(db: DbShape, subscriptions: RevenueSubscriptionRecord[
       label: "Territory MRR",
       count: subscriptionCount,
       valueCents: mrrCents,
-      conversionPct: conversionPct(subscriptionCount, Math.max(db.demoRequests.length, 1)),
+      conversionPct: conversionPct(subscriptionCount, Math.max(db.demoRequests.filter(isTerritoryRequest).length, 1)),
       detail: "Active or trial territory subscriptions from seeded accounts and live ZIP code claims.",
     },
   ];
@@ -348,7 +350,7 @@ export function summarizeRevenuePulse(): RevenuePulseSummary {
         (sum, subscription) => sum + (subscription.countyTerritories?.length ?? 0),
         0,
       ),
-      demoRequestCount: db.demoRequests.length,
+      demoRequestCount: db.demoRequests.filter(isTerritoryRequest).length,
       borrowerLeadCount: db.borrowerLeads.length,
       analyticsEventCount: db.analyticsEvents.length,
       averageLtvPerMloCents,

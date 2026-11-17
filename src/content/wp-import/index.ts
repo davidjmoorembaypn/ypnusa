@@ -25,7 +25,7 @@
  */
 import type { BlogPost } from "@/content/blog";
 import { zipCodeCopy } from "@/lib/zip-copy";
-import { bestDescription, clampDescription } from "@/lib/seo/meta-description";
+import { clampDescription, uniqueDescriptions } from "@/lib/seo/meta-description";
 import pagesData from "./pages.json";
 import postsData from "./posts.json";
 import redirectsData from "./redirects.json";
@@ -94,21 +94,30 @@ interface RawPost {
 type PageSections = Record<string, WpImportedPage[]>;
 
 /** Visible titles, descriptions and FAQs say "ZIP code" (body HTML is rewritten at render time in wp-html.ts). */
-function withZipCodeCopy(page: WpImportedPage): WpImportedPage {
+function withZipCodeCopy(page: WpImportedPage, description: string): WpImportedPage {
   return {
     ...page,
     title: zipCodeCopy(page.title),
-    // Some exports carry CSS, a breadcrumb trail or a slogan here: use the opening paragraph instead.
-    description: clampDescription(zipCodeCopy(bestDescription(page.description, page.html))),
+    description: clampDescription(zipCodeCopy(description)),
     ...(page.seoTitle ? { seoTitle: zipCodeCopy(page.seoTitle) } : {}),
     ...(page.faq ? { faq: page.faq.map((item) => ({ q: zipCodeCopy(item.q), a: zipCodeCopy(item.a) })) } : {}),
     ...(page.related ? { related: page.related.map((link) => ({ ...link, label: zipCodeCopy(link.label) })) } : {}),
   };
 }
 
-const SECTIONS: PageSections = Object.fromEntries(
-  Object.entries(pagesData as PageSections).map(([section, pages]) => [section, pages.map(withZipCodeCopy)]),
-);
+// Some exports carry CSS, a breadcrumb trail or a slogan as the description, and pages built
+// from one template share an opening paragraph: pick a real, unique summary for each page.
+const PAGE_DESCRIPTIONS: readonly string[] = uniqueDescriptions(Object.values(pagesData as PageSections).flat());
+
+const SECTIONS: PageSections = (() => {
+  let index = 0;
+  return Object.fromEntries(
+    Object.entries(pagesData as PageSections).map(([section, pages]) => [
+      section,
+      pages.map((page) => withZipCodeCopy(page, PAGE_DESCRIPTIONS[index++])),
+    ]),
+  );
+})();
 
 /**
  * Old top-level WordPress pages folded into a native page (thin, broken or duplicate copies of
@@ -134,10 +143,12 @@ export function getWpPage(list: readonly WpImportedPage[], slug: string): WpImpo
   return list.find((p) => p.slug === slug);
 }
 
-export const WP_POSTS: readonly BlogPost[] = (postsData as RawPost[]).map((p) => ({
+const POST_DESCRIPTIONS: readonly string[] = uniqueDescriptions(postsData as RawPost[]);
+
+export const WP_POSTS: readonly BlogPost[] = (postsData as RawPost[]).map((p, i) => ({
   slug: p.slug,
   title: zipCodeCopy(p.title),
-  description: clampDescription(zipCodeCopy(bestDescription(p.description, p.html))),
+  description: clampDescription(zipCodeCopy(POST_DESCRIPTIONS[i])),
   date: p.date,
   author: p.author,
   readingMinutes: p.readingMinutes,

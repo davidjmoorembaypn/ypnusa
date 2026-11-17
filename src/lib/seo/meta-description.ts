@@ -68,13 +68,24 @@ function isBreadcrumb(text: string): boolean {
  * labels. Returns "" when the body has no paragraph long enough to summarize the page.
  */
 export function firstParagraphText(html: string, minLength = 80): string {
+  return paragraphTexts(html, minLength)[0] ?? "";
+}
+
+/** A byline or date line ("Updated September 26, 2026 · By ..."), not a summary. */
+function isByline(text: string): boolean {
+  return /^(updated|last updated|published|posted|by)\b/i.test(text) || /^table of contents\b/i.test(text);
+}
+
+/** Every paragraph long enough to summarize the page, in order (see firstParagraphText). */
+export function paragraphTexts(html: string, minLength = 80): string[] {
   const body = html.replace(/<(style|script|noscript)\b[\s\S]*?<\/\1>/gi, " ");
+  const out: string[] = [];
   for (const match of body.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
     const text = tidy(decodeEntities(match[1].replace(/<[^>]*>/g, " ")));
-    if (text.length < minLength || isBreadcrumb(text) || looksLikeCode(text)) continue;
-    return text;
+    if (text.length < minLength || isBreadcrumb(text) || looksLikeCode(text) || isByline(text)) continue;
+    out.push(text);
   }
-  return "";
+  return out;
 }
 
 /**
@@ -99,12 +110,38 @@ export function clampDescription(text: string, max = META_DESCRIPTION_MAX): stri
  * prose of a reasonable length, else the body's first paragraph, clamped to fit.
  */
 export function bestDescription(stored: string | undefined, html: string): string {
+  return descriptionCandidates(stored, html)[0];
+}
+
+/** Usable descriptions for a page, best first (always at least one entry). */
+export function descriptionCandidates(stored: string | undefined, html: string): string[] {
   const raw = tidy(decodeEntities(stored ?? ""));
   const usable = raw && !looksLikeCode(raw) && !isBreadcrumb(raw) ? raw : "";
-  if (usable.length >= META_DESCRIPTION_MIN) return clampDescription(usable);
-  const fromBody = firstParagraphText(html);
-  if (fromBody) return clampDescription(fromBody);
-  return clampDescription(usable || raw.replace(/^home\s*[»>›/|][^.]*$/i, "").trim());
+  const candidates: string[] = [];
+  if (usable.length >= META_DESCRIPTION_MIN) candidates.push(usable);
+  candidates.push(...paragraphTexts(html));
+  if (!candidates.length) candidates.push(usable || (isBreadcrumb(raw) || looksLikeCode(raw) ? "" : raw));
+  return [...new Set(candidates.map((c) => clampDescription(c)))];
+}
+
+/**
+ * bestDescription for a whole set of pages, without duplicates: imported posts written
+ * from one template open with the same paragraph, and identical descriptions on many
+ * pages tell search engines the pages are interchangeable. A page whose first choice is
+ * shared moves on to its next paragraph that no other page uses.
+ */
+export function uniqueDescriptions(items: readonly { description?: string; html: string }[]): string[] {
+  const options = items.map((item) => descriptionCandidates(item.description, item.html));
+  const counts = new Map<string, number>();
+  for (const list of options) counts.set(list[0], (counts.get(list[0]) ?? 0) + 1);
+  const taken = new Set(options.filter((list) => counts.get(list[0]) === 1).map((list) => list[0]));
+  return options.map((list) => {
+    if (counts.get(list[0]) === 1) return list[0];
+    const next = list.find((candidate) => candidate && !taken.has(candidate));
+    const pick = next ?? list[0];
+    taken.add(pick);
+    return pick;
+  });
 }
 
 /** The first sentence of a paragraph (the whole text when it has no sentence break). */

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   META_DESCRIPTION_MAX,
   bestDescription,
+  uniqueDescriptions,
   clampDescription,
   firstParagraphText,
   looksLikeCode,
@@ -66,5 +67,34 @@ test("imported posts and pages get real-prose descriptions that fit in search re
     assert.ok(!looksLikeCode(item.description), `${item.slug}: description is code`);
     assert.ok(!/^home\s*[»>]/i.test(item.description), `${item.slug}: description is a breadcrumb`);
     assert.ok(item.description.length <= META_DESCRIPTION_MAX, `${item.slug}: ${item.description.length} chars`);
+  }
+});
+
+test("bylines and dates are not used as descriptions", () => {
+  const html =
+    "<p>Updated September 26, 2026 \u00b7 By David J. Moore, MBA, 25-year mortgage loan officer (NMLS #787257)</p>" +
+    "<p>Rates in 2026 are expected to stay range-bound, which rewards loan officers who build their own local pipeline.</p>";
+  assert.match(bestDescription("Home » Rates", html), /^Rates in 2026/);
+});
+
+test("pages that open with the same paragraph get different descriptions", () => {
+  const shared = "<p>The traditional model of mortgage loan origination is fundamentally broken for most loan officers.</p>";
+  const out = uniqueDescriptions([
+    { description: "Home » A", html: `${shared}<p>Post A explains automated pre-approval follow-up for busy mortgage loan officers.</p>` },
+    { description: "Home » B", html: `${shared}<p>Post B explains document intake automation so files are complete before underwriting.</p>` },
+    { description: "A real description long enough to keep as it is, written for this page alone.", html: shared },
+  ]);
+  assert.equal(new Set(out).size, 3);
+  assert.match(out[0], /^The traditional model/);
+  assert.match(out[1], /^Post B/);
+  assert.match(out[2], /^A real description/);
+});
+
+test("imported posts do not share descriptions", () => {
+  const seen = new Map<string, string>();
+  for (const post of WP_POSTS) {
+    if (/^external-image-for-post/.test(post.slug)) continue;
+    assert.ok(!seen.has(post.description), `${post.slug} repeats ${seen.get(post.description)}`);
+    seen.set(post.description, post.slug);
   }
 });

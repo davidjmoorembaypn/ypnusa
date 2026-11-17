@@ -19,7 +19,8 @@ For deeper technical notes on the server itself, see [aws/README.md](../aws/READ
    ([.github/workflows/release-build.yml](../.github/workflows/release-build.yml)). It runs all the tests, builds
    the site, and publishes a GitHub release named `app-build-` plus the first 7 characters of the change, for example
    `app-build-17e6e2d`.
-3. **Nothing goes live yet.** The live site only changes when someone installs that build on the server (section 2).
+3. **The server installs it by itself** within about 10 minutes, once auto-install is turned on (section 2). If
+   auto-install is off or paused, the live site only changes when someone installs the build by hand (section 2).
 4. GitHub keeps only the **five newest** builds. Older ones are deleted automatically, so they can no longer be
    installed from GitHub.
 
@@ -33,6 +34,30 @@ Notes:
 ---
 
 ## 2. Install a release
+
+### Automatic install (the normal way)
+
+Once it is turned on, the server checks GitHub every 10 minutes. When a newer build is published, it installs it by
+itself, with the same backup, checks and automatic rollback as the hand install below. You don't paste anything.
+
+- **Turn it on (one time):** connect to the server (steps below), then paste this one line, with the build name in the
+  middle replaced by the newest build:
+
+  ```
+  cd /tmp && curl -fsSL -o u.sh https://raw.githubusercontent.com/davidjmoorembaypn/ypnusa/app-build-17e6e2d/scripts/aws-auto-update.sh && sudo bash u.sh install
+  ```
+
+  It ends with `AUTO-UPDATE ON`. Nothing is installed at that moment; the first check runs a couple of minutes later.
+- **See what it did:** `sudo ypnusa-auto-update status` shows the live build, the last result, and when the next check
+  runs.
+- **Pause it** (for example before rolling back by hand, section 3): `sudo ypnusa-auto-update pause`.
+  **Turn it back on:** `sudo ypnusa-auto-update resume`.
+- A build that fails its checks is rolled back automatically and **never retried**. The site keeps running the build it
+  had. Fix the problem in a new change; the next build installs normally.
+- It never installs a build older than the one that is live.
+- Its log: `sudo journalctl -u ypnusa-auto-update.service --since today`.
+
+### Install by hand
 
 You need a terminal on the production server. Open the AWS console, go to **EC2 > Instances**, select the
 production instance (named `ypnus-app`), click **Connect**, choose **EC2 Instance Connect**, and click **Connect**.
@@ -77,14 +102,22 @@ What the installer does, in order:
 
 **During an install** you don't need to do anything: a failed install rolls itself back (section 2, step 3).
 
-**After a good install**, if the new build turns out to have a problem, install the previous build the same way as in
-section 2, using the previous build's name from [CHANGELOG.md](../CHANGELOG.md):
+**After a good install**, if the new build turns out to have a problem, first pause auto-install, or it will put the
+newest build back within 10 minutes:
+
+```
+sudo ypnusa-auto-update pause
+```
+
+Then install the previous build the same way as in section 2, using the previous build's name from
+[CHANGELOG.md](../CHANGELOG.md):
 
 ```
 cd /tmp && curl -fsSL -o i.sh https://raw.githubusercontent.com/davidjmoorembaypn/ypnusa/main/scripts/aws-install-release.sh && sudo bash i.sh app-build-01c062a
 ```
 
-(Replace `app-build-01c062a` with the build you want to go back to.)
+(Replace `app-build-01c062a` with the build you want to go back to.) Once a fixed build is published, turn
+auto-install back on with `sudo ypnusa-auto-update resume`.
 
 Things to know:
 

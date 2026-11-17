@@ -52,6 +52,8 @@ jobs:
           if [ -d public ]; then cp -a public "$out/public"; fi
           # Ops script run on the server before WordPress is retired (docs/WORDPRESS_CUTOVER.md).
           mkdir -p "$out/scripts" && cp scripts/copy-wordpress-media.mjs "$out/scripts/"
+          # The server's auto-updater refreshes itself from the installed bundle (docs/OPERATIONS.md section 2).
+          cp scripts/aws-auto-update.sh scripts/aws-install-release.sh "$out/scripts/"
           # Never ship local data or env files; the server supplies both.
           rm -rf "$out/data" "$out"/.env*
           # Persistent data dir + app/.env loader, so the bundle runs without a prior build to copy them from.

@@ -60,6 +60,35 @@ You land as `root`.
 4. Confirm from anywhere: `curl https://app.ypnus.com/api/health` shows the new
    `build.commit`.
 
+### Auto-install (pull-based)
+
+Once `scripts/aws-auto-update.sh install` has been run on the box (one time, as
+root), the `ypnusa-auto-update.timer` checks GitHub every 10 minutes. When the
+newest published `app-build-<sha7>` release is ahead of the live commit, it runs
+`scripts/aws-install-release.sh` downloaded from **that release's tag** (never
+`main`), so every auto-install gets the same backup, checks and rollback as a
+hand install. Details:
+
+- No credentials: it reads the public GitHub API (well under the 60/hour
+  anonymous limit) and raw.githubusercontent.com.
+- Only the "Latest" release is considered; drafts, pre-releases and tags that
+  aren't `app-build-<7 hex>` are ignored. It never installs a build older than
+  the live one (GitHub compare API).
+- A build that rolls back is written to `/var/lib/ypnusa-auto-update/failed-tags`
+  and never retried. A build that fails before any change (download/backup) is
+  retried on the next runs, at most 3 times.
+- `flock` keeps runs from overlapping, and the installer itself holds
+  `/run/lock/ypnusa-deploy.lock`, so a hand install and an auto-install can't
+  switch releases at the same time.
+- Pause: `sudo ypnusa-auto-update pause` (creates `/etc/ypnusa/auto-update.paused`);
+  `resume` removes it; `status` shows the live build and the last result.
+  Pause **before** a manual rollback, or the next run reinstalls the latest build.
+- Logs: `journalctl -u ypnusa-auto-update.service`.
+- After each good install it copies the bundle's `scripts/aws-auto-update.sh`
+  over `/usr/local/sbin/ypnusa-auto-update`, so updater fixes ship with releases.
+- Trust model: anything merged to `main` that passes the release build goes
+  live within ~10 minutes. Review happens before merge.
+
 The systemd unit's `ReadWritePaths` points at `/opt/ypnusa/current/.next/cache`
 (the symlink, resolved fresh at every service start) rather than a hardcoded
 release path, so the install script never needs to touch the unit file. If

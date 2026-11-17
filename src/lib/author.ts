@@ -2,6 +2,9 @@
 
 export const AUTHOR_NAME = "David J. Moore, MBA";
 
+/** Other ways people write his name; schema.org alternateName on the founder node. */
+export const AUTHOR_ALTERNATE_NAMES = ["David Jonathan Moore, MBA", "David Moore, MBA", "David J. Moore"] as const;
+
 export const BOOK_TITLE = "Top 9 Online Real Estate Leads Even the Gurus Do Not Know About";
 
 /** Cover artwork is titled "Top 9 Secret Online Real Estate Leads". */

@@ -1,4 +1,4 @@
-import { AUTHOR_NAME, AUTHOR_PROFILES, CA_DRE_ID, NMLS_CONSUMER_ACCESS_URL, NMLS_ID } from "@/lib/author";
+import { AUTHOR_ALTERNATE_NAMES, AUTHOR_NAME, AUTHOR_PROFILES, CA_DRE_ID, NMLS_CONSUMER_ACCESS_URL, NMLS_ID } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { FOUNDER_ID, ORGANIZATION_ID } from "@/lib/seo";
 
@@ -12,6 +12,7 @@ export function founderCredentialJsonLd() {
     "@type": "Person",
     "@id": FOUNDER_ID,
     name: AUTHOR_NAME,
+    alternateName: [...AUTHOR_ALTERNATE_NAMES],
     jobTitle: "Founder, YPN USA",
     worksFor: { "@id": ORGANIZATION_ID },
     hasCredential: [

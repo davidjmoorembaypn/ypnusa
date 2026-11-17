@@ -36,7 +36,7 @@ const CREDENTIALS: Array<[string, string]> = [
   ["Experience", "25+ years as a loan officer, formerly with Wells Fargo and JPMorgan Chase; 2,000+ home loans closed"],
   ["Licensing", `NMLS #${NMLS_ID} · California DRE #${CA_DRE_ID}`],
   ["Author", `Author of several books on mortgage and real estate, including ${AI_BOOK.shortTitle} (2026)`],
-  ["Founder", "YPN Inc. (YPN USA) and ToInvested.com"],
+  ["Founder", "YPN USA and ToInvested.com"],
 ];
 
 export default async function AboutPage() {

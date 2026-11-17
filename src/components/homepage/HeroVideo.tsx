@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { HERO_POSTER_SRCSET, HERO_POSTER_URL, pickHeroVideoSource } from "@/lib/hero-video";
+import { preload } from "react-dom";
+import {
+  HERO_PHONE_MEDIA,
+  HERO_PHONE_POSTER_SIZE,
+  HERO_PHONE_POSTER_URL,
+  HERO_POSTER_SRCSET,
+  HERO_POSTER_URL,
+  HERO_WIDE_MEDIA,
+  pickHeroVideoSource,
+} from "@/lib/hero-video";
 
 /**
  * Decorative looping background video for the homepage hero (muted, looping,
@@ -13,8 +22,21 @@ import { HERO_POSTER_SRCSET, HERO_POSTER_URL, pickHeroVideoSource } from "@/lib/
  * nothing is downloaded until the page has loaded and the browser is idle, and it
  * is skipped for visitors who prefer reduced motion or have Data Saver on. The
  * poster always stays underneath, so there is no layout shift.
+ *
+ * Phones get a light portrait crop of the poster through <picture>. React does not
+ * preload an <img> inside <picture>, so both renditions are preloaded here with media
+ * queries: each visitor downloads exactly one, at high priority.
  */
 export function HeroVideo() {
+  preload(HERO_PHONE_POSTER_URL, { as: "image", fetchPriority: "high", media: HERO_PHONE_MEDIA });
+  preload(HERO_POSTER_URL, {
+    as: "image",
+    fetchPriority: "high",
+    imageSrcSet: HERO_POSTER_SRCSET,
+    imageSizes: "100vw",
+    media: HERO_WIDE_MEDIA,
+  });
+
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -63,18 +85,25 @@ export function HeroVideo() {
     <>
       {/* Plain <img>: the poster is a small static file served by this app, so it skips the
           on-demand image optimizer. srcSet lets phones fetch the ~30 KB rendition. */}
-      {/* eslint-disable-next-line @next/next/no-img-element -- static LCP poster, see hero-video.ts */}
-      <img
-        src={HERO_POSTER_URL}
-        srcSet={HERO_POSTER_SRCSET}
-        sizes="100vw"
-        alt=""
-        aria-hidden="true"
-        width={1600}
-        height={900}
-        fetchPriority="high"
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-      />
+      <picture>
+        <source
+          media={HERO_PHONE_MEDIA}
+          srcSet={HERO_PHONE_POSTER_URL}
+          width={HERO_PHONE_POSTER_SIZE.width}
+          height={HERO_PHONE_POSTER_SIZE.height}
+        />
+        <img
+          src={HERO_POSTER_URL}
+          srcSet={HERO_POSTER_SRCSET}
+          sizes="100vw"
+          alt=""
+          aria-hidden="true"
+          width={1600}
+          height={900}
+          fetchPriority="high"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+      </picture>
       <video
         ref={ref}
         className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${playing ? "opacity-100" : "opacity-0"}`}

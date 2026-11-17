@@ -91,7 +91,11 @@ export default function RootLayout({
         />
         {GA_ID ? (
           <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+            {/* The gtag() queue below is defined early, so events fired before the library arrives
+                wait in the page and send once it loads. The ~150 KB library itself loads after the
+                page has finished loading, so it no longer competes with the hero image on a phone.
+                Accepted trade-off: a visitor who leaves before then sends none of the queued events. */}
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="lazyOnload" />
             <Script id="ga4-init" strategy="afterInteractive">
               {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
             </Script>

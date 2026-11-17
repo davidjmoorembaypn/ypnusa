@@ -6,7 +6,8 @@ export const EXPLAINER_VIDEO = {
   title: "The Only Mortgage Lead Strategy You Need in 2026",
   description:
     "Why loan officers should build owned local lead assets, like an exclusive ZIP code territory with AI follow-up that answers borrowers fast, instead of paying for clicks or shared leads.",
-  uploadDate: "2026-09-09",
+  // Full ISO 8601 with a UTC offset (Google flags a bare date). Sep 9, 2026, Pacific time.
+  uploadDate: "2026-09-09T00:00:00-07:00",
 } as const;
 
 export function explainerVideoJsonLd() {

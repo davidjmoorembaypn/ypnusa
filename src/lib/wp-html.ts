@@ -155,9 +155,37 @@ function srcPath(src: string): string | null {
   return m[2];
 }
 
+/**
+ * True for a <meta> tag that only makes sense in a document <head> (charset, http-equiv or
+ * name="viewport"), read as real attributes so words inside another attribute's quoted value
+ * never count. Microdata (<meta itemprop>) is never document metadata.
+ */
+function isDocumentMeta(tag: string): boolean {
+  const attrs = new Map<string, string>();
+  const attrRe = /([^\s=/>"']+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+)))?/g;
+  for (const m of tag.replace(/^<meta\b/i, "").matchAll(attrRe)) {
+    attrs.set(m[1].toLowerCase(), (m[2] ?? m[3] ?? m[4] ?? "").trim().toLowerCase());
+  }
+  if (attrs.has("itemprop")) return false;
+  return attrs.has("charset") || attrs.has("http-equiv") || attrs.get("name") === "viewport";
+}
+
 /** Link and asset cleanup for imported WordPress HTML. Safe to run more than once. */
 export function normalizeWpHtml(html: string): string {
   let out = html;
+
+  // A post pasted in as a whole HTML document: drop the document wrapper so its own
+  // <title> doesn't become a second page title (and <meta>/<html>/<body> don't leak
+  // into the page body). Its <style> and content are kept.
+  out = out.replace(/<!DOCTYPE[^>]*>\s*/gi, "");
+  // <title> inside an <svg> is the graphic's accessible name, not a page title: keep it.
+  out = out
+    .split(/(<svg\b[\s\S]*?<\/svg>)/i)
+    .map((part) => (/^<svg\b/i.test(part) ? part : part.replace(/<title\b[^>]*>[\s\S]*?<\/title>\s*/gi, "")))
+    .join("");
+  // Only real document metadata (charset, viewport, http-equiv as attributes); microdata <meta itemprop> stays.
+  out = out.replace(/<meta\b(?:[^>"']|"[^"]*"|'[^']*')*>\s*/gi, (tag) => (isDocumentMeta(tag) ? "" : tag));
+  out = out.replace(/<\/?(?:html|head|body)\b[^>]*>\s*/gi, "");
 
   // WordPress-only endpoints.
   out = out.replace(/<link\b[^>]*\brel=["']?(?:pingback|EditURI|wlwmanifest)["']?[^>]*>\s*/gi, "");

@@ -199,3 +199,28 @@ test("only real hidden utm inputs are removed", () => {
   const html = '<input data-type="hidden" name="utm_source"><input type="hidden" name="utm_medium" value="x">';
   assert.equal(normalizeWpHtml(html), '<input data-type="hidden" name="utm_source">');
 });
+
+test("normalizeWpHtml drops a pasted document's wrapper and <title> but keeps its style and content", () => {
+  const html =
+    '\n<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width">\n' +
+    "<title>Second title</title>\n<style>.x{color:red}</style>\n</head>\n<body>\n<p>Hello</p><meta itemprop=\"name\" content=\"Kept\">\n</body>\n</html>";
+  const out = normalizeWpHtml(html);
+  assert.doesNotMatch(out, /<title|<meta charset|<meta name|<html|<\/html|<head|<\/head|<body|<\/body|DOCTYPE/i);
+  assert.match(out, /<style>\.x\{color:red\}<\/style>/);
+  assert.match(out, /<p>Hello<\/p>/);
+  assert.match(out, /<meta itemprop="name" content="Kept">/, "microdata meta is kept");
+  assert.equal(normalizeWpHtml(out), out, "idempotent");
+});
+
+test("normalizeWpHtml keeps SVG titles and microdata meta whose values mention charset or viewport", () => {
+  const svg = '<svg role="img" aria-labelledby="t1"><title id="t1">Loan comparison</title><rect/></svg>';
+  const meta =
+    '<meta itemprop="url" content="https://example.org/charset"><meta itemprop="name" content="viewport http-equiv">' +
+    '<meta name="description" content="A charset=UTF-8 guide"><meta content="A charset=UTF-8 > guide" itemprop="description">';
+  const out = normalizeWpHtml(`<title>Page</title>${svg}<p>x</p>${meta}`);
+  assert.ok(out.includes(svg), "svg title kept");
+  assert.ok(out.includes(meta), "itemprop meta kept");
+  assert.doesNotMatch(out, /<title>Page<\/title>/);
+  const docMeta = normalizeWpHtml("<meta charset='utf-8'><meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\"><meta name=viewport content=\"width=device-width\"><p>y</p>");
+  assert.equal(docMeta, "<p>y</p>");
+});

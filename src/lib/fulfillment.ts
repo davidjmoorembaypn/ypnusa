@@ -320,7 +320,17 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         lastStripeEventId: eventId,
         lastStripeEventCreatedAt: eventCreatedAt,
       };
-  const { zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(record, isTrialCheckout ? null : zipToClaim);
+  const { record: saved, zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(
+    record,
+    isTrialCheckout ? null : zipToClaim,
+  );
+  if (zipConflict && zipToClaim) {
+    // Paid, but another officer locked this ZIP code first. Flag it so the dashboard asks
+    // the officer to pick an open one (see @/lib/zip-availability claimReplacementZip).
+    saveRevenueSubscriptionWithZipClaim({ ...saved, zipLockConflict: { zip: zipToClaim, at: now } }, null);
+  } else if (zipClaimed && saved.zipLockConflict) {
+    saveRevenueSubscriptionWithZipClaim({ ...saved, zipLockConflict: undefined }, null);
+  }
   if (zipConflict) {
     logApiError(
       "fulfillment",

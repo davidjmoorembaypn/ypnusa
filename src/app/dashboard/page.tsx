@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata, Viewport } from "next";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { DashboardUpsell } from "@/components/upsell/dashboard-upsell";
+import { ZipConflictBanner } from "@/components/upsell/zip-conflict-banner";
+import { nearbyOpenZips, viewerZipConflict } from "@/lib/zip-availability";
 import { FREE_DAILY_MESSAGE_LIMIT } from "@/lib/ai/chat-agent";
 import { FREE_DAILY_ACTIONS } from "@/lib/free-tier";
 import { upgradeOptions } from "@/lib/upgrade-options";
@@ -179,6 +181,7 @@ export default async function DashboardHubPage({
   const upsellMode =
     isAdmin || viewerHoldsZip(feedViewer) ? "owner" : entitlement.status === "trialing" ? "trial" : paid ? "owner" : "free";
   const upsellZip = defaultFeedZip(feedViewer);
+  const zipConflict = viewerZipConflict(feedViewer)?.zipLockConflict ?? null;
 
   return (
     <main className="min-h-full bg-slate-50 px-4 py-10 text-slate-900 sm:px-6 sm:py-12">
@@ -257,6 +260,13 @@ export default async function DashboardHubPage({
           </section>
         ) : null}
 
+        {zipConflict ? (
+          <ZipConflictBanner
+            takenZip={zipConflict.zip}
+            nearby={nearbyOpenZips(zipConflict.zip)}
+            supportEmail={upsellOptions.supportEmail}
+          />
+        ) : null}
         <DashboardUpsell
           part="feed"
           paid={upsellPaid}

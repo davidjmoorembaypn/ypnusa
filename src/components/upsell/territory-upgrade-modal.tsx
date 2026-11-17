@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/track";
 import type { UpgradeOptions } from "@/lib/upgrade-options";
 
@@ -95,6 +95,27 @@ export function TerritoryUpgradeModal(props: {
   );
 }
 
+type ZipCheck =
+  | { zip: string; status: "open" | "yours" }
+  | { zip: string; status: "taken"; nearby: string[] }
+  | { zip: string; status: "error" };
+
+/** Asks the server whether this ZIP code is still open before any payment button shows. */
+async function checkZip(zip: string): Promise<ZipCheck> {
+  try {
+    const res = await fetch(`/api/territory/claimable?zip=${encodeURIComponent(zip)}`, { cache: "no-store" });
+    const body = (await res.json()) as { ok?: boolean; available?: boolean; yours?: boolean; nearby?: string[] };
+    if (!res.ok || !body.ok) return { zip, status: "error" };
+    if (body.yours) return { zip, status: "yours" };
+    if (body.available) return { zip, status: "open" };
+    return { zip, status: "taken", nearby: Array.isArray(body.nearby) ? body.nearby : [] };
+  } catch {
+    return { zip, status: "error" };
+  }
+}
+
+const cleanZip = (value: string) => value.replace(/\D/g, "").slice(0, 5);
+
 function SlideOverBody(props: {
   request: UpgradeRequest;
   options: UpgradeOptions;
@@ -105,13 +126,158 @@ function SlideOverBody(props: {
 }) {
   const { request, options, mode, defaultZip, titleId, onClose } = props;
   const [typedZip, setTypedZip] = useState("");
-  const typedClean = typedZip.replace(/\D/g, "").slice(0, 5);
+  const [chosenZip, setChosenZip] = useState<string | null>(null);
+  const [otherZip, setOtherZip] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const [check, setCheck] = useState<(ZipCheck & { attempt: number }) | null>(null);
+  const typedClean = cleanZip(typedZip);
   // Checkout must carry a ZIP code, or the payment would lock none: ask for one when we have none.
-  const zip = request.zip ?? defaultZip ?? (typedClean.length === 5 ? typedClean : undefined);
-  const headline = HEADLINES[request.reason](zip);
+  // An owner's default ZIP code is the one they already hold, so it's never a pick for an add-on.
+  const zip =
+    chosenZip ??
+    request.zip ??
+    (mode === "owner" ? undefined : (defaultZip ?? (typedClean.length === 5 ? typedClean : undefined)));
+
+  useEffect(() => {
+    if (!zip) return;
+    let live = true;
+    checkZip(zip).then((result) => {
+      if (live) setCheck({ ...result, attempt });
+    });
+    return () => {
+      live = false;
+    };
+  }, [zip, attempt]);
+
+  const current = check && check.zip === zip && check.attempt === attempt ? check : null;
+  const taken = current?.status === "taken";
+  const headline = taken ? `ZIP code ${zip} is already taken` : HEADLINES[request.reason](zip);
 
   function onCheckout(kind: string) {
     track("upgrade_checkout_click", { kind, reason: request.reason, zip_set: Boolean(zip), mode });
+  }
+
+  function pick(next: string) {
+    track("upgrade_zip_repick", { reason: request.reason, mode });
+    setOtherZip("");
+    setChosenZip(next);
+  }
+
+  let body: ReactNode;
+  if (!zip) {
+    body =
+      mode === "owner" ? (
+        <OwnerAddZip options={options} onCheckout={onCheckout} />
+      ) : (
+        <form className="mt-6 space-y-3" onSubmit={(event) => event.preventDefault()} aria-label="Choose your ZIP code">
+          <label htmlFor="upgrade-zip" className="block text-sm font-medium text-slate-700">
+            Which ZIP code do you want to own?
+          </label>
+          <input
+            id="upgrade-zip"
+            inputMode="numeric"
+            autoComplete="postal-code"
+            maxLength={5}
+            value={typedZip}
+            onChange={(event) => setTypedZip(event.target.value)}
+            placeholder="5-digit ZIP code"
+            className="w-full rounded-full border border-slate-300 px-4 py-3 text-base focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
+          />
+          <p className="text-xs text-slate-500">We check it&rsquo;s open, then show your checkout options.</p>
+        </form>
+      );
+  } else if (!current) {
+    body = (
+      <p className="mt-6 text-sm text-slate-600" role="status">
+        Checking that ZIP code {zip} is still open&hellip;
+      </p>
+    );
+  } else if (current.status === "error") {
+    body = (
+      <div className="mt-6 space-y-3 text-sm text-slate-700" role="alert">
+        <p>We couldn&rsquo;t confirm ZIP code {zip} is still open, so checkout is paused.</p>
+        <button
+          type="button"
+          onClick={() => setAttempt((n) => n + 1)}
+          className="rounded-full border border-slate-300 px-4 py-2 font-semibold hover:bg-slate-50"
+        >
+          Check again
+        </button>
+      </div>
+    );
+  } else if (current.status === "taken") {
+    const otherClean = cleanZip(otherZip);
+    body = (
+      <div className="mt-6 space-y-4 text-sm leading-6 text-slate-700">
+        <p>Another loan officer already holds it, and each ZIP code has one owner. Pick an open one to continue.</p>
+        {current.nearby.length > 0 ? (
+          <div>
+            <p className="font-medium text-slate-900">Open nearby</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {current.nearby.map((open) => (
+                <button
+                  key={open}
+                  type="button"
+                  onClick={() => pick(open)}
+                  className="rounded-full border border-violet-300 bg-violet-50 px-4 py-2 font-semibold text-violet-800 hover:bg-violet-100"
+                >
+                  {open}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <form
+          className="flex gap-2"
+          aria-label="Try another ZIP code"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (otherClean.length === 5) pick(otherClean);
+          }}
+        >
+          <input
+            inputMode="numeric"
+            autoComplete="postal-code"
+            maxLength={5}
+            value={otherZip}
+            onChange={(event) => setOtherZip(event.target.value)}
+            placeholder="Another ZIP code"
+            aria-label="Another ZIP code"
+            className="min-w-0 flex-1 rounded-full border border-slate-300 px-4 py-2 text-base focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
+          />
+          <button
+            type="submit"
+            disabled={otherClean.length !== 5}
+            className="rounded-full bg-violet-700 px-4 py-2 font-semibold text-white hover:bg-violet-800 disabled:opacity-50"
+          >
+            Check
+          </button>
+        </form>
+      </div>
+    );
+  } else if (current.status === "yours") {
+    body = <p className="mt-6 text-sm leading-6 text-slate-700">ZIP code {zip} is already yours.</p>;
+  } else if (mode === "owner") {
+    body = <OwnerAddZip zip={zip} options={options} onCheckout={onCheckout} />;
+  } else if (mode === "trial") {
+    body = (
+      <div className="mt-6 space-y-4 text-sm leading-6 text-slate-700">
+        <p>
+          You&rsquo;re in your free trial. Your ZIP code locks to you at your first payment, and until then another
+          loan officer can still claim it.
+        </p>
+        <p>To lock it today, ask us to start your billing now. You keep the same plan.</p>
+        <a
+          href={`mailto:${options.supportEmail}?subject=${encodeURIComponent(`Start my billing now and lock ZIP code ${zip}`)}`}
+          onClick={() => onCheckout("trial_lock_email")}
+          className="inline-flex w-full items-center justify-center rounded-full bg-violet-700 px-5 py-3 text-base font-semibold text-white hover:bg-violet-800"
+        >
+          {`Lock ZIP code ${zip} now`}
+        </a>
+      </div>
+    );
+  } else {
+    body = <CheckoutOptions zip={zip} options={options} onCheckout={onCheckout} />;
   }
 
   return (
@@ -136,61 +302,27 @@ function SlideOverBody(props: {
           </svg>
         </button>
       </div>
-
-      {mode === "owner" ? (
-        <div className="mt-6 space-y-4 text-sm leading-6 text-slate-700">
-          <p>
-            Your plan includes one exclusive ZIP code. More ZIP codes are add-ons, subject to availability, and we set
-            them up with you.
-          </p>
-          <a
-            href={`mailto:${options.supportEmail}?subject=${encodeURIComponent(`Add ZIP code ${request.zip ?? ""} to my plan`.trim())}`}
-            onClick={() => onCheckout("add_zip_email")}
-            className="inline-flex w-full items-center justify-center rounded-full bg-violet-700 px-5 py-3 text-base font-semibold text-white hover:bg-violet-800"
-          >
-            {request.zip ? `Ask to add ZIP code ${request.zip}` : "Ask to add a ZIP code"}
-          </a>
-        </div>
-      ) : mode === "trial" ? (
-        <div className="mt-6 space-y-4 text-sm leading-6 text-slate-700">
-          <p>
-            You&rsquo;re in your free trial. Your ZIP code locks to you at your first payment, and until then another
-            loan officer can still claim it.
-          </p>
-          <p>To lock it today, ask us to start your billing now. You keep the same plan.</p>
-          <a
-            href={`mailto:${options.supportEmail}?subject=${encodeURIComponent(`Start my billing now and lock ZIP code ${zip ?? ""}`.trim())}`}
-            onClick={() => onCheckout("trial_lock_email")}
-            className="inline-flex w-full items-center justify-center rounded-full bg-violet-700 px-5 py-3 text-base font-semibold text-white hover:bg-violet-800"
-          >
-            {zip ? `Lock ZIP code ${zip} now` : "Lock my ZIP code now"}
-          </a>
-        </div>
-      ) : !zip ? (
-        <form
-          className="mt-6 space-y-3"
-          onSubmit={(event) => event.preventDefault()}
-          aria-label="Choose your ZIP code"
-        >
-          <label htmlFor="upgrade-zip" className="block text-sm font-medium text-slate-700">
-            Which ZIP code do you want to own?
-          </label>
-          <input
-            id="upgrade-zip"
-            inputMode="numeric"
-            autoComplete="postal-code"
-            maxLength={5}
-            value={typedZip}
-            onChange={(event) => setTypedZip(event.target.value)}
-            placeholder="5-digit ZIP code"
-            className="w-full rounded-full border border-slate-300 px-4 py-3 text-base focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
-          />
-          <p className="text-xs text-slate-500">Your checkout options appear once you enter it.</p>
-        </form>
-      ) : (
-        <CheckoutOptions zip={zip} options={options} onCheckout={onCheckout} />
-      )}
+      {body}
     </>
+  );
+}
+
+function OwnerAddZip(props: { zip?: string; options: UpgradeOptions; onCheckout: (kind: string) => void }) {
+  const { zip, options, onCheckout } = props;
+  return (
+    <div className="mt-6 space-y-4 text-sm leading-6 text-slate-700">
+      <p>
+        Your plan includes one exclusive ZIP code. More ZIP codes are add-ons, subject to availability, and we set them
+        up with you.
+      </p>
+      <a
+        href={`mailto:${options.supportEmail}?subject=${encodeURIComponent(`Add ZIP code ${zip ?? ""} to my plan`.trim())}`}
+        onClick={() => onCheckout("add_zip_email")}
+        className="inline-flex w-full items-center justify-center rounded-full bg-violet-700 px-5 py-3 text-base font-semibold text-white hover:bg-violet-800"
+      >
+        {zip ? `Ask to add ZIP code ${zip}` : "Ask to add a ZIP code"}
+      </a>
+    </div>
   );
 }
 

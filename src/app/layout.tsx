@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Script from "next/script";
-import { MARKETING_SITE_URL, centralValleyAreaServed } from "@/lib/site";
+import { MARKETING_SITE_URL } from "@/lib/site";
+import { businessEntityJsonLd } from "@/lib/business-profile";
 import { FOUNDER_ID } from "@/lib/seo";
 import "./globals.css";
 import { FunnelPageEvents } from "@/components/analytics/funnel-page-events";
@@ -43,7 +44,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "YPN USA App",
+    siteName: "YPN USA",
     title: "YPN USA App — Mortgage Growth Platform for Loan Officers",
     description:
       "Claim exclusive ZIP code territories, capture borrowers with AI intake, and build an owned mortgage lead pipeline.",
@@ -59,30 +60,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
-    {
-      "@type": ["Organization", "ProfessionalService"],
-      "@id": `${MARKETING_SITE_URL}/#organization`,
-      name: "YPN USA",
-      legalName: "YPN INC",
-      url: MARKETING_SITE_URL,
-      email: "support@ypnus.com",
-      telephone: "+15595120372",
-      address: {
-        "@type": "PostalAddress",
-        streetAddress: "247 N L Street",
-        addressLocality: "Dinuba",
-        addressRegion: "CA",
-        postalCode: "93618",
-        addressCountry: "US",
-      },
-      areaServed: centralValleyAreaServed(),
-      // Full Person node (credentials) lives on /about and in post author boxes.
-      founder: { "@type": "Person", "@id": FOUNDER_ID, name: "David J. Moore, MBA" },
-      sameAs: [
-        "https://www.linkedin.com/in/davidjmooreypn",
-        "https://www.facebook.com/YPN.Incorporated/",
-      ],
-    },
+    businessEntityJsonLd({ "@id": FOUNDER_ID, name: "David J. Moore, MBA" }),
     {
       "@type": "WebSite",
       "@id": `${MARKETING_SITE_URL}/#website`,

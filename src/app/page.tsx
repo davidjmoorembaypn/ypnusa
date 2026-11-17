@@ -66,12 +66,16 @@ const PROGRAMS = ["FHA", "VA", "Conventional", "DSCR", "HELOC", "Refinance", "Ju
 
 const FAQ = [
   {
+    q: "What is YPN USA and who is it built for?",
+    a: "YPN USA is an AI mortgage marketing and lead generation platform built for licensed Mortgage Loan Officers (MLOs) who want to own their local market rather than buy shared leads. Each paid plan includes an exclusive ZIP code, a local page for it and Cerebro, an AI assistant that answers and qualifies borrowers 24/7.",
+  },
+  {
     q: "What is Cerebro?",
     a: "Cerebro is YPN USA's AI assistant for mortgage loan officers. On your pages it answers borrower questions 24/7, qualifies them and hands the ready ones to you. Inside your dashboard it builds your growth plan, works your pipeline and drafts your marketing. It assists you as the licensed loan officer and never replaces you.",
   },
   {
-    q: "What does an exclusive ZIP code mean?",
-    a: "Each paid plan includes one ZIP code. While you hold it, no other YPN USA loan officer can claim it, and borrower inquiries from YPN USA pages for that ZIP code route to you. Exclusivity applies within YPN USA; other lenders can still market in your area.",
+    q: "How does the exclusive ZIP code territory model work?",
+    a: "Each paid plan includes one 5-digit ZIP code. It locks to you at your first payment, and while you hold it no other YPN USA loan officer can claim it, so you never compete with another YPN USA lender for that ZIP code's traffic or leads. Borrower inquiries from YPN USA pages for that ZIP code route to you. Exclusivity applies within YPN USA; other lenders can still market in your area.",
   },
   {
     q: "Do I keep my leads if I switch brokerages?",
@@ -92,6 +96,10 @@ const FAQ = [
   {
     q: "Does YPN USA work for teams?",
     a: "Yes. Each loan officer on a team is on their own plan with their own ZIP code, so your team covers more ZIP codes without competing for the same borrowers. There is no team discount.",
+  },
+  {
+    q: "Where is YPN USA located and what areas do you serve?",
+    a: "YPN USA is headquartered at 247 N L St in Dinuba, California, and serves licensed Mortgage Loan Officers nationwide across the United States.",
   },
 ];
 

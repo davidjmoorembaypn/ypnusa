@@ -5,6 +5,7 @@ import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { MLO_MARKETS } from "@/content/mlo-markets";
 import { REPORT_COUNTIES } from "@/content/market-report";
+import { COMPARISON_GUIDES, COMPARISON_GUIDES_LAST_MODIFIED } from "@/content/comparison-guides";
 import {
   WP_TOP_PAGES,
   WP_MARKET_PAGES,
@@ -85,6 +86,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: MARKET_REPORT_LAST_MODIFIED,
       changeFrequency: "monthly" as const,
       priority: 0.7,
+    })),
+    // "Best X" / "X alternatives" comparison guides (src/content/comparison-guides.ts).
+    ...COMPARISON_GUIDES.map((guide) => ({
+      url: `${origin}${guide.path}`,
+      lastModified: new Date(`${COMPARISON_GUIDES_LAST_MODIFIED}T00:00:00.000Z`),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
     })),
     { url: `${origin}/about`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/book`, lastModified: SEO_PLAN_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },

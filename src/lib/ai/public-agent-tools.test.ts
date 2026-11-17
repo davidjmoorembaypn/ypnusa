@@ -14,9 +14,11 @@ import { executeMloTool } from "./cerebro-tools";
 import { toolsForMode } from "./chat-agent";
 import { checkMarketingCompliance } from "./marketing-compliance";
 import {
+  CREATE_STARTER_KIT_TOOL,
   executeCreateStarterKit,
   executeRequestCallback,
   executeSaveOfficerProspect,
+  LOCKED_KIT_PIECES,
   MAX_KITS_PER_SESSION,
 } from "./public-agent-tools";
 
@@ -43,12 +45,8 @@ function goodKitInput(extra: Record<string, unknown> = {}): Record<string, unkno
     zip: "93291",
     facts: "Bilingual, helps first-time buyers, grew up in Tulare County.",
     bio: para("I help families in Visalia buy their first home with clear answers and steady guidance from start to finish.", 4),
-    gbpDescription: para("Mortgage guidance for Visalia home buyers and homeowners, in English and Spanish.", 4),
-    gbpPost: para("Thinking about buying in Visalia this spring? Book a free planning call and get a clear next step.", 2),
     blogTitle: "Buying your first home in Visalia: a step-by-step guide",
-    blogPost: para("Start by looking at your monthly budget and the neighborhoods you love, then talk to a local loan officer about programs that fit.", 12),
-    welcomeEmailSubject: "I'm taking new clients in Visalia",
-    welcomeEmailBody: para("I wanted you to be the first to know I'm helping new buyers and homeowners in Visalia this year.", 3),
+    blogOpening: para("Start by looking at your monthly budget and the neighborhoods you love, then talk to a local loan officer about programs that fit.", 3),
     ...extra,
   };
 }
@@ -84,6 +82,24 @@ describe("create_starter_kit", () => {
     const kit = readDb().starterKits.find((item) => item.sessionId === s.id);
     assert.equal(kit?.state, "CA");
     assert.equal(kit?.zip, "93291");
+  });
+
+  it("is a preview: only the bio and the blog opening are written, the paid pieces are named", () => {
+    const s = session();
+    const out = JSON.parse(executeCreateStarterKit({ toolName: "create_starter_kit", input: goodKitInput() }, s));
+    assert.equal(out.saved, true);
+    assert.ok(out.blogOpening.length > 0);
+    assert.deepEqual(out.lockedPieces, [...LOCKED_KIT_PIECES]);
+    const kit = readDb().starterKits.find((item) => item.sessionId === s.id);
+    assert.equal(kit?.preview, true);
+    assert.equal(kit?.gbpDescription, "");
+    assert.equal(kit?.gbpPost, "");
+    assert.equal(kit?.blogPost, "");
+    assert.equal(kit?.welcomeEmailBody, "");
+    const schema = CREATE_STARTER_KIT_TOOL.inputSchema as { properties: Record<string, unknown> };
+    for (const paidField of ["gbpDescription", "gbpPost", "blogPost", "welcomeEmailBody"]) {
+      assert.equal(paidField in schema.properties, false, paidField);
+    }
   });
 
   it("sends problems back instead of saving non-compliant copy", () => {

@@ -137,6 +137,7 @@ describe("runAssistantTurn — website/profile autopilot trigger (mlo_dashboard)
     const result = await runAssistantTurn({
       mode: "mlo_dashboard",
       userId: "user_lo_autopilot",
+      paidPlan: true,
       userMessage: "Run website autopilot",
     });
 
@@ -149,9 +150,9 @@ describe("runAssistantTurn — website/profile autopilot trigger (mlo_dashboard)
 
   it("does not create duplicate change records when the command is repeated", async () => {
     const before = readDb().websiteAutopilotChanges.filter((c) => c.userId === "user_lo_autopilot_dupe").length;
-    await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_lo_autopilot_dupe", userMessage: "run the autopilot" });
+    await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_lo_autopilot_dupe", paidPlan: true, userMessage: "run the autopilot" });
     const once = readDb().websiteAutopilotChanges.filter((c) => c.userId === "user_lo_autopilot_dupe").length;
-    await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_lo_autopilot_dupe", userMessage: "run the autopilot" });
+    await runAssistantTurn({ mode: "mlo_dashboard", userId: "user_lo_autopilot_dupe", paidPlan: true, userMessage: "run the autopilot" });
     const twice = readDb().websiteAutopilotChanges.filter((c) => c.userId === "user_lo_autopilot_dupe").length;
     assert.equal(before, 0);
     assert.ok(once > 0);

@@ -109,9 +109,9 @@ describe("officer follow-up tools", () => {
   });
 
   it("is reachable from the officer's dashboard chat and scoped to their own account", async () => {
-    const ok = JSON.parse(await executeMloTool({ toolName: "run_follow_ups", input: {} }, { userEmail: officer().email }));
+    const ok = JSON.parse(await executeMloTool({ toolName: "run_follow_ups", input: {} }, { userEmail: officer().email, paidPlan: true }));
     assert.equal(typeof ok.drafted, "number");
-    const stranger = JSON.parse(await executeMloTool({ toolName: "run_follow_ups", input: {} }, { userEmail: "nobody@example.com" }));
+    const stranger = JSON.parse(await executeMloTool({ toolName: "run_follow_ups", input: {} }, { userEmail: "nobody@example.com", paidPlan: true }));
     assert.equal(stranger.error, "no_officer_profile");
   });
 });

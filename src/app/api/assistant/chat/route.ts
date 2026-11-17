@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { chatHandledBy, chatHandlerName, runAssistantTurn, transcriptForSession } from "@/lib/ai/chat-agent";
@@ -57,6 +58,12 @@ function validateBody(
   };
 }
 
+/** A one-way, salted hash of the caller's network address: the Free visitor cap counts devices, never stores addresses. */
+function visitorKeyFor(request: Request): string {
+  const salt = process.env.SESSION_SECRET?.trim() || "ypnus-visitor";
+  return createHash("sha256").update(`${salt}:${clientKey(request)}`).digest("hex").slice(0, 32);
+}
+
 export async function POST(request: Request) {
   const limited = rateLimit(`assistant:${clientKey(request)}`, 30, 60_000);
   if (!limited.ok) {
@@ -85,6 +92,7 @@ export async function POST(request: Request) {
 
     const result = await runAssistantTurn({
       mode,
+      visitorKey: mode === "public_site" ? visitorKeyFor(request) : undefined,
       sessionId,
       userId,
       userEmail,

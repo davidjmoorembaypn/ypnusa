@@ -390,6 +390,16 @@ export interface ChatSessionRecord {
   officerSlug?: string;
   /** Who answers the borrower: Cerebro (default) or the loan officer after a Live Takeover. */
   handledBy?: "ai" | "officer";
+  /**
+   * public_site only: a one-way hash of the visitor's network address (never the address), so
+   * the Free visitor message cap counts one device's chats per day.
+   */
+  visitorKey?: string;
+  /**
+   * public_site only: who Cerebro is talking to, set from the tools it uses. Only "officer"
+   * chats count toward the visitor cap; homebuyer chats are never capped.
+   */
+  audience?: "officer" | "borrower";
   handledByChangedAt?: string;
 }
 
@@ -599,6 +609,12 @@ export interface StarterKitRecord {
   blogPost: string;
   welcomeEmailSubject: string;
   welcomeEmailBody: string;
+  /**
+   * Free preview kits (preview: true) hold the bio and the blog post's title and opening only;
+   * the other fields are empty and the kit page shows them as paid-plan pieces.
+   */
+  blogOpening?: string;
+  preview?: boolean;
   /** Lines the server added (disclosures) or reminders for the officer. */
   complianceNotes: string[];
 }
@@ -763,6 +779,17 @@ export interface CrmDeliveryRecord {
   claimUntil?: string;
 }
 
+/**
+ * Free-plan allowance used per account per UTC day (src/lib/free-tier.ts): the one real
+ * Cerebro action a free officer gets each day (a drafted post, follow-up or tool run).
+ */
+export interface FreeUsageRecord {
+  userId: string;
+  /** UTC day, YYYY-MM-DD. */
+  day: string;
+  actions: number;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -792,4 +819,5 @@ export interface DbShape {
   pushSubscriptions: PushSubscriptionRecord[];
   crmConnections: CrmConnectionRecord[];
   crmDeliveries: CrmDeliveryRecord[];
+  freeUsage: FreeUsageRecord[];
 }

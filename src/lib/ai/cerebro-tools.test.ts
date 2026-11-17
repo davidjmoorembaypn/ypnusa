@@ -92,19 +92,19 @@ describe("executeMloTool", () => {
     saveWebsiteAutopilotChange(theirs);
 
     const denied = JSON.parse(
-      await executeMloTool({ toolName: "decide_website_change", input: { changeId: theirs.id, decision: "approve" } }, { userId: "user_a" }),
+      await executeMloTool({ toolName: "decide_website_change", input: { changeId: theirs.id, decision: "approve" } }, { userId: "user_a", paidPlan: true }),
     );
     assert.equal(denied.error, "change_not_found");
     assert.equal(listWebsiteAutopilotChanges("user_b").find((c) => c.id === theirs.id)?.status, "needs_approval");
 
     const ok = JSON.parse(
-      await executeMloTool({ toolName: "decide_website_change", input: { changeId: mine.id, decision: "approve" } }, { userId: "user_a" }),
+      await executeMloTool({ toolName: "decide_website_change", input: { changeId: mine.id, decision: "approve" } }, { userId: "user_a", paidPlan: true }),
     );
     assert.equal(ok.ok, true);
     assert.equal(listWebsiteAutopilotChanges("user_a").find((c) => c.id === mine.id)?.status, "auto_applied");
 
     const again = JSON.parse(
-      await executeMloTool({ toolName: "decide_website_change", input: { changeId: mine.id, decision: "reject" } }, { userId: "user_a" }),
+      await executeMloTool({ toolName: "decide_website_change", input: { changeId: mine.id, decision: "reject" } }, { userId: "user_a", paidPlan: true }),
     );
     assert.equal(again.error, "not_pending");
   });
@@ -113,7 +113,7 @@ describe("executeMloTool", () => {
     const mine = heldChange("user_c");
     saveWebsiteAutopilotChange(mine);
     saveWebsiteAutopilotChange(heldChange("user_d"));
-    const result = JSON.parse(await executeMloTool({ toolName: "list_pending_website_changes", input: {} }, { userId: "user_c" }));
+    const result = JSON.parse(await executeMloTool({ toolName: "list_pending_website_changes", input: {} }, { userId: "user_c", paidPlan: true }));
     assert.deepEqual(
       result.pending.map((c: { id: string }) => c.id),
       [mine.id],
@@ -157,24 +157,24 @@ describe("executeMloTool", () => {
       );
     });
     const result = JSON.parse(
-      await executeMloTool({ toolName: "get_my_pipeline", input: {} }, { userId: "user_e", userEmail: "officer@example.com" }),
+      await executeMloTool({ toolName: "get_my_pipeline", input: {} }, { userId: "user_e", userEmail: "officer@example.com", paidPlan: true }),
     );
     assert.deepEqual(
       result.leads.map((l: { name: string }) => l.name),
       ["Pat Buyer"],
     );
 
-    const none = JSON.parse(await executeMloTool({ toolName: "get_my_pipeline", input: {} }, { userId: "user_f", userEmail: "nobody@example.com" }));
+    const none = JSON.parse(await executeMloTool({ toolName: "get_my_pipeline", input: {} }, { userId: "user_f", userEmail: "nobody@example.com", paidPlan: true }));
     assert.equal(none.error, "no_officer_profile");
   });
 
   it("draft tools return drafts flagged as not sent or published", async () => {
     const post = JSON.parse(
-      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Invite first-time buyers to a free Q&A" } }, {}),
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Invite first-time buyers to a free Q&A" } }, { paidPlan: true }),
     );
     assert.equal(post.draftOnly, true);
     const page = JSON.parse(
-      await executeMloTool({ toolName: "draft_landing_page", input: { goal: "book consultations", offer: "free home buying plan" } }, {}),
+      await executeMloTool({ toolName: "draft_landing_page", input: { goal: "book consultations", offer: "free home buying plan" } }, { paidPlan: true }),
     );
     assert.equal(page.draftOnly, true);
   });
@@ -193,7 +193,7 @@ describe("executeMloTool", () => {
         weeklyWindows: [],
       });
     });
-    const ctx = { userId: "user_dana", userEmail: "dana@example.com" };
+    const ctx = { userId: "user_dana", userEmail: "dana@example.com", paidPlan: true };
     const post = JSON.parse(
       await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Invite first-time buyers to a free Q&A" } }, ctx),
     );
@@ -213,14 +213,14 @@ describe("executeMloTool", () => {
 
   it("lists what to add when no officer profile is linked, and fills a placeholder for a missing NMLS ID", async () => {
     const anonymous = JSON.parse(
-      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Buyer tips" } }, { userEmail: "nobody@example.com" }),
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Buyer tips" } }, { userEmail: "nobody@example.com", paidPlan: true }),
     );
     assert.ok(anonymous.disclosuresNeeded.length > 0);
     writeDb((db) => {
       db.loanOfficers.push({ id: "lo_no_nmls", name: "Nia North", email: "nia@example.com", specialties: ["FHA"], weeklyWindows: [] });
     });
     const missing = JSON.parse(
-      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Buyer tips" } }, { userEmail: "nia@example.com" }),
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Buyer tips" } }, { userEmail: "nia@example.com", paidPlan: true }),
     );
     assert.match(missing.result.body, /Nia North, NMLS #\[add your NMLS ID\]/);
     assert.ok(missing.disclosureNote);

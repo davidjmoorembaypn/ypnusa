@@ -51,6 +51,8 @@ itself, with the same backup, checks and automatic rollback as the hand install 
 - **See what it did:** `sudo ypnusa-auto-update status` shows the live build, the last result, and when the next check
   runs.
 - **Pause it** (for example before rolling back by hand, section 3): `sudo ypnusa-auto-update pause`.
+  If an auto-install is under way, it stops before switching builds, and the command waits until it has, so once
+  it says `Nothing is installing now` nothing will change behind your back.
   **Turn it back on:** `sudo ypnusa-auto-update resume`.
 - A build that fails its checks is rolled back automatically and **never retried**. The site keeps running the build it
   had. Fix the problem in a new change; the next build installs normally.
@@ -79,7 +81,8 @@ cd /tmp && curl -fsSL -o i.sh https://raw.githubusercontent.com/davidjmoorembayp
 | --- | --- |
 | `DEPLOY OK: live build ...` and `DONE` | The new build is live. Go to section 4 to double-check. |
 | `Release ... is already live; nothing to do.` | That build was already installed. Nothing changed. |
-| `failed verification; rolling back` | The new build didn't start properly, so the old one was put back automatically. The site keeps running the old build. |
+| `failed verification; rolling back` or `did not start ... rolling back`, then `ROLLED BACK` | The new build didn't start properly, so the old one was put back automatically and checked. The site keeps running the old build. |
+| `ROLLBACK FAILED` | The new build failed **and** putting the old one back failed too. The site may be down: check section 4 right away. |
 | `pre-deploy backup failed; aborting before any change.` | Nothing was changed. The data backup must work before an install. |
 | `curl: (22) ... 404` | That build name doesn't exist on GitHub (typo, or it was one of the older builds that were deleted). Nothing was changed. |
 

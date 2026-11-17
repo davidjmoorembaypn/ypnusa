@@ -38,7 +38,7 @@ function attach(spec: WpFormSpec): (() => void) | null {
   form.setAttribute("action", "#");
   if (spec.fields.message) {
     const box = form.elements.namedItem(spec.fields.message);
-    // The endpoint stores at most this many characters; a browser limit stops the visitor typing more.
+    // The endpoint accepts at most this many characters; a browser limit stops the visitor typing more.
     if (box instanceof HTMLTextAreaElement && box.maxLength < 0) box.maxLength = LEAD_MESSAGE_MAX_LENGTH;
   }
 

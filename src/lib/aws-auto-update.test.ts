@@ -293,3 +293,83 @@ test("install writes the 10-minute timer, turns it on and clears a pause", (t) =
   assert.match(readFileSync(path.join(e.root, "systemctl.log"), "utf8"), /enable --now ypnusa-auto-update\.timer/);
   assert.equal(existsSync(e.env.YPNUSA_AU_PAUSE_FILE!), false);
 });
+
+function installerScript(e: Env, tag: string, body: string) {
+  serve(e, `${RAW}/${REPO}/${tag}/scripts/aws-install-release.sh`, `#!/usr/bin/env bash\necho "$1" >> "${e.installLog}"\n${body}\n`);
+}
+
+test("hands the installer the pause file so a pause stops an install already under way", (t) => {
+  const e = setup("1111111");
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  latestRelease(e, "app-build-2222222");
+  compare(e, "1111111", "2222222", "ahead");
+  // Like the real installer when it finds the pause file before switching builds.
+  installerScript(e, "app-build-2222222", `echo "abort-file=$YPNUSA_ABORT_IF_FILE"\necho "=== Auto-update was paused ($YPNUSA_ABORT_IF_FILE); stopping before any change. Nothing was switched."; exit 1`);
+
+  const r = run(e);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, new RegExp(`abort-file=${e.env.YPNUSA_AU_PAUSE_FILE}`));
+  assert.match(lastResult(e), /PAUSED during install of app-build-2222222/);
+  assert.equal(liveOf(e), "1111111");
+  // A pause is not a failure: the build is neither blacklisted nor charged an attempt.
+  assert.doesNotMatch(run(e, "status").stdout, /Never retried: +app-build/);
+  installer(e, "app-build-2222222", "ok");
+  assert.equal(run(e).status, 0);
+  assert.equal(run(e).status, 0);
+  assert.equal(liveOf(e), "2222222");
+});
+
+test("a restart failure the installer rolled back (exit 3) is recorded as rolled back and never retried", (t) => {
+  const e = setup("1111111");
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  latestRelease(e, "app-build-2222222");
+  compare(e, "1111111", "2222222", "ahead");
+  installerScript(e, "app-build-2222222", `echo "=== ROLLED BACK: previous build 1111111 is live again"; exit 3`);
+
+  assert.equal(run(e).status, 1);
+  assert.match(lastResult(e), /ROLLED_BACK app-build-2222222/);
+  assert.match(run(e).stdout, /not retrying/);
+  assert.equal(installs(e).length, 1);
+});
+
+test("a failed rollback (exit 4) is recorded loudly and never retried", (t) => {
+  const e = setup("1111111");
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  latestRelease(e, "app-build-2222222");
+  compare(e, "1111111", "2222222", "ahead");
+  installerScript(e, "app-build-2222222", `echo "ROLLBACK FAILED: ypnusa.service did not restart" >&2; exit 4`);
+
+  const r = run(e);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /site may be down/);
+  assert.match(lastResult(e), /ROLLBACK_FAILED app-build-2222222/);
+  assert.match(run(e).stdout, /not retrying/);
+});
+
+test("pause waits for a run in progress to finish before saying nothing is installing", (t) => {
+  const e = setup("1111111");
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  mkdirSync(path.dirname(e.env.YPNUSA_AU_LOCK!), { recursive: true });
+  // Another run holds the lock for about a second, then lets go.
+  const r = spawnSync("bash", ["-c", `flock "$YPNUSA_AU_LOCK" sleep 1 & sleep 0.2; bash "${SCRIPT}" pause; wait`], {
+    env: e.env,
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /in progress; waiting/);
+  assert.match(r.stdout, /PAUSED\. Nothing is installing now/);
+  assert.equal(existsSync(e.env.YPNUSA_AU_PAUSE_FILE!), true);
+});
+
+test("pause gives up waiting after its time limit and says the run has not finished", (t) => {
+  const e = setup("1111111");
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  mkdirSync(path.dirname(e.env.YPNUSA_AU_LOCK!), { recursive: true });
+  const r = spawnSync("bash", ["-c", `flock "$YPNUSA_AU_LOCK" sleep 3 & sleep 0.2; bash "${SCRIPT}" pause; echo "rc=$?"; wait`], {
+    env: { ...e.env, YPNUSA_AU_PAUSE_WAIT: "1" },
+    encoding: "utf8",
+  });
+  assert.match(r.stdout, /rc=1/);
+  assert.match(r.stderr, /has not finished yet/);
+  assert.equal(existsSync(e.env.YPNUSA_AU_PAUSE_FILE!), true);
+});

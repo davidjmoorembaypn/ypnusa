@@ -72,3 +72,11 @@ test("a contact message over the stored length is refused with a clear note, not
   const fits = wpFormPayload(contact, { name: "Pat", email: "pat@example.com", message: "x".repeat(LEAD_MESSAGE_MAX_LENGTH) });
   assert.equal(fits.ok, true);
 });
+
+test("a long contact message of a few thousand characters is sent whole", () => {
+  assert.ok(LEAD_MESSAGE_MAX_LENGTH >= 5000);
+  const message = "I run a team of four loan officers in Visalia. ".repeat(60).trim(); // ~2,800 characters
+  const check = wpFormPayload(contact, { name: "Pat", email: "pat@example.com", message });
+  assert.ok(check.ok);
+  assert.equal(check.ok && check.payload.message, message);
+});

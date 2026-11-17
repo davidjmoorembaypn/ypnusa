@@ -12,6 +12,15 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 16, 2026 — next build (contact form and auto-install fixes)
+
+- **Long contact messages go through whole:** the contact form now takes messages up to 5,000 characters (was
+  1,000). A longer one gets a clear "please shorten" note, and the server refuses it rather than cutting it, so
+  no part of a visitor's message is ever lost silently. Line breaks now show in the owner's email.
+- **Auto-install is safer:** if the app fails to restart after switching builds, the old build is put back and
+  checked, instead of leaving the broken one running. Pausing auto-install now also stops an install that has
+  already started, before it switches builds, and waits until nothing is installing.
+
 ## Nov 16, 2026 — next build (server auto-install)
 
 - **New builds install themselves:** once turned on with one line on the server, the server checks GitHub every 10

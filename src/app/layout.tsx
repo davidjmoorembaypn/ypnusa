@@ -75,12 +75,31 @@ const jsonLd = {
         postalCode: "93618",
         addressCountry: "US",
       },
+      // Approximate coordinates for the Dinuba, CA mailing address above.
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: 36.5447,
+        longitude: -119.3878,
+      },
+      openingHoursSpecification: {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        opens: "09:00",
+        closes: "17:00",
+      },
+      logo: `${MARKETING_SITE_URL}/app-icon/512`,
+      image: `${MARKETING_SITE_URL}/app-icon/512`,
       areaServed: centralValleyAreaServed(),
       // Full Person node (credentials) lives on /about and in post author boxes.
       founder: { "@type": "Person", "@id": FOUNDER_ID, name: "David J. Moore, MBA" },
       sameAs: [
+        "https://www.linkedin.com/company/ypn-inc",
         "https://www.linkedin.com/in/davidjmooreypn",
         "https://www.facebook.com/YPN.Incorporated/",
+        "https://www.youtube.com/channel/UCpFxCObTCMsAglPeG6ivi5w",
+        "https://x.com/ypn_today",
+        "https://www.instagram.com/ypn_today",
+        "https://github.com/davidjmoorembaypn",
       ],
     },
     {

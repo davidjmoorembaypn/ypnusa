@@ -12,8 +12,9 @@
  *   <key>-480.webp   480x270  thumbnail on /blog and topic pages
  *   <key>-og.jpg    1200x630  social share image (og:image, twitter:image, JSON-LD)
  *
- * Existing files are kept, so only new photos download. Files for photos no longer in the
- * manifest are deleted. Run by .github/workflows/blog-images.yml when photos.json changes
+ * Files already downloaded within budget are kept, so only new photos download. Files for
+ * photos no longer in the
+^ * manifest are deleted. Run by .github/workflows/blog-images.yml when photos.json changes
  * on a branch; it can also be run locally with `node scripts/fetch-blog-images.mjs`.
  */
 import fs from "node:fs/promises";
@@ -23,10 +24,12 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..")
 const MANIFEST = path.join(ROOT, "src/content/blog-images/photos.json");
 const OUT_DIR = path.join(ROOT, "public/images/blog");
 
+// Busy photos (aerials, foliage) compress badly, so each variant steps down in quality until
+// it fits its size budget; the header is the page's largest element, so it matters most.
 const VARIANTS = [
-  { suffix: ".webp", params: "w=1200&h=675&fit=crop&crop=entropy&fm=webp&q=68" },
-  { suffix: "-480.webp", params: "w=480&h=270&fit=crop&crop=entropy&fm=webp&q=62" },
-  { suffix: "-og.jpg", params: "w=1200&h=630&fit=crop&crop=entropy&fm=jpg&q=62" },
+  { suffix: ".webp", params: "w=1200&h=675&fit=crop&crop=entropy&fm=webp", qualities: [68, 58, 48, 40], maxBytes: 160_000 },
+  { suffix: "-480.webp", params: "w=480&h=270&fit=crop&crop=entropy&fm=webp", qualities: [62, 50, 42], maxBytes: 40_000 },
+  { suffix: "-og.jpg", params: "w=1200&h=630&fit=crop&crop=entropy&fm=jpg", qualities: [62, 52, 44, 38], maxBytes: 150_000 },
 ];
 
 const photos = JSON.parse(await fs.readFile(MANIFEST, "utf8"));
@@ -36,7 +39,7 @@ const wanted = new Set();
 let fetched = 0;
 const failures = [];
 
-async function download(url, file) {
+async function fetchImage(url) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const res = await fetch(url);
@@ -44,13 +47,22 @@ async function download(url, file) {
       if (!res.ok || !type.startsWith("image/")) throw new Error(`HTTP ${res.status} ${type}`);
       const buf = Buffer.from(await res.arrayBuffer());
       if (buf.length < 3000) throw new Error(`only ${buf.length} bytes`);
-      await fs.writeFile(file, buf);
-      return;
+      return buf;
     } catch (err) {
       if (attempt === 3) throw err;
       await new Promise((r) => setTimeout(r, 1500 * attempt));
     }
   }
+}
+
+/** Downloads at the highest quality that fits the variant's budget (the lowest if none does). */
+async function download(key, variant, file) {
+  let buf;
+  for (const q of variant.qualities) {
+    buf = await fetchImage(`https://images.unsplash.com/${key}?${variant.params}&q=${q}`);
+    if (buf.length <= variant.maxBytes) break;
+  }
+  await fs.writeFile(file, buf);
 }
 
 for (const key of Object.keys(photos)) {
@@ -63,11 +75,11 @@ for (const key of Object.keys(photos)) {
     wanted.add(name);
     const file = path.join(OUT_DIR, name);
     try {
-      await fs.access(file);
-      continue;
+      // Keep a file already downloaded within its budget; re-fetch one that is over it.
+      if ((await fs.stat(file)).size <= v.maxBytes) continue;
     } catch {}
     try {
-      await download(`https://images.unsplash.com/${key}?${v.params}`, file);
+      await download(key, v, file);
       fetched++;
     } catch (err) {
       failures.push(`${name}: ${err.message}`);

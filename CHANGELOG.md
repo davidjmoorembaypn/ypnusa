@@ -16,7 +16,8 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 - **Faster home page on phones:** phones now load a light portrait version of the hero picture (about 25 KB instead
   of about 63 KB; it is the same centre view phones already saw), and the Google Analytics library loads after the
-  page has finished loading instead of competing with it. No events are lost: they queue until it arrives.
+  page has finished loading instead of competing with it. Events wait in the page until it loads, then send; a
+  visitor who leaves before that sends none.
 - **One page title per blog post:** a post that had been pasted in as a whole web page ("The End Of Traditional
   Mortgage Leads Models") carried a second `<title>`, so Google could show the wrong one. Imported posts and pages
   now drop that wrapper and keep their content.

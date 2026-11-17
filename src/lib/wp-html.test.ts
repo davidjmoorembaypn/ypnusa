@@ -211,3 +211,12 @@ test("normalizeWpHtml drops a pasted document's wrapper and <title> but keeps it
   assert.match(out, /<meta itemprop="name" content="Kept">/, "microdata meta is kept");
   assert.equal(normalizeWpHtml(out), out, "idempotent");
 });
+
+test("normalizeWpHtml keeps SVG titles and microdata meta whose values mention charset or viewport", () => {
+  const svg = '<svg role="img" aria-labelledby="t1"><title id="t1">Loan comparison</title><rect/></svg>';
+  const meta = '<meta itemprop="url" content="https://example.org/charset"><meta itemprop="name" content="viewport http-equiv">';
+  const out = normalizeWpHtml(`<title>Page</title>${svg}<p>x</p>${meta}`);
+  assert.ok(out.includes(svg), "svg title kept");
+  assert.ok(out.includes(meta), "itemprop meta kept");
+  assert.doesNotMatch(out, /<title>Page<\/title>/);
+});

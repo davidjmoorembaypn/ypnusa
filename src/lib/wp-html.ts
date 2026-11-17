@@ -163,8 +163,16 @@ export function normalizeWpHtml(html: string): string {
   // <title> doesn't become a second page title (and <meta>/<html>/<body> don't leak
   // into the page body). Its <style> and content are kept.
   out = out.replace(/<!DOCTYPE[^>]*>\s*/gi, "");
-  out = out.replace(/<title\b[^>]*>[\s\S]*?<\/title>\s*/gi, "");
-  out = out.replace(/<meta\b(?=[^>]*\b(?:charset|name=["']?viewport|http-equiv)\b)[^>]*>\s*/gi, "");
+  // <title> inside an <svg> is the graphic's accessible name, not a page title: keep it.
+  out = out
+    .split(/(<svg\b[\s\S]*?<\/svg>)/i)
+    .map((part) => (/^<svg\b/i.test(part) ? part : part.replace(/<title\b[^>]*>[\s\S]*?<\/title>\s*/gi, "")))
+    .join("");
+  // Only real document metadata (charset, viewport, http-equiv as attributes); microdata <meta itemprop> stays.
+  out = out.replace(
+    /<meta\b(?![^>]*\sitemprop\s*=)(?=[^>]*\s(?:charset\s*=|http-equiv\s*=|name\s*=\s*["']?viewport["'\s>]))[^>]*>\s*/gi,
+    "",
+  );
   out = out.replace(/<\/?(?:html|head|body)\b[^>]*>\s*/gi, "");
 
   // WordPress-only endpoints.

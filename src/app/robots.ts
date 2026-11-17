@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Keep product/telemetry surfaces out of the marketing crawl budget.
-      disallow: ["/api/", "/analytics", "/dashboard/", "/embed/", "/admin/"],
+      disallow: ["/api/", "/analytics", "/dashboard/", "/embed/", "/admin/", "/wp-admin/"],
     },
     sitemap: [`${origin}/sitemap.xml`, `${origin}/local-seo-sitemap.xml`],
     host: origin,

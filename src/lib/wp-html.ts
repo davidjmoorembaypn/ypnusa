@@ -135,8 +135,10 @@ export function normalizeWpHref(href: string): string {
  * instead of the search or referral that brought the reader, so sign-ups lose their real
  * source. They also turn one page into hundreds of crawlable URL variants.
  */
-function withoutUtmParams(suffix: string): string {
-  if (!suffix.startsWith("?")) return suffix;
+function withoutUtmParams(rawSuffix: string): string {
+  if (!rawSuffix.startsWith("?")) return rawSuffix;
+  // The WordPress export escapes "&" as "&#038;" too: its "#" is not a fragment.
+  const suffix = rawSuffix.replace(/&(?:amp|#0*38|#x0*26);/gi, "&amp;");
   const hashAt = suffix.indexOf("#");
   const query = hashAt === -1 ? suffix.slice(1) : suffix.slice(1, hashAt);
   const hash = hashAt === -1 ? "" : suffix.slice(hashAt);
@@ -207,7 +209,10 @@ export function normalizeWpHtml(html: string): string {
     return `${pre}${q}${normalizeWpHref(href)}${q}`;
   });
   // ...and stop tagging those submissions as a new campaign (see withoutUtmParams).
-  out = out.replace(/<input\b(?=[^>]*\btype=["']?hidden)(?=[^>]*\bname=["']?utm_)[^>]*>/gi, "");
+  out = out.replace(/<input\b(?=[^>]*\stype=["']?hidden\b)(?=[^>]*\sname=["']?utm_)[^>]*>/gi, "");
+  // Lead forms WpFormBridge handles: POST, so a submit before the page's JavaScript loads
+  // never puts a visitor's name, email or message into the URL.
+  out = out.replace(/<form\b(?![^>]*\smethod=)([^>]*\sid=["'](?:contact-form|ypnHubBrief)["'][^>]*)>/gi, '<form method="post"$1>');
 
   // The MLO hub's briefing form posted to a WordPress REST route that no longer exists
   // (every submit failed). WpFormBridge handles that form now; drop the dead script.

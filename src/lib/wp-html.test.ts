@@ -180,5 +180,22 @@ test("the dead WordPress briefing script is removed, other scripts stay", () => 
   const out = normalizeWpHtml(html);
   assert.doesNotMatch(out, /ypnusa-homepage/);
   assert.match(out, /<script>var calc = 1;<\/script>/);
-  assert.match(out, /<form id="ypnHubBrief"><\/form>/);
+  assert.match(out, /<form method="post" id="ypnHubBrief"><\/form>/);
+});
+
+test("WordPress's &#038; escapes are separators, not fragments", () => {
+  assert.equal(normalizeWpHref("https://ypnus.com/pricing-plans/?utm_source=ypnus&#038;utm_medium=cta&#038;utm_campaign=x"), "/pricing");
+  assert.equal(normalizeWpHref("/pricing?a=1&#38;b=2&#038;utm_source=x#faq"), "/pricing?a=1&amp;b=2#faq");
+});
+
+test("bridged lead forms post even before JavaScript loads", () => {
+  const out = normalizeWpHtml('<form id="contact-form"><input name="ct_name"></form><form id="other"></form>');
+  assert.match(out, /<form method="post" id="contact-form">/);
+  assert.match(out, /<form id="other">/);
+  assert.match(normalizeWpHtml('<form class="brief" id="ypnHubBrief" novalidate>'), /<form method="post" class="brief" id="ypnHubBrief" novalidate>/);
+});
+
+test("only real hidden utm inputs are removed", () => {
+  const html = '<input data-type="hidden" name="utm_source"><input type="hidden" name="utm_medium" value="x">';
+  assert.equal(normalizeWpHtml(html), '<input data-type="hidden" name="utm_source">');
 });

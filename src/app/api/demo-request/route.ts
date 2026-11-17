@@ -217,7 +217,7 @@ async function handlePost(request: Request) {
       message:
         territory && !territory.available
           ? "We've logged your request and added you to the waitlist for that territory."
-          : !zip && record.source && record.source in NO_ZIP_REPLIES
+          : !zip && record.source && Object.hasOwn(NO_ZIP_REPLIES, record.source)
             ? NO_ZIP_REPLIES[record.source]
             : "Your inquiry is saved. This does not reserve a ZIP code. Availability and paid-plan activation must be confirmed before exclusivity begins.",
     });

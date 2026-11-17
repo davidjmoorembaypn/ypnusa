@@ -12,6 +12,13 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 16, 2026 — next build (server auto-install)
+
+- **New builds install themselves:** once turned on with one line on the server, the server checks GitHub every 10
+  minutes and installs a newer build by itself, with the same data backup, health checks and automatic rollback as a
+  hand install. A build that fails its checks is rolled back and never retried. It can be paused and resumed with one
+  command (docs/OPERATIONS.md, section 2). No change to the site itself. (#154)
+
 ## Nov 16, 2026 — site audit fixes (#153)
 
 - **Contact page form works again:** the form on /contact had no handler since the move off WordPress, so a visitor's

@@ -21,6 +21,15 @@ APP_URL="http://127.0.0.1:3000"
 BACKUP_TOOL=/usr/local/sbin/ypnusa-backup
 TAG="${1:-}"
 
+# One install at a time: a hand install and the auto-updater (scripts/aws-auto-update.sh)
+# must never switch releases at the same moment.
+mkdir -p /run/lock
+exec 8>/run/lock/ypnusa-deploy.lock
+if ! flock -w 900 8; then
+  echo "ERROR: another install is still running; nothing was changed. Try again in a few minutes." >&2
+  exit 1
+fi
+
 if [ -n "${YPNUS_BUILD_URL:-}" ]; then
   url="$YPNUS_BUILD_URL"
 elif [ -n "$TAG" ]; then

@@ -22,6 +22,38 @@ export interface LiveZipCheckResponse {
   plan?: string;
 }
 
+/** Pause before the single retry of a failed WordPress ZIP check. */
+const ZIP_CHECK_RETRY_DELAY_MS = 400;
+
+/**
+ * Fetches the WordPress ZIP check, retrying once after a network error or a 5xx/429.
+ * The ledger sits on another host, and a one-off blip there otherwise shows a loan
+ * officer "We could not check that ZIP code" on the homepage. A 4xx other than 429
+ * is not retried. A second failure is returned (or thrown) as-is for the caller.
+ */
+async function fetchZipCheckWithRetry(url: string): Promise<Response> {
+  const attempt = () =>
+    fetch(url, {
+      headers: { Accept: "application/json" },
+      // Territory availability should stay fresh.
+      cache: "no-store",
+      signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
+    });
+  let first: Response | undefined;
+  try {
+    first = await attempt();
+    if (first.ok || (first.status < 500 && first.status !== 429)) return first;
+    console.warn(`[live-territory] zip-check returned HTTP ${first.status}; retrying once.`);
+  } catch (error) {
+    console.warn(
+      "[live-territory] zip-check request failed; retrying once.",
+      error instanceof Error ? error.message : error,
+    );
+  }
+  await new Promise((resolve) => setTimeout(resolve, ZIP_CHECK_RETRY_DELAY_MS));
+  return attempt();
+}
+
 /**
  * Ask the live WordPress territory ledger (ypnus.com) for ZIP availability.
  * Returns null when the remote API is unreachable. Production callers must
@@ -49,12 +81,7 @@ export async function fetchLiveTerritory(
 
   const url = `${WP_API_BASE}/zip-check/${encodeURIComponent(zip)}`;
   try {
-    const res = await fetch(url, {
-      headers: { Accept: "application/json" },
-      // Territory availability should stay fresh.
-      cache: "no-store",
-      signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
-    });
+    const res = await fetchZipCheckWithRetry(url);
     if (!res.ok) {
       console.warn(`[live-territory] zip-check for ${zip} returned HTTP ${res.status}; live availability unavailable.`);
       return null;

@@ -37,7 +37,10 @@ const ZIP_LOCK_RULE = `ZIP code locking: a ZIP code locks to a loan officer only
   once your first payment goes through — pay now to lock it today, or start the
   15-day trial to try the tools first." Offer the pricing page (pay now at the
   same monthly prices, the trial, or the 5-year prepaid option) and, when you
-  have one, the lockCheckoutUrl from check_territory_availability. Never imply
+  have them, the links from check_territory_availability: lockCheckoutUrl is the
+  pay-now checkout that locks the ZIP code today; trialCheckoutUrl starts the
+  15-day trial, which does not lock it. Never put the trial link behind words
+  about paying now or locking the ZIP code. Never imply
   that signing up free or starting a trial reserves a ZIP code. In replies, write
   "ZIP code", not a bare "ZIP".`;
 

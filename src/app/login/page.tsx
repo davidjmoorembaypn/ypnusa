@@ -45,11 +45,11 @@ export default async function LoginPage({
         <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
           <p className="font-semibold">The Free plan does not lock your ZIP code.</p>
           <p className="mt-1">
-            Another loan officer can claim it at any time. To keep your ZIP code exclusive,{" "}
+            Another loan officer can claim it at any time. Your ZIP code locks to you at your first payment on a{" "}
             <Link href="/pricing" className="font-semibold underline">
-              start a paid plan
+              paid plan
             </Link>{" "}
-            (15-day free trial, from $99/mo).
+            (from $99/mo). The 15-day trial lets you try the tools but does not lock it.
           </p>
         </div>
       )}

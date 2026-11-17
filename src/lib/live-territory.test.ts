@@ -134,6 +134,34 @@ describe("live territory lookup", async () => {
     assert.equal((await fetchLiveTerritory("93720"))?.message, "Fresno, CA is open.");
   });
 
+  it("retries once when the WordPress ledger has a one-off failure", async () => {
+    let n = 0;
+    const calls = stubFetch(() => {
+      n += 1;
+      if (n === 1) throw new Error("socket hang up");
+      return jsonResponse({ available: true, city: "Fresno", state: "CA" });
+    });
+    const result = await fetchLiveTerritory("93720");
+    assert.equal(calls.length, 2);
+    assert.equal(result?.available, true);
+
+    mock.restoreAll();
+    let m = 0;
+    const calls503 = stubFetch(() => {
+      m += 1;
+      return m === 1 ? jsonResponse({ error: "busy" }, { status: 503 }) : jsonResponse({ available: false });
+    });
+    const locked = await fetchLiveTerritory("93720");
+    assert.equal(calls503.length, 2);
+    assert.equal(locked?.available, false);
+  });
+
+  it("does not retry a 404 from the WordPress ledger", async () => {
+    const calls = stubFetch(() => jsonResponse({ error: "nope" }, { status: 404 }));
+    assert.equal(await fetchLiveTerritory("93720"), null);
+    assert.equal(calls.length, 1);
+  });
+
   it("returns null so callers can fall back to the local store", async () => {
     stubFetch(() => jsonResponse({ error: "boom" }, { status: 502 }));
     assert.equal(await fetchLiveTerritory("93720"), null, "non-2xx response");

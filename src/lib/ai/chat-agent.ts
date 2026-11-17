@@ -21,7 +21,7 @@ import type {
 } from "@/lib/types";
 import { fetchLiveTerritory } from "@/lib/live-territory";
 import { isPricingTierId, PUBLIC_PRICING_TIERS } from "@/lib/pricing";
-import { checkoutUrlForTier } from "@/lib/checkout";
+import { checkoutUrlForTier, payNowUrlForTier } from "@/lib/checkout";
 import { executeMloTool, MLO_TOOL_NAMES, MLO_TOOLS, type MloToolContext } from "./cerebro-tools";
 import { findExplainerVideo } from "./explainer-videos";
 import {
@@ -102,6 +102,14 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
   if (mode === "mlo_dashboard" || mode === "public_site") tools.push(PLATFORM_HELP_TOOL);
   if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(MORTGAGE_GUIDE_TOOL);
   return tools;
+}
+
+/**
+ * Pro "pay now & lock my ZIP code today" checkout (no trial). The first payment is what locks a
+ * ZIP code, so this, not the trial link, is the link Cerebro offers to lock one.
+ */
+function lockNowUrl(zip?: string): string {
+  return payNowUrlForTier("growth", zip) ?? signupUrl({ plan: "growth", zip });
 }
 
 function signupUrl(input: { plan?: unknown; zip?: unknown }): string {
@@ -210,8 +218,10 @@ async function executeTerritoryCheck(zip: string, viewerEmail?: string): Promise
     lockNote: ZIP_LOCK_NOTE,
     suggestedReply: OPEN_ZIP_REPLY_HINT,
     payNowOption: PRICING_POLICY.payNow,
-    // Pro signup for this ZIP code; /pricing has pay-now, trial and 5-year prepaid options.
-    lockCheckoutUrl: signupUrl({ plan: "growth", zip: result.zip }),
+    // Pro pay-now checkout locks this ZIP code at payment; the trial link only tries the tools.
+    // /pricing has pay-now, trial and 5-year prepaid options for every plan.
+    lockCheckoutUrl: lockNowUrl(result.zip),
+    trialCheckoutUrl: signupUrl({ plan: "growth", zip: result.zip }),
     pricingUrl: marketingUrl("/pricing"),
   });
 }
@@ -301,7 +311,8 @@ async function executeActionTool(
       return JSON.stringify({
         url: signupUrl({ plan: "free" }),
         lockNote: ZIP_LOCK_NOTE,
-        lockCheckoutUrl: signupUrl({ plan: "growth", zip }),
+        lockCheckoutUrl: lockNowUrl(zip),
+        trialCheckoutUrl: signupUrl({ plan: "growth", zip }),
       });
     }
     if (call.toolName === "schedule_meeting") {

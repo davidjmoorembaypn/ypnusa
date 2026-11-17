@@ -12,6 +12,16 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 17, 2026 — next build (daily health check fixes)
+
+- **Faster home page on phones:** phones now load a light portrait version of the hero picture (about 25 KB instead
+  of about 63 KB; it is the same centre view phones already saw), and the Google Analytics library loads after the
+  page has finished loading instead of competing with it. No events are lost: they queue until it arrives.
+- **One page title per blog post:** a post that had been pasted in as a whole web page ("The End Of Traditional
+  Mortgage Leads Models") carried a second `<title>`, so Google could show the wrong one. Imported posts and pages
+  now drop that wrapper and keep their content.
+- **Video date Google accepts:** the home page video's upload date now includes a time and time zone.
+
 ## Nov 16, 2026 — next build (contact form and auto-install fixes)
 
 - **Long contact messages go through whole:** the contact form now takes messages up to 5,000 characters (was

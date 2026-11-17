@@ -113,7 +113,10 @@ export default function RootLayout({
         />
         {GA_ID ? (
           <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+            {/* The gtag() queue below is defined early so no event is lost; the ~150 KB library
+                itself loads once the page has finished loading, so it no longer competes with the
+                hero image and the app's own scripts on a phone's first paint. */}
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="lazyOnload" />
             <Script id="ga4-init" strategy="afterInteractive">
               {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
             </Script>

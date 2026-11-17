@@ -199,3 +199,15 @@ test("only real hidden utm inputs are removed", () => {
   const html = '<input data-type="hidden" name="utm_source"><input type="hidden" name="utm_medium" value="x">';
   assert.equal(normalizeWpHtml(html), '<input data-type="hidden" name="utm_source">');
 });
+
+test("normalizeWpHtml drops a pasted document's wrapper and <title> but keeps its style and content", () => {
+  const html =
+    '\n<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width">\n' +
+    "<title>Second title</title>\n<style>.x{color:red}</style>\n</head>\n<body>\n<p>Hello</p><meta itemprop=\"name\" content=\"Kept\">\n</body>\n</html>";
+  const out = normalizeWpHtml(html);
+  assert.doesNotMatch(out, /<title|<meta charset|<meta name|<html|<\/html|<head|<\/head|<body|<\/body|DOCTYPE/i);
+  assert.match(out, /<style>\.x\{color:red\}<\/style>/);
+  assert.match(out, /<p>Hello<\/p>/);
+  assert.match(out, /<meta itemprop="name" content="Kept">/, "microdata meta is kept");
+  assert.equal(normalizeWpHtml(out), out, "idempotent");
+});

@@ -159,6 +159,14 @@ function srcPath(src: string): string | null {
 export function normalizeWpHtml(html: string): string {
   let out = html;
 
+  // A post pasted in as a whole HTML document: drop the document wrapper so its own
+  // <title> doesn't become a second page title (and <meta>/<html>/<body> don't leak
+  // into the page body). Its <style> and content are kept.
+  out = out.replace(/<!DOCTYPE[^>]*>\s*/gi, "");
+  out = out.replace(/<title\b[^>]*>[\s\S]*?<\/title>\s*/gi, "");
+  out = out.replace(/<meta\b(?=[^>]*\b(?:charset|name=["']?viewport|http-equiv)\b)[^>]*>\s*/gi, "");
+  out = out.replace(/<\/?(?:html|head|body)\b[^>]*>\s*/gi, "");
+
   // WordPress-only endpoints.
   out = out.replace(/<link\b[^>]*\brel=["']?(?:pingback|EditURI|wlwmanifest)["']?[^>]*>\s*/gi, "");
   out = out.replace(/<link\b[^>]*xmlrpc\.php[^>]*>\s*/gi, "");

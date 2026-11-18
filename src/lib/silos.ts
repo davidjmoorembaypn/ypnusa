@@ -1,5 +1,6 @@
 import { BLOG_POSTS } from "@/content/blog";
 import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
+import { BANK_STATEMENT_CONTENT, BANK_STATEMENT_PATH, SELF_EMPLOYED_HUB_PATH } from "@/content/self-employed-loans";
 import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { WP_FEATURES_SUBPAGES, WP_PLATFORM_PAGES } from "@/content/wp-import";
@@ -33,6 +34,8 @@ const MORTGAGE_LINKS = (): SiloLink[] => [
     href: `/mortgage-loans/${program.toLowerCase()}`,
     group: "Loan programs",
   })),
+  { label: BANK_STATEMENT_CONTENT.label, href: BANK_STATEMENT_PATH, group: "Loan programs" },
+  { label: "Self-employed and investor mortgages", href: SELF_EMPLOYED_HUB_PATH, group: "Local mortgage help" },
   ...LOCAL_SEO_PROFILES.filter((profile) => profile.kind === "city").map((profile) => ({
     label: `Mortgage broker in ${profile.city}, ${profile.stateCode}`,
     href: getLocalSeoPath(profile),

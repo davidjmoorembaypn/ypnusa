@@ -5,6 +5,13 @@ import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { MLO_MARKETS } from "@/content/mlo-markets";
 import { REPORT_COUNTIES } from "@/content/market-report";
+import {
+  BANK_STATEMENT_PATH,
+  SELF_EMPLOYED_HUB_PATH,
+  SELF_EMPLOYED_LAST_MODIFIED,
+  SELF_EMPLOYED_COUNTY_ANGLES,
+  selfEmployedCountyPath,
+} from "@/content/self-employed-loans";
 import { COMPARISON_GUIDES, COMPARISON_GUIDES_LAST_MODIFIED } from "@/content/comparison-guides";
 import {
   WP_TOP_PAGES,
@@ -106,9 +113,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${origin}/tools/social-writer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     ...PROGRAM_LIST.map((program) => ({
       url: `${origin}/mortgage-loans/${program.toLowerCase()}`,
-      lastModified: MARKETING_LAST_MODIFIED,
+      lastModified: program === "DSCR" ? new Date(`${SELF_EMPLOYED_LAST_MODIFIED}T00:00:00.000Z`) : MARKETING_LAST_MODIFIED,
       changeFrequency: "monthly" as const,
       priority: 0.6,
+    })),
+    // Self-employed and investor borrower pages (src/content/self-employed-loans.ts). The DSCR
+    // page above was rewritten the same day, so it shares this lastmod.
+    ...[BANK_STATEMENT_PATH, SELF_EMPLOYED_HUB_PATH, ...REPORT_COUNTIES.filter((c) => SELF_EMPLOYED_COUNTY_ANGLES[c.slug]).map(selfEmployedCountyPath)].map((path) => ({
+      url: `${origin}${path}`,
+      lastModified: new Date(`${SELF_EMPLOYED_LAST_MODIFIED}T00:00:00.000Z`),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
     })),
     // City pages only (a handful, hand-written). ZIP pages stay out on purpose: see the
     // comment above about not flooding Google's "Not indexed" queue.

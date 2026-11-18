@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { selfEmployedPathForCountyName } from "@/content/self-employed-loans";
 import { SiloNav } from "@/components/silo-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
@@ -406,6 +407,17 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
                 ))}
               </div>
             </div>
+          </section>
+        ) : null}
+
+        {selfEmployedPathForCountyName(profile.county) ? (
+          <section className="mx-auto max-w-6xl px-6 pt-12">
+            <p className="text-slate-700">
+              Self-employed or buying a rental in {profile.county}?{" "}
+              <Link href={selfEmployedPathForCountyName(profile.county)!} className="font-semibold text-violet-700 underline">
+                Bank statement and DSCR loans in {profile.county}
+              </Link>
+            </p>
           </section>
         ) : null}
 

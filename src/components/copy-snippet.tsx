@@ -4,7 +4,18 @@ import { useState } from "react";
 import { track } from "@/lib/track";
 
 /** Read-only code box with a copy button. Falls back to manual selection if the clipboard is blocked. */
-export function CopySnippet({ code, label }: { code: string; label: string }) {
+export function CopySnippet({
+  code,
+  label,
+  tone = "dark",
+  buttonLabel = "Copy code",
+}: {
+  code: string;
+  label: string;
+  /** "light" for white pages such as the dashboard. */
+  tone?: "dark" | "light";
+  buttonLabel?: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -26,14 +37,22 @@ export function CopySnippet({ code, label }: { code: string; label: string }) {
         value={code}
         rows={6}
         onFocus={(e) => e.currentTarget.select()}
-        className="w-full rounded-xl border border-white/15 bg-black/40 p-3 font-mono text-xs leading-5 text-violet-100"
+        className={
+          tone === "light"
+            ? "w-full rounded-xl border border-slate-300 bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-800"
+            : "w-full rounded-xl border border-white/15 bg-black/40 p-3 font-mono text-xs leading-5 text-violet-100"
+        }
       />
       <button
         type="button"
         onClick={copy}
-        className="mt-2 inline-flex rounded-full bg-white px-5 py-2 text-sm font-bold text-[#17152f] transition hover:bg-violet-100"
+        className={
+          tone === "light"
+            ? "mt-2 inline-flex rounded-full bg-violet-700 px-5 py-2 text-sm font-bold text-white transition hover:bg-violet-800"
+            : "mt-2 inline-flex rounded-full bg-white px-5 py-2 text-sm font-bold text-[#17152f] transition hover:bg-violet-100"
+        }
       >
-        {copied ? "Copied" : "Copy code"}
+        {copied ? "Copied" : buttonLabel}
       </button>
     </div>
   );

@@ -6,11 +6,12 @@ import { MortgageLoansFinancialProductSchema } from "@/components/seo/silo-schem
 import { PROGRAM_LIST } from "@/lib/programs";
 import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
 import { marketingUrl } from "@/lib/site";
+import { BANK_STATEMENT_CONTENT, BANK_STATEMENT_PATH, SELF_EMPLOYED_HUB_PATH } from "@/content/self-employed-loans";
 
 export const metadata: Metadata = {
   title: "Mortgage Loan Programs",
   description:
-    "FHA, VA, conventional, DSCR, HELOC, refinance, and jumbo — program overviews from a licensed loan officer with 25+ years in mortgage lending.",
+    "FHA, VA, conventional, DSCR, bank statement, HELOC, refinance, and jumbo — program overviews from a licensed loan officer with 25+ years in mortgage lending.",
   alternates: { canonical: marketingUrl("/mortgage-loans") },
   robots: { index: true, follow: true },
 };
@@ -49,7 +50,24 @@ export default function MortgageLoansPage() {
             </Link>
           </li>
         ))}
+        <li>
+          <Link
+            href={BANK_STATEMENT_PATH}
+            className="block rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:bg-white/10"
+          >
+            <p className="text-sm font-semibold text-white">{BANK_STATEMENT_CONTENT.label}</p>
+            <p className="mt-1 text-xs text-white/50">{BANK_STATEMENT_CONTENT.summary}</p>
+          </Link>
+        </li>
       </ul>
+
+      <p className="mt-6 text-sm text-white/70">
+        Self-employed or buying a rental in the Central Valley?{" "}
+        <Link href={SELF_EMPLOYED_HUB_PATH} className="text-violet-300 underline hover:text-violet-200">
+          See bank statement and DSCR options by county
+        </Link>
+        .
+      </p>
 
       <SiloNav silo="mortgage" currentPath="/mortgage-loans" className="mt-10" />
 

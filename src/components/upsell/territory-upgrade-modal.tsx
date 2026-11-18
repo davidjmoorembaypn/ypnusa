@@ -136,7 +136,11 @@ function SlideOverBody(props: {
   const zip =
     chosenZip ??
     request.zip ??
-    (mode === "owner" ? undefined : (defaultZip ?? (typedClean.length === 5 ? typedClean : undefined)));
+    (mode === "owner"
+      ? options.extraZip && typedClean.length === 5
+        ? typedClean
+        : undefined
+      : (defaultZip ?? (typedClean.length === 5 ? typedClean : undefined)));
 
   useEffect(() => {
     if (!zip) return;
@@ -166,12 +170,12 @@ function SlideOverBody(props: {
   let body: ReactNode;
   if (!zip) {
     body =
-      mode === "owner" ? (
+      mode === "owner" && !options.extraZip ? (
         <OwnerAddZip options={options} onCheckout={onCheckout} />
       ) : (
         <form className="mt-6 space-y-3" onSubmit={(event) => event.preventDefault()} aria-label="Choose your ZIP code">
           <label htmlFor="upgrade-zip" className="block text-sm font-medium text-slate-700">
-            Which ZIP code do you want to own?
+            {mode === "owner" ? "Which ZIP code do you want to add?" : "Which ZIP code do you want to own?"}
           </label>
           <input
             id="upgrade-zip"
@@ -309,6 +313,45 @@ function SlideOverBody(props: {
 
 function OwnerAddZip(props: { zip?: string; options: UpgradeOptions; onCheckout: (kind: string) => void }) {
   const { zip, options, onCheckout } = props;
+  const extra = options.extraZip;
+  if (zip && extra) {
+    return (
+      <>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          {`ZIP code ${zip} is open. It locks to you the moment your payment goes through, alongside the ZIP code your plan includes.`}
+        </p>
+        <div className="mt-6 space-y-3">
+          <a
+            href={withZip(extra.monthlyUrl, zip)}
+            onClick={() => onCheckout("extra_zip_monthly")}
+            className="block rounded-2xl border-2 border-violet-700 bg-violet-700 px-5 py-4 text-white shadow-sm transition hover:bg-violet-800"
+          >
+            <span className="flex items-baseline justify-between gap-3">
+              <span className="text-base font-semibold">Add ZIP code {zip} monthly</span>
+              <span className="text-lg font-semibold">{extra.monthlyPrice}/mo</span>
+            </span>
+            <span className="mt-1 block text-sm text-violet-100">Cancel anytime. The ZIP code stays yours while you&rsquo;re subscribed.</span>
+          </a>
+          {extra.yearlyUrl ? (
+            <a
+              href={withZip(extra.yearlyUrl, zip)}
+              onClick={() => onCheckout("extra_zip_yearly")}
+              className="block rounded-2xl border border-slate-200 px-5 py-4 transition hover:border-violet-400 hover:bg-violet-50"
+            >
+              <span className="flex items-baseline justify-between gap-3">
+                <span className="text-base font-semibold">Add it yearly</span>
+                <span className="text-lg font-semibold">{extra.yearlyPrice}/yr</span>
+              </span>
+              <span className="mt-1 block text-sm text-slate-600">One payment a year, two months free.</span>
+            </a>
+          ) : null}
+        </div>
+        <p className="mt-4 text-xs leading-5 text-slate-500">
+          Use the same email as your plan so the ZIP code joins your account.
+        </p>
+      </>
+    );
+  }
   return (
     <div className="mt-6 space-y-4 text-sm leading-6 text-slate-700">
       <p>
@@ -345,6 +388,22 @@ function CheckoutOptions(props: { zip: string; options: UpgradeOptions; onChecko
               <span className="text-lg font-semibold">{options.monthlyPrice}/mo</span>
             </span>
             <span className="mt-1 block text-sm text-violet-100">Cancel anytime. Your ZIP code stays yours while you&rsquo;re subscribed.</span>
+          </a>
+        ) : null}
+
+        {options.yearlyUrl ? (
+          <a
+            href={withZip(options.yearlyUrl, zip)}
+            onClick={() => onCheckout("yearly")}
+            className="block rounded-2xl border border-slate-200 px-5 py-4 transition hover:border-violet-400 hover:bg-violet-50"
+          >
+            <span className="flex items-baseline justify-between gap-3">
+              <span className="text-base font-semibold">Pay yearly and lock it today</span>
+              <span className="text-lg font-semibold">{options.yearlyPrice}/yr</span>
+            </span>
+            <span className="mt-1 block text-sm text-slate-600">
+              {`Two months free: ${options.yearlyMonthlyTotal} a year billed monthly. Renews yearly; cancel anytime.`}
+            </span>
           </a>
         ) : null}
 

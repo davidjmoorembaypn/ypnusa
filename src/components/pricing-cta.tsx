@@ -5,6 +5,7 @@ import { track } from "@/lib/track";
 import { trackFunnel } from "@/lib/funnel-events";
 import { checkoutUrlForTier, payNowUrlForTier, prepaid5yUrlForTier } from "@/lib/checkout";
 import { ZIP_CHECKED_EVENT, ZIP_STORAGE_KEY } from "@/components/territory-claim";
+import { stripePlanCheckoutUrl } from "@/lib/stripe-plans";
 import type { PricingTierId } from "@/lib/pricing";
 
 /**
@@ -12,12 +13,14 @@ import type { PricingTierId } from "@/lib/pricing";
  * - "trial": 15-day trial to try the tools; the ZIP code locks at the first payment.
  * - "pay_now": same monthly price, no trial; the ZIP code locks at checkout.
  * - "prepaid_5y": one payment; the ZIP code locks for 5 years from payment.
+ * - "yearly": Pro billed yearly; the ZIP code locks at checkout. Pro (tier id "growth") only.
  */
-export type PricingCtaVariant = "trial" | "pay_now" | "prepaid_5y";
+export type PricingCtaVariant = "trial" | "pay_now" | "prepaid_5y" | "yearly";
 
 function hrefFor(tierId: PricingTierId, variant: PricingCtaVariant, zip?: string): string | null {
   if (variant === "pay_now") return payNowUrlForTier(tierId, zip);
   if (variant === "prepaid_5y") return prepaid5yUrlForTier(tierId, zip);
+  if (variant === "yearly") return tierId === "growth" ? stripePlanCheckoutUrl("pro_yearly", zip) : null;
   return checkoutUrlForTier(tierId, zip);
 }
 

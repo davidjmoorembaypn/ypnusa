@@ -94,6 +94,8 @@ export function entitlementForEmail(email: string): AccountEntitlement {
   const live = readDb().revenueSubscriptions.filter(
     (subscription) =>
       ENTITLING_SOURCES.has(subscription.source) &&
+      // An extra ZIP code add-on holds a ZIP code but is not a plan.
+      !subscription.addon &&
       isLiveSubscription(subscription) &&
       normalizeEmail(subscription.ownerEmail) === normalized,
   );

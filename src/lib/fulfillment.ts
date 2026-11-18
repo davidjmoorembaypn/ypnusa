@@ -7,6 +7,7 @@ import { generateId } from "@/lib/id";
 import { logApiError } from "@/lib/http";
 import { PAID_PRICING_TIERS, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
 import { isValidZip, normalizeZip } from "@/lib/territory";
+import { stripePlan } from "@/lib/stripe-plans";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 import { optionalText, requiredText } from "@/lib/validation";
 
@@ -86,6 +87,8 @@ export interface FulfillmentPayload {
    * this), checked before falling back to priceId/productId resolution.
    */
   tier?: unknown;
+  /** A plan from src/lib/stripe-plans.ts (Pro yearly, extra ZIP code add-on), when recognised. */
+  plan?: unknown;
   /**
    * The ZIP territory the borrower reserved before checkout (forwarded from Stripe
    * checkout session metadata by the Lambda). Only ever locked on checkout.session.completed —
@@ -135,12 +138,31 @@ function isStaleOrDuplicateEvent(
   );
 }
 
-function resolveTier(tierRaw: unknown, priceId: string | undefined, productId: string | undefined): PricingTierId | null {
+function resolveTier(
+  tierRaw: unknown,
+  priceId: string | undefined,
+  productId: string | undefined,
+  planRaw?: unknown,
+): PricingTierId | null {
+  const plan = stripePlan(planRaw);
+  if (plan) return plan.tier;
   const candidate = optionalText(tierRaw, 40);
   if (candidate && PAID_PRICING_TIERS.some((tier) => tier.id === candidate)) {
     return candidate as PricingTierId;
   }
   return resolveTierFromStripeIdentifier(priceId, productId);
+}
+
+/** Marks a record with what a recognised plan sells: an add-on flag and its monthly-equivalent price. */
+function withPlan(record: RevenueSubscriptionRecord, planRaw: unknown): RevenueSubscriptionRecord {
+  const plan = stripePlan(planRaw);
+  if (!plan) return record;
+  return { ...record, addon: plan.addon, monthlyPriceCents: plan.monthlyPriceCents };
+}
+
+/** An add-on grants no plan of its own, so it reports no tier (callers then leave the officer's plan alone). */
+function reportedTier(record: RevenueSubscriptionRecord): PricingTierId | undefined {
+  return record.addon ? undefined : record.tier;
 }
 
 /**
@@ -199,7 +221,7 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
     }
     const priceId = optionalText(payload.priceId, 200);
     const productId = optionalText(payload.productId, 200);
-    const tier = resolveTier(payload.tier, priceId, productId);
+    const tier = resolveTier(payload.tier, priceId, productId, payload.plan);
     if (!tier) {
       return {
         ok: false,
@@ -237,8 +259,9 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
           lastStripeEventId: eventId,
           lastStripeEventCreatedAt: eventCreatedAt,
         };
-    saveRevenueSubscription(record);
-    return { ok: true, applied: true, created: !existing, subscriptionId: record.id, tier: record.tier, status: record.status };
+    const planned = withPlan(record, payload.plan);
+    saveRevenueSubscription(planned);
+    return { ok: true, applied: true, created: !existing, subscriptionId: planned.id, tier: reportedTier(planned), status: planned.status };
   }
 
   // checkout.session.completed — Stripe can deliver this before payment actually clears for
@@ -261,7 +284,7 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
 
   const priceId = optionalText(payload.priceId, 200);
   const productId = optionalText(payload.productId, 200);
-  const tier = resolveTier(payload.tier, priceId, productId);
+  const tier = resolveTier(payload.tier, priceId, productId, payload.plan);
   if (!tier) {
     return {
       ok: false,
@@ -321,7 +344,7 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         lastStripeEventCreatedAt: eventCreatedAt,
       };
   const { record: saved, zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(
-    record,
+    withPlan(record, payload.plan),
     isTrialCheckout ? null : zipToClaim,
   );
   if (zipConflict && zipToClaim) {
@@ -342,9 +365,9 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
     ok: true,
     applied: true,
     created: !existing,
-    subscriptionId: record.id,
-    tier: record.tier,
-    status: record.status,
+    subscriptionId: saved.id,
+    tier: reportedTier(saved),
+    status: saved.status,
     zipClaimed,
     zipConflict,
   };

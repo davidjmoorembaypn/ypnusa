@@ -92,6 +92,10 @@ export function SiteFooter() {
             <li><Link href="/pricing" className="transition hover:text-white">Pricing</Link></li>
             <li><Link href="/loan-officers" className="transition hover:text-white">Loan officer markets</Link></li>
             <li><Link href="/loan-officers/visalia-ca" className="transition hover:text-white">Visalia loan officers</Link></li>
+            <li><Link href="/research" className="transition hover:text-white">Loan officer market report</Link></li>
+            <li><Link href="/self-employed-mortgage" className="transition hover:text-white">Self-employed and investor loans</Link></li>
+            <li><Link href="/best-ai-assistants-for-loan-officers" className="transition hover:text-white">Best AI assistants for loan officers</Link></li>
+            <li><Link href="/mortgage-payment-calculator" className="transition hover:text-white">Mortgage payment calculator</Link></li>
             <li><Link href="/topics" className="transition hover:text-white">Guides by topic</Link></li>
             <li><Link href="/blog" className="transition hover:text-white">Blog</Link></li>
             <li><Link href="/topics/loan-officer-websites" className="transition hover:text-white">Loan officer websites</Link></li>

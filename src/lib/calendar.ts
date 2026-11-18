@@ -1,4 +1,7 @@
+import { DEFAULT_TIME_ZONE, sendBookingConfirmation } from "./appointments";
+import { ensureHouseOfficer, HOUSE_OFFICER_ID } from "./crm";
 import { appendAppointment, readDb } from "./db";
+import { googleAccessToken, googleOAuthConfigured } from "./google-calendar";
 import { requestProviderJson } from "./outbound";
 import { generateId } from "./id";
 import type {
@@ -21,6 +24,8 @@ export interface CalendarSlotProposal {
 
 interface CalendarConnection {
   provider: CalendarProvider;
+  /** Set for Google: the officer's own access token (connected through OAuth) or the server-wide one. */
+  token?: string;
   calendarId?: string;
   timeZone: string;
   calendlyUrl?: string;
@@ -98,7 +103,9 @@ export function calendarConnectionStatus(officer: LoanOfficerRecord): CalendarCo
       connected = true;
       break;
     case "google":
-      connected = Boolean(process.env.GOOGLE_CALENDAR_ACCESS_TOKEN && connection.calendarId);
+      connected =
+        Boolean(officer.googleRefreshToken && googleOAuthConfigured()) ||
+        Boolean(process.env.GOOGLE_CALENDAR_ACCESS_TOKEN && connection.calendarId);
       break;
     case "microsoft":
       connected = Boolean(process.env.MICROSOFT_GRAPH_ACCESS_TOKEN && connection.calendarId);
@@ -124,7 +131,7 @@ export function listAvailableSlots(loId?: string, horizonDays = 8): CalendarSlot
     ? db.loanOfficers.filter((officer) => officer.id === loId)
     : db.loanOfficers;
 
-  const occupancy = db.appointments.map((appointment) => ({
+  const occupancy = db.appointments.filter((appointment) => appointment.status !== "cancelled").map((appointment) => ({
     officer: appointment.loId,
     start: new Date(appointment.start).getTime(),
     end: new Date(appointment.end).getTime(),
@@ -184,7 +191,7 @@ async function fetchGoogleBusy(
   start: string,
   end: string,
 ): Promise<BusyWindow[]> {
-  const token = process.env.GOOGLE_CALENDAR_ACCESS_TOKEN?.trim();
+  const token = connection.token;
   if (!token || !connection.calendarId) throw new Error("Google Calendar is not connected.");
   const payload = await requestProviderJson<{
     calendars?: Record<string, { busy?: Array<{ start: string; end: string }> }>;
@@ -248,6 +255,17 @@ async function providerBusy(
   }
 }
 
+/** The officer's connection, with a live Google token when they connected Google Calendar. */
+export async function resolvedConnection(officer: LoanOfficerRecord): Promise<CalendarConnection> {
+  const connection = configuredConnection(officer);
+  if (connection.provider !== "google") return connection;
+  const own = await googleAccessToken(officer);
+  const token = own ?? process.env.GOOGLE_CALENDAR_ACCESS_TOKEN?.trim();
+  // No usable token: fall back to set hours instead of failing every booking.
+  if (!token || !connection.calendarId) return { ...connection, provider: "local" };
+  return { ...connection, token };
+}
+
 export async function listSyncedAvailableSlots(
   loId?: string,
   horizonDays = 8,
@@ -262,7 +280,7 @@ export async function listSyncedAvailableSlots(
   for (const officer of officers) {
     const officerSlots = candidates.filter((slot) => slot.loId === officer.id);
     if (officerSlots.length === 0) continue;
-    const connection = configuredConnection(officer);
+    const connection = await resolvedConnection(officer);
     const start = officerSlots[0].start;
     const end = officerSlots[officerSlots.length - 1].end;
 
@@ -309,7 +327,7 @@ async function createGoogleEvent(
   end: Date,
   notes?: string,
 ): Promise<ProviderEvent> {
-  const token = process.env.GOOGLE_CALENDAR_ACCESS_TOKEN?.trim();
+  const token = connection.token;
   if (!token || !connection.calendarId) throw new Error("Google Calendar is not connected.");
   const payload = await requestProviderJson<{
     id?: string;
@@ -321,8 +339,8 @@ async function createGoogleEvent(
     failureLabel: "Google Calendar booking",
     method: "POST",
     body: {
-      summary: `Mortgage consultation with ${lead.answers.name ?? "YPN USA borrower"}`,
-      description: notes ?? "Booked by the YPN USA virtual assistant.",
+      summary: `Mortgage consultation: ${officer.name} and ${lead.answers.name ?? "YPN USA borrower"}`,
+      description: [notes, "Booked by Cerebro, the AI assistant for YPN USA loan officers."].filter(Boolean).join("\n\n"),
       start: { dateTime: start.toISOString(), timeZone: connection.timeZone },
       end: { dateTime: end.toISOString(), timeZone: connection.timeZone },
       attendees: [{ email: lead.answers.email }],
@@ -414,11 +432,18 @@ export async function bookAppointment(input: {
   loId: string;
   startIso: string;
   notes?: string;
+  /** Moving an existing booking: allowed past the one-booking check; the caller cancels the old one after. */
+  replacing?: string;
 }): Promise<AppointmentRecord> {
+  if (input.loId === HOUSE_OFFICER_ID) ensureHouseOfficer();
   const db = readDb();
   const officer = db.loanOfficers.find((item) => item.id === input.loId);
   const lead = db.borrowerLeads.find((item) => item.id === input.borrowerLeadId);
   if (!officer || !lead) throw new Error("Borrower or assigned MLO was not found.");
+  const alreadyBooked = db.appointments.find(
+    (item) => item.borrowerLeadId === lead.id && item.status !== "cancelled" && Date.parse(item.start) > Date.now(),
+  );
+  if (alreadyBooked && alreadyBooked.id !== input.replacing) throw new Error(`This borrower already has an appointment at ${alreadyBooked.start}. Cancel it first to pick another time.`);
 
   const start = new Date(input.startIso);
   if (!Number.isFinite(start.getTime()) || start.getTime() <= Date.now()) {
@@ -431,7 +456,7 @@ export async function bookAppointment(input: {
     throw new Error("That appointment time is no longer available.");
   }
 
-  const connection = configuredConnection(officer);
+  const connection = await resolvedConnection(officer);
   const providerEvent = await createProviderEvent(
     connection,
     officer,
@@ -453,8 +478,28 @@ export async function bookAppointment(input: {
     externalEventId: providerEvent.externalEventId,
     meetingUrl: providerEvent.meetingUrl,
     externalBookingUrl: providerEvent.externalBookingUrl,
+    status: "booked",
+    timeZone: officer.calendarTimeZone && officer.calendarTimeZone !== "UTC" ? officer.calendarTimeZone : DEFAULT_TIME_ZONE,
   };
 
   appendAppointment(record);
+  // Emails go out in the background so the chat answers right away.
+  void sendBookingConfirmation(record.id);
   return record;
+}
+
+/** Removes the booked event from the officer's calendar, when it is on one. Never throws for "already gone". */
+export async function cancelProviderEvent(appointment: AppointmentRecord): Promise<void> {
+  if (appointment.provider !== "google" || !appointment.externalEventId) return;
+  const officer = readDb().loanOfficers.find((item) => item.id === appointment.loId);
+  if (!officer) return;
+  const connection = await resolvedConnection(officer);
+  if (connection.provider !== "google" || !connection.token || !connection.calendarId) return;
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(connection.calendarId)}/events/${encodeURIComponent(appointment.externalEventId)}?sendUpdates=all`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${connection.token}` }, signal: AbortSignal.timeout(15_000) },
+  );
+  if (!response.ok && response.status !== 404 && response.status !== 410) {
+    throw new Error(`Google Calendar cancel failed (${response.status}).`);
+  }
 }

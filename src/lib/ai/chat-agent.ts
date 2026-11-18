@@ -40,6 +40,7 @@ import {
   REQUEST_CALLBACK_TOOL,
   SAVE_OFFICER_PROSPECT_TOOL,
 } from "./public-agent-tools";
+import { cancelAppointment, formatWhen, officerForAppointment, officerTimeZone } from "@/lib/appointments";
 import { executeKnowledgeTool, MORTGAGE_GUIDE_TOOL, PLATFORM_HELP_TOOL } from "./knowledge";
 import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
 import {
@@ -133,20 +134,48 @@ async function executeScheduleMeeting(call: AiToolCall, session: ChatSessionReco
   if (!lead) return JSON.stringify({ error: "lead_not_found" });
 
   const startIso = typeof call.input.startIso === "string" ? call.input.startIso.trim() : "";
+  const zone = officerTimeZone(officerForAppointment(lead.assignedLoId));
   if (!startIso) {
     const slots = await listSyncedAvailableSlots(lead.assignedLoId, 8);
+    // Spread the offer over different days rather than three back-to-back half hours.
+    const picked: typeof slots = [];
+    const days = new Set<string>();
+    for (const slot of slots) {
+      const day = slot.start.slice(0, 10);
+      if (days.has(day) && slots.length > 6) continue;
+      days.add(day);
+      picked.push(slot);
+      if (picked.length === 4) break;
+    }
     return JSON.stringify({
-      slots: slots.slice(0, 3).map((slot) => ({ startIso: slot.start, endIso: slot.end })),
+      timeZone: zone,
+      slots: picked.map((slot) => ({ startIso: slot.start, label: formatWhen(slot.start, zone) })),
+      note: picked.length
+        ? "Offer these by their label. Book only the one the borrower picks, passing its startIso exactly."
+        : "No open times in the next week: offer request_callback instead.",
     });
   }
 
   try {
+    const existing = readDb().appointments.find(
+      (item) => item.borrowerLeadId === lead.id && item.status !== "cancelled" && Date.parse(item.start) > Date.now(),
+    );
+    const moving = call.input.reschedule === true && existing ? existing.id : undefined;
     const appointment = await bookAppointment({
       borrowerLeadId: session.borrowerLeadId,
       loId: lead.assignedLoId,
       startIso,
+      replacing: moving,
     });
-    return JSON.stringify({ booked: true, startIso: appointment.start });
+    if (moving) await cancelAppointment(moving, "borrower");
+    return JSON.stringify({
+      booked: true,
+      when: formatWhen(appointment.start, appointment.timeZone ?? zone),
+      meetingUrl: appointment.meetingUrl ?? null,
+      note: lead.answers.email
+        ? "Tell them it's booked and that a confirmation with a calendar invite and a link to cancel or change it is on its way to their email."
+        : "Tell them it's booked. They gave no email, so suggest they note the time.",
+    });
   } catch (error) {
     return JSON.stringify({
       error: "booking_failed",

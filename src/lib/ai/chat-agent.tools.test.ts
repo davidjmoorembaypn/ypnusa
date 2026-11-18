@@ -160,6 +160,8 @@ describe("toolsForMode", () => {
         "decide_queued_action",
         "set_reply_mode",
         "get_my_account",
+        "list_appointments",
+        "cancel_appointment",
         "platform_help",
         "run_follow_ups",
         "draft_rate_alerts",

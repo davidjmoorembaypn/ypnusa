@@ -57,7 +57,10 @@ const AGENTIC_TOOL_GUARDRAILS = `You have real tools, not just talk — use them
 - Once a visitor is qualified (name, contact, consent captured) and seems
   ready to talk to someone, offer to schedule a meeting and use
   schedule_meeting — first without startIso to see real open times, then
-  with the one they pick to actually book it. Never invent a time yourself.
+  with the one they pick to actually book it. Offer two or three of the
+  returned labels, exactly as written (they include the time zone), and book
+  only the one they choose. Never invent a time yourself. If they want to move
+  a booking they already have, use schedule_meeting with reschedule: true.
 - When a loan officer is ready to sign up, call start_signup and give them
   exactly the URL it returns — never construct a signup link yourself.
 - If someone explicitly asks to speak with a real person, a human, or a loan
@@ -210,6 +213,10 @@ platform_help - so use them instead of describing what you could do:
 - Any question about their own account, plan, ZIP codes, setup, billing or
   how they're doing: call get_my_account and answer from it, naming any setup
   gap as the next step. Any how-does-YPN-work question: call platform_help.
+- Their schedule: list_appointments shows what Cerebro booked for them.
+  Cancel one (cancel_appointment) only when they ask, for that appointment.
+  If their Google Calendar isn't connected, mention the Appointments page
+  where they can connect it.
 - You do their follow-up busy work. "Follow up with my leads" / "work my
   pipeline": call run_follow_ups. "Rates dropped" / "tell my rate-watch
   people": call draft_rate_alerts (no rates in the note). "Write a prequal
@@ -356,7 +363,7 @@ export const CHECK_TERRITORY_AVAILABILITY_TOOL: AiToolDefinition = {
 export const SCHEDULE_MEETING_TOOL: AiToolDefinition = {
   name: "schedule_meeting",
   description:
-    "Find open meeting times with the visitor's assigned loan officer, or book one of those times. Call with no startIso first to see available slots; call again with the startIso the visitor picked (exactly as returned) to actually book it. Only works once the visitor is a qualified, linked lead — if it returns not_yet_qualified, keep gathering the missing qualification fields (name, contact info, consent) before offering to schedule.",
+    "Find open meeting times with the visitor's assigned loan officer, book one, or move their existing booking. Call with no startIso first to see open times (each has a label in the officer's time zone; offer those labels); call again with the startIso the visitor picked (exactly as returned) to book it. To move a booking they already have, pass reschedule: true with the new startIso; the old time is cancelled only once the new one is booked. Only works once the visitor is a qualified, linked lead; if it returns not_yet_qualified, keep gathering the missing fields (name, contact info, consent) first.",
   inputSchema: {
     type: "object",
     properties: {
@@ -364,6 +371,7 @@ export const SCHEDULE_MEETING_TOOL: AiToolDefinition = {
         type: "string",
         description: "ISO timestamp of the slot to book, copied exactly from a prior availability check. Omit to just list open slots.",
       },
+      reschedule: { type: "boolean", description: "True when they want to move the appointment they already have to this new time." },
     },
     additionalProperties: false,
   },

@@ -64,7 +64,11 @@ export function CheckZipServiceSchema() {
     provider: ORGANIZATION_REF,
     areaServed: centralValleyAreaServed(),
     url: marketingUrl("/check-zip"),
-    isAccessibleForFree: true,
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
     description:
       "Free 60-day forecast of expected home buyers, sellers and movers in a ZIP code, plus whether an exclusive loan officer slot is still open.",
   };

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MetroMarketList } from "@/components/metro-market/metro-market-page";
 import { WpFormBridge } from "@/components/wp-form-bridge";
 import { StickyCtaBar } from "@/components/sticky-cta-bar";
 import { SiteHeader } from "@/components/site-header";
@@ -232,6 +233,16 @@ export function WpImportedPageView({
             <div dangerouslySetInnerHTML={{ __html: body.html }} />
           </>
         )}
+        {sectionPath === "" && path === "/markets" ? (
+          <nav aria-labelledby="metro-index-heading" className="mx-auto w-full max-w-3xl px-6 pt-10">
+            <h2 id="metro-index-heading" className="text-xl font-semibold text-slate-900">
+              Big-city market data for loan officers
+            </h2>
+            <div className="mt-3">
+              <MetroMarketList />
+            </div>
+          </nav>
+        ) : null}
         {sectionIndex ? (
           <nav aria-labelledby="section-index-heading" className="mx-auto w-full max-w-3xl px-6 pt-10">
             <h2 id="section-index-heading" className="text-xl font-semibold text-slate-900">

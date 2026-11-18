@@ -15,6 +15,8 @@ import type {
   CrmConnectionRecord,
   CrmDeliveryRecord,
   FreeUsageRecord,
+  LinkedInArticleRecord,
+  MarketingKitRecord,
   SiteOverrideRecord,
   SiteOptimizerState,
   DbShape,
@@ -201,6 +203,7 @@ const emptyDb = (): DbShape => ({
   crmConnections: [],
   crmDeliveries: [],
   freeUsage: [],
+  marketingKits: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -266,6 +269,10 @@ function normalize(snapshot: unknown): DbShape {
     crmConnections: arrayOrEmpty<CrmConnectionRecord>(parsed.crmConnections),
     crmDeliveries: arrayOrEmpty<CrmDeliveryRecord>(parsed.crmDeliveries),
     freeUsage: arrayOrEmpty<FreeUsageRecord>(parsed.freeUsage),
+    marketingKits: arrayOrEmpty<MarketingKitRecord>(parsed.marketingKits).map((kit) => ({
+      ...kit,
+      linkedinArticles: arrayOrEmpty<LinkedInArticleRecord>(kit.linkedinArticles),
+    })),
   };
 }
 
@@ -982,4 +989,67 @@ export function consumeFreeAction(userId: string, day: string, limit: number): b
     }
   });
   return allowed;
+}
+
+// ---------------------------------------------------------------------------
+// Marketing kit: website badge sightings and LinkedIn article drafts
+// ---------------------------------------------------------------------------
+
+export function readMarketingKit(userId: string): MarketingKitRecord | null {
+  return readDb().marketingKits.find((kit) => kit.userId === userId) ?? null;
+}
+
+const BADGE_TOUCH_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Notes that the officer's badge was seen on an outside website. Writes at most once a day
+ * per officer (the first sighting, a new host, or a day-old last-seen time), so a busy
+ * website showing the badge doesn't turn every image request into a disk write.
+ */
+export function recordBadgeSeen(userId: string, host: string, now = new Date()): void {
+  const existing = readMarketingKit(userId);
+  if (
+    existing?.badgeHost === host &&
+    existing.badgeLastSeenAt &&
+    now.getTime() - Date.parse(existing.badgeLastSeenAt) < BADGE_TOUCH_INTERVAL_MS
+  ) {
+    return;
+  }
+  writeDb((db) => {
+    let kit = db.marketingKits.find((item) => item.userId === userId);
+    if (!kit) {
+      kit = { userId, linkedinArticles: [] };
+      db.marketingKits.push(kit);
+    }
+    const iso = now.toISOString();
+    if (!kit.badgeHost) {
+      kit.badgeHost = host;
+      kit.badgeFirstSeenAt = iso;
+    }
+    kit.badgeLastSeenAt = iso;
+  });
+}
+
+/**
+ * Saves a LinkedIn article draft if the officer still has one left. `allowed` decides from
+ * the officer's existing articles (checked inside the write lock, so two clicks at once
+ * can't both get through). Returns false when the quota is used up.
+ */
+export function saveLinkedInArticle(
+  userId: string,
+  article: LinkedInArticleRecord,
+  allowed: (existing: LinkedInArticleRecord[]) => boolean,
+): boolean {
+  let saved = false;
+  writeDb((db) => {
+    let kit = db.marketingKits.find((item) => item.userId === userId);
+    if (!kit) {
+      kit = { userId, linkedinArticles: [] };
+      db.marketingKits.push(kit);
+    }
+    if (!allowed(kit.linkedinArticles)) return;
+    kit.linkedinArticles.push(article);
+    saved = true;
+  });
+  return saved;
 }

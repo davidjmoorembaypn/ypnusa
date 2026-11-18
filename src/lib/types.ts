@@ -801,6 +801,32 @@ export interface FreeUsageRecord {
   actions: number;
 }
 
+/** One LinkedIn article Cerebro drafted for a loan officer to post from their own profile. */
+export interface LinkedInArticleRecord {
+  id: string;
+  /** Calendar month it counts against, YYYY-MM (UTC). */
+  month: string;
+  title: string;
+  /** Article body with the officer's compliance lines and borrower page link already added. */
+  body: string;
+  /** "ai" when Cerebro wrote it, "template" when no AI provider was available. */
+  source: "ai" | "template";
+  createdAt: string;
+}
+
+/**
+ * The officer's marketing kit: the "Powered by YPN USA" website badge and their LinkedIn
+ * article drafts. Kept apart from the onboarding record so onboarding saves can't drop it.
+ */
+export interface MarketingKitRecord {
+  userId: string;
+  /** Host of the first outside website seen showing the officer's badge (from the image request's Referer). */
+  badgeHost?: string;
+  badgeFirstSeenAt?: string;
+  badgeLastSeenAt?: string;
+  linkedinArticles: LinkedInArticleRecord[];
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -831,4 +857,5 @@ export interface DbShape {
   crmConnections: CrmConnectionRecord[];
   crmDeliveries: CrmDeliveryRecord[];
   freeUsage: FreeUsageRecord[];
+  marketingKits: MarketingKitRecord[];
 }

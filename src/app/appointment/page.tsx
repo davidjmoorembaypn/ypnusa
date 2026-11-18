@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -36,7 +37,7 @@ export default async function AppointmentPage({ searchParams }: Props) {
     body = (
       <p className="text-white/85">
         Your appointment is cancelled. To pick a new time, chat with Cerebro on the{" "}
-        <a className="text-cyan-300 underline" href="/">home page</a> or reply to your confirmation email.
+        <Link className="text-cyan-300 underline" href="/">home page</Link> or reply to your confirmation email.
       </p>
     );
   } else if (done) {
@@ -44,7 +45,7 @@ export default async function AppointmentPage({ searchParams }: Props) {
   } else if (!appointment || !officer) {
     body = <p className="text-white/85">Use the link in your confirmation email to manage your appointment.</p>;
   } else if (!isActive(appointment)) {
-    body = <p className="text-white/85">This appointment was cancelled. Chat with Cerebro on the <a className="text-cyan-300 underline" href="/">home page</a> to pick a new time.</p>;
+    body = <p className="text-white/85">This appointment was cancelled. Chat with Cerebro on the <Link className="text-cyan-300 underline" href="/">home page</Link> to pick a new time.</p>;
   } else {
     body = (
       <div className="flex flex-col gap-4">

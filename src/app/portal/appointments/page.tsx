@@ -79,7 +79,9 @@ export default async function AppointmentsPage({ searchParams }: Props) {
           ) : googleOAuthConfigured() ? (
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/75">
               <span>Connect it so Cerebro books around your real schedule.</span>
-              <a href="/api/calendar/google/connect" className="rounded-full bg-cyan-500 px-4 py-2 font-semibold text-[#09081b]">Connect Google Calendar</a>
+              <form action="/api/calendar/google/connect" method="get">
+                <button type="submit" className="rounded-full bg-cyan-500 px-4 py-2 font-semibold text-[#09081b]">Connect Google Calendar</button>
+              </form>
             </div>
           ) : (
             <p className="mt-2 text-sm text-white/60">

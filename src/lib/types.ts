@@ -109,6 +109,9 @@ export interface LoanOfficerRecord {
   calendarId?: string;
   calendarTimeZone?: string;
   calendlyUrl?: string;
+  /** Google Calendar refresh token, encrypted at rest (src/lib/google-calendar.ts). Never sent to a browser. */
+  googleRefreshToken?: string;
+  googleConnectedAt?: string;
   /**
    * Entitlement snapshot for server-to-server contexts (automation/lead-delivery
    * jobs) that have no logged-in session to read a tier claim from — see
@@ -211,6 +214,14 @@ export interface AppointmentRecord {
   externalEventId?: string;
   meetingUrl?: string;
   externalBookingUrl?: string;
+  /** Missing on records made before cancelling existed: treat as "booked". */
+  status?: "booked" | "cancelled";
+  cancelledAt?: string;
+  cancelledBy?: "borrower" | "officer" | "admin";
+  /** IANA time zone the times are shown in (the officer's). */
+  timeZone?: string;
+  confirmationSentAt?: string;
+  reminderSentAt?: string;
 }
 
 export interface IntakeSessionRecord {

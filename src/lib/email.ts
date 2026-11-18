@@ -46,6 +46,8 @@ export interface SendEmailInput {
   fromName?: string;
   /** Extra headers, e.g. List-Unsubscribe for one-click unsubscribe in Gmail and Yahoo. */
   headers?: Record<string, string>;
+  /** Files to attach, e.g. a calendar invite (invite.ics). */
+  attachments?: Array<{ filename: string; content: string; contentType?: string }>;
 }
 
 export interface SendEmailResult {
@@ -71,6 +73,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       html: input.html,
       replyTo: input.replyTo,
       ...(input.headers ? { headers: input.headers } : {}),
+      ...(input.attachments?.length ? { attachments: input.attachments } : {}),
     });
     if (error) {
       logApiError("email.send", new Error(error.message));

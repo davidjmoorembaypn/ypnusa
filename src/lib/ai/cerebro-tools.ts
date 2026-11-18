@@ -14,6 +14,7 @@ import { runAgent } from "@/lib/agents/coreAgent";
 import { GENERIC_MARKETING_DISCLOSURES, withMarketingDisclosures } from "@/lib/compliance/guardrails";
 import type { PlatformChannel } from "@/lib/agents/marketingAgent";
 import type { AutopilotPageType } from "@/lib/types";
+import { canManageAppointment, cancelAppointment, listUpcoming } from "@/lib/appointments";
 import { CUSTOMER_PORTAL_URL, marketingUrl } from "@/lib/site";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { getWordPressAutopilotStatus } from "@/lib/wordpress";
@@ -61,6 +62,8 @@ export const MLO_TOOL_NAMES = new Set([
   "decide_queued_action",
   "set_reply_mode",
   "get_my_account",
+  "list_appointments",
+  "cancel_appointment",
   ...OFFICER_FOLLOW_UP_TOOL_NAMES,
 ]);
 
@@ -200,6 +203,25 @@ export const GET_MY_ACCOUNT_TOOL: AiToolDefinition = {
   inputSchema: { type: "object", properties: {}, additionalProperties: false },
 };
 
+export const LIST_APPOINTMENTS_TOOL: AiToolDefinition = {
+  name: "list_appointments",
+  description:
+    "The officer's upcoming appointments that Cerebro booked (id, when, borrower, contact, meeting link, notes), soonest first, and whether their Google Calendar is connected. Call when they ask what's on their schedule, who they're meeting, or what Cerebro booked.",
+  inputSchema: { type: "object", properties: {}, additionalProperties: false },
+};
+
+export const CANCEL_APPOINTMENT_TOOL: AiToolDefinition = {
+  name: "cancel_appointment",
+  description:
+    "Cancel one of the officer's upcoming appointments by id. The borrower gets a cancellation email with a way to rebook, and it comes off the officer's Google Calendar if connected. Only call after the officer explicitly asks to cancel that specific appointment; confirm the borrower and time first.",
+  inputSchema: {
+    type: "object",
+    properties: { appointmentId: { type: "string" } },
+    required: ["appointmentId"],
+    additionalProperties: false,
+  },
+};
+
 export const MLO_TOOLS: AiToolDefinition[] = [
   GET_MY_PIPELINE_TOOL,
   RUN_WEBSITE_AUTOPILOT_TOOL,
@@ -211,6 +233,8 @@ export const MLO_TOOLS: AiToolDefinition[] = [
   DECIDE_QUEUED_ACTION_TOOL,
   SET_REPLY_MODE_TOOL,
   GET_MY_ACCOUNT_TOOL,
+  LIST_APPOINTMENTS_TOOL,
+  CANCEL_APPOINTMENT_TOOL,
   ...OFFICER_FOLLOW_UP_TOOLS,
 ];
 
@@ -669,6 +693,23 @@ async function runMloTool(call: AiToolCall, ctx: MloToolContext): Promise<string
         return setReplyMode(call, ctx);
       case "get_my_account":
         return getMyAccount(ctx);
+      case "list_appointments": {
+        const officer = findOfficer(ctx);
+        if (!officer) return JSON.stringify({ error: "no_officer_profile" });
+        return JSON.stringify({
+          googleCalendarConnected: Boolean(officer.googleRefreshToken),
+          connectCalendarUrl: officer.googleRefreshToken ? null : marketingUrl("/portal/appointments"),
+          appointments: listUpcoming({ sub: officer.id, role: "officer" }).slice(0, 20),
+        });
+      }
+      case "cancel_appointment": {
+        const officer = findOfficer(ctx);
+        if (!officer) return JSON.stringify({ error: "no_officer_profile" });
+        const id = str(call.input.appointmentId, 120);
+        if (!id || !canManageAppointment(id, { sub: officer.id, role: "officer" })) return JSON.stringify({ error: "not_found" });
+        const result = await cancelAppointment(id, "officer");
+        return JSON.stringify(result.ok ? { ok: true, note: "Cancelled. The borrower was emailed a way to rebook." } : { error: result.error });
+      }
       case "run_follow_ups":
       case "draft_rate_alerts":
       case "draft_prequal_letter": {

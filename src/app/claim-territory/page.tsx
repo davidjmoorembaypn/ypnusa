@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
+import { ClaimTerritoryServiceSchema } from "@/components/seo/silo-schema";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { marketingMetadata } from "@/lib/seo";
 import { PAGE_SEO } from "@/lib/seo/page-seo";
@@ -35,6 +36,7 @@ export default function ClaimTerritoryPage() {
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
       <SiteHeader variant="focused" />
       <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Claim your ZIP code", href: "/claim-territory" }]} />
+      <ClaimTerritoryServiceSchema />
       <main id="main-content" className="flex-1">
         <section className="mx-auto w-full max-w-3xl px-5 py-16 md:py-20">
           <h1 className="text-3xl font-semibold leading-tight md:text-5xl">Claim your exclusive ZIP code</h1>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
+import { CheckZipServiceSchema } from "@/components/seo/silo-schema";
 import { ZipDemandCheck } from "@/components/zip-demand-check";
 import { marketingMetadata } from "@/lib/seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
@@ -22,6 +23,7 @@ export default function CheckZipPage() {
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
       <SiteHeader variant="focused" />
       <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Check your ZIP code", href: "/check-zip" }]} />
+      <CheckZipServiceSchema />
       <main id="main-content" className="flex-1">
         <section className="mx-auto w-full max-w-3xl px-5 py-16 md:py-20">
           <h1 className="text-3xl font-semibold leading-tight md:text-5xl">

@@ -96,6 +96,21 @@ describe("ZIP page indexation gate", async () => {
     assert.deepEqual(await robotsFor("90210"), { index: true, follow: true });
   });
 
+  it("builds the canonical, Open Graph URL and sitemap entry from one origin", async () => {
+    const { ZIP_PUBLIC_ORIGIN } = await import("./zip-index");
+    const meta = await generateMetadata({ params: Promise.resolve({ zipcode: "93618" }) });
+    const canonical = String(meta.alternates?.canonical);
+    assert.equal(canonical, `${ZIP_PUBLIC_ORIGIN}/zip/93618`);
+    assert.equal((meta.openGraph as { url?: string }).url, canonical);
+    assert.ok(sitemap().some((entry) => entry.url === canonical), "the sitemap URL equals the page canonical");
+  });
+
+  it("describes the page with the 60-day activity wording, within the length limit", async () => {
+    const meta = await generateMetadata({ params: Promise.resolve({ zipcode: "93618" }) });
+    assert.match(String(meta.description), /estimated 60-day home-buying activity/);
+    assert.ok(String(meta.description).length <= 160, `${String(meta.description).length}`);
+  });
+
   it("uses a clean self-referencing canonical", async () => {
     assert.equal(zipCanonicalUrl("93618", "https://ypnus.com"), "https://ypnus.com/zip/93618");
     const meta = await generateMetadata({ params: Promise.resolve({ zipcode: "93618" }) });

@@ -12,6 +12,10 @@ interface Props {
   pageName: string;
   /** False when the founder reviewed the page but someone else wrote it (shows "Reviewed by"). */
   written?: boolean;
+  /** @id of the node this page already emits for itself, so author/reviewer merge into it. */
+  pageId?: string;
+  /** @type of that node (default WebPage). */
+  pageType?: string;
   tone?: "light" | "dark";
   className?: string;
 }
@@ -21,7 +25,7 @@ interface Props {
  * @graph (Organization, Person, Book, WebPage) that says the same thing to search engines.
  * The facts match /about; do not add reviews, awards or numbers that are not there.
  */
-export function AuthorReviewerCard({ path, pageName, written = true, tone = "light", className = "" }: Props) {
+export function AuthorReviewerCard({ path, pageName, written = true, pageId, pageType, tone = "light", className = "" }: Props) {
   const dark = tone === "dark";
   const link = dark ? "text-violet-200 underline hover:text-white" : "text-violet-700 underline hover:text-violet-900";
   return (
@@ -31,7 +35,7 @@ export function AuthorReviewerCard({ path, pageName, written = true, tone = "lig
     >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(authorReviewerGraphJsonLd({ url: `${MARKETING_SITE_URL}${path}`, name: pageName, written })) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(authorReviewerGraphJsonLd({ url: `${MARKETING_SITE_URL}${path}`, name: pageName, written, pageId, pageType })) }}
       />
       <div className="flex gap-4">
         <Image

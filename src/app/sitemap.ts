@@ -148,7 +148,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // src/lib/zip-index.ts: 15 flagship ZIP codes, hand-written profiles and ZIP codes a paying loan
     // officer holds. Every other ZIP page is noindex and stays out, per the warning above.
     ...indexableZips().map((zip) => ({
-      url: zipCanonicalUrl(zip, origin),
+      // Built by the same function as the page's canonical, so the two can never differ.
+      url: zipCanonicalUrl(zip),
       lastModified: SEO_PLAN_LAST_MODIFIED,
       changeFrequency: "monthly" as const,
       priority: 0.5,

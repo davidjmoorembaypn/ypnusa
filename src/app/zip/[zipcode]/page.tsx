@@ -6,8 +6,8 @@ import { FLAGSHIP_ZIPS } from "@/content/zip-flagship";
 import { buildZipLocalIntel } from "@/content/zip-local-intel";
 import { clampDescription, firstSentence } from "@/lib/seo/meta-description";
 import { socialImageFor } from "@/lib/seo";
-import { LOCAL_SEO_PROFILES, LOCAL_SEO_PUBLIC_ORIGIN, getLocalSeoProfile, getPublicBusinessProfile } from "@/lib/local-seo";
-import { isZipIndexable, nearestIndexableZips, zipCanonicalUrl } from "@/lib/zip-index";
+import { LOCAL_SEO_PROFILES, getLocalSeoProfile, getPublicBusinessProfile } from "@/lib/local-seo";
+import { ZIP_PUBLIC_ORIGIN, isZipIndexable, nearestIndexableZips, zipCanonicalUrl } from "@/lib/zip-index";
 
 type Props = {
   params: Promise<{ zipcode: string }>;
@@ -33,14 +33,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const profile = getLocalSeoProfile("zip", zipcode);
   const indexable = isZipIndexable(zipcode);
   // Always the bare /zip/<zip> address: no ?zip=, no UTM tags.
-  const canonical = zipCanonicalUrl(zipcode, LOCAL_SEO_PUBLIC_ORIGIN);
+  const canonical = zipCanonicalUrl(zipcode);
   const place = intel.city && intel.state ? `${intel.city}, ${intel.state}` : "ZIP code";
   const title = `Mortgage Help in ${place} ${zipcode}`;
   const description = profile
     ? // Lead with the page's first sentence and the next step: the full introduction runs ~300 characters.
       clampDescription(`${firstSentence(profile.introduction)} Connect with a licensed loan officer for ZIP code ${zipcode}.`)
     : clampDescription(
-        `Local mortgage facts for ${place} ${zipcode}: loan limits, property tax context and estimated monthly home-buying activity. Connect with a licensed loan officer.`,
+        `Local mortgage facts for ${place} ${zipcode}: loan limits, property tax context and estimated 60-day home-buying activity. Talk to a licensed loan officer.`,
       );
 
   return {
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       siteName: "YPN USA",
-      images: [socialImageFor(LOCAL_SEO_PUBLIC_ORIGIN)],
+      images: [socialImageFor(ZIP_PUBLIC_ORIGIN)],
     },
     // The indexation gate (src/lib/zip-index.ts): flagship, hand-written or claimed ZIP codes only.
     robots: indexable ? { index: true, follow: true } : { index: false, follow: true },

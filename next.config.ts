@@ -73,6 +73,21 @@ function withOptionalTrailingSlash(redirects: Redirect[]): Redirect[] {
 }
 
 /**
+ * Posts folded into a stronger post (src/content/august-batch-redirects.json, see
+ * src/content/august-batch-consolidation.ts) no longer have a page of their own: /blog/<slug>
+ * is itself a redirect. Any other redirect whose destination is one of those pages would
+ * therefore take two hops (old URL -> /blog/<slug> -> /blog/<target>), so point it straight at
+ * the final page instead. Reads the same map as the /blog/<slug> redirects below, so the two
+ * cannot drift apart. Query strings, hashes and anything after the slug are kept.
+ */
+const consolidatedPosts = augustBatchRedirects as Record<string, string>;
+function toFinalDestination(redirect: Redirect): Redirect {
+  const match = /^\/blog\/([^/?#]+)(.*)$/.exec(redirect.destination);
+  const target = match ? consolidatedPosts[match[1]] : undefined;
+  return match && target ? { ...redirect, destination: `/blog/${target}${match[2]}` } : redirect;
+}
+
+/**
  * WordPress also served every post at the site root ("/<slug>/"), and Google picked
  * those root addresses as the canonical copy of many posts. They now 404, so send each
  * one to its /blog page in one hop. Skips slugs that are already a page, a route folder
@@ -86,7 +101,7 @@ function rootPostRedirects(taken: Redirect[]): Redirect[] {
   ]);
   return (wpPosts as { slug: string }[])
     .filter((post) => !reserved.has(post.slug))
-    .map((post) => ({ source: `/${post.slug}`, destination: `/blog/${post.slug}`, permanent: true }));
+    .map((post) => toFinalDestination({ source: `/${post.slug}`, destination: `/blog/${post.slug}`, permanent: true }));
 }
 
 const nextConfig: NextConfig = {
@@ -159,10 +174,10 @@ const nextConfig: NextConfig = {
       { source: "/keywords/:tag", destination: "/blog", permanent: true },
       { source: "/category/:name", destination: "/blog", permanent: true },
       { source: "/:year(\\d{4})/:month(\\d{2})/:day(\\d{2})", destination: "/blog", permanent: true },
-    ]);
+    ]).map(toFinalDestination);
     // The 74 templated posts dated 2026-08-07 are folded into their closest strong post (see
-    // src/content/august-batch-consolidation.ts). Added after the redirects above, so none of
-    // them (including the root-post redirects) changes.
+    // src/content/august-batch-consolidation.ts). Every redirect above that used to land on one of
+    // them (old WordPress and root addresses, the "-2" twins) now goes straight to the final page.
     const augustBatch = withOptionalTrailingSlash(
       Object.entries(augustBatchRedirects as Record<string, string>).map(([slug, target]) => ({
         source: `/blog/${slug}`,

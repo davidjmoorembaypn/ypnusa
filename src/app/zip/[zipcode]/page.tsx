@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     keywords: [
       `mortgage broker ${profile.slug}`,
+      `exclusive mortgage leads ${profile.city} ${profile.slug}`,
       `${profile.city} ${profile.slug} home loans`,
       `mortgage professional ${profile.county}`,
       ...profile.neighborhoods.map((neighborhood) => `${neighborhood} home financing`),

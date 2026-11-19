@@ -7,6 +7,7 @@ import { generateId } from "@/lib/id";
 import { logApiError } from "@/lib/http";
 import { PAID_PRICING_TIERS, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
 import { isValidZip, normalizeZip } from "@/lib/territory";
+import { scheduleZipLockHook } from "@/lib/zip-scarcity";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 import { optionalText, requiredText } from "@/lib/validation";
 
@@ -324,6 +325,10 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
     record,
     isTrialCheckout ? null : zipToClaim,
   );
+  // A ZIP code that just went from open to locked: log the neighbor alert (async, never blocks this webhook).
+  if (zipClaimed && zipToClaim && !existing?.claimedZips.includes(zipToClaim)) {
+    scheduleZipLockHook(zipToClaim, saved.id, "checkout");
+  }
   if (zipConflict && zipToClaim) {
     // Paid, but another officer locked this ZIP code first. Flag it so the dashboard asks
     // the officer to pick an open one (see @/lib/zip-availability claimReplacementZip).
@@ -380,6 +385,7 @@ export function lockZipOnPaidInvoice(input: {
 
   const paid: RevenueSubscriptionRecord = { ...existing, status: "active", pendingZip: undefined, zipLockConflict: undefined };
   const { zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(paid, zip);
+  if (zipClaimed) scheduleZipLockHook(zip, existing.id, "first_payment");
   if (zipConflict) {
     saveRevenueSubscriptionWithZipClaim({ ...paid, zipLockConflict: { zip, at: new Date().toISOString() } }, null);
     logApiError(

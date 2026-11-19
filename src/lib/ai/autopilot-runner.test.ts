@@ -90,11 +90,11 @@ describe("runWebsiteAutopilotForConfiguredSites — enabled, dry-run only", () =
     }
   });
 
-  it("never reports wordpressLive: true unless WORDPRESS_AUTOPILOT_ENABLED is set", () => {
+  it("never reports wordpressLive: true, even if the retired WORDPRESS_AUTOPILOT_ENABLED flag is set", () => {
     process.env.WEBSITE_AUTOPILOT_UNATTENDED_ENABLED = "true";
     process.env.WORDPRESS_AUTOPILOT_ENABLED = "true";
     const result = runWebsiteAutopilotForConfiguredSites();
-    assert.equal(result.wordpressLive, true);
+    assert.equal(result.wordpressLive, false);
     assert.equal(result.dryRun, true, "still never a live write — dryRun stays true regardless");
   });
 });

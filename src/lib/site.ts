@@ -1,7 +1,6 @@
 /**
- * Dual-host configuration for YPN USA:
- * - Marketing / WordPress: https://ypnus.com
- * - Product app:           https://app.ypnus.com
+ * Hosts for YPN USA. The whole site runs on this app at https://ypnus.com (WordPress is retired);
+ * app.ypnus.com redirects there.
  */
 
 export const MARKETING_SITE_URL =
@@ -9,10 +8,6 @@ export const MARKETING_SITE_URL =
 
 export const APP_SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://app.ypnus.com";
-
-/** WordPress REST base used for live territory / signup APIs. */
-export const WP_API_BASE =
-  process.env.YPNUS_WP_API_BASE?.trim() || `${MARKETING_SITE_URL}/wp-json/ypnus/v1`;
 
 /** Stripe customer-portal login (a public link) where Subscribers manage or cancel online. */
 export const CUSTOMER_PORTAL_URL =

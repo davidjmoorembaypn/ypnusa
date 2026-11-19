@@ -827,6 +827,39 @@ export interface MarketingKitRecord {
   linkedinArticles: LinkedInArticleRecord[];
 }
 
+/**
+ * "Neighbor lock alert": a ZIP code just locked to a paying loan officer, and the nearest ZIP codes
+ * that were still open at that moment, each with ready-to-copy outreach text. Written by the
+ * post-lock hook (@/lib/zip-scarcity); nothing here is ever sent automatically. Holds no name or
+ * email: `ownerRef` is an opaque subscription id.
+ */
+export interface ZipScarcityNeighborRecord {
+  zip: string;
+  city: string;
+  state: string;
+  /** Straight-line miles between ZIP code centers. "Nearby", not "bordering". */
+  miles: number;
+  outreach: {
+    email_fomo: { subject: string; body: string };
+    linkedin_dm: { body: string };
+    branch_audit_pitch: { body: string };
+  };
+}
+
+export interface ZipScarcityEventRecord {
+  id: string;
+  createdAt: string;
+  lockedZip: string;
+  lockedCity: string;
+  lockedState: string;
+  ownerRef: string;
+  trigger: "checkout" | "first_payment" | "replacement";
+  neighbors: ZipScarcityNeighborRecord[];
+  /** Nearby ZIP codes the ledger couldn't answer for at the time; never listed as open. */
+  unknownCount: number;
+  checkedCount: number;
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -858,4 +891,5 @@ export interface DbShape {
   crmDeliveries: CrmDeliveryRecord[];
   freeUsage: FreeUsageRecord[];
   marketingKits: MarketingKitRecord[];
+  zipScarcityEvents: ZipScarcityEventRecord[];
 }

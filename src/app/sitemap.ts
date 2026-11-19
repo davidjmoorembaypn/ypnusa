@@ -114,6 +114,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${origin}/tools/equity`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/gbp-optimizer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/social-writer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${origin}/teams/territory-audit`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/rate-sheets`, lastModified: new Date(`${RATE_SHEET_LINKS_CHECKED_ON}T00:00:00.000Z`), changeFrequency: "monthly", priority: 0.6 },
     ...PROGRAM_LIST.map((program) => ({
       url: `${origin}/mortgage-loans/${program.toLowerCase()}`,

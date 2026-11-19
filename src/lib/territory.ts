@@ -111,9 +111,9 @@ function buildResult(zip: string, claimedZips: Set<string>): TerritoryCheckResul
 
 /**
  * Availability from this app's own paid ledger only: ZIPs held by active or trialing subscriptions that
- * came from Stripe, an admin adjustment or the WordPress import. Demo seeds and soft
- * demo-request holds are ignored. Used when TERRITORY_SOURCE=local, i.e. once WordPress is
- * retired and this app is the system of record for territories.
+ * came from Stripe or an admin adjustment. Demo seeds and soft demo-request holds are ignored.
+ * This app is the system of record for territories (WordPress is retired); every availability
+ * answer goes through here by way of @/lib/territory-ledger.
  */
 export function checkPaidLedgerTerritory(rawZip: unknown): TerritoryCheckResult {
   const zip = normalizeZip(rawZip);

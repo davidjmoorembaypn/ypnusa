@@ -21,7 +21,7 @@ describe("territory inquiry capture", async () => {
     });
   }
 
-  it("uses live availability even for a ZIP marked claimed in demo seeds", async () => {
+  it("uses the paid ledger's availability even for a ZIP marked claimed in demo seeds", async () => {
     mock.method(globalThis, "fetch", async () => Response.json({ available: true }));
     const response = await POST(request());
     const body = await response.json();
@@ -30,12 +30,13 @@ describe("territory inquiry capture", async () => {
     assert.equal(readDb().demoRequests.length, 1);
   });
 
-  it("saves interest during an outage without claiming availability or activation", async () => {
+  it("saves interest without reserving the ZIP code, even when every other host is down", async () => {
+    // Availability comes from this app's own ledger, so an unreachable network changes nothing.
     mock.method(globalThis, "fetch", async () => new Response("Unavailable", { status: 503 }));
     const response = await POST(request());
     const body = await response.json();
     assert.equal(response.status, 200);
-    assert.equal(body.territory, null);
+    assert.deepEqual(body.territory, { zip: "92672", available: true });
     assert.match(body.message, /does not reserve a ZIP/);
     assert.equal(readDb().demoRequests.length, 2);
   });

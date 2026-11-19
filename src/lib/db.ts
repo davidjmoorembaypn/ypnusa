@@ -36,6 +36,7 @@ import type {
   RevenueSubscriptionRecord,
   ScheduledFollowUpRecord,
   WebsiteAutopilotChange,
+  ZipScarcityEventRecord,
 } from "./types";
 
 /**
@@ -204,6 +205,7 @@ const emptyDb = (): DbShape => ({
   crmDeliveries: [],
   freeUsage: [],
   marketingKits: [],
+  zipScarcityEvents: [],
 });
 
 function describeFsError(error: unknown): string {
@@ -269,6 +271,7 @@ function normalize(snapshot: unknown): DbShape {
     crmConnections: arrayOrEmpty<CrmConnectionRecord>(parsed.crmConnections),
     crmDeliveries: arrayOrEmpty<CrmDeliveryRecord>(parsed.crmDeliveries),
     freeUsage: arrayOrEmpty<FreeUsageRecord>(parsed.freeUsage),
+    zipScarcityEvents: arrayOrEmpty<ZipScarcityEventRecord>(parsed.zipScarcityEvents),
     marketingKits: arrayOrEmpty<MarketingKitRecord>(parsed.marketingKits).map((kit) => ({
       ...kit,
       linkedinArticles: arrayOrEmpty<LinkedInArticleRecord>(kit.linkedinArticles),
@@ -883,6 +886,31 @@ export function recordPaymentConversion(record: PaymentConversionRecord): { reco
     outcome = { recorded: true, firstForCustomer };
   });
   return outcome;
+}
+
+/** Neighbor-lock alerts kept on the single-file store; the oldest drop off first. */
+const MAX_ZIP_SCARCITY_EVENTS = 500;
+
+/**
+ * Appends a neighbor-lock alert unless one already exists for this ZIP code and owner, so a
+ * redelivered webhook never writes the alert twice. Atomic inside writeDb.
+ */
+export function recordZipScarcityEvent(record: ZipScarcityEventRecord): { recorded: boolean } {
+  let recorded = false;
+  writeDb((db) => {
+    if (db.zipScarcityEvents.some((item) => item.lockedZip === record.lockedZip && item.ownerRef === record.ownerRef)) return;
+    db.zipScarcityEvents.push(record);
+    if (db.zipScarcityEvents.length > MAX_ZIP_SCARCITY_EVENTS) {
+      db.zipScarcityEvents.splice(0, db.zipScarcityEvents.length - MAX_ZIP_SCARCITY_EVENTS);
+    }
+    recorded = true;
+  });
+  return { recorded };
+}
+
+/** Newest first. */
+export function listZipScarcityEvents(limit = 50): ZipScarcityEventRecord[] {
+  return [...readDb().zipScarcityEvents].reverse().slice(0, Math.max(1, limit));
 }
 
 /** Keeps the Cerebro collections bounded on the single-file store. */

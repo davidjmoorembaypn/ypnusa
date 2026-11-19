@@ -1,0 +1,57 @@
+[mcp_servers.hostinger-billing]
+command = "npx"
+args = [
+    "--package=hostinger-api-mcp@latest",
+    "hostinger-billing-mcp",
+]
+env_vars = ["HOSTINGER_API_TOKEN"]
+
+[mcp_servers.hostinger-dns]
+command = "npx"
+args = [
+    "--package=hostinger-api-mcp@latest",
+    "hostinger-dns-mcp",
+]
+env_vars = ["HOSTINGER_API_TOKEN"]
+
+[mcp_servers.hostinger-domains]
+command = "npx"
+args = [
+    "--package=hostinger-api-mcp@latest",
+    "hostinger-domains-mcp",
+]
+env_vars = ["HOSTINGER_API_TOKEN"]
+
+[mcp_servers.hostinger-hosting]
+command = "npx"
+args = [
+    "--package=hostinger-api-mcp@latest",
+    "hostinger-hosting-mcp",
+]
+env_vars = ["HOSTINGER_API_TOKEN"]
+
+[mcp_servers.hostinger-reach]
+command = "npx"
+args = [
+    "--package=hostinger-api-mcp@latest",
+    "hostinger-reach-mcp",
+]
+env_vars = ["HOSTINGER_API_TOKEN"]
+
+[mcp_servers.hostinger-vps]
+command = "npx"
+args = [
+    "--package=hostinger-api-mcp@latest",
+    "hostinger-vps-mcp",
+]
+env_vars = ["HOSTINGER_API_TOKEN"]
+
+[mcp_servers.novamira-visual-ypnus-com]
+command = "npx"
+args = [
+    "-y",
+    "novamira-visual-mcp@latest",
+]
+
+[mcp_servers.novamira-visual-ypnus-com.env]
+NOVAMIRA_VISUAL_WORKSPACE_URL = "https://ypnus.com/wp-admin/admin-post.php?action=novamira-visual"

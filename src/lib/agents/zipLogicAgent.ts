@@ -1,13 +1,13 @@
 import { normalizeEmail } from "@/lib/accounts";
 import { findZipOwnerSubscription } from "@/lib/crm";
-import { fetchLiveTerritory } from "@/lib/live-territory";
-import { checkTerritory, normalizeZip } from "@/lib/territory";
+import { checkLedgerTerritory } from "@/lib/territory-ledger";
+import { normalizeZip } from "@/lib/territory";
 
 /**
  * Thin, read-only wrapper around the existing ZIP/territory logic
- * (src/lib/territory.ts, src/lib/live-territory.ts) for the agent
- * orchestrator. Mirrors the live-then-local fallback used by
- * /api/territory/check — no new territory business logic lives here.
+ * (src/lib/territory.ts, src/lib/territory-ledger.ts) for the agent
+ * orchestrator. Answers from this app's paid ledger, like /api/territory/check.
+ * No new territory business logic lives here.
  *
  * It reports availability only. There is no made-up "opportunity score", and a ZIP the
  * signed-in officer already holds is reported as theirs, not as "owned by another officer".
@@ -24,7 +24,7 @@ export interface ZipLogicResult {
   status: ZipStatus;
   totalClaimed: number;
   message: string;
-  source: "ypnus_wp" | "local_demo";
+  source: "ledger";
 }
 
 /** Who is asking, so their own ZIP is recognised. Never taken from the client — the route fills it from the session. */
@@ -41,15 +41,14 @@ function viewerOwnsZip(zip: string, viewer?: ZipViewer): boolean {
 
 async function resolveZip(rawZip: string, viewer?: ZipViewer): Promise<ZipLogicResult> {
   const zip = normalizeZip(rawZip);
-  const live = await fetchLiveTerritory(rawZip);
-  const territory = live ?? checkTerritory(rawZip);
+  const territory = checkLedgerTerritory(rawZip);
   const result = {
     zip: territory.zip,
     valid: territory.valid,
     available: territory.available,
     totalClaimed: territory.totalClaimed,
     message: territory.message,
-    source: live ? ("ypnus_wp" as const) : ("local_demo" as const),
+    source: "ledger" as const,
   };
 
   if (!result.valid) return { ...result, ownedByYou: false, status: "invalid" };

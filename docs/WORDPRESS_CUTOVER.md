@@ -1,7 +1,9 @@
 # Moving ypnus.com off WordPress (Nov 2026)
 
-Status: **code ready on this branch, nothing applied.** Every live step below needs the
-owner's yes first. WordPress stays live and untouched until step 6.
+Status: **WordPress is retired.** The app is the only system. ZIP availability is always answered
+from the app's paid ledger in code (`src/lib/territory-ledger.ts`); the `TERRITORY_SOURCE` and
+`YPNUS_WP_API_BASE` settings no longer exist and can be removed from `/etc/ypnusa/app.env`.
+The steps below are kept as a record of the cutover.
 
 ## What the app now owns
 
@@ -10,7 +12,7 @@ owner's yes first. WordPress stays live and untouched until step 6.
 | Login / signup (`ypnus/v1` + SSO handoff) | Emailed one-time sign-in links: `/login` → `/api/auth/email-link` → `/login/verify` → `/api/auth/email-link/verify`. No passwords stored or migrated. |
 | User creation on checkout | Stripe webhook (`/api/webhooks/stripe`) creates the account for the paying email. |
 | Tier / subscription status | `src/lib/accounts.ts` `entitlementForEmail`, read from the Stripe-fed subscription ledger at sign-in. |
-| ZIP territory ledger | `TERRITORY_SOURCE=local` makes `/api/territory/check` (and Cerebro) answer from the app's paid ledger (active + trialing). |
+| ZIP territory ledger | `/api/territory/check` (and Cerebro) always answer from the app's paid ledger. No setting needed. |
 
 The WordPress SSO callback (`/api/auth/callback`) keeps working during the switch and maps
 WordPress's old tier names to the new lineup.

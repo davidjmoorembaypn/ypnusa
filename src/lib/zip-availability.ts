@@ -3,6 +3,7 @@ import { MLO_MARKETS } from "@/content/mlo-markets";
 import { readDb, saveRevenueSubscription, saveRevenueSubscriptionWithZipClaim } from "@/lib/db";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { isValidZip, normalizeZip } from "@/lib/territory";
+import { scheduleZipLockHook } from "@/lib/zip-scarcity";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 
 /**
@@ -120,5 +121,6 @@ export function claimReplacementZip(viewer: { email: string }, rawZip: unknown, 
     return { ok: false, reason: "taken", nearby: nearbyOpenZips(zip, now) };
   }
   saveRevenueSubscription({ ...record, zipLockConflict: undefined });
+  scheduleZipLockHook(zip, sub.id, "replacement");
   return { ok: true, zip };
 }

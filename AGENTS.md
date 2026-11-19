@@ -16,10 +16,10 @@ YPN USA product app (Next.js 16 App Router) for exclusive ZIP territories + AI b
 
 | Host | Role |
 | --- | --- |
-| `https://ypnus.com` | WordPress marketing, signup, Cerebro, Rank Math |
+| `https://ypnus.com` | This app. WordPress is retired (Nov 2026); the whole site is served from here |
 | `https://app.ypnus.com` | Resolves to the AWS host but 301s every request to `ypnus.com` (verified 2026-11-19); the app is served from `https://ypnus.com` |
 
-Local demo state persists to `data/store.json`. Live ZIP availability is read from `https://ypnus.com/wp-json/ypnus/v1/zip-check/{zip}` when reachable. See `hostinger/README.md` for production Hostinger fixes.
+Local demo state persists to `data/store.json`. ZIP code availability is answered from this app's own paid ledger (`src/lib/territory-ledger.ts`); there is no WordPress or other external lookup. See `hostinger/README.md` for the Hostinger standby.
 
 ### Running services
 

@@ -3,6 +3,7 @@ import { MLO_MARKETS } from "@/content/mlo-markets";
 import { readDb, saveRevenueSubscription, saveRevenueSubscriptionWithZipClaim } from "@/lib/db";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { isValidZip, normalizeZip } from "@/lib/territory";
+import { scheduleZipLockHook } from "@/lib/zip-scarcity";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 
 /**
@@ -114,11 +115,12 @@ export function claimReplacementZip(viewer: { email: string }, rawZip: unknown, 
   const zip = normalizeZip(rawZip);
   if (!isValidZip(zip)) return { ok: false, reason: "invalid_zip" };
   // The claim itself re-checks inside one write, so two officers can't both get it.
-  const { record, zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(sub, zip);
+  const { record, zipClaimed, zipConflict, zipNewlyLocked } = saveRevenueSubscriptionWithZipClaim(sub, zip);
   if (zipConflict || !zipClaimed) {
     // A conflicted claim saves the record as given, so the zipLockConflict flag stays on it.
     return { ok: false, reason: "taken", nearby: nearbyOpenZips(zip, now) };
   }
   saveRevenueSubscription({ ...record, zipLockConflict: undefined });
+  if (zipNewlyLocked) scheduleZipLockHook(zip, sub.id, "replacement");
   return { ok: true, zip };
 }

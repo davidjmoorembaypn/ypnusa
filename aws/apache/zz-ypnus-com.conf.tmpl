@@ -24,6 +24,34 @@
     RewriteRule ^/?(.*)$ https://ypnus.com/$1 [R=301,L]
 </VirtualHost>
 
+# ---- legacy subdomains -> apex (301, path and query preserved) --------------------------
+# aipropertyinvest / store / loans are retired; every URL on them goes to the same path on
+# ypnus.com. Their DNS must point at this host for these vhosts to see any traffic.
+# The HTTPS vhost reuses the ypnus.com certificate, so browsers only get a clean redirect on
+# these names once a certificate that also covers them is installed; port 80 needs no cert.
+<VirtualHost *:80>
+    ServerName aipropertyinvest.ypnus.com
+    ServerAlias store.ypnus.com loans.ypnus.com
+
+    Alias /.well-known/acme-challenge/ /var/www/letsencrypt/.well-known/acme-challenge/
+    <Directory "/var/www/letsencrypt/.well-known/acme-challenge/">
+        Require all granted
+    </Directory>
+
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+    RewriteRule ^/?(.*)$ https://ypnus.com/$1 [R=301,L]
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName aipropertyinvest.ypnus.com
+    ServerAlias store.ypnus.com loans.ypnus.com
+    SSLEngine on
+    SSLCertificateFile    @CERT_FULLCHAIN@
+    SSLCertificateKeyFile @CERT_PRIVKEY@
+    Redirect permanent / https://ypnus.com/
+</VirtualHost>
+
 # ---- port 443: www -> apex ---------------------------------------------------------
 <VirtualHost *:443>
     ServerName www.ypnus.com

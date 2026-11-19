@@ -72,7 +72,6 @@ function datasetJsonLd(url: string, name: string, description: string, spatial: 
     temporalCoverage: `${PREVIOUS_YEAR}/${LATEST_YEAR}`,
     spatialCoverage: { "@type": "Place", name: spatial },
     dateModified: DATA_FETCHED_ON,
-    license: "https://creativecommons.org/licenses/by/4.0/",
     isAccessibleForFree: true,
     variableMeasured: ["Originated home loans", "Loan amount", "Loan type", "Loan purpose"],
   };

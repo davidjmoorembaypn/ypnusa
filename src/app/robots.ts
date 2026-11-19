@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
       // Keep product/telemetry surfaces out of the marketing crawl budget.
       disallow: ["/api/", "/analytics", "/dashboard/", "/embed/", "/admin/", "/wp-admin/"],
     },
+    // No `host`: it is a Yandex-only directive that Googlebot ignores (Search Console flags it).
     sitemap: [`${origin}/sitemap.xml`, `${origin}/local-seo-sitemap.xml`],
-    host: origin,
   };
 }

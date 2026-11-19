@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ALL_BLOG_POSTS } from "@/content/blog-all";
 import { CONSOLIDATED_POST_SLUGS } from "@/content/august-batch-consolidation";
-import { LOAN_OFFICER_MARKETING_STRATEGIES as POST, REWRITTEN_POSTS } from "@/content/blog-rewrites-2026-11";
+import {
+  LOAN_OFFICER_MARKETING_STRATEGIES as POST,
+  MORTGAGE_LEAD_GENERATION,
+  NEW_LOAN_OFFICER_CLIENTS,
+  RESPA_CO_MARKETING,
+  REWRITTEN_POSTS,
+} from "@/content/blog-rewrites-2026-11";
 import { WP_POSTS } from "@/content/wp-import";
 import { INDEXABLE_POSTS, TOPIC_CLUSTERS } from "@/lib/seo/clusters";
 
@@ -23,7 +29,7 @@ describe("rewritten marketing-strategies post", () => {
     assert.ok(WP_POSTS.some((p) => p.slug === POST.slug), "the imported post it replaces still exists in the import");
     assert.ok(INDEXABLE_POSTS.some((p) => p.slug === POST.slug), "indexable, so it stays in the sitemap");
     assert.ok(!CONSOLIDATED_POST_SLUGS.has(POST.slug));
-    assert.deepEqual(REWRITTEN_POSTS.map((p) => p.slug), [POST.slug]);
+    assert.ok(REWRITTEN_POSTS.includes(POST));
   });
 
   it("has none of the junk the imported version showed to readers", () => {
@@ -89,5 +95,84 @@ describe("mortgage leads pillar page", () => {
     assert.ok(questions.includes("How do loan officers get mortgage leads?"));
     assert.ok(questions.includes("Are shared mortgage leads worth buying?"));
     assert.ok(questions.length >= 4);
+  });
+});
+
+const BATCH = [
+  { name: "RESPA co-marketing", post: RESPA_CO_MARKETING, phrase: /co-marketing/i },
+  { name: "new loan officer clients", post: NEW_LOAN_OFFICER_CLIENTS, phrase: /new loan officer/i },
+  { name: "mortgage lead generation", post: MORTGAGE_LEAD_GENERATION, phrase: /mortgage lead generation/i },
+];
+const SOURCE_HOSTS = /^https:\/\/(www\.consumerfinance\.gov|www\.fcc\.gov|docs\.fcc\.gov|www\.ftc\.gov|www\.nar\.realtor)\//;
+
+for (const { name, post, phrase } of BATCH) {
+  describe(`rewritten post: ${name}`, () => {
+    it("replaces the imported post at the same URL and stays indexable", () => {
+      const same = ALL_BLOG_POSTS.filter((p) => p.slug === post.slug);
+      assert.equal(same.length, 1);
+      assert.equal(same[0], post);
+      assert.ok(WP_POSTS.some((p) => p.slug === post.slug));
+      assert.ok(INDEXABLE_POSTS.some((p) => p.slug === post.slug));
+      assert.ok(!CONSOLIDATED_POST_SLUGS.has(post.slug));
+      assert.ok(REWRITTEN_POSTS.includes(post));
+    });
+
+    it("has none of the junk the imported version showed", () => {
+      const text = visibleText(post.html);
+      for (const bad of ['"@context"', "@type", "production-ready", "Internal linking map", "Table of Contents", "Home »", "silo", "MLO production"]) {
+        assert.ok(!text.includes(bad), `visible text contains ${bad}`);
+      }
+      assert.ok(!/\[\d+(?:,\s*\d+)*\]/.test(text));
+      assert.ok(!/<script/i.test(post.html));
+      assert.ok(!/\$\s?29\.99/.test(post.html));
+      assert.ok(!/^n\s/.test(post.description) && !/^n\s/.test(visibleText(post.html).trim()));
+      const h2 = [...post.html.matchAll(/<h2>(.*?)<\/h2>/g)].map((m) => m[1]);
+      assert.equal(new Set(h2).size, h2.length, "duplicate section headings");
+    });
+
+    it("opens with a quotable answer, a visible FAQ and sourced facts", () => {
+      assert.match(post.html, /^<p><strong>Short answer:<\/strong>/);
+      assert.ok(post.faq && post.faq.length >= 4);
+      for (const item of post.faq ?? []) assert.ok(item.q.endsWith("?") && item.a.length > 40, item.q);
+      const sources = post.html.slice(post.html.indexOf("<h2>Sources</h2>"));
+      const links = [...sources.matchAll(/<a href="(https:\/\/[^"]+)"[^>]*rel="noopener nofollow"/g)].map((m) => m[1]);
+      assert.ok(links.length >= 3, `only ${links.length} sources`);
+      for (const url of links) assert.match(url, SOURCE_HOSTS, url);
+    });
+
+    it("keeps title and description inside SERP limits and targets its phrase", () => {
+      assert.ok(post.metaTitle && post.metaTitle.length <= 60, `metaTitle ${post.metaTitle?.length}`);
+      assert.ok(post.title.length <= 70, `title ${post.title.length}`);
+      assert.ok(post.description.length <= 160, `description ${post.description.length}`);
+      assert.ok(post.description.length >= 100);
+      assert.match(`${post.title} ${post.description}`, phrase);
+    });
+
+    it("links only to indexable, non-consolidated posts and never to itself", () => {
+      const indexable = new Set(INDEXABLE_POSTS.map((p) => p.slug));
+      const html = [post.html, ...(post.faq ?? []).map((f) => f.html ?? "")].join("\n");
+      const slugs = [...html.matchAll(/href="\/blog\/([a-z0-9-]+)"/g)].map((m) => m[1]);
+      assert.ok(slugs.length >= 6, `only ${slugs.length} internal links`);
+      for (const slug of slugs) {
+        assert.notEqual(slug, post.slug);
+        assert.ok(!CONSOLIDATED_POST_SLUGS.has(slug), `${slug} is consolidated`);
+        assert.ok(indexable.has(slug), `${slug} is not an indexable post`);
+      }
+    });
+  });
+}
+
+describe("rewritten posts do not compete with each other", () => {
+  it("each has its own title and description", () => {
+    const all = [POST, ...BATCH.map((b) => b.post)];
+    assert.equal(new Set(all.map((p) => p.title)).size, all.length);
+    assert.equal(new Set(all.map((p) => p.metaTitle)).size, all.length);
+    assert.equal(new Set(all.map((p) => p.description)).size, all.length);
+  });
+
+  it("makes no unsourced cost-splitting safe-harbor claim", () => {
+    const text = visibleText(RESPA_CO_MARKETING.html).toLowerCase();
+    for (const bad of ["safe harbor", "always compliant", "guaranteed compliant", "fair-market share"]) assert.ok(!text.includes(bad), bad);
+    assert.match(text, /not legal advice/);
   });
 });

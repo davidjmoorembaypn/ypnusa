@@ -683,12 +683,17 @@ export function saveRevenueSubscription(subscription: RevenueSubscriptionRecord)
  * customer (e.g. a replacement created before Stripe's delete event for the
  * old one arrives) is never treated as a conflict — that's an idempotent
  * territory transfer, not a competing claim.
+ *
+ * `zipNewlyLocked` is true only for a genuine open -> claimed transition: this call claimed
+ * the zip AND no live subscription (this one's stored copy or the same customer's other one)
+ * held it beforehand. A same-customer transfer or replacement claims the zip for the new
+ * record but leaves `zipNewlyLocked` false, because the territory was already taken.
  */
 export function saveRevenueSubscriptionWithZipClaim(
   subscription: RevenueSubscriptionRecord,
   zip: string | null,
-): { record: RevenueSubscriptionRecord; zipClaimed: boolean; zipConflict: boolean } {
-  let result!: { record: RevenueSubscriptionRecord; zipClaimed: boolean; zipConflict: boolean };
+): { record: RevenueSubscriptionRecord; zipClaimed: boolean; zipConflict: boolean; zipNewlyLocked: boolean } {
+  let result!: { record: RevenueSubscriptionRecord; zipClaimed: boolean; zipConflict: boolean; zipNewlyLocked: boolean };
   writeDb((db) => {
     const zipConflict =
       zip !== null &&
@@ -700,6 +705,9 @@ export function saveRevenueSubscriptionWithZipClaim(
           s.claimedZips.includes(zip),
       );
     const zipClaimed = zip !== null && !zipConflict && !subscription.claimedZips.includes(zip);
+    // Read before the upsert below: was the zip already held by any live subscription?
+    const alreadyHeld = zip !== null && db.revenueSubscriptions.some((s) => isLiveSubscription(s) && s.claimedZips.includes(zip));
+    const zipNewlyLocked = zipClaimed && !alreadyHeld;
     // On conflict, also strip the contested zip from *this* record's own claimedZips —
     // it may already be there from a stale prior state (e.g. this subscription was
     // reactivated and its old claimedZips array was never cleared), which would
@@ -714,7 +722,7 @@ export function saveRevenueSubscriptionWithZipClaim(
     if (idx >= 0) db.revenueSubscriptions[idx] = record;
     else db.revenueSubscriptions.push(record);
 
-    result = { record, zipClaimed, zipConflict };
+    result = { record, zipClaimed, zipConflict, zipNewlyLocked };
   });
   return result;
 }

@@ -321,12 +321,13 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         lastStripeEventId: eventId,
         lastStripeEventCreatedAt: eventCreatedAt,
       };
-  const { record: saved, zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(
+  const { record: saved, zipClaimed, zipConflict, zipNewlyLocked } = saveRevenueSubscriptionWithZipClaim(
     record,
     isTrialCheckout ? null : zipToClaim,
   );
-  // A ZIP code that just went from open to locked: log the neighbor alert (async, never blocks this webhook).
-  if (zipClaimed && zipToClaim && !existing?.claimedZips.includes(zipToClaim)) {
+  // Only a ZIP code that truly went from open to locked logs the neighbor alert (async, never blocks
+  // this webhook). A same-customer transfer or replacement is not new scarcity.
+  if (zipNewlyLocked && zipToClaim) {
     scheduleZipLockHook(zipToClaim, saved.id, "checkout");
   }
   if (zipConflict && zipToClaim) {
@@ -384,8 +385,8 @@ export function lockZipOnPaidInvoice(input: {
   if (!zip) return { applied: false, reason: "No pending ZIP code to lock." };
 
   const paid: RevenueSubscriptionRecord = { ...existing, status: "active", pendingZip: undefined, zipLockConflict: undefined };
-  const { zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(paid, zip);
-  if (zipClaimed) scheduleZipLockHook(zip, existing.id, "first_payment");
+  const { zipClaimed, zipConflict, zipNewlyLocked } = saveRevenueSubscriptionWithZipClaim(paid, zip);
+  if (zipNewlyLocked) scheduleZipLockHook(zip, existing.id, "first_payment");
   if (zipConflict) {
     saveRevenueSubscriptionWithZipClaim({ ...paid, zipLockConflict: { zip, at: new Date().toISOString() } }, null);
     logApiError(

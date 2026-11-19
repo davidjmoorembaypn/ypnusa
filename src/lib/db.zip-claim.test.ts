@@ -106,3 +106,52 @@ describe("saveRevenueSubscriptionWithZipClaim", async () => {
     assert.deepEqual(stored?.claimedZips, []);
   });
 });
+
+describe("zipNewlyLocked: a true open -> claimed transition", async () => {
+  const { writeDb, saveRevenueSubscriptionWithZipClaim } = await import("./db");
+
+  before(() => {
+    writeDb((db) => {
+      db.revenueSubscriptions.length = 0;
+    });
+  });
+
+  it("is true for a fresh lock on a ZIP code nobody held", () => {
+    const result = saveRevenueSubscriptionWithZipClaim(subscription("fresh_a", "cus_one"), "93618");
+    assert.equal(result.zipClaimed, true);
+    assert.equal(result.zipNewlyLocked, true);
+  });
+
+  it("is false when the same subscription re-claims its own ZIP code (redelivered webhook)", () => {
+    const again = saveRevenueSubscriptionWithZipClaim({ ...subscription("fresh_a", "cus_one"), claimedZips: ["93618"] }, "93618");
+    assert.equal(again.zipClaimed, false);
+    assert.equal(again.zipNewlyLocked, false);
+    // Even if the caller passes a stale record without the ZIP code, the stored copy already holds it.
+    const stale = saveRevenueSubscriptionWithZipClaim(subscription("fresh_a", "cus_one"), "93618");
+    assert.equal(stale.zipClaimed, true);
+    assert.equal(stale.zipNewlyLocked, false);
+  });
+
+  it("is false for a same-customer transfer: the replacement gets the ZIP code, but it was already taken", () => {
+    const replacement = saveRevenueSubscriptionWithZipClaim(subscription("fresh_a_replacement", "cus_one"), "93618");
+    assert.equal(replacement.zipConflict, false);
+    assert.equal(replacement.zipClaimed, true);
+    assert.equal(replacement.zipNewlyLocked, false);
+  });
+
+  it("is false on a conflict with another customer, and when no ZIP code is claimed", () => {
+    const conflict = saveRevenueSubscriptionWithZipClaim(subscription("other", "cus_two"), "93618");
+    assert.equal(conflict.zipConflict, true);
+    assert.equal(conflict.zipNewlyLocked, false);
+    assert.equal(saveRevenueSubscriptionWithZipClaim(subscription("no_zip", "cus_three"), null).zipNewlyLocked, false);
+  });
+
+  it("is true again once every earlier holder has cancelled and someone new locks it", () => {
+    writeDb((db) => {
+      for (const s of db.revenueSubscriptions) if (s.claimedZips.includes("93618")) s.status = "cancelled";
+    });
+    const reopened = saveRevenueSubscriptionWithZipClaim(subscription("later", "cus_four"), "93618");
+    assert.equal(reopened.zipClaimed, true);
+    assert.equal(reopened.zipNewlyLocked, true);
+  });
+});

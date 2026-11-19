@@ -40,16 +40,28 @@ export interface MatchedRow {
 }
 
 /**
+ * ZIP codes a re-check found claimed. Availability belongs to the ZIP code, not to one alert: once
+ * any occurrence is marked "claimed", that ZIP code is claimed in every alert that lists it.
+ */
+export function claimedNeighborZips(events: readonly ScarcityEventView[]): Set<string> {
+  const claimed = new Set<string>();
+  for (const event of events) for (const neighbor of event.neighbors) if (neighbor.status === "claimed") claimed.add(neighbor.zip);
+  return claimed;
+}
+
+/**
  * Each open ZIP code matches at most once, to its most recent event, so a ZIP code that is
- * next to several newly locked ones doesn't produce duplicate outreach rows.
+ * next to several newly locked ones doesn't produce duplicate outreach rows. A ZIP code marked
+ * claimed in any alert is left out entirely, including from older alerts that still list it.
  */
 export function indexOpenNeighbors(events: readonly ScarcityEventView[], onlyZip?: string): Map<string, { event: ScarcityEventView; neighbor: ScarcityNeighbor }> {
   const index = new Map<string, { event: ScarcityEventView; neighbor: ScarcityNeighbor }>();
+  const claimed = claimedNeighborZips(events);
   const newestFirst = [...events].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   for (const event of newestFirst) {
     for (const neighbor of event.neighbors) {
       if (onlyZip && neighbor.zip !== onlyZip) continue;
-      if (neighbor.status === "claimed") continue;
+      if (claimed.has(neighbor.zip)) continue;
       if (!index.has(neighbor.zip)) index.set(neighbor.zip, { event, neighbor });
     }
   }

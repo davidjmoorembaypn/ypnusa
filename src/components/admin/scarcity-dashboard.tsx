@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { parseContacts, toCsv, type ParsedContacts } from "@/lib/csv";
-import { EXPORT_COLUMNS, matchContacts, toExportRows, type ScarcityEventView, type ScarcityNeighbor } from "@/lib/scarcity-match";
+import { EXPORT_COLUMNS, claimedNeighborZips, matchContacts, toExportRows, type ScarcityEventView, type ScarcityNeighbor } from "@/lib/scarcity-match";
 
 const BTN =
   "min-h-[40px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:cursor-not-allowed disabled:opacity-50";
@@ -56,11 +56,13 @@ export function ScarcityDashboard({ initialEvents }: { initialEvents: ScarcityEv
   const [onlyZip, setOnlyZip] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // Claimed is a property of the ZIP code: one "claimed" re-check removes it from every alert.
+  const claimedZips = useMemo(() => claimedNeighborZips(events), [events]);
   const openZips = useMemo(() => {
     const seen = new Map<string, ScarcityNeighbor>();
-    for (const e of events) for (const n of e.neighbors) if (n.status !== "claimed" && !seen.has(n.zip)) seen.set(n.zip, n);
+    for (const e of events) for (const n of e.neighbors) if (!claimedZips.has(n.zip) && !seen.has(n.zip)) seen.set(n.zip, n);
     return [...seen.values()].sort((a, b) => a.zip.localeCompare(b.zip));
-  }, [events]);
+  }, [events, claimedZips]);
 
   const matches = useMemo(() => (contacts ? matchContacts(contacts.contacts, events, onlyZip || undefined) : []), [contacts, events, onlyZip]);
 
@@ -134,9 +136,9 @@ export function ScarcityDashboard({ initialEvents }: { initialEvents: ScarcityEv
                         {n.zip}
                         {n.city ? ` · ${n.city}, ${n.state}` : ""}
                         <span className="ml-2 font-normal text-slate-600">{n.miles} mi</span>
-                        {n.status === "claimed" ? <span className="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-800">now claimed</span> : null}
-                        {n.status === "unknown" ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900">status unknown</span> : null}
-                        {n.status === "open" ? <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">still open</span> : null}
+                        {claimedZips.has(n.zip) ? <span className="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-800">now claimed</span> : null}
+                        {n.status === "unknown" && !claimedZips.has(n.zip) ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900">status unknown</span> : null}
+                        {n.status === "open" && !claimedZips.has(n.zip) ? <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">still open</span> : null}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <CopyButton label="Email template" text={`Subject: ${n.outreach.email_fomo.subject}\n\n${n.outreach.email_fomo.body}`} />

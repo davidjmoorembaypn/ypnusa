@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { neutralizeCell, normalizeContactZip, parseContacts, parseCsv, toCsv } from "./csv";
 import { MAILTO_MAX_LENGTH, buildMailto, buildOutreachPayload, fillContactPlaceholders, renderTemplate } from "./outreach-templates";
-import { EXPORT_COLUMNS, matchContacts, toExportRows, type ScarcityEventView } from "./scarcity-match";
+import { EXPORT_COLUMNS, claimedNeighborZips, indexOpenNeighbors, matchContacts, toExportRows, type ScarcityEventView } from "./scarcity-match";
 
 const vars = { lockedZip: "93618", lockedCity: "Dinuba", targetZip: "93616", targetCity: "Del Rey" };
 
@@ -158,6 +158,25 @@ describe("contact matcher", () => {
     assert.equal(matchContacts(contacts, [claimed]).length, 0);
     claimed.neighbors[0].status = "unknown";
     assert.equal(matchContacts(contacts, [claimed]).length, 2);
+  });
+
+  it("treats claimed as ZIP-level: one claimed occurrence removes the ZIP code from every alert", () => {
+    // 93616 is a neighbor in an older alert and a newer one. Only the OLDER alert was re-checked.
+    const older = event("old", "2026-11-01T00:00:00Z", "93616");
+    const newer = event("new", "2026-11-19T00:00:00Z", "93616");
+    older.neighbors[0].status = "claimed";
+    assert.deepEqual([...claimedNeighborZips([older, newer])], ["93616"]);
+    assert.equal(indexOpenNeighbors([older, newer]).size, 0);
+    assert.equal(matchContacts(contacts, [older, newer]).length, 0);
+    assert.equal(toExportRows(matchContacts(contacts, [older, newer])).length, 0);
+    // The same holds whichever alert carries the mark, and with a ZIP filter applied.
+    older.neighbors[0].status = undefined;
+    newer.neighbors[0].status = "claimed";
+    assert.equal(matchContacts(contacts, [older, newer]).length, 0);
+    assert.equal(matchContacts(contacts, [older, newer], "93616").length, 0);
+    // A different, still-open ZIP code in another alert is unaffected.
+    const other = event("other", "2026-11-10T00:00:00Z", "90210");
+    assert.deepEqual(matchContacts(contacts, [older, newer, other]).map((r) => r.targetZip), ["90210"]);
   });
 
   it("exports one row per match with the agreed columns", () => {

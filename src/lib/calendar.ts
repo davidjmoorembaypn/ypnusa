@@ -259,8 +259,11 @@ async function providerBusy(
 export async function resolvedConnection(officer: LoanOfficerRecord): Promise<CalendarConnection> {
   const connection = configuredConnection(officer);
   if (connection.provider !== "google") return connection;
-  const own = await googleAccessToken(officer);
-  const token = own ?? process.env.GOOGLE_CALENDAR_ACCESS_TOKEN?.trim();
+  // An officer who connected their own Google account only ever uses their own token: falling
+  // back to the server-wide token would book borrowers onto someone else's "primary" calendar.
+  const token = officer.googleRefreshToken
+    ? await googleAccessToken(officer)
+    : process.env.GOOGLE_CALENDAR_ACCESS_TOKEN?.trim();
   // No usable token: fall back to set hours instead of failing every booking.
   if (!token || !connection.calendarId) return { ...connection, provider: "local" };
   return { ...connection, token };
@@ -490,11 +493,27 @@ export async function bookAppointment(input: {
 
 /** Removes the booked event from the officer's calendar, when it is on one. Never throws for "already gone". */
 export async function cancelProviderEvent(appointment: AppointmentRecord): Promise<void> {
-  if (appointment.provider !== "google" || !appointment.externalEventId) return;
+  if (!appointment.externalEventId || (appointment.provider !== "google" && appointment.provider !== "microsoft")) return;
   const officer = readDb().loanOfficers.find((item) => item.id === appointment.loId);
   if (!officer) return;
+  if (appointment.provider === "microsoft") {
+    const connection = configuredConnection(officer);
+    const token = process.env.MICROSOFT_GRAPH_ACCESS_TOKEN?.trim();
+    if (!token || !connection.calendarId) throw new Error("Microsoft Calendar is not connected, so the event couldn't be removed yet.");
+    const response = await fetch(
+      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(connection.calendarId)}/events/${encodeURIComponent(appointment.externalEventId)}`,
+      { method: "DELETE", headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000) },
+    );
+    if (!response.ok && response.status !== 404 && response.status !== 410) {
+      throw new Error(`Microsoft Calendar cancel failed (${response.status}).`);
+    }
+    return;
+  }
   const connection = await resolvedConnection(officer);
-  if (connection.provider !== "google" || !connection.token || !connection.calendarId) return;
+  // No token right now (expired sign-in, Google down): throw so the cleanup stays pending and is retried.
+  if (connection.provider !== "google" || !connection.token || !connection.calendarId) {
+    throw new Error("Google Calendar isn't reachable for this officer right now.");
+  }
   const response = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(connection.calendarId)}/events/${encodeURIComponent(appointment.externalEventId)}?sendUpdates=all`,
     { method: "DELETE", headers: { Authorization: `Bearer ${connection.token}` }, signal: AbortSignal.timeout(15_000) },

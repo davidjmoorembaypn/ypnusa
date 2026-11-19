@@ -118,7 +118,6 @@ export function MetroMarketPage({ market, origin = MARKETING_SITE_URL }: { marke
     temporalCoverage: String(METRO_DATA_YEAR),
     spatialCoverage: { "@type": "Place", name: `${market.county}, ${market.stateName}` },
     dateModified: METRO_DATA_FETCHED_ON,
-    license: "https://creativecommons.org/licenses/by/4.0/",
     isAccessibleForFree: true,
     variableMeasured: ["Originated home loans", "Loan amount", "Loan type", "Loan purpose"],
   };

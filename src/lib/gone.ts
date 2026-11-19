@@ -1,5 +1,5 @@
 /**
- * 410 Gone for retired WordPress paths (/wp-json/*, /wp-admin/*).
+ * 410 Gone for retired WordPress paths (/wp-json/*, /wp-admin/*, /wp-login.php).
  *
  * WordPress is retired and these addresses will never come back, so bots get a permanent-removal
  * signal instead of a 404 they would keep retrying. next.config redirects and rewrites cannot set

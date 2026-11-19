@@ -44,12 +44,16 @@ export function zipCanonicalUrl(zip: string, origin: string = MARKETING_SITE_URL
   return `${origin}/zip/${zip}`;
 }
 
+const NEIGHBOR_RADIUS_MILES = 60;
+
 /**
  * The nearest ZIP codes whose pages are indexable, nearest first. Non-indexable neighbors are
  * left out on purpose, so no indexable page links to a noindex one.
  */
 export function nearestIndexableZips(zip: string, limit = 5, claimed: ReadonlySet<string> = paidLedgerClaimedZips()): ZipDistance[] {
-  return nearestZips(zip, 400, 60)
+  // No candidate cap: a dense metro has far more than a few hundred ZIP codes inside 60 miles, and a
+  // cap applied before the indexability filter would hide an indexable ZIP code that sits beyond it.
+  return nearestZips(zip, Number.POSITIVE_INFINITY, NEIGHBOR_RADIUS_MILES)
     .filter((candidate) => zipIndexReason(candidate.zip, claimed) !== null)
     .slice(0, limit);
 }

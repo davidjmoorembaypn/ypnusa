@@ -13,7 +13,11 @@ import { ZIP_DEMAND_GZ_BASE64, ZIP_DEMAND_VINTAGE } from "@/lib/geo/zip-demand-d
  *
  * Data: U.S. Census Bureau American Community Survey (ACS) 2019-2023 5-year estimates for each
  * ZIP Code Tabulation Area: population (B01003), households by tenure (B25003) and people who moved
- * into their current home in the past year, by tenure (B07013).
+ * into their current home in the past year, by tenure (B07013, and B07013PR for Puerto Rico).
+ *
+ * A ZIP code can have population and households but no mobility table. That is "not measured", not
+ * "zero moves": it gets basis "none" and is left out of every aggregate, never reported as a
+ * Census-backed zero.
  *
  * Method (deterministic, the same input always gives the same output), all in HOUSEHOLDS:
  *   household size = population / households
@@ -33,7 +37,7 @@ import { ZIP_DEMAND_GZ_BASE64, ZIP_DEMAND_VINTAGE } from "@/lib/geo/zip-demand-d
 
 export const DEMAND_WINDOW_DAYS = 60;
 export const DEMAND_ESTIMATE_LABEL = "Illustrative market estimate from U.S. Census Bureau survey data. Not a lead count, a forecast or a guarantee.";
-export const DEMAND_SOURCE = `U.S. Census Bureau, American Community Survey ${ZIP_DEMAND_VINTAGE} 5-year estimates (tables B01003, B25003, B07013); YPN USA analysis`;
+export const DEMAND_SOURCE = `U.S. Census Bureau, American Community Survey ${ZIP_DEMAND_VINTAGE} 5-year estimates (tables B01003, B25003, B07013 and B07013PR); YPN USA analysis`;
 export const DEMAND_METHODOLOGY =
   "60-day estimates modeled from ZCTA population, housing tenure, and mobility data (U.S. Census Bureau ACS 5-year migration patterns). Sellers are assumed equal to buyers. Illustrative demand, not a lead guarantee.";
 
@@ -51,16 +55,21 @@ export interface ZipDemand {
   population: number | null;
   source: "market_demographic_model";
   methodology: string;
-  /** "census_acs": from survey data. "none": no residential data, so every figure is 0. */
+  /**
+   * "census_acs": estimated from survey data. "none": no estimate is possible (no residential data,
+   * or no mobility data for the ZIP code), so every figure is 0 and must not be read as measured.
+   */
   basis: "census_acs" | "none";
 }
 
-interface Row {
+export interface ZipDemandSourceRow {
   population: number;
   households: number;
-  ownerMovers: number;
-  allMovers: number;
+  /** null when the Census published no mobility data for the ZIP code (not the same as 0). */
+  ownerMovers: number | null;
+  allMovers: number | null;
 }
+type Row = ZipDemandSourceRow;
 
 let cached: Map<string, Row> | null = null;
 
@@ -71,7 +80,9 @@ function load(): Map<string, Row> {
   for (const line of text.split("\n")) {
     const [zip, population, households, ownerMovers, allMovers] = line.split("|");
     if (!zip || !/^\d{5}$/.test(zip)) continue;
-    rows.set(zip, { population: Number(population), households: Number(households), ownerMovers: Number(ownerMovers), allMovers: Number(allMovers) });
+    // An empty movers field means "no mobility data"; Number("") would silently turn it into 0.
+    const measured = (field: string | undefined) => (field === undefined || field.trim() === "" ? null : Number(field));
+    rows.set(zip, { population: Number(population), households: Number(households), ownerMovers: measured(ownerMovers), allMovers: measured(allMovers) });
   }
   cached = rows;
   return rows;
@@ -86,9 +97,14 @@ function householdSize(row: Row): number {
   return Math.min(6, Math.max(1, row.population / row.households));
 }
 
-function fromRow(row: Row | undefined): ZipDemand {
+/** Exported for tests: the estimate for one source row. */
+export function demandFromRow(row: ZipDemandSourceRow | undefined): ZipDemand {
   const shared = { window_days: 60 as const, source: "market_demographic_model" as const, methodology: DEMAND_METHODOLOGY };
   if (!row || !(row.households > 0)) return { sellers: 0, buyers: 0, movers_in: 0, total: 0, population: null, basis: "none", ...shared };
+  // Population is known but mobility was never measured: report the population, estimate nothing.
+  if (row.ownerMovers === null || row.allMovers === null) {
+    return { sellers: 0, buyers: 0, movers_in: 0, total: 0, population: row.population, basis: "none", ...shared };
+  }
   const size = householdSize(row);
   const buyers = Math.round((row.ownerMovers / size) * WINDOW_SHARE_OF_YEAR);
   const renterMovers = Math.max(0, row.allMovers - row.ownerMovers);
@@ -104,7 +120,7 @@ function fromRow(row: Row | undefined): ZipDemand {
  */
 export function estimateZipDemand(zip: string): ZipDemand | null {
   if (!/^\d{5}$/.test(zip)) return null;
-  return fromRow(load().get(zip));
+  return demandFromRow(load().get(zip));
 }
 
 export interface ZipDemandRow extends ZipDemand {
@@ -112,12 +128,16 @@ export interface ZipDemandRow extends ZipDemand {
   households: number;
 }
 
-/** Every ZIP code with survey data, for aggregate reporting. */
+/**
+ * Every ZIP code with a real estimate, for aggregate reporting. ZIP codes without mobility data
+ * are left out, so they can never drag a national total or a median down as fake zeros.
+ */
 export function allZipDemand(): ZipDemandRow[] {
   const out: ZipDemandRow[] = [];
   for (const [zip, row] of load()) {
-    if (!(row.households > 0)) continue;
-    out.push({ zip, households: row.households, ...fromRow(row) });
+    const demand = demandFromRow(row);
+    if (demand.basis !== "census_acs") continue;
+    out.push({ zip, households: row.households, ...demand });
   }
   return out;
 }

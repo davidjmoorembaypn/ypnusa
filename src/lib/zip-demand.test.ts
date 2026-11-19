@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { DEMAND_METHODOLOGY, allZipDemand, estimateZipDemand, zipDemandCoverage } from "./zip-demand";
+import { DEMAND_METHODOLOGY, allZipDemand, demandFromRow, estimateZipDemand, zipDemandCoverage } from "./zip-demand";
 
 const URBAN = ["10001", "90012", "60614", "93720"]; // Manhattan, downtown LA, Chicago, Fresno
 const SUBURBAN = ["93611", "93619", "75034", "30097"]; // Clovis CA x2, Frisco TX, Duluth GA
@@ -67,6 +67,35 @@ describe("60-day zip demand estimates", () => {
     assert.deepEqual([none.buyers, none.sellers, none.movers_in, none.total, none.population, none.basis], [0, 0, 0, 0, null, "none"]);
     assert.equal(estimateZipDemand("1234"), null);
     assert.equal(estimateZipDemand("abcde"), null);
+  });
+
+  it("estimates Puerto Rico ZIP codes from the Census's separate Puerto Rico mobility table", () => {
+    // 00601 Adjuntas and 00602 Aguada: population and households were always present, but mobility
+    // lives in table B07013PR. Without it they used to come back as Census-backed zeros.
+    for (const zip of ["00601", "00602"]) {
+      const d = estimateZipDemand(zip)!;
+      assert.equal(d.basis, "census_acs", zip);
+      assert.ok(d.total > 0, `${zip} total ${d.total}`);
+      assert.ok((d.population ?? 0) > 10_000, zip);
+    }
+    assert.ok(allZipDemand().some((row) => row.zip === "00601"));
+  });
+
+  it("treats missing mobility data as no estimate, never as a measured zero", () => {
+    const missing = demandFromRow({ population: 16_513, households: 5_800, ownerMovers: null, allMovers: null });
+    assert.equal(missing.basis, "none");
+    assert.deepEqual([missing.buyers, missing.sellers, missing.movers_in, missing.total], [0, 0, 0, 0]);
+    assert.equal(missing.population, 16_513, "the known population is still reported");
+    // A measured zero is different: it is real data and stays a Census-backed estimate.
+    const measuredZero = demandFromRow({ population: 739, households: 75, ownerMovers: 0, allMovers: 0 });
+    assert.equal(measuredZero.basis, "census_acs");
+    assert.equal(measuredZero.total, 0);
+    // Half-missing is still missing.
+    assert.equal(demandFromRow({ population: 100, households: 40, ownerMovers: 3, allMovers: null }).basis, "none");
+  });
+
+  it("keeps ZIP codes without an estimate out of every aggregate", () => {
+    for (const row of allZipDemand()) assert.equal(row.basis, "census_acs", row.zip);
   });
 
   it("never produces NaN or a negative number anywhere in the dataset", () => {

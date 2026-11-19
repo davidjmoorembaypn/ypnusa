@@ -112,6 +112,22 @@ describe("ZIP page indexation gate", async () => {
     assert.deepEqual(nearestIndexableZips("10001", 5), []);
   });
 
+  it("finds an indexable neighbor in a dense metro, however many ZIP codes lie between them", async () => {
+    // Manhattan 10001 and Huntington 11743 are about 32 miles apart, with well over 400 ZIP codes
+    // closer to each of them than the other. A candidate cap before the filter used to hide them.
+    const { distanceMiles, zipPlace, zipsWithinRadius } = await import("./geo/zip-geo");
+    const miles = distanceMiles(zipPlace("10001")!, zipPlace("11743")!);
+    assert.ok(miles > 25 && miles < 40, `distance was ${miles}`);
+    const closerThanEachOther = zipsWithinRadius("10001", miles).length;
+    assert.ok(closerThanEachOther > 400, `only ${closerThanEachOther} ZIP codes in between`);
+
+    const claimed = new Set(["10001", "11743"]);
+    assert.deepEqual(nearestIndexableZips("10001", 5, claimed).map((n) => n.zip), ["11743"]);
+    assert.deepEqual(nearestIndexableZips("11743", 5, claimed).map((n) => n.zip), ["10001"]);
+    // Still bounded by the radius: a claimed ZIP code across the country is not a neighbor.
+    assert.deepEqual(nearestIndexableZips("10001", 5, new Set(["10001", "90210"])), []);
+  });
+
   it("gives every flagship ZIP code four local FAQs with the checked county figures", () => {
     const seen = new Set<string>();
     for (const zip of FLAGSHIP) {

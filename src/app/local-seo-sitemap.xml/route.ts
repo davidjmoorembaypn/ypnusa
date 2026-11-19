@@ -7,8 +7,8 @@ import {
 export const dynamic = "force-static";
 
 /**
- * City pages only, matching src/app/sitemap.ts: ZIP pages stay out of every
- * sitemap on purpose (see the comment there about not flooding Google's
+ * City pages only. ZIP pages are listed in src/app/sitemap.ts, and only the few that pass the
+ * indexation gate in src/lib/zip-index.ts (see the warning there about not flooding Google's
  * "Not indexed" queue with programmatic ZIP URLs).
  */
 export function GET() {

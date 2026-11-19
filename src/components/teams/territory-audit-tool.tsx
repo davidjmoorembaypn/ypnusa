@@ -12,14 +12,15 @@ interface Row {
   state: string;
   miles: number;
   status: Status;
-  demandTotal: number | null;
+  buyers: number;
+  total: number;
 }
 interface Audit {
   center: { zip: string; city: string; state: string };
   radiusMiles: number;
   officers: number | null;
   totals: { inRadius: number; evaluated: number; open: number; claimed: number; unknown: number; notEvaluated: number };
-  demand: { total: number; windowDays: number | null; zipsReporting: number; openZips: number };
+  demand: { window_days: number; buyers: number; sellers: number; movers_in: number; total: number; openZips: number; label: string; source: string };
   zips: Row[];
 }
 type State = { phase: "idle" } | { phase: "loading" } | { phase: "error"; message: string } | { phase: "done"; audit: Audit };
@@ -151,12 +152,12 @@ export function TerritoryAuditTool({ initialZip = "" }: { initialZip?: string })
               <Stat label="Open" value={String(audit.totals.open)} />
               <Stat label="Already claimed" value={String(audit.totals.claimed)} />
               <Stat
-                label="Expected activity, open ZIPs"
-                value={audit.demand.zipsReporting > 0 ? `~${audit.demand.total.toLocaleString("en-US")}` : "Not available"}
+                label={`Est. ${audit.demand.window_days}-day activity, open ZIPs`}
+                value={audit.demand.openZips > 0 ? `~${audit.demand.total.toLocaleString("en-US")}` : "-"}
                 note={
-                  audit.demand.zipsReporting > 0
-                    ? `buyers, sellers and movers over ${audit.demand.windowDays ?? 60} days, from ${audit.demand.zipsReporting} of ${audit.demand.openZips} open ZIP codes`
-                    : "The ledger reported no figures for these ZIP codes"
+                  audit.demand.openZips > 0
+                    ? `households buying, selling or moving in, about ${audit.demand.buyers.toLocaleString("en-US")} of them buyers. Estimate, not a lead count.`
+                    : "No open ZIP codes to total"
                 }
               />
             </dl>
@@ -182,7 +183,8 @@ export function TerritoryAuditTool({ initialZip = "" }: { initialZip?: string })
                         <th scope="col" className="px-4 py-3">ZIP code</th>
                         <th scope="col" className="px-4 py-3">Place</th>
                         <th scope="col" className="px-4 py-3 text-right">Miles</th>
-                        <th scope="col" className="px-4 py-3 text-right">Expected activity</th>
+                        <th scope="col" className="px-4 py-3 text-right">Est. buyers / 60 days</th>
+                        <th scope="col" className="px-4 py-3 text-right">Est. total / 60 days</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -194,7 +196,8 @@ export function TerritoryAuditTool({ initialZip = "" }: { initialZip?: string })
                           <th scope="row" className="px-4 py-2 font-semibold">{z.zip}</th>
                           <td className="px-4 py-2">{z.city ? `${z.city}, ${z.state}` : "-"}</td>
                           <td className="px-4 py-2 text-right">{z.miles}</td>
-                          <td className="px-4 py-2 text-right">{z.demandTotal !== null ? `~${z.demandTotal.toLocaleString("en-US")}` : "-"}</td>
+                          <td className="px-4 py-2 text-right">~{z.buyers.toLocaleString("en-US")}</td>
+                          <td className="px-4 py-2 text-right">~{z.total.toLocaleString("en-US")}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -235,8 +238,9 @@ export function TerritoryAuditTool({ initialZip = "" }: { initialZip?: string })
             ) : null}
 
             <p className="text-xs text-white/60">
-              Expected activity is an estimate from the territory ledger, not a promise of leads or loans. Availability can change at any time, and checking does not
-              reserve a ZIP code. ZIP code names and locations: GeoNames (geonames.org), CC BY 4.0.
+              {audit.demand.label} Figures are households that moved in during the past year, scaled to 60 days; total is buyers, sellers (assumed equal to
+              buyers) and renter move-ins ({audit.demand.source}). Availability can
+              change at any time, and checking does not reserve a ZIP code. ZIP code names and locations: GeoNames (geonames.org), CC BY 4.0.
             </p>
           </div>
         ) : null}

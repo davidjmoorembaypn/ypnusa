@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { track } from "@/lib/track";
 
+/** 60-day estimate from /api/territory/check (Census-based, see src/lib/zip-demand.ts). */
 interface Demand {
   window_days?: number;
   total?: number;
-  sellers?: number;
   buyers?: number;
+  sellers?: number;
   movers_in?: number;
+  basis?: "census_acs" | "none";
+  methodology?: string;
 }
 
 interface CheckResponse {
@@ -83,7 +86,7 @@ export function ZipDemandCheck() {
             disabled={state.kind === "loading"}
             className="min-h-[52px] shrink-0 rounded-2xl bg-amber-400 px-6 py-3 text-base font-bold text-[#09081b] shadow-lg shadow-amber-500/30 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:opacity-60"
           >
-            {state.kind === "loading" ? "Checking…" : "Show my 60-day demand"}
+            {state.kind === "loading" ? "Checking…" : "Show my 60-day estimate"}
           </button>
         </div>
       </form>
@@ -91,7 +94,7 @@ export function ZipDemandCheck() {
       <div aria-live="polite" role="status" className="mt-5 min-h-[120px]">
         {state.kind === "idle" && (
           <p className="text-sm text-white/80">
-            Enter a ZIP code to see how many people are expected to buy, sell or move in over the next 60 days.
+            Enter a ZIP code to see an estimate of how many households buy, sell or move there in a typical 60 days.
           </p>
         )}
         {state.kind === "error" && <p className="text-sm font-medium text-rose-200">{state.message}</p>}
@@ -108,17 +111,16 @@ function Result({ data }: { data: CheckResponse }) {
   return (
     <div>
       <p className="text-lg font-semibold text-white">{place}</p>
-      {typeof d?.total === "number" ? (
+      {d && d.basis === "census_acs" && typeof d.total === "number" ? (
         <>
           <p className="mt-1 text-white/85">
-            About <strong className="text-white">{d.total}</strong> people buying, selling or moving in over the
-            next {d.window_days ?? 60} days.
+            About <strong className="text-white">{d.total}</strong> households buying, selling or moving in over a typical {d.window_days ?? 60} days.
           </p>
           <dl className="mt-3 grid grid-cols-3 gap-3 text-center">
             {[
               ["Buyers", d.buyers],
               ["Sellers", d.sellers],
-              ["Moving in", d.movers_in],
+              ["Renters in", d.movers_in],
             ].map(([label, value]) => (
               <div key={String(label)} className="rounded-xl border border-white/15 bg-white/[0.05] px-2 py-3">
                 <dt className="text-xs uppercase tracking-wide text-white/75">{label}</dt>
@@ -126,9 +128,13 @@ function Result({ data }: { data: CheckResponse }) {
               </div>
             ))}
           </dl>
+          <p className="mt-2 text-xs leading-5 text-white/70">
+            {d.methodology ?? "Illustrative market estimate, not a lead count."} Based on households that moved in during the past year (U.S. Census
+            Bureau American Community Survey), not a forecast.
+          </p>
         </>
       ) : (
-        <p className="mt-1 text-white/85">Demand figures are not available for this ZIP code yet.</p>
+        <p className="mt-1 text-white/85">The Census has no residential data for this ZIP code, so there is no activity estimate.</p>
       )}
       <p className="mt-4 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white">
         {data.available ? "Open: this ZIP code is still available. " : "Taken: "}

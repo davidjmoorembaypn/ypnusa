@@ -62,6 +62,12 @@ describe("territory availability comes from this app's paid ledger", async () =>
     assert.equal(body.city, "Dinuba");
     assert.equal(body.state, "CA");
     assert.equal(fetchMock.mock.callCount(), 0);
+    // Demand is populated natively and labeled as an estimate.
+    for (const key of ["buyers", "sellers", "movers_in", "total"]) assert.ok(Number.isInteger(body.demand[key]) && body.demand[key] > 0, key);
+    assert.equal(body.demand.window_days, 60);
+    assert.equal(body.demand.total, body.demand.buyers + body.demand.sellers + body.demand.movers_in);
+    assert.equal(body.demand.source, "market_demographic_model");
+    assert.match(body.demand.methodology, /not a lead guarantee/);
   });
 
   it("shows a ZIP code as claimed once a paid subscription holds it", async () => {
@@ -89,6 +95,7 @@ describe("territory availability comes from this app's paid ledger", async () =>
   it("rejects a malformed ZIP code and still answers for one missing from the ZIP data", async () => {
     const bad = await check("12");
     assert.equal(bad.body.valid, false);
+    assert.equal(bad.body.demand, null);
     assert.equal(bad.body.available, false);
     const unknownPlace = checkLedgerTerritory("00000");
     assert.equal(unknownPlace.valid, true);

@@ -47,7 +47,7 @@ function secondaryCta(context: CtaContext): CtaEntry {
 function microNudges(context: CtaContext): string[] {
   const nudges: string[] = [];
   if (typeof context.demandTotal === "number" && context.demandTotal > 0) {
-    nudges.push(`~${context.demandTotal} buyers/sellers/movers active in this ZIP code over the last 60 days.`);
+    nudges.push(`About ${context.demandTotal} households buy, sell or move into this ZIP code in a typical 60 days (Census-based estimate).`);
   }
   if (context.pattern?.offers[0]) nudges.push(context.pattern.offers[0]);
   if (context.personalization?.whyThisMattersForYou) nudges.push(context.personalization.whyThisMattersForYou);

@@ -9,12 +9,11 @@ function resolver(answer: (zip: string) => LiveZipAnswer | null) {
 }
 
 describe("territory audit", () => {
-  it("counts open, claimed and unknown ZIP codes and sums only the demand the ledger reported", async () => {
+  it("counts open, claimed and unknown ZIP codes and sums estimated activity over the open ones only", async () => {
     const r = resolver((zip) => {
       const n = Number(zip);
       if (n % 5 === 0) return null; // unknown
-      if (n % 2 === 0) return { available: false };
-      return n % 3 === 0 ? { available: true, demandTotal: 100, demandWindowDays: 60 } : { available: true };
+      return { available: n % 2 !== 0 };
     });
     const result = await runTerritoryAudit({ zip: "93618", radius: 15, officers: 4 }, r);
     assert.ok(result.ok);
@@ -22,10 +21,14 @@ describe("territory audit", () => {
     assert.equal(audit.totals.open + audit.totals.claimed + audit.totals.unknown, audit.totals.evaluated);
     assert.equal(audit.zips.filter((z) => z.status === "open").length, audit.totals.open);
     assert.equal(audit.demand.openZips, audit.totals.open);
-    // Demand comes only from open ZIP codes that reported a number.
-    const expected = audit.zips.filter((z) => z.status === "open" && z.demandTotal !== null).reduce((s, z) => s + (z.demandTotal ?? 0), 0);
-    assert.equal(audit.demand.total, expected);
-    assert.equal(audit.demand.zipsReporting, audit.zips.filter((z) => z.status === "open" && z.demandTotal !== null).length);
+    // Activity is summed over open ZIP codes only, and is labeled as an estimate.
+    const openRows = audit.zips.filter((z) => z.status === "open");
+    assert.equal(audit.demand.buyers, openRows.reduce((s, z) => s + z.buyers, 0));
+    assert.equal(audit.demand.total, openRows.reduce((s, z) => s + z.total, 0));
+    assert.equal(audit.demand.total, audit.demand.buyers + audit.demand.sellers + audit.demand.movers_in);
+    assert.ok(audit.demand.total > 0);
+    assert.match(audit.demand.label, /Not a lead count/);
+    assert.equal(audit.demand.window_days, 60);
     assert.equal(audit.officers, 4);
     assert.equal(audit.center.city, "Dinuba");
   });

@@ -1,4 +1,5 @@
 import { zipPlace, zipsWithinRadius } from "@/lib/geo/zip-geo";
+import { DEMAND_ESTIMATE_LABEL, DEMAND_METHODOLOGY, DEMAND_SOURCE, estimateZipDemand } from "@/lib/zip-demand";
 import { zipStatusResolver, type ZipStatus, type ZipStatusInfo } from "@/lib/zip-status";
 
 /**
@@ -7,7 +8,7 @@ import { zipStatusResolver, type ZipStatus, type ZipStatusInfo } from "@/lib/zip
  * the open ones.
  *
  * Honest by construction: only ZIP codes the live ledger answered for count as open or claimed (the
- * rest are reported as "unknown"), demand is summed only from figures the ledger returned, and a
+ * rest are reported as "unknown"), activity figures are Census-based estimates (see zip-demand.ts), and a
  * hard cap keeps one request from fanning out into hundreds of lookups.
  */
 
@@ -25,8 +26,9 @@ export interface AuditZipRow {
   state: string;
   miles: number;
   status: ZipStatus;
-  /** Expected buyers, sellers and movers over the ledger's window; null when it didn't report one. */
-  demandTotal: number | null;
+  /** 60-day estimates (illustrative): buyer households, and buyers + sellers + renter move-ins. */
+  buyers: number;
+  total: number;
 }
 
 export interface TerritoryAudit {
@@ -44,12 +46,17 @@ export interface TerritoryAudit {
     /** Inside the radius but beyond the cap, so not looked up. */
     notEvaluated: number;
   };
+  /** 60-day estimates summed over the open ZIP codes. Illustrative, never a lead count. */
   demand: {
-    /** Sum over open ZIP codes that reported a figure. */
+    window_days: 60;
+    buyers: number;
+    sellers: number;
+    movers_in: number;
     total: number;
-    windowDays: number | null;
-    zipsReporting: number;
     openZips: number;
+    label: string;
+    source: string;
+    methodology: string;
   };
   zips: AuditZipRow[];
 }
@@ -92,12 +99,15 @@ export async function runTerritoryAudit(
     state: p.state,
     miles: Math.round(p.miles * 10) / 10,
     status: statuses[i]?.status ?? "unknown",
-    demandTotal: statuses[i]?.demandTotal ?? null,
+    buyers: estimateZipDemand(p.zip)?.buyers ?? 0,
+    total: estimateZipDemand(p.zip)?.total ?? 0,
   }));
 
   const open = zips.filter((z) => z.status === "open");
-  const reporting = open.filter((z) => z.demandTotal !== null);
-  const windows = statuses.filter((s) => s.status === "open" && s.demandWindowDays !== null).map((s) => s.demandWindowDays as number);
+  const openDemand = open.flatMap((z) => {
+    const d = estimateZipDemand(z.zip);
+    return d ? [d] : [];
+  });
 
   return {
     ok: true,
@@ -114,10 +124,15 @@ export async function runTerritoryAudit(
         notEvaluated: Math.max(0, inRadius - zips.length),
       },
       demand: {
-        total: reporting.reduce((sum, z) => sum + (z.demandTotal ?? 0), 0),
-        windowDays: windows.length > 0 ? windows[0] : null,
-        zipsReporting: reporting.length,
+        window_days: 60,
+        buyers: openDemand.reduce((sum, d) => sum + d.buyers, 0),
+        sellers: openDemand.reduce((sum, d) => sum + d.sellers, 0),
+        movers_in: openDemand.reduce((sum, d) => sum + d.movers_in, 0),
+        total: openDemand.reduce((sum, d) => sum + d.total, 0),
         openZips: open.length,
+        label: DEMAND_ESTIMATE_LABEL,
+        source: DEMAND_SOURCE,
+        methodology: DEMAND_METHODOLOGY,
       },
       zips,
     },

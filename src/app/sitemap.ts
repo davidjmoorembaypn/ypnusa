@@ -8,6 +8,9 @@ import { REPORT_COUNTIES } from "@/content/market-report";
 import { METRO_MARKETS, metroPath } from "@/content/metro-markets";
 import { METRO_DATA_FETCHED_ON } from "@/content/metro-markets-data";
 import { RATE_SHEET_LINKS_CHECKED_ON } from "@/content/rate-sheet-directory";
+import { indexableZips, zipCanonicalUrl } from "@/lib/zip-index";
+import { COMPARE_PAGES } from "@/content/compare-pages";
+import { REPORT_PATH, REPORT_PUBLISHED } from "@/lib/demand-report";
 import {
   BANK_STATEMENT_PATH,
   SELF_EMPLOYED_HUB_PATH,
@@ -27,6 +30,9 @@ import {
   WP_TERRITORY_PAGES,
   type WpImportedPage,
 } from "@/content/wp-import";
+
+/** Rebuilt hourly so a newly claimed ZIP code's page joins the sitemap (and a released one leaves). */
+export const revalidate = 3600;
 
 /**
  * Intentionally small sitemap for the product app.
@@ -114,6 +120,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${origin}/tools/equity`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/gbp-optimizer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/social-writer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
+    // Three head-to-head comparison pages and the quarterly demand report: the only editorial URLs added Nov 19, 2026.
+    ...COMPARE_PAGES.map((page) => ({
+      url: `${origin}${page.path}`,
+      lastModified: new Date(`${page.dateModified}T00:00:00.000Z`),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    { url: `${origin}${REPORT_PATH}`, lastModified: new Date(`${REPORT_PUBLISHED}T00:00:00.000Z`), changeFrequency: "monthly", priority: 0.7 },
     { url: `${origin}/teams/territory-audit`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/rate-sheets`, lastModified: new Date(`${RATE_SHEET_LINKS_CHECKED_ON}T00:00:00.000Z`), changeFrequency: "monthly", priority: 0.6 },
     ...PROGRAM_LIST.map((program) => ({
@@ -130,8 +144,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })),
-    // City pages only (a handful, hand-written). ZIP pages stay out on purpose: see the
-    // comment above about not flooding Google's "Not indexed" queue.
+    // City pages (a handful, hand-written), then ZIP pages that pass the indexation gate in
+    // src/lib/zip-index.ts: 15 flagship ZIP codes, hand-written profiles and ZIP codes a paying loan
+    // officer holds. Every other ZIP page is noindex and stays out, per the warning above.
+    ...indexableZips().map((zip) => ({
+      url: zipCanonicalUrl(zip, origin),
+      lastModified: SEO_PLAN_LAST_MODIFIED,
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
+    })),
     ...LOCAL_SEO_PROFILES.filter((profile) => profile.kind === "city").map((profile) => ({
       url: `${origin}${getLocalSeoPath(profile)}`,
       lastModified: MARKETING_LAST_MODIFIED,

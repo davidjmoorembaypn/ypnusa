@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ALL_BLOG_POSTS, getAnyBlogPost } from "@/content/blog-all";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
-import { PostAuthorBox } from "@/components/seo/post-author-box";
+import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
 import { FOUNDER_ID, ORGANIZATION_ID, faqJsonLd, jsonLdScript, pageTitle, socialImageFor } from "@/lib/seo";
 import { homeTrail, topicTrail } from "@/lib/seo/breadcrumbs";
 import { AUTHOR_NAME } from "@/lib/author";
@@ -192,7 +192,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {post.closingHtml ? null : (
             <NextStepBlock step={nextStepForCluster(cluster?.slug)} source={`blog_post:${cluster?.slug ?? "none"}`} className="mt-12" />
           )}
-          {byFounder ? <PostAuthorBox /> : null}
+          <AuthorReviewerCard path={`/blog/${post.slug}`} pageName={post.title} written={byFounder} className="mt-12" />
         </article>
         {cluster ? (
           <aside aria-labelledby="related-heading" className="mx-auto w-full max-w-3xl px-6 pb-10">

@@ -1,3 +1,7 @@
+> **Retired (Nov 2026).** WordPress is gone, and the SSO handoff described here was removed from the app
+> (`/api/auth/callback`, `/api/health/sso`, `src/lib/sso.ts`). Sign-in is by emailed one-time link only.
+> `YPNUS_SSO_SHARED_SECRET` is no longer read and can be deleted from the server. Kept for history.
+
 # SSO handoff: ypnus.com → app.ypnus.com
 
 ## Architecture

@@ -1,0 +1,46 @@
+name: SEO validate
+
+# Builds the app, starts it, and checks that every sitemap page's JSON-LD parses with a
+# schema.org @context and @type, and that /llms.txt exists and its links resolve.
+# See scripts/validate-seo.mjs.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seo-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the production runtime and ci.yml.
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Start server
+        run: |
+          nohup npx next start -p 3000 > server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fs -o /dev/null http://localhost:3000/sitemap.xml; then exit 0; fi
+            sleep 2
+          done
+          echo "Server did not start in time:"
+          cat server.log
+          exit 1
+      - name: Validate JSON-LD and llms.txt
+        run: node scripts/validate-seo.mjs
+      - name: Show server log on failure
+        if: failure()
+        run: cat server.log || true

@@ -1,6 +1,7 @@
 import { BLOG_POSTS, type BlogPost } from "@/content/blog";
 import { PLAN_POSTS } from "@/content/blog-plan-2026-11";
 import { ANSWER_POSTS } from "@/content/blog-answers-2026-11";
+import { REWRITTEN_POSTS } from "@/content/blog-rewrites-2026-11";
 import { WP_POSTS } from "@/content/wp-import";
 
 /**
@@ -9,7 +10,7 @@ import { WP_POSTS } from "@/content/wp-import";
  * collide between the two sources (checked at build time by the export
  * script); if that ever changes, the native post wins.
  */
-const NATIVE_POSTS: readonly BlogPost[] = [...ANSWER_POSTS, ...PLAN_POSTS, ...BLOG_POSTS];
+const NATIVE_POSTS: readonly BlogPost[] = [...ANSWER_POSTS, ...REWRITTEN_POSTS, ...PLAN_POSTS, ...BLOG_POSTS];
 
 export const ALL_BLOG_POSTS: readonly BlogPost[] = [
   ...NATIVE_POSTS,

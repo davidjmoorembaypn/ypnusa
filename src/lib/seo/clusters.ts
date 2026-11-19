@@ -42,7 +42,7 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
     slug: "exclusive-mortgage-leads",
     name: "Exclusive Mortgage Leads",
     title: TOPIC_SEO["exclusive-mortgage-leads"].title,
-    h1: "Exclusive mortgage leads by ZIP code for loan officers",
+    h1: "Mortgage leads for loan officers: exclusive vs shared, cost and ZIP ownership",
     description: TOPIC_SEO["exclusive-mortgage-leads"].description,
     intro: [
       "Shared lead vendors sell the same borrower to several loan officers, so speed and price decide who wins, not service. This guide answers the questions loan officers ask most about exclusive mortgage leads: how they differ from shared leads, what they cost, how to judge a lead company, and how owning a ZIP code changes the math.",
@@ -80,6 +80,14 @@ export const TOPIC_CLUSTERS: readonly TopicCluster[] = [
       {
         q: "How does an exclusive ZIP code work?",
         a: "Each paid YPN USA plan includes one ZIP code. While you hold it, no other YPN USA loan officer can claim it, and inquiries from YPN USA pages for that ZIP code route to you rather than to a shared pool. It is exclusive within YPN USA, not across every lender. Checking a ZIP code is free.",
+      },
+      {
+        q: "How do loan officers get mortgage leads?",
+        a: "Most loan officers combine referrals from past clients and partners such as real estate agents, local search through a Google Business Profile and local pages, and paid or portal leads. Compare each source by cost per closed loan, not by price per lead.",
+      },
+      {
+        q: "Are shared mortgage leads worth buying?",
+        a: "Only when your cost per closed loan stays well below what you earn per loan and you can reach every lead within minutes. Shared leads go to several lenders, so measure your close rate by source for at least 90 days before you decide.",
       },
     ],
   },

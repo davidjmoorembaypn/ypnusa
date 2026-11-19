@@ -3,8 +3,11 @@ import { describe, it } from "node:test";
 import { ALL_BLOG_POSTS } from "@/content/blog-all";
 import { CONSOLIDATED_POST_SLUGS } from "@/content/august-batch-consolidation";
 import {
+  EMAIL_FOLLOW_UP_SEQUENCES,
+  LANDING_PAGE_EXAMPLES,
   LOAN_OFFICER_MARKETING_STRATEGIES as POST,
   MORTGAGE_LEAD_GENERATION,
+  MORTGAGE_REFERRALS_BEYOND_REALTORS,
   NEW_LOAN_OFFICER_CLIENTS,
   RESPA_CO_MARKETING,
   REWRITTEN_POSTS,
@@ -102,8 +105,12 @@ const BATCH = [
   { name: "RESPA co-marketing", post: RESPA_CO_MARKETING, phrase: /co-marketing/i },
   { name: "new loan officer clients", post: NEW_LOAN_OFFICER_CLIENTS, phrase: /new loan officer/i },
   { name: "mortgage lead generation", post: MORTGAGE_LEAD_GENERATION, phrase: /mortgage lead generation/i },
+  { name: "landing page examples", post: LANDING_PAGE_EXAMPLES, phrase: /mortgage landing page/i },
+  { name: "referrals beyond Realtors", post: MORTGAGE_REFERRALS_BEYOND_REALTORS, phrase: /mortgage referrals/i },
+  { name: "email follow-up sequences", post: EMAIL_FOLLOW_UP_SEQUENCES, phrase: /email follow-up/i },
 ];
-const SOURCE_HOSTS = /^https:\/\/(www\.consumerfinance\.gov|www\.fcc\.gov|docs\.fcc\.gov|www\.ftc\.gov|www\.nar\.realtor)\//;
+const SOURCE_HOSTS =
+  /^https:\/\/(www\.consumerfinance\.gov|www\.fcc\.gov|docs\.fcc\.gov|www\.ftc\.gov|www\.nar\.realtor|www\.ecfr\.gov|web\.dev|answers\.hud\.gov|www\.va\.gov|www\.rd\.usda\.gov|singlefamily\.fanniemae\.com|support\.google\.com)\//;
 
 for (const { name, post, phrase } of BATCH) {
   describe(`rewritten post: ${name}`, () => {
@@ -174,5 +181,52 @@ describe("rewritten posts do not compete with each other", () => {
     const text = visibleText(RESPA_CO_MARKETING.html).toLowerCase();
     for (const bad of ["safe harbor", "always compliant", "guaranteed compliant", "fair-market share"]) assert.ok(!text.includes(bad), bad);
     assert.match(text, /not legal advice/);
+  });
+});
+
+describe("second batch of rewrites (landing pages, referrals, email follow-up)", () => {
+  const SECOND = [LANDING_PAGE_EXAMPLES, MORTGAGE_REFERRALS_BEYOND_REALTORS, EMAIL_FOLLOW_UP_SEQUENCES];
+
+  it("links to the ZIP check and to a real pillar page", () => {
+    const pillars = new Set(TOPIC_CLUSTERS.map((c) => c.slug));
+    for (const post of SECOND) {
+      const html = [post.html, post.closingHtml ?? ""].join("\n");
+      assert.match(html, /href="\/check-zip"/, `${post.slug} has no ZIP-check link`);
+      assert.match(html, /href="\/pricing"/, `${post.slug} has no pricing link`);
+      const topics = [...html.matchAll(/href="\/topics\/([a-z0-9-]+)"/g)].map((m) => m[1]);
+      assert.ok(topics.length >= 1, `${post.slug} links to no pillar`);
+      for (const t of topics) assert.ok(pillars.has(t), `${post.slug} links to unknown pillar ${t}`);
+      assert.ok(pillars.has(post.cluster ?? ""), `${post.slug} has no valid cluster`);
+    }
+  });
+
+  it("drops the unsourced claims the imported versions made", () => {
+    const banned = [
+      "fewer than 20 percent",
+      "measurably",
+      "Maria",
+      "10 to 30",
+      "almost always the highest",
+      "highest open and response rates",
+      "consistently generates the highest",
+      "automates this entirely",
+      "SMS, AI-powered lead scoring",
+    ];
+    for (const post of SECOND) {
+      const text = visibleText([post.html, ...(post.faq ?? []).map((f) => f.a)].join(" "));
+      for (const phrase of banned) assert.ok(!text.includes(phrase), `${post.slug} still says "${phrase}"`);
+    }
+  });
+
+  it("does not claim YPN USA sends messages by itself", () => {
+    const text = visibleText([EMAIL_FOLLOW_UP_SEQUENCES.html, ...(EMAIL_FOLLOW_UP_SEQUENCES.faq ?? []).map((f) => f.a)].join(" "));
+    assert.match(text, /nothing is sent automatically/);
+  });
+
+  it("states every loan program number it uses with its source link", () => {
+    const sources = EMAIL_FOLLOW_UP_SEQUENCES.html.slice(EMAIL_FOLLOW_UP_SEQUENCES.html.indexOf("<h2>Sources</h2>"));
+    for (const host of ["answers.hud.gov", "www.va.gov", "www.rd.usda.gov", "singlefamily.fanniemae.com"]) {
+      assert.ok(sources.includes(host), `missing source ${host}`);
+    }
   });
 });

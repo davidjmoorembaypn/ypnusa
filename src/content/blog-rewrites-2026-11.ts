@@ -399,9 +399,340 @@ ${src(FCC_ROBOTEXTS, "FCC: Stop unwanted robocalls and texts (consent for market
   ),
 };
 
+const CFPB_REG_Z_ADS = "https://www.consumerfinance.gov/rules-policy/regulations/1026/24/";
+const ECFR_REG_N = "https://www.ecfr.gov/current/title-12/chapter-X/part-1014";
+const WEB_VITALS = "https://web.dev/articles/vitals";
+const HUD_FHA = "https://answers.hud.gov/FHA/s/article/How-can-FHA-help-me-buy-a-home";
+const VA_PURCHASE = "https://www.va.gov/housing-assistance/home-loans/loan-types/purchase-loan/";
+const USDA_GUARANTEED = "https://www.rd.usda.gov/programs-services/single-family-housing-programs/single-family-housing-guaranteed-loan-program";
+const FANNIE_HOMEREADY = "https://singlefamily.fanniemae.com/originating-underwriting/mortgage-products/homeready-mortgage";
+const GOOGLE_SENDERS = "https://support.google.com/mail/answer/81126";
+
+/**
+ * Replaces the imported landing-page post: it said faces and one-second load times "measurably"
+ * move conversions with no source, quoted an invented testimonial, and ended in a templated
+ * "MLO production playbook" section.
+ */
+export const LANDING_PAGE_EXAMPLES: BlogPost = {
+  slug: "9-mortgage-landing-page-examples-that-convert-and-why-they-work",
+  title: "Mortgage Landing Page Examples: 9 Page Types for Loan Officers",
+  metaTitle: "Mortgage Landing Page Examples for Loan Officers",
+  description:
+    "Nine mortgage landing page types for loan officers, from local pre-approval to niche pages, with what goes on each and the advertising rules to check first.",
+  date: DATE,
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 8,
+  cluster: "loan-officer-websites",
+  html: `<p><strong>Short answer:</strong> a mortgage landing page works best when it makes one promise, asks for one action, shows who you are and that you are licensed, and loads fast on a phone. Below are nine page types loan officers use, what belongs on each, and the advertising rules to check before any of them goes live. Which one performs best for you is something to test with your own traffic, not something any article can promise.</p>
+
+<h2>The pattern behind all nine</h2>
+<ul>
+<li><strong>One promise</strong> in the headline, in plain words.</li>
+<li><strong>One action:</strong> a short form or a call button, not five choices.</li>
+<li><strong>Who you are:</strong> your name, a real photo, your NMLS ID and the states you are licensed in.</li>
+<li><strong>Local words:</strong> the city or ZIP code the visitor typed.</li>
+<li><strong>A fast reply</strong> after the form is sent. See <a href="/blog/speed-to-lead-for-mortgage-loan-officers">speed to lead</a>.</li>
+</ul>
+
+<h2>1. The local pre-approval page</h2>
+<p><strong>Promise:</strong> "Get pre-approved in [city]." <strong>On the page:</strong> a short form above the fold, what happens after you submit, and the documents you will ask for. <strong>Why it can work:</strong> it matches what a local borrower searched for.</p>
+
+<h2>2. The rate-quote page</h2>
+<p><strong>Promise:</strong> a rate quote without a long application. <strong>Watch out:</strong> this is the page most likely to trip advertising rules. If it states a rate, it triggers disclosure rules (see "Rules to check first"). Only promise "no credit impact" if that is true for how you pull credit, and say what the quote assumes.</p>
+
+<h2>3. The first-time buyer page</h2>
+<p><strong>Promise:</strong> a plain-English path from "can I afford this?" to keys. <strong>On the page:</strong> the programs you actually offer, a short checklist and one call to action. Pair it with <a href="/blog/marketing-down-payment-assistance-dpa-programs-to-capture-first-time-homebuyers">down payment assistance marketing</a> and <a href="/blog/first-time-homebuyer-marketing-for-loan-officers-2">first-time homebuyer marketing</a>.</p>
+
+<h2>4. The refinance or cash-out page</h2>
+<p><strong>Promise:</strong> a review of whether refinancing makes sense for one specific reason, such as shortening the term or using equity. <strong>Why it can work:</strong> it targets a life event instead of everyone. <strong>Watch out:</strong> do not imply a payment or savings figure you cannot back up for that visitor.</p>
+
+<h2>5. The Realtor co-branded page</h2>
+<p><strong>Promise:</strong> a financing path for an agent's buyers, with both of you shown. <strong>Watch out:</strong> a co-branded page is co-marketing, so each side should pay for the part that promotes it and nothing should be exchanged for referrals. Read <a href="/blog/respa-compliant-realtor-co-marketing-ideas-for-loan-officers">RESPA-compliant co-marketing ideas</a> and <a href="/blog/how-mlos-can-build-automated-co-branded-landing-pages-for-local-realtors">building co-branded landing pages for local Realtors</a> first.</p>
+
+<h2>6. The speed page</h2>
+<p><strong>Promise:</strong> "answers within [X] minutes." <strong>Watch out:</strong> only promise a response time you will keep, and say the hours it applies to. A broken promise on the page is worse than none.</p>
+
+<h2>7. The reviews-first page</h2>
+<p><strong>On the page:</strong> a few real client reviews near the form, with the client's permission, a first name and a city. <strong>Watch out:</strong> use only reviews that clients actually wrote, never paid or invented ones. See <a href="/blog/how-to-get-more-google-reviews-as-a-loan-officer">how to get more Google reviews</a>.</p>
+
+<h2>8. The single-question page</h2>
+<p><strong>Promise:</strong> one easy first step, such as "Are you buying or refinancing?", then a short form that branches. <strong>Why it can work:</strong> the first step takes a second. Measure completions before you keep it.</p>
+
+<h2>9. The niche page</h2>
+<p><strong>Promise:</strong> a page for one kind of borrower, such as self-employed buyers, veterans or buyers in a particular county. It draws less traffic, but speaks directly to one person. See <a href="/blog/bank-statement-loans-for-self-employed-buyers-an-mlo-lead-generation-guide">bank statement loans for self-employed buyers</a>.</p>
+
+<h2>Rules to check first</h2>
+<p>Your company's compliance team approves your pages, and state rules vary. Three federal rules come up often:</p>
+<ul>
+<li><strong>Regulation Z advertising (12 CFR 1026.24).</strong> An ad that states certain terms, such as the amount or percentage of a down payment, the number of payments or repayment period, the amount of a payment or the amount of a finance charge, must also state additional terms. The rule applies even when a term is only implied, for example "80 percent financing." For ads of credit secured by a dwelling, the required terms must appear with equal prominence and in close proximity to the advertised rate.</li>
+<li><strong>Regulation N (12 CFR Part 1014).</strong> It prohibits material misrepresentations, express or implied, in commercial communications about the terms of a mortgage credit product, including about rates, fees, and whether a borrower is preapproved. It applies to non-bank lenders and to firms that market mortgage products.</li>
+<li><strong>Your license and your state.</strong> Many states require your NMLS ID and licensing details in advertising. Ask your employer's compliance team and your state regulator what your pages must show, including fair housing logos or statements.</li>
+</ul>
+
+<h2>Make it fast on a phone</h2>
+<p>Most borrowers will open your page on a phone. Google's Core Web Vitals give targets you can measure: Largest Contentful Paint of 2.5 seconds or less, Interaction to Next Paint of 200 milliseconds or less and Cumulative Layout Shift of 0.1 or less, measured at the 75th percentile of visits. Fewer scripts, compressed images and a form that renders immediately help on all three. Run the page through PageSpeed Insights before you send traffic to it.</p>
+
+<h2>How to choose and test</h2>
+<ol>
+<li>Pick the page type that matches how your best borrowers find you.</li>
+<li>Build one page, keep it short, and have compliance approve it.</li>
+<li>Send it a small amount of traffic and track visits, form submissions and the share of submissions that become conversations.</li>
+<li>Change one thing at a time, such as the headline or the number of form fields, and keep what works.</li>
+</ol>
+<p>For the build itself, see <a href="/blog/how-to-build-a-mortgage-lead-capture-page-no-designer-needed">how to build a lead capture page</a> and the <a href="/blog/loan-officer-landing-page-checklist">loan officer landing page checklist</a>. The wider picture is in our <a href="/topics/loan-officer-websites">loan officer website guide</a>.</p>
+
+<h2>Sources</h2>
+<ul>
+${src(CFPB_REG_Z_ADS, "CFPB: 12 CFR 1026.24, Regulation Z advertising")}
+${src(ECFR_REG_N, "eCFR: 12 CFR Part 1014, Mortgage Acts and Practices, Advertising (Regulation N)")}
+${src(WEB_VITALS, "web.dev: Web Vitals (Core Web Vitals thresholds)")}
+${src(CFPB_1024_14, "CFPB: 12 CFR 1024.14, prohibition against kickbacks and unearned fees (co-branded pages)")}
+</ul>`,
+  faq: [
+    {
+      q: "What makes a mortgage landing page work?",
+      a: "One clear promise, one action, visible licensing details, local wording and a fast reply to the inquiry. Beyond that, results depend on your traffic and offer, so test a short version and keep what brings real conversations.",
+    },
+    {
+      q: "How many form fields should a mortgage landing page have?",
+      a: "Start short, such as a name, a phone number and one question, and add fields only if the extra detail is worth losing some submissions. There is no universal number; compare completion rates for each version on your own traffic.",
+    },
+    {
+      q: "What do mortgage landing pages have to disclose?",
+      a: "It depends on what the page says and where you are licensed. If an ad states certain terms, such as a down payment amount or a payment amount, Regulation Z requires additional terms. Many states require your NMLS ID. Have your compliance team review every page.",
+    },
+    {
+      q: "Should every landing page name a city or ZIP code?",
+      a: "A page that names the visitor's city or ZIP code signals relevance faster than a generic one, and it is how local searches are worded. A generic page can still work as a catch-all.",
+    },
+    {
+      q: "How fast should a mortgage landing page load?",
+      a: "Google's Core Web Vitals call Largest Contentful Paint of 2.5 seconds or less good, measured at the 75th percentile of visits. Fewer scripts and compressed images help most.",
+    },
+  ],
+  closingHtml: closing(
+    `<p><strong>Want a local page for a ZIP code you own?</strong> YPN USA gives one loan officer each ZIP code within YPN USA, with a local page for it. <a href="/check-zip">Check if your ZIP code is open</a> or <a href="/pricing">see plans</a>, starting free.</p>`,
+  ),
+};
+
+/**
+ * Replaces the imported referrals post: it promised "10 to 30 or more loans per year" from one
+ * builder with no source, called past clients "almost always the highest-converting" source
+ * and ended in a templated "MLO production playbook" section.
+ */
+export const MORTGAGE_REFERRALS_BEYOND_REALTORS: BlogPost = {
+  slug: "how-to-get-more-mortgage-referrals-beyond-realtors",
+  title: "How to Get More Mortgage Referrals (Beyond Realtors)",
+  metaTitle: "How to Get More Mortgage Referrals Beyond Realtors",
+  description:
+    "Mortgage referrals do not have to come from Realtors. Eight referral sources for loan officers, how to work each one, and the RESPA rules to follow.",
+  date: DATE,
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 8,
+  cluster: "realtor-referral-partnerships",
+  html: `<p><strong>Short answer:</strong> loan officers get mortgage referrals beyond Realtors from past clients, CPAs, financial advisors, family law and estate attorneys, builders, property managers, insurance agents and home service professionals. The method is the same for each: be useful first, stay in touch on a schedule, make the referrer look good, and never pay or give anything of value for referrals.</p>
+
+<h2>Why look beyond agents</h2>
+<p>Agents are close to most purchases: in NAR's 2025 Profile of Home Buyers and Sellers, 88% of buyers used an agent or broker. That is also the risk. If one agent's business slows or that relationship cools, your pipeline slows with it. Other referral sources meet people before they start looking, or at moments an agent never sees. For the agent side, see <a href="/blog/how-to-get-realtor-referrals">how to get Realtor referrals</a>.</p>
+
+<h2>The first rule: RESPA Section 8</h2>
+<p>Section 8 of RESPA (12 CFR 1024.14) prohibits giving or accepting a fee, kickback or other thing of value for referring settlement service business on a federally related mortgage loan. That covers more than cash. A payment for services actually performed, at a price reasonably related to market value, is treated differently from a payment for referrals, and the value of the referrals cannot be counted when pricing a service. Your compliance team decides what is safe for you. Professionals such as CPAs and attorneys also have their own rules about referral compensation, so ask them about theirs. Read <a href="/blog/respa-compliant-realtor-co-marketing-ideas-for-loan-officers">RESPA-compliant co-marketing ideas</a> before you offer any partner anything beyond your own work.</p>
+
+<h2>1. Past clients</h2>
+<p>People you have closed with already know you, and they know others who are buying or refinancing. Most loan officers go quiet after closing. A simple routine: a short note at the home purchase anniversary, a local market note a few times a year, and a plain question twice a year: "Is anyone you know thinking about buying or refinancing? I'd be glad to help." <strong>Watch out:</strong> marketing emails must follow CAN-SPAM, including a working opt-out.</p>
+
+<h2>2. CPAs and tax professionals</h2>
+<p>CPAs see when a client sells a business, gets a raise or plans a large purchase. Offer to be the mortgage resource for their clients: a quick scenario review, or a short talk on topics they get asked about, such as first-time buyer programs or financing an investment property. <strong>Watch out:</strong> a lunch-and-learn that educates is different from meals or gifts given to people who can refer you. Ask compliance.</p>
+
+<h2>3. Financial advisors and wealth managers</h2>
+<p>Advisors talk to clients about buying investment property, second homes and moving money for a down payment. Be ready to explain how rental income is counted and what your investor and asset-based programs require. See <a href="/blog/linkedin-for-loan-officers-how-to-build-referral-partnerships">LinkedIn for loan officer referral partnerships</a>.</p>
+
+<h2>4. Estate and divorce attorneys</h2>
+<p>Divorce, inheritance and estate settlement often force one person to refinance, buy out another or sell and buy. Attorneys need a lender who can explain those situations clearly and move fast. A one-page guide to mortgage options in a divorce or estate settlement is a good first offer. See <a href="/blog/building-referral-partnerships-with-estate-and-probate-attorneys">referral partnerships with estate and probate attorneys</a>.</p>
+
+<h2>5. Builders and developers</h2>
+<p>Every home a builder sells needs financing, and many builders already have a preferred lender. Smaller local builders may not. Be the easiest lender to work with: quick answers, clean closings and clear communication with their buyers. <strong>Watch out:</strong> builder incentives tied to using a particular lender, and any arrangement involving payments, need compliance review.</p>
+
+<h2>6. Property managers and landlords</h2>
+<p>Property managers talk to renters every day, some of whom are ready to buy. Landlords think about their next purchase. Offer a short "when you're ready to buy" guide for tenants and a review of financing options for landlords who own property. See <a href="/blog/first-time-homebuyer-marketing-for-loan-officers-2">first-time homebuyer marketing</a>.</p>
+
+<h2>7. Insurance agents</h2>
+<p>Buyers need homeowners insurance before closing, so insurance agents meet buyers at the right time. <strong>Watch out:</strong> a referral exchange is not automatically safe under RESPA. Do not set one up without compliance approval, keep it free of payments and gifts, and recommend any provider on the merits.</p>
+
+<h2>8. Home inspectors and service professionals</h2>
+<p>Inspectors, contractors and other service professionals are present in many purchases, often before a buyer has chosen a lender. Recommend good ones to your clients on the merits. Let them know how you work. Do not trade anything of value for introductions.</p>
+
+<h2>How to work any referral source</h2>
+<ol>
+<li><strong>Lead with something useful</strong> before you ask for anything: a guide, a scenario review, a quick answer.</li>
+<li><strong>Make a short list</strong> of people to contact and a date for the next touch.</li>
+<li><strong>Close cleanly.</strong> A referred client you take good care of makes the referrer look good.</li>
+<li><strong>Thank them,</strong> with a note, not a payment or a gift of value.</li>
+<li><strong>Track referrals by source</strong> so you know which ones deserve more of your time.</li>
+</ol>
+<p>For the full picture of building leads from several sources, read our guide to <a href="/blog/how-to-get-mortgage-leads-without-buying-them-a-loan-officers-2026-playbook">getting mortgage leads without buying them</a> and <a href="/blog/mortgage-marketing-strategies-mlo-growth-and-leads">loan officer marketing strategies</a>. For the pillar page on partnerships, see <a href="/topics/realtor-referral-partnerships">Realtor and referral partnerships</a>.</p>
+
+<h2>Sources</h2>
+<ul>
+${src(CFPB_RESPA_FAQ, "CFPB: Real Estate Settlement Procedures Act FAQs (Section 8)")}
+${src(CFPB_1024_14, "CFPB: 12 CFR 1024.14, prohibition against kickbacks and unearned fees")}
+${src(NAR_2025, "NAR: 2025 Profile of Home Buyers and Sellers (share of buyers who used an agent)")}
+${src(FTC_CAN_SPAM, "FTC: CAN-SPAM Act, a compliance guide for business (emails to past clients)")}
+</ul>`,
+  faq: [
+    {
+      q: "Can I pay someone for mortgage referrals?",
+      a: "No. RESPA Section 8 prohibits giving or accepting a fee, kickback or other thing of value for referring settlement service business on a federally related mortgage loan. Build relationships based on useful help, and have compliance approve anything beyond your own work.",
+    },
+    {
+      q: "How many referral sources should a loan officer have?",
+      a: "There is no fixed number. A practical goal is a handful of active sources in different categories, such as past clients, a few agents, a CPA or advisor and an attorney, so that no single relationship supplies most of your business.",
+    },
+    {
+      q: "How long does it take to build a referral network?",
+      a: "It varies. Referral relationships usually take months of consistent, useful contact before introductions arrive, so measure your effort, such as the number of partner touches each month, as well as the referrals you receive.",
+    },
+    {
+      q: "What is the best referral source besides Realtors?",
+      a: "Past clients are the easiest to start with because they already know you and cost nothing to contact. Professionals who meet people before they shop, such as CPAs, financial advisors and attorneys, are the next to build. Track referrals by source to see which works for you.",
+    },
+    {
+      q: "Can I take a referral partner to lunch?",
+      a: "Whether a meal or event is acceptable depends on its value, the setting and your company's policy, because anything of value given to someone who can refer you can raise RESPA questions. Ask your compliance team before you offer meals, gifts or event tickets.",
+    },
+  ],
+  closingHtml: closing(
+    `<p><strong>Want local borrowers who come to you directly?</strong> YPN USA gives one loan officer each ZIP code within YPN USA. <a href="/check-zip">Check if your ZIP code is open</a> or <a href="/pricing">see plans</a>, starting free.</p>`,
+  ),
+};
+
+/**
+ * Replaces the imported email-sequence post: it opened with a stray "n", quoted unsourced
+ * statistics ("fewer than 20 percent", best send days), listed loan program numbers without a
+ * source and claimed YPN USA automates follow-up and SMS, which it does not.
+ */
+export const EMAIL_FOLLOW_UP_SEQUENCES: BlogPost = {
+  slug: "email-follow-up-sequences-for-loan-officers-with-templates",
+  title: "Email Follow-Up Sequences for Loan Officers (With Templates)",
+  metaTitle: "Loan Officer Email Follow-Up Sequences and Templates",
+  description:
+    "A 90-day email follow-up sequence for loan officers with seven ready-to-edit templates, plus the CAN-SPAM, consent and sender rules to follow.",
+  date: DATE,
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 9,
+  cluster: "ai-lead-automation",
+  html: `<p><strong>Short answer:</strong> a loan officer follow-up sequence is a short series of timed, useful emails that starts when someone sends an inquiry and runs for about 60 to 90 days, so that people who are not ready today still hear from you when they are. Reply fast, teach something in each email, make opting out easy, and have compliance approve the wording. Seven templates are below.</p>
+
+<h2>Rules before you send</h2>
+<ul>
+<li><strong>CAN-SPAM (FTC).</strong> A commercial email needs accurate sender and subject lines, your valid postal address, a clear way to opt out and a message that it is an ad unless the person gave prior affirmative consent. Honor opt-outs within 10 business days, and do not charge a fee or ask for more information to opt out. You stay responsible even if a vendor sends the email.</li>
+<li><strong>Texts and calls.</strong> The FCC generally requires prior express written consent for marketing calls or texts sent with an autodialer or a prerecorded voice. An email sequence does not give you that consent, so do not add texts to a sequence without it. See <a href="/blog/text-message-marketing-for-loan-officers">text message marketing for loan officers</a>.</li>
+<li><strong>Your license and your state.</strong> Many states require licensing details such as your NMLS ID in advertising, and your employer sets what must appear. Ask compliance for the footer to use in every email.</li>
+<li><strong>Claims about programs.</strong> Program rules change, and lenders add their own. Check every number against the program's current source before you send, and soften it to "can" or "may" when it depends on the borrower.</li>
+</ul>
+
+<h2>The three phases</h2>
+<ol>
+<li><strong>Immediate (day 0 to 3):</strong> confirm you got the inquiry and say when you will follow up.</li>
+<li><strong>Educate (day 4 to 21):</strong> answer the questions every borrower has, one per email.</li>
+<li><strong>Re-engage (day 22 to 90):</strong> a short check-in, then one useful note a month.</li>
+</ol>
+<p>Send the first email within minutes and call as well; email alone is slower than a person. See <a href="/blog/speed-to-lead-for-mortgage-loan-officers">speed to lead</a>. For what to do before a lead is handed to you, see <a href="/blog/what-ai-lead-follow-up-should-do-before-handoff">what AI lead follow-up should do before handoff</a>.</p>
+
+<h2>Email 1: right away</h2>
+<p><strong>Subject:</strong> Got your info. Here's what happens next</p>
+<blockquote><p>Hi [First name],<br>Thanks for reaching out. I received your information and will [call you by [time] today / reach out on [day]]. While you wait, here is a short overview of how the process works: [link to your process page].<br>[Your name], NMLS #[number]</p></blockquote>
+
+<h2>Email 2: day 2, if you have not connected</h2>
+<p><strong>Subject:</strong> One quick question about your home plans</p>
+<blockquote><p>Hi [First name],<br>I tried to reach you and know the timing may not be right. One question so I send only what's useful: are you hoping to buy in the next 30 days, in 60 to 90 days, or just exploring? Reply 1, 2 or 3 and I'll follow up accordingly.<br>[Your name]</p></blockquote>
+
+<h2>Email 3: day 4, the down payment question</h2>
+<p><strong>Subject:</strong> You may not need 20% down</p>
+<blockquote><p>Hi [First name],<br>Many buyers wait because they think they need 20% down. Depending on the program, the amount can be much lower. For example: FHA loans can start at 3.5% down for borrowers with a credit score of 580 or higher; VA loans often need no down payment for eligible veterans; USDA loans can finance 100% of the value in eligible rural areas, with income limits; and some conventional programs, such as Fannie Mae's HomeReady, allow 3% down with a 620 minimum score and income limits. What applies to you depends on your situation. I can walk through your options in about ten minutes. Want to set up a call?<br>[Your name], NMLS #[number]</p></blockquote>
+<p><em>Check each program's current rules (see Sources) before you send, and keep or cut examples to match what you offer.</em></p>
+
+<h2>Email 4: day 7, credit questions</h2>
+<p><strong>Subject:</strong> What credit score do you need to buy?</p>
+<blockquote><p>Hi [First name],<br>There is no single score. FHA looks at a minimum decision score, with 580 or higher for the 3.5% down option; conventional programs often start around 620; and every lender can add its own requirements. If your score is lower than you'd like, a few steps can help, and I'm glad to go over them with you on a short call. Interested?<br>[Your name]</p></blockquote>
+
+<h2>Email 5: day 10, a local update</h2>
+<p><strong>Subject:</strong> [Town] homebuying update for [month]</p>
+<blockquote><p>Hi [First name],<br>One thing I'm seeing in [town] this month: [a fact you can source, such as a published local statistic with a link]. If it would help, I can run the numbers for a home in your price range.<br>[Your name]</p></blockquote>
+<p><em>Do not quote a rate or payment in this email unless compliance has approved the wording; rates and payments trigger disclosure rules.</em></p>
+
+<h2>Email 6: day 14, a client's words</h2>
+<p>Use only real reviews, with permission. See <a href="/blog/how-to-get-more-google-reviews-as-a-loan-officer">how to get more Google reviews</a>.</p>
+<p><strong>Subject:</strong> What a recent client said</p>
+<blockquote><p>Hi [First name],<br>"[Paste a real review, with the client's permission.]" ([Client first name], [city])<br>If you'd like to talk about your plans, I'm here whenever works for you.<br>[Your name]</p></blockquote>
+
+<h2>Email 7: day 22, the check-in</h2>
+<p><strong>Subject:</strong> Should I stop reaching out?</p>
+<blockquote><p>Hi [First name],<br>I've sent a few notes and haven't heard back, which is fine. If your plans changed or you found a lender, tell me and I'll stop. If you're still planning to buy and the timing wasn't right, I'm happy to help when you are.<br>[Still interested] | [Remove me from your list]<br>[Your name]</p></blockquote>
+
+<h2>Days 30 to 90: one useful note a month</h2>
+<p>Alternate between a local update, a short tip, a client story and a question. Keep each to three to five sentences with one low-pressure next step. Stop sending the moment someone asks, and remove them from every list.</p>
+
+<h2>What you need to run it</h2>
+<ul>
+<li><strong>A CRM or email tool that starts a sequence when a lead is added</strong>, and connects to your form or landing page. See <a href="/blog/crm-drip-workflows-for-mlo-follow-up">CRM drip workflows</a>.</li>
+<li><strong>Sender authentication.</strong> Google requires all senders to authenticate with SPF or DKIM, and bulk senders (about 5,000 messages a day or more to Gmail) to use SPF, DKIM and DMARC and one-click unsubscribe. A small sender is unlikely to hit that volume, but authentication helps your email reach the inbox anyway.</li>
+<li><strong>A footer compliance has approved</strong> with your name, NMLS ID, postal address and an unsubscribe link.</li>
+</ul>
+<h2>What to measure</h2>
+<ul>
+<li><strong>Replies and booked calls,</strong> not opens. Open numbers are unreliable.</li>
+<li><strong>Unsubscribes and spam complaints.</strong> A rising rate means the emails are too frequent or too pushy.</li>
+<li><strong>Applications by source,</strong> so you can compare email follow-up with your other channels.</li>
+</ul>
+<p>For a broader plan, read <a href="/blog/mortgage-marketing-strategies-mlo-growth-and-leads">loan officer marketing strategies</a> and <a href="/blog/10-proven-strategies-for-mortgage-loan-lead-generation-in-2026">mortgage lead generation strategies</a>. Our <a href="/topics/ai-lead-automation">mortgage CRM and lead automation guide</a> covers the tools.</p>
+
+<h2>Sources</h2>
+<ul>
+${src(FTC_CAN_SPAM, "FTC: CAN-SPAM Act, a compliance guide for business")}
+${src(FCC_ROBOTEXTS, "FCC: Stop unwanted robocalls and texts (consent for marketing calls and texts)")}
+${src(GOOGLE_SENDERS, "Google: Email sender guidelines (SPF, DKIM, DMARC, unsubscribe)")}
+${src(HUD_FHA, "HUD: How can FHA help me buy a home?")}
+${src(VA_PURCHASE, "VA: Purchase loan")}
+${src(USDA_GUARANTEED, "USDA: Single Family Housing Guaranteed Loan Program")}
+${src(FANNIE_HOMEREADY, "Fannie Mae: HomeReady mortgage")}
+</ul>`,
+  faq: [
+    {
+      q: "How many follow-up emails should a loan officer send?",
+      a: "There is no fixed number. A common pattern is about a dozen emails over 60 to 90 days: three in the first week, a few educational ones over the next two weeks, then one a month. Adjust to replies, and stop as soon as someone opts out.",
+    },
+    {
+      q: "What is the best time to send mortgage follow-up emails?",
+      a: "There is no universal best time. Test a few send times with your own list and compare replies and booked calls, not opens.",
+    },
+    {
+      q: "Do I need to include my NMLS number in marketing emails?",
+      a: "Many states and employers require licensing details such as your NMLS ID in advertising, and emails often count. Rules vary, so ask your compliance team for the exact footer.",
+    },
+    {
+      q: "Do I need consent to email a lead who filled out my form?",
+      a: "CAN-SPAM does not require opt-in consent for commercial email, but it requires accurate headers, your postal address and a working opt-out that you honor within 10 business days. Texts and autodialed calls are different: the FCC generally requires prior express written consent.",
+    },
+    {
+      q: "Can YPN USA send these emails for me?",
+      a: "No. Cerebro, YPN USA's AI assistant, can draft follow-up messages for you to review, but nothing is sent automatically. You approve each message and send it from your own email or CRM.",
+    },
+  ],
+  closingHtml: closing(
+    `<p><strong>Want follow-up drafted for you?</strong> YPN USA gives one loan officer each ZIP code within YPN USA, and Cerebro drafts follow-up messages for you to review. <a href="/check-zip">Check if your ZIP code is open</a> or <a href="/pricing">see plans</a>, starting free.</p>`,
+  ),
+};
+
 export const REWRITTEN_POSTS: readonly BlogPost[] = [
   LOAN_OFFICER_MARKETING_STRATEGIES,
   RESPA_CO_MARKETING,
   NEW_LOAN_OFFICER_CLIENTS,
   MORTGAGE_LEAD_GENERATION,
+  LANDING_PAGE_EXAMPLES,
+  MORTGAGE_REFERRALS_BEYOND_REALTORS,
+  EMAIL_FOLLOW_UP_SEQUENCES,
 ];

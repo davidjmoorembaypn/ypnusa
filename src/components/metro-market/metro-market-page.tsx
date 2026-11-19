@@ -248,7 +248,7 @@ export function MetroMarketPage({ market, origin = MARKETING_SITE_URL }: { marke
 
         <section className="py-12">
           <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
-            <h2 className="text-2xl font-semibold text-[#13254a]">More markets</h2>
+            <h2 className="text-2xl font-semibold text-[#13254a]">Nearby markets and research</h2>
             <ul className="mt-4 flex flex-wrap gap-3">
               {related.map((r) => (
                 <li key={r.slug}>
@@ -265,6 +265,11 @@ export function MetroMarketPage({ market, origin = MARKETING_SITE_URL }: { marke
               <li>
                 <Link href="/research" className="inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-[#13254a] hover:bg-slate-50">
                   Central Valley market report
+                </Link>
+              </li>
+              <li>
+                <Link href="/topics/local-seo-for-loan-officers" className="inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-[#13254a] hover:bg-slate-50">
+                  Local SEO for loan officers
                 </Link>
               </li>
             </ul>

@@ -203,6 +203,7 @@ indexnow="${YPNUSA_INSTALL_INDEXNOW:-$dest/scripts/ping-indexnow.mjs}"
 if [ "${YPNUSA_SKIP_INDEXNOW:-0}" != "1" ] && [ -f "$indexnow" ]; then
   echo "=== IndexNow ping (never fails the deploy)"
   node_bin="$(command -v node || true)"
+  if [ -z "$node_bin" ] && [ -x /opt/node/bin/node ]; then node_bin=/opt/node/bin/node; fi
   if [ -n "$node_bin" ] && timeout 120 "$node_bin" "$indexnow"; then
     :
   else

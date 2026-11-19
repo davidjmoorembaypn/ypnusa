@@ -177,7 +177,7 @@ test("a hand install is not stopped by the auto-update pause file", (t) => {
 function pingStub(e: Env, exitCode: number) {
   const script = path.join(e.root, "ping.mjs");
   const log = path.join(e.root, "ping.log");
-  writeFileSync(script, `import { appendFileSync } from "node:fs";\nappendFileSync(${JSON.stringify(log)}, "ran\n");\nprocess.exit(${exitCode});\n`);
+  writeFileSync(script, `import { appendFileSync } from "node:fs";\nappendFileSync(${JSON.stringify(log)}, "ran");\nprocess.exit(${exitCode});\n`);
   return { script, ran: () => existsSync(log) };
 }
 
@@ -197,6 +197,7 @@ test("a failing IndexNow ping only warns; the deploy still succeeds", (t) => {
   const ping = pingStub(e, 1);
   const r = install(e, { YPNUSA_INSTALL_INDEXNOW: ping.script });
   assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(ping.ran(), "ping did not run, so the failure path was not exercised");
   assert.match(r.stderr, /IndexNow ping failed/);
   assert.equal(liveOf(e), NEW);
 });

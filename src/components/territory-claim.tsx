@@ -5,6 +5,7 @@ import { track } from "@/lib/track";
 import { trackFunnel } from "@/lib/funnel-events";
 import { postJson } from "@/lib/client-api";
 import { FREE_SIGNUP_HREF, checkoutUrlForTier, payNowUrlForTier } from "@/lib/checkout";
+import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
 import { useCTAEngine } from "@/lib/hooks/useCTAEngine";
 
@@ -42,6 +43,12 @@ const VOLUME_OPTIONS = [
 ];
 
 
+
+/** "$299 Exclusive / $199 Growth / $99 Pro", from the public price list so the copy can't drift from /pricing. */
+const LOCK_PLAN_PRICES = (["elite", "pro", "growth"] as const)
+  .map((id) => PUBLIC_PRICING_TIERS.find((tier) => tier.id === id))
+  .flatMap((tier) => (tier ? [`${tier.price} ${tier.name}`] : []))
+  .join(" / ");
 
 /** Fired on `window` whenever a ZIP check resolves, so PricingCta can react live. */
 export const ZIP_CHECKED_EVENT = "ypnus:zip-checked";
@@ -276,8 +283,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const resultTitle =
     check.status === "result"
       ? check.available
-        ? `${place} is open for exclusive claim`
-        : `${place} is claimed — join the waitlist`
+        ? `ZIP ${check.zip} is AVAILABLE — Lock out all competing YPN USA MLOs in this ZIP code (${LOCK_PLAN_PRICES}).`
+        : `ZIP ${check.zip} is LOCKED by another MLO — Join the priority waitlist or check adjacent ZIP codes.`
       : "";
 
   return (
@@ -366,6 +373,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 {resultTitle}
               </span>
             </p>
+            {check.city && check.state ? <p className="mt-1 text-[12px] text-white/70">{place}</p> : null}
             <p className="mt-1 text-[13px] text-white/80">{check.message}</p>
             {check.demandTotal ? (
               <p className="mt-2 text-[12px] text-white/65">
@@ -407,7 +415,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 onClick={tryAnotherZip}
                 className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-bold text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
               >
-                Check another ZIP code →
+                Check an adjacent ZIP code →
               </button>
             )}
             <p className="mt-2 text-[12px] text-white/70">

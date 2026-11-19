@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepageEngine";
 import { HeroVideo } from "@/components/homepage/HeroVideo";
+import { HowItWorks } from "@/components/homepage/how-it-works";
+import { ClientCalculatorPreview } from "@/components/homepage/client-calculator-preview";
 import { FloatingAssistantLazy } from "@/components/assistant/floating-assistant-lazy";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 import { SiteHeader } from "@/components/site-header";
@@ -144,7 +146,7 @@ export default function Home() {
               For licensed mortgage loan officers
             </span>
             <h1 className="mt-5 text-balance text-[2rem] font-semibold leading-[1.1] sm:text-4xl lg:mt-6 lg:text-[3.4rem] lg:leading-[1.08]">
-              Own your ZIP code. <span className="text-violet-300">Let Cerebro answer every borrower while you close loans.</span>
+              One loan officer per ZIP code. <span className="text-violet-300">Lock yours before another MLO does.</span>
             </h1>
 
             {/* Real, verifiable credentials only (see /about); no invented reviews, awards or user counts. */}
@@ -189,11 +191,11 @@ export default function Home() {
 
           <div className="max-w-xl lg:col-start-1 lg:row-start-2">
             <p className="text-lg text-white/90">
-              Mortgage lead generation built for loan officers: local pages that bring borrowers to you, Cerebro answering
-              and qualifying them day and night, and one ZIP code per paid plan that no other YPN USA loan officer can claim.
+              An exclusive ZIP code territory for licensed mortgage loan officers, never a shared seat. Plus Cerebro AI lead
+              generation and co-branded Realtor and borrower tools, built only for MLOs.
             </p>
             <p className="mt-4 text-base font-semibold text-amber-200">
-              One loan officer per ZIP code. Once yours is claimed, it&rsquo;s gone.
+              Once yours is claimed, it&rsquo;s gone.
             </p>
 
             <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-white/75">
@@ -223,6 +225,24 @@ export default function Home() {
             </OpenAssistantButton>
 
             <PredictiveHomepageEngine />
+          </div>
+        </div>
+      </section>
+
+      <HowItWorks />
+
+      {/* CLIENT CALCULATOR PREVIEW */}
+      <section id="calculator-preview" className="bg-slate-50 py-16 text-slate-900">
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className={EYEBROW_LIGHT}>Co-branded client tool</p>
+            <h2 className={H2}>Your borrowers and Realtor partners get a calculator with your name on it</h2>
+            <p className="mt-4 text-slate-700">
+              Try the preview. Once you claim a ZIP code, this payment and buying-power calculator is branded with your name and NMLS #.
+            </p>
+          </div>
+          <div className="mt-10">
+            <ClientCalculatorPreview source="home" />
           </div>
         </div>
       </section>

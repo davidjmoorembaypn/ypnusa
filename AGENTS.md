@@ -17,7 +17,7 @@ YPN USA product app (Next.js 16 App Router) for exclusive ZIP territories + AI b
 | Host | Role |
 | --- | --- |
 | `https://ypnus.com` | WordPress marketing, signup, Cerebro, Rank Math |
-| `https://app.ypnus.com` | Product app target for this Next.js repo |
+| `https://app.ypnus.com` | Resolves to the AWS host but 301s every request to `ypnus.com` (verified 2026-11-19); the app is served from `https://ypnus.com` |
 
 Local demo state persists to `data/store.json`. Live ZIP availability is read from `https://ypnus.com/wp-json/ypnus/v1/zip-check/{zip}` when reachable. See `hostinger/README.md` for production Hostinger fixes.
 
@@ -38,7 +38,7 @@ Local demo state persists to `data/store.json`. Live ZIP availability is read fr
 
 ## Deploying app.ypnus.com (any agent or tool)
 
-- **Production moved to AWS (verified 2026-10-15; deploy path documented 2026-10-16).** `app.ypnus.com` resolved to an AWS host (Apache on Amazon Linux), not Hostinger. **See `aws/README.md` for the host details, how to get a shell (SSM Session Manager — no SSH key, and not blocked by the org's quarantine SCP), and how to run `scripts/aws-install-release.sh` to deploy a new release.** Also read "Correction: where the app runs today" in `docs/AWS_MIGRATION.md` for migration history. The Hostinger steps below now only update the standby copy.
+- **Production moved to AWS (verified 2026-10-15; deploy path documented 2026-10-16).** `app.ypnus.com` resolved to an AWS host (Apache on Amazon Linux), not Hostinger. **See `aws/README.md` for the host details, how to get a shell (SSM Session Manager — no SSH key, and not blocked by the org's quarantine SCP), and how to run `scripts/aws-install-release.sh` to deploy a new release.** Also read "Correction: where the app runs today" in `docs/AWS_MIGRATION.md` for migration history. To confirm a deploy, run `curl https://ypnus.com/api/health` and check `build.commit` (not `app.ypnus.com`, which now only redirects). The Hostinger steps below now only update the standby copy.
 - Hostinger (standby): merge to `main`, let `.github/workflows/release-build.yml` publish `app-build-<sha7>`, then run `scripts/hostinger-install-release.sh` on the server (see `hostinger/README.md`). It verifies the checksum, keeps the previous release for rollback, and rolls back automatically if `/api/health` doesn't report the new `build.commit`.
 - Never use hPanel's Node.js "Deploy"/"Rebuild", Hostinger's Node.js build API, or an uploaded archive for this app. On 2026-09-26 that replaced production with an old bundle (no California compliance pages, no `app/.env` loader) and deleted the installed releases.
 - Secrets live only in `app/.env` on the server; `hostinger/server-preamble.js` loads them and is injected into every release bundle.

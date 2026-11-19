@@ -47,6 +47,29 @@ describe("imported posts are free of WordPress template leftovers", () => {
   });
 });
 
+describe("cleanup leaves the markup balanced", () => {
+  /** Unbalanced in the original WordPress export too; not caused by the cleanup. */
+  const ALREADY_UNBALANCED = new Set(["the-b2b-real-estate-ecosystem-driving-enterprise-growth-brokerage-scaling-and-institutional-lending"]);
+  const balance = (html: string, tag: string) =>
+    (html.match(new RegExp(`<${tag}[\\s>]`, "g")) ?? []).length - (html.match(new RegExp(`</${tag}>`, "g")) ?? []).length;
+
+  it("has matching open and close tags for div, nav and ul in every post", () => {
+    const offenders: string[] = [];
+    for (const p of WP_POSTS) {
+      if (ALREADY_UNBALANCED.has(p.slug)) continue;
+      for (const tag of ["div", "nav", "ul"]) if (balance(p.html, tag) !== 0) offenders.push(`${p.slug} <${tag}> ${balance(p.html, tag)}`);
+    }
+    assert.deepEqual(offenders, []);
+  });
+
+  it("keeps the call to action in the post whose Rank Math TOC block was malformed", () => {
+    const post = WP_POSTS.find((p) => p.slug === "common-mortgage-lead-problems-and-how-to-fix-them-2");
+    assert.ok(post);
+    assert.ok(post.html.includes("Stop renting leads"), "call-to-action box was cut");
+    assert.ok(post.html.includes("lo-signup.html"), "call-to-action button was cut");
+  });
+});
+
 describe("IndexNow key file", () => {
   it("is served from /public and contains exactly the key", () => {
     const key = "8ab267adff4f40baa11791fe4126e4b6";

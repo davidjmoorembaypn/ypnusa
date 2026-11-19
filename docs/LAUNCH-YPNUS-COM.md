@@ -56,7 +56,7 @@ Each step says what it changes. Stop and roll back at any failed check.
    ```bash
    curl -fsSL -o aws-install-release.sh https://raw.githubusercontent.com/davidjmoorembaypn/ypnusa/main/scripts/aws-install-release.sh
    bash aws-install-release.sh
-   curl -s https://app.ypnus.com/api/health
+   curl -s https://ypnus.com/api/health
    ```
    *Changes:* app.ypnus.com runs the new build (auto-rollback if health fails). ypnus.com is untouched.
 3. **Install the front door without traffic** (YES). On the host, from a checkout of `aws/apache/`:

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TerritoryClaim } from "@/components/territory-claim";
+import { RealtorComarketing } from "@/components/metro-market/realtor-comarketing";
+import { ClientCalculatorPreview } from "@/components/homepage/client-calculator-preview";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/seo/breadcrumbs";
 import { homeTrail } from "@/lib/seo/breadcrumbs";
 import { ORGANIZATION_ID, faqJsonLd, jsonLdScript } from "@/lib/seo";
@@ -193,6 +195,8 @@ export function MetroMarketPage({ market, origin = MARKETING_SITE_URL }: { marke
           </div>
         </section>
 
+        <RealtorComarketing market={market} />
+
         <section className="border-t border-slate-200 bg-slate-50 py-12">
           <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
             <h2 className="text-3xl font-semibold text-[#13254a]">How YPN USA ZIP codes work in {market.city}</h2>
@@ -216,7 +220,7 @@ export function MetroMarketPage({ market, origin = MARKETING_SITE_URL }: { marke
           <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:items-center">
             <div>
               <h2 className="text-3xl font-semibold text-[#13254a]">Work in {market.city}? Check your ZIP code.</h2>
-              <p className="mt-3 text-slate-700">Checking is free and takes a few seconds. It shows whether another YPN USA loan officer already holds it.</p>
+              <p className="mt-3 text-slate-700">Each ZIP code goes to one YPN USA loan officer, never a shared seat. Checking is free and takes a few seconds. It shows whether another YPN USA loan officer already holds it.</p>
               <p className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-[#13254a]">
                 <Link href="/pricing" className="underline">
                   See plans
@@ -228,6 +232,19 @@ export function MetroMarketPage({ market, origin = MARKETING_SITE_URL }: { marke
             </div>
             <div id="zip-check" className="rounded-3xl bg-[#13254a] p-4 text-white shadow-xl">
               <TerritoryClaim source={`metro_market_${market.slug}`} />
+            </div>
+          </div>
+        </section>
+
+        <section id="calculator-preview" className="border-t border-slate-200 py-12">
+          <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+            <h2 className="text-3xl font-semibold text-[#13254a]">A client calculator with your name on it</h2>
+            <p className="mt-3 max-w-3xl text-slate-700">
+              Borrowers and {market.city} agents get a payment and buying-power calculator branded with your name and NMLS #. This is a preview with
+              example numbers.
+            </p>
+            <div className="mt-8">
+              <ClientCalculatorPreview claimHref="#zip-check" source={`metro_market_${market.slug}`} />
             </div>
           </div>
         </section>

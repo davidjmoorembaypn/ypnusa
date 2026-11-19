@@ -7,6 +7,7 @@ import { MLO_MARKETS } from "@/content/mlo-markets";
 import { REPORT_COUNTIES } from "@/content/market-report";
 import { METRO_MARKETS, metroPath } from "@/content/metro-markets";
 import { METRO_DATA_FETCHED_ON } from "@/content/metro-markets-data";
+import { RATE_SHEET_LINKS_CHECKED_ON } from "@/content/rate-sheet-directory";
 import {
   BANK_STATEMENT_PATH,
   SELF_EMPLOYED_HUB_PATH,
@@ -113,6 +114,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${origin}/tools/equity`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/gbp-optimizer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/social-writer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${origin}/rate-sheets`, lastModified: new Date(`${RATE_SHEET_LINKS_CHECKED_ON}T00:00:00.000Z`), changeFrequency: "monthly", priority: 0.6 },
     ...PROGRAM_LIST.map((program) => ({
       url: `${origin}/mortgage-loans/${program.toLowerCase()}`,
       lastModified: program === "DSCR" ? new Date(`${SELF_EMPLOYED_LAST_MODIFIED}T00:00:00.000Z`) : MARKETING_LAST_MODIFIED,

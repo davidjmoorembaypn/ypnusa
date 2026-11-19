@@ -57,8 +57,11 @@ You land as `root`.
    switches the `current` symlink, restarts `ypnusa.service`, and **rolls back
    automatically** if `/api/health` doesn't report the new commit within ~30s.
    It prunes old releases down to the 5 newest (skipping whichever is live).
-4. Confirm from anywhere: `curl https://app.ypnus.com/api/health` shows the new
+4. Confirm from anywhere: `curl https://ypnus.com/api/health` shows the new
    `build.commit`.
+   `app.ypnus.com` still resolves to this host, but it now answers every request with a 301 to
+   `ypnus.com`, so it can no longer be used for the health check. On the box itself the installer
+   checks `http://127.0.0.1:3000/api/health` directly.
 
 ### Auto-install (pull-based)
 

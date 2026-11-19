@@ -40,4 +40,4 @@ jobs:
       - name: Wait for stable and verify health
         run: |
           aws ecs wait services-stable --cluster ypnusa --services ypnusa
-          curl -fsS "https://app.ypnus.com/api/health" | grep -q "\"commit\":\"${GITHUB_SHA::7}\""
+          curl -fsS "https://ypnus.com/api/health" | grep -q "\"commit\":\"${GITHUB_SHA::7}\""

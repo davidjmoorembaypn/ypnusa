@@ -172,3 +172,50 @@ test("a hand install is not stopped by the auto-update pause file", (t) => {
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.equal(liveOf(e), NEW);
 });
+
+// The IndexNow ping runs after a verified deploy and must never change the deploy's result.
+function pingStub(e: Env, exitCode: number) {
+  const script = path.join(e.root, "ping.mjs");
+  const log = path.join(e.root, "ping.log");
+  writeFileSync(script, `import { appendFileSync } from "node:fs";\nappendFileSync(${JSON.stringify(log)}, "ran");\nprocess.exit(${exitCode});\n`);
+  return { script, ran: () => existsSync(log) };
+}
+
+test("a healthy build runs the IndexNow ping after verification", (t) => {
+  const e = setup();
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  const ping = pingStub(e, 0);
+  const r = install(e, { YPNUSA_INSTALL_INDEXNOW: ping.script });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(ping.ran(), "ping did not run");
+  assert.ok(r.stdout.indexOf("DEPLOY OK") < r.stdout.indexOf("IndexNow ping"));
+});
+
+test("a failing IndexNow ping only warns; the deploy still succeeds", (t) => {
+  const e = setup();
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  const ping = pingStub(e, 1);
+  const r = install(e, { YPNUSA_INSTALL_INDEXNOW: ping.script });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(ping.ran(), "ping did not run, so the failure path was not exercised");
+  assert.match(r.stderr, /IndexNow ping failed/);
+  assert.equal(liveOf(e), NEW);
+});
+
+test("a rolled-back build never pings IndexNow", (t) => {
+  const e = setup({ unhealthy: [NEW] });
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  const ping = pingStub(e, 0);
+  const r = install(e, { YPNUSA_INSTALL_INDEXNOW: ping.script });
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.ok(!ping.ran(), "ping ran after a rollback");
+});
+
+test("YPNUSA_SKIP_INDEXNOW=1 turns the ping off", (t) => {
+  const e = setup();
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  const ping = pingStub(e, 0);
+  const r = install(e, { YPNUSA_INSTALL_INDEXNOW: ping.script, YPNUSA_SKIP_INDEXNOW: "1" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(!ping.ran());
+});

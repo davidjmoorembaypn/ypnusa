@@ -115,3 +115,15 @@ again, re-generalize it the same way and `systemctl daemon-reload`.
   or the Vercel preview projects auto-deployed from this same GitHub repo —
   three different places this code can end up running, only this one is
   production.
+
+## IndexNow (tell search engines about new pages)
+
+`node scripts/ping-indexnow.mjs` submits every ypnus.com URL in `/sitemap.xml` and
+`/local-seo-sitemap.xml` to IndexNow (`--dry-run` lists them without sending). It uses the
+key in `public/<32 hex>.txt` and refuses to run unless that file is live on production.
+
+`scripts/aws-install-release.sh` runs it automatically after a deploy passes its health check
+(never after a rollback). A failure there only prints a warning and does not change the deploy's
+exit code. `YPNUSA_SKIP_INDEXNOW=1` turns it off; to retry by hand run
+`node /opt/ypnusa/current/scripts/ping-indexnow.mjs`. The updater runs the installer from the
+release being installed, so the hook starts working with the first release that contains it.

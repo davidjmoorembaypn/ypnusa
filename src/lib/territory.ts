@@ -109,14 +109,8 @@ function buildResult(zip: string, claimedZips: Set<string>): TerritoryCheckResul
   };
 }
 
-/**
- * Availability from this app's own paid ledger only: ZIPs held by active or trialing subscriptions that
- * came from Stripe or an admin adjustment. Demo seeds and soft demo-request holds are ignored.
- * This app is the system of record for territories (WordPress is retired); every availability
- * answer goes through here by way of @/lib/territory-ledger.
- */
-export function checkPaidLedgerTerritory(rawZip: unknown): TerritoryCheckResult {
-  const zip = normalizeZip(rawZip);
+/** Every ZIP code held by a live paid subscription (Stripe or admin adjustment). Seeds, trials and demo requests hold nothing. */
+export function paidLedgerClaimedZips(): Set<string> {
   const claimed = new Set<string>();
   readDb()
     .revenueSubscriptions.filter(
@@ -132,6 +126,18 @@ export function checkPaidLedgerTerritory(rawZip: unknown): TerritoryCheckResult 
         if (isValidZip(claim)) claimed.add(claim);
       }),
     );
+  return claimed;
+}
+
+/**
+ * Availability from this app's own paid ledger only: ZIPs held by active or trialing subscriptions that
+ * came from Stripe or an admin adjustment. Demo seeds and soft demo-request holds are ignored.
+ * This app is the system of record for territories (WordPress is retired); every availability
+ * answer goes through here by way of @/lib/territory-ledger.
+ */
+export function checkPaidLedgerTerritory(rawZip: unknown): TerritoryCheckResult {
+  const zip = normalizeZip(rawZip);
+  const claimed = paidLedgerClaimedZips();
 
   if (!isValidZip(zip)) {
     return {

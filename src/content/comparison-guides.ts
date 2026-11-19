@@ -358,6 +358,7 @@ export const BEST_AI_ASSISTANTS_GUIDE: ComparisonGuide = {
   method:
     "We read each company's own website on November 17, 2026 and describe only what those pages say, in our own words. We did not test the products or receive anything to list them. Prices change, so confirm on each company's site. YPN Inc. publishes this page and sells YPN USA.",
   related: [
+    { label: "Homebot vs Cerebro AI", href: "/compare/homebot-vs-cerebro-ai" },
     { label: "All YPN USA comparisons", href: "/compare" },
     { label: "YPN USA vs LoanOfficer.ai", href: "/ypnus-vs-loanofficer-ai" },
     { label: "YPN USA vs Total Expert", href: "/vs/total-expert" },
@@ -882,6 +883,8 @@ export const ZILLOW_ALTERNATIVES_GUIDE: ComparisonGuide = {
   method:
     "We read each company's own website on November 17, 2026 and describe only what those pages say, in our own words. Zillow's lender pages were not available to us, so Zillow facts come from its SEC filings, its Flex FAQ and HousingWire's reporting. Where a company publishes no price, we cite HousingWire's reported figures and say so. We did not test the products or receive anything to list them. YPN Inc. publishes this page and sells YPN USA.",
   related: [
+    { label: "LendingTree vs exclusive ZIP code mortgage leads", href: "/compare/lendingtree-vs-exclusive-zip-mortgage-leads" },
+    { label: "Zillow Premier Lender alternatives", href: "/compare/zillow-premier-lender-alternatives" },
     { label: "All YPN USA comparisons", href: "/compare" },
     { label: "YPN USA vs Zillow Flex", href: "/vs/zillow-flex" },
     { label: "YPN USA vs LendingTree", href: "/vs/lendingtree" },

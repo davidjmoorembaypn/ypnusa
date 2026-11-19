@@ -14,17 +14,12 @@ export type ZipStatus = "open" | "claimed" | "unknown";
 export interface ZipStatusInfo {
   zip: string;
   status: ZipStatus;
-  /** Expected buyers, sellers and movers over `demandWindowDays`, only when the ledger reported it. */
-  demandTotal: number | null;
-  demandWindowDays: number | null;
   /** "ledger" = this app's paid ledger answered; "none" = no answer (status is "unknown"). */
   source: "ledger" | "none";
 }
 
 export interface LiveZipAnswer {
   available: boolean;
-  demandTotal?: number | null;
-  demandWindowDays?: number | null;
 }
 
 export interface ZipStatusDeps {
@@ -49,7 +44,7 @@ export function createZipStatusResolver(deps: ZipStatusDeps) {
   const inflight = new Map<string, Promise<ZipStatusInfo>>();
 
   async function lookup(zip: string): Promise<ZipStatusInfo> {
-    const unknown: ZipStatusInfo = { zip, status: "unknown", demandTotal: null, demandWindowDays: null, source: "none" };
+    const unknown: ZipStatusInfo = { zip, status: "unknown", source: "none" };
     if (!isValidZip(zip)) return unknown;
     try {
       const live = await deps.live(zip);
@@ -57,8 +52,6 @@ export function createZipStatusResolver(deps: ZipStatusDeps) {
         return {
           zip,
           status: live.available ? "open" : "claimed",
-          demandTotal: typeof live.demandTotal === "number" ? live.demandTotal : null,
-          demandWindowDays: typeof live.demandWindowDays === "number" ? live.demandWindowDays : null,
           source: "ledger",
         };
       }

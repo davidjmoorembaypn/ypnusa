@@ -1,3 +1,4 @@
+import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { StickyCtaBar } from "@/components/sticky-cta-bar";
@@ -188,6 +189,9 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
             </ul>
           </div>
         </section>
+        <div className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6">
+          <AuthorReviewerCard path={`/topics/${cluster.slug}`} pageName={cluster.title} />
+        </div>
       </main>
       <SiteFooter />
       <StickyCtaBar source="topic" />

@@ -1,4 +1,5 @@
-import { AUTHOR_ALTERNATE_NAMES, AUTHOR_NAME, AUTHOR_PROFILES, CA_DRE_ID, NMLS_CONSUMER_ACCESS_URL, NMLS_ID } from "@/lib/author";
+import { AUTHOR_ALTERNATE_NAMES, AUTHOR_NAME, AUTHOR_PROFILES, BOOK_AMAZON_URL, BOOK_TITLE, CA_DRE_ID, NMLS_CONSUMER_ACCESS_URL, NMLS_ID } from "@/lib/author";
+import { BUSINESS_ADDRESS, BUSINESS_LEGAL_NAME, BUSINESS_NAME, BUSINESS_TELEPHONE } from "@/lib/business-profile";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { FOUNDER_ID, ORGANIZATION_ID } from "@/lib/seo";
 
@@ -36,9 +37,8 @@ export function founderCredentialJsonLd() {
 }
 
 /**
- * The full founder node (education, licenses, profiles). Per the Nov 2026 SEO plan it is
- * emitted only on /about and in blog-post author boxes; other pages refer to it by
- * FOUNDER_ID. Facts match the visible bio: 25+ years, 2,000+ loans, Fresno State MBA.
+ * The full founder node (education, licenses, profiles). Emitted on /about, in blog-post author
+ * boxes and, inside a connected @graph, by AuthorReviewerCard on reviewed pages. Facts match the visible bio: 25+ years, 2,000+ loans, Fresno State MBA.
  */
 export function founderPersonJsonLd() {
   const base = founderCredentialJsonLd();
@@ -56,6 +56,60 @@ export function founderPersonJsonLd() {
       { "@type": "EducationalOccupationalCredential", name: "Master of Business Administration", credentialCategory: "degree" },
       ...base.hasCredential,
     ],
-    sameAs: [AUTHOR_PROFILES.orcid, AUTHOR_PROFILES.linkedin, AUTHOR_PROFILES.facebook],
+    sameAs: [NMLS_CONSUMER_ACCESS_URL, AUTHOR_PROFILES.orcid, AUTHOR_PROFILES.linkedin, AUTHOR_PROFILES.facebook],
+  };
+}
+
+export interface ReviewedPage {
+  /** Absolute canonical URL of the page. */
+  url: string;
+  name: string;
+  /** True when the founder also wrote the page; false when he only reviewed it. */
+  written?: boolean;
+}
+
+/**
+ * One connected @graph for a reviewed page: the Organization and the founder Person (the same
+ * @ids the root layout uses, so they merge rather than duplicate), his published book, and a
+ * WebPage node that names him as author and reviewer. Every fact here is also visible on the page
+ * (AuthorReviewerCard) or on /about.
+ *
+ * The book is its own Book node with `author`, not a `sameAs` of the person: sameAs means "the same
+ * entity", and a book is not the person. The plain Amazon listing is used, never an affiliate link.
+ */
+export function authorReviewerGraphJsonLd(page: ReviewedPage) {
+  const { "@context": _context, ...person } = founderPersonJsonLd();
+  void _context;
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": ORGANIZATION_ID,
+        name: BUSINESS_NAME,
+        legalName: BUSINESS_LEGAL_NAME,
+        url: MARKETING_SITE_URL,
+        telephone: BUSINESS_TELEPHONE,
+        address: { "@type": "PostalAddress", ...BUSINESS_ADDRESS },
+        founder: { "@id": FOUNDER_ID },
+      },
+      person,
+      {
+        "@type": "Book",
+        "@id": `${MARKETING_SITE_URL}/#book-top-9-online-real-estate-leads`,
+        name: BOOK_TITLE,
+        author: { "@id": FOUNDER_ID },
+        url: BOOK_AMAZON_URL,
+      },
+      {
+        "@type": "WebPage",
+        "@id": `${page.url}#reviewed-page`,
+        url: page.url,
+        name: page.name,
+        ...(page.written === false ? {} : { author: { "@id": FOUNDER_ID } }),
+        reviewedBy: { "@id": FOUNDER_ID },
+        publisher: { "@id": ORGANIZATION_ID },
+      },
+    ],
   };
 }

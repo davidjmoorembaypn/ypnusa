@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiloNav } from "@/components/silo-nav";
+import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { TrackedLink } from "@/components/tracked-link";
 import { faqJsonLd, jsonLdScript } from "@/lib/seo";
@@ -151,6 +152,8 @@ export function ProgramPage({
           </ul>
         </nav>
       ) : null}
+
+      <AuthorReviewerCard path={path} pageName={content.label} tone="dark" className="mt-10" />
 
       <SiloNav silo="mortgage" currentPath={path} className="mt-10" />
 

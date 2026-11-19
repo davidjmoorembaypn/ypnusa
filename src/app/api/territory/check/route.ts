@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { jsonError, logApiError } from "@/lib/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { checkLedgerTerritory } from "@/lib/territory-ledger";
+import { estimateZipDemand } from "@/lib/zip-demand";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,9 +33,10 @@ export async function GET(request: Request) {
         source: "ledger",
         city: result.city,
         state: result.state,
-        // Kept for older clients: the ledger has no signup link or demand estimate.
         signupUrl: null,
-        demand: null,
+        // Informational monthly market estimate from Census survey data (see @/lib/zip-demand).
+        // Never a lead count. null only when the ZIP code itself is malformed.
+        demand: result.valid ? estimateZipDemand(result.zip) : null,
       },
       { headers: { "Cache-Control": "no-store" } },
     );

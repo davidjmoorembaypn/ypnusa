@@ -5,7 +5,9 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ZipTerritoryBanner } from "@/components/local-seo/zip-territory-banner";
-import { faqJsonLd } from "@/lib/seo";
+import { ZipLocalIntelSection } from "@/components/local-seo/zip-local-intel";
+import type { ZipLocalIntel } from "@/content/zip-local-intel";
+import type { ZipDistance } from "@/lib/geo/zip-geo";
 import {
   LOCAL_SEO_PROFILES,
   LOCAL_SEO_PUBLIC_ORIGIN,
@@ -22,6 +24,8 @@ import {
 interface LocationPageProps {
   profile: LocalSeoProfile;
   business: PublicBusinessProfile;
+  /** ZIP code pages that pass the indexation gate: local facts, FAQs and indexable neighbor links. */
+  zipIntel?: { intel: ZipLocalIntel; neighbors: ZipDistance[] };
 }
 
 function LocalMetrics({ metrics }: Pick<LocalSeoProfile, "metrics">) {
@@ -227,25 +231,7 @@ function ReviewSection({
   );
 }
 
-/**
- * Questions shown on ZIP code pages and emitted as FAQPage JSON-LD from the same text, so the
- * markup always matches what visitors can read. YPN USA is not a lender, and exclusivity applies
- * within YPN USA, so the answers say so.
- */
-export function zipPageFaq(profile: Pick<LocalSeoProfile, "city" | "stateCode" | "slug">): Array<{ q: string; a: string }> {
-  return [
-    {
-      q: `Who can help me with a mortgage in ${profile.city}, ${profile.stateCode} ${profile.slug}?`,
-      a: `Start the borrower intake on this page and a licensed mortgage loan officer who serves ZIP code ${profile.slug} will follow up. YPN USA is a marketing technology platform for loan officers. It is not a lender and does not make credit decisions, and nothing on this page is a rate quote or a commitment to lend.`,
-    },
-    {
-      q: `Can a loan officer get exclusive borrower routing for ZIP code ${profile.slug}?`,
-      a: `Yes. Licensed loan officers can lock ZIP code ${profile.slug} on YPN USA, and each ZIP code goes to one YPN USA loan officer at a time. Checking whether it is open is free and does not reserve it. Exclusivity applies within YPN USA, and no results or lead volume are guaranteed.`,
-    },
-  ];
-}
-
-export async function LocationPage({ profile, business }: LocationPageProps) {
+export async function LocationPage({ profile, business, zipIntel }: LocationPageProps) {
   const reviewFeed = await loadGbpReviews(business);
   const reviewUrl = buildGoogleReviewUrl(business.placeId);
   const canonicalUrl = `${LOCAL_SEO_PUBLIC_ORIGIN}${getLocalSeoPath(profile)}`;
@@ -320,7 +306,6 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
   // Visitors here are borrowers: send them to the borrower intake (not the MLO
   // sign-in), tagged with this page's ZIP or city so the lead keeps its source.
   const intakeHref = localIntakeHref(profile);
-  const faq = profile.kind === "zip" ? zipPageFaq(profile) : [];
   const relatedProfiles = LOCAL_SEO_PROFILES.filter(
     (candidate) =>
       candidate.slug !== profile.slug &&
@@ -334,12 +319,6 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      {faq.length > 0 ? (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd(faq)) }}
-        />
-      ) : null}
       <SiteHeader />
       <main id="main-content">
         <section className="relative isolate overflow-hidden bg-[#09081b] text-white">
@@ -414,19 +393,7 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
           </article>
         </section>
 
-        {faq.length > 0 ? (
-          <section className="mx-auto max-w-4xl px-6 pb-16">
-            <h2 className="text-2xl font-semibold">Common questions about ZIP code {profile.slug}</h2>
-            <div className="mt-6 space-y-3">
-              {faq.map((item) => (
-                <details key={item.q} className="rounded-2xl border border-slate-200 p-5">
-                  <summary className="cursor-pointer font-semibold">{item.q}</summary>
-                  <p className="mt-3 text-sm leading-6 text-slate-700">{item.a}</p>
-                </details>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        {zipIntel ? <ZipLocalIntelSection intel={zipIntel.intel} neighbors={zipIntel.neighbors} /> : null}
 
         <section className="mx-auto max-w-6xl px-6 pb-16">
           <ReviewSection feed={reviewFeed} reviewUrl={reviewUrl} />

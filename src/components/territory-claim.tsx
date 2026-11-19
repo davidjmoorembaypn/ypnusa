@@ -166,7 +166,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         city?: string | null;
         state?: string | null;
         signupUrl?: string | null;
-        demand?: { total?: number } | null;
+        demand?: { total?: number; buyers?: number } | null;
         source?: string | null;
       };
       if (!data.valid) {
@@ -325,7 +325,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/70">
             <p className="font-medium text-white">See it before you sign up</p>
             <p className="mt-1 text-[13px]">
-              Enter a 5-digit ZIP code to see if it&rsquo;s open and how many buyers, sellers and movers are expected there. Checking
+              Enter a 5-digit ZIP code to see if it&rsquo;s open and an estimate of how many households buy, sell or move there in 60 days. Checking
               doesn&rsquo;t reserve a ZIP code; it locks at your first payment on a paid plan.
             </p>
           </div>
@@ -377,7 +377,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
             <p className="mt-1 text-[13px] text-white/80">{check.message}</p>
             {check.demandTotal ? (
               <p className="mt-2 text-[12px] text-white/65">
-                ~{check.demandTotal} buyers / sellers / movers in the next 60 days
+                About {check.demandTotal} households buy, sell or move in over a typical 60 days (Census-based estimate, not a lead count)
               </p>
             ) : null}
             {check.totalClaimed > 0 ? (

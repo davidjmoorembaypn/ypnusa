@@ -1,3 +1,4 @@
+import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -268,6 +269,9 @@ export function MarketReportHub({ origin = MARKETING_SITE_URL }: { origin?: stri
 
         <ZipCta source="market_report_hub" />
         <Methodology />
+        <div className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6">
+          <AuthorReviewerCard path="/research" pageName="Loan Officer Market Report" />
+        </div>
       </main>
       <SiteFooter />
     </div>
@@ -385,6 +389,9 @@ export function MarketReportCounty({ county, origin = MARKETING_SITE_URL }: { co
         </section>
 
         <Methodology />
+        <div className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6">
+          <AuthorReviewerCard path={`/research/${county.slug}`} pageName={countyTitle(county)} />
+        </div>
       </main>
       <SiteFooter />
     </div>

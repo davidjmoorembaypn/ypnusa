@@ -9,9 +9,9 @@ import { MARKETING_SITE_URL } from "@/lib/site";
 export async function generateMetadata(): Promise<Metadata> {
   const origin = MARKETING_SITE_URL;
   return marketingMetadata({
-    title: "What's happening in your ZIP code in the next 60 days?",
+    title: "How much home-buying activity does your ZIP code see in 60 days?",
     description:
-      "See how many people are expected to buy, sell or move into your ZIP code over the next 60 days, and whether an exclusive loan officer slot is still open. Free to check.",
+      "See a Census-based estimate of how many households buy, sell or move into your ZIP code in a typical 60 days, and whether an exclusive slot is open.",
     path: "/check-zip",
     origin,
   });
@@ -25,10 +25,10 @@ export default function CheckZipPage() {
       <main id="main-content" className="flex-1">
         <section className="mx-auto w-full max-w-3xl px-5 py-16 md:py-20">
           <h1 className="text-3xl font-semibold leading-tight md:text-5xl">
-            What&rsquo;s happening in your ZIP code in the next 60 days?
+            How much home-buying activity does your ZIP code see in 60 days?
           </h1>
           <p className="mt-4 max-w-xl text-lg text-white/85">
-            Lead vendors rarely show you this number. See the expected buyers, sellers and movers in your ZIP code,
+            See an estimate of the households that buy, sell or move into your ZIP code in a typical 60 days, built on U.S. Census Bureau data,
             and whether an exclusive slot is still open. Free, no credit card.
           </p>
           <div className="mt-8">

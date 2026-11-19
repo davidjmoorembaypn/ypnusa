@@ -18,12 +18,11 @@ function resolverWith(answers: Record<string, LiveZipAnswer | null | "throw">, e
 }
 
 describe("zip status resolver", () => {
-  it("maps the live answer to open or claimed and keeps reported demand", async () => {
-    const { resolver } = resolverWith({ "93618": { available: true, demandTotal: 390, demandWindowDays: 60 }, "93616": { available: false } });
+  it("maps the ledger's answer to open or claimed", async () => {
+    const { resolver } = resolverWith({ "93618": { available: true }, "93616": { available: false } });
     const open = await resolver.resolve("93618");
     assert.equal(open.status, "open");
-    assert.equal(open.demandTotal, 390);
-    assert.equal(open.demandWindowDays, 60);
+    assert.equal(open.source, "ledger");
     assert.equal((await resolver.resolve("93616")).status, "claimed");
   });
 

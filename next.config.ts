@@ -10,6 +10,7 @@ import legacyRedirects from "./src/content/legacy-redirects.json";
 import consolidatedPages from "./src/content/consolidated-pages.json";
 import wpPages from "./src/content/wp-import/pages.json";
 import wpPosts from "./src/content/wp-import/posts.json";
+import augustBatchRedirects from "./src/content/august-batch-redirects.json";
 
 function gitCommit(): string {
   try {
@@ -159,7 +160,17 @@ const nextConfig: NextConfig = {
       { source: "/category/:name", destination: "/blog", permanent: true },
       { source: "/:year(\\d{4})/:month(\\d{2})/:day(\\d{2})", destination: "/blog", permanent: true },
     ]);
-    return mapped.concat(withOptionalTrailingSlash(rootPostRedirects(mapped))).concat([
+    // The 74 templated posts dated 2026-08-07 are folded into their closest strong post (see
+    // src/content/august-batch-consolidation.ts). Added after the redirects above, so none of
+    // them (including the root-post redirects) changes.
+    const augustBatch = withOptionalTrailingSlash(
+      Object.entries(augustBatchRedirects as Record<string, string>).map(([slug, target]) => ({
+        source: `/blog/${slug}`,
+        destination: `/blog/${target}`,
+        permanent: true,
+      })),
+    );
+    return mapped.concat(withOptionalTrailingSlash(rootPostRedirects(mapped))).concat(augustBatch).concat([
       // WordPress's machine-translated Hebrew copies (/he/...) that Google still crawls:
       // send each to the English address it copied.
       { source: "/he", destination: "/", permanent: true },

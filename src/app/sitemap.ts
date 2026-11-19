@@ -5,6 +5,8 @@ import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { MLO_MARKETS } from "@/content/mlo-markets";
 import { REPORT_COUNTIES } from "@/content/market-report";
+import { METRO_MARKETS, metroPath } from "@/content/metro-markets";
+import { METRO_DATA_FETCHED_ON } from "@/content/metro-markets-data";
 import {
   BANK_STATEMENT_PATH,
   SELF_EMPLOYED_HUB_PATH,
@@ -150,6 +152,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // unique landing-page content, not the programmatic city/ZIP pages the
     // warning above is about.
     ...wpPageEntries(origin, "", WP_TOP_PAGES.filter((page) => !SITEMAP_EXCLUDED_TOP_SLUGS.has(page.slug))),
+    // Big-city market data pages (HMDA 2024), rebuilt Nov 2026 to replace the lost WordPress hubs.
+    ...METRO_MARKETS.map((m) => ({
+      url: `${origin}${metroPath(m)}`,
+      lastModified: new Date(METRO_DATA_FETCHED_ON),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
     ...wpPageEntries(origin, "/markets", WP_MARKET_PAGES),
     ...wpPageEntries(origin, "/loan-types", WP_LOAN_TYPE_PAGES),
     ...wpPageEntries(origin, "/vs", WP_VS_PAGES),

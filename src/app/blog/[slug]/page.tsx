@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ALL_BLOG_POSTS, getAnyBlogPost } from "@/content/blog-all";
+import { faqForSchema } from "@/content/blog";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
 import { FOUNDER_ID, ORGANIZATION_ID, faqJsonLd, jsonLdScript, pageTitle, socialImageFor } from "@/lib/seo";
@@ -132,8 +133,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <SiteHeader />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
-      {post.faq?.length ? (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(post.faq)) }} />
+      {faqForSchema(post).length ? (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(faqForSchema(post))) }} />
       ) : null}
 
       <main id="main-content" className="flex-1 bg-white text-slate-900">

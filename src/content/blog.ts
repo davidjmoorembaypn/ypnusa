@@ -16,6 +16,17 @@ export interface BlogPost {
   faq?: ReadonlyArray<{ q: string; a: string; html?: string }>;
   /** HTML shown after the FAQ, e.g. the closing call to action. */
   closingHtml?: string;
+  /**
+   * The post's FAQ is already visible inside `html` (an imported post), so it is not rendered again.
+   * Mirrored as FAQPage JSON-LD only; every question and answer must appear verbatim in `html`
+   * (checked by src/content/wp-import/playbook-seo.test.ts).
+   */
+  schemaFaq?: ReadonlyArray<{ q: string; a: string }>;
+}
+
+/** The FAQ to emit as FAQPage JSON-LD: the rendered `faq`, else the one already visible in the body. */
+export function faqForSchema(post: Pick<BlogPost, "faq" | "schemaFaq">): ReadonlyArray<{ q: string; a: string }> {
+  return post.faq?.length ? post.faq : (post.schemaFaq ?? []);
 }
 
 export const BLOG_POSTS: readonly BlogPost[] = [

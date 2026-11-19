@@ -17,7 +17,7 @@ app is built on GitHub and only the finished bundle is installed on the server:
    build's hashed chunks for CDN-cached HTML, switches `hbuilds/current`,
    recycles the LiteSpeed worker, and rolls back automatically unless
    `/api/health` reports the new `build.commit`.
-3. Confirm: `curl https://app.ypnus.com/api/health` shows `build.commit`.
+3. Confirm: `curl https://ypnus.com/api/health` shows `build.commit`.
 
 Never deploy app.ypnus.com through hPanel's Node.js "Deploy"/"Rebuild",
 Hostinger's Node.js Builds API, or an uploaded archive: on 2026-09-26 that

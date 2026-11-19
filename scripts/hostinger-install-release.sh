@@ -11,7 +11,7 @@ set -euo pipefail
 REPO="davidjmoorembaypn/ypnusa"
 BASE="${YPNUS_APP_BASE:-${HOME:-/home/u853154979}/domains/ypnus.com/app/hbuilds}"
 NODE="/opt/alt/alt-nodejs20/root/usr/bin/node"
-HEALTH_URL="https://app.ypnus.com/api/health"
+HEALTH_URL="${YPNUS_HEALTH_URL:-https://ypnus.com/api/health}"
 TAG="${1:-}"
 
 if [ -n "${YPNUS_BUILD_URL:-}" ]; then

@@ -37,7 +37,7 @@ still byte-identical to what was read.
 | File | Replaces (live) | What changed |
 |---|---|---|
 | `ypnus-lo-account-bridge.php` | *(new — does not exist live)* | Links each `wp_ypnus_lo_accounts` row to one `wp_users` row via a new nullable `wp_user_id` column, so a Stripe purchase has a code path back to the account the buyer actually logs in with. |
-| `ypnus-app-sso.php` | live v1.x (5-field signature, hardcoded `role='mlo'`) | Signs the new 8-field message (adds `tier`/`subscriptionStatus`/`trialEndsAt`), resolves real role via the bridge. app.ypnus.com already accepts both signature formats, so deploy order vs. the app doesn't matter. |
+| `ypnus-app-sso.php` | *(removed Nov 2026)* | Deleted from this repo: WordPress is retired and the app no longer has an SSO callback (`/api/auth/callback` and `src/lib/sso.ts` are gone). Sign-in is by emailed one-time link. |
 | `ypnus-brand-config.php` | live v2.2.0 | `ypn_pricing_tiers()` gains Growth, Pro/Elite prices corrected to $199/$299, `paid_stripe_trial_days` corrected 0→15, the old 14-day free-preview mechanism retired, the `<th>Growth</th>`→`<th>Pro</th>` landmine removed. |
 | `ypnus-commercial-optimize.php` | live v2.1.0 | Pricing-page CTA banner now renders from `ypn_pricing_tiers()`/`ypn_stripe_urls()` instead of its own hardcoded (and already-stale) copy of tier names/prices/Stripe links. |
 | `ypnus-supabase-signup.php` | live v1.1.0 | `/signup-config`'s `intake_page_url` now points at `https://app.ypnus.com/embed/intake` instead of the legacy static page. The legacy page is left reachable, not deleted or redirected. *(Superseded: see the deployed copy above.)* |
@@ -45,7 +45,7 @@ still byte-identical to what was read.
 ## Deployment order that avoids breaking live login
 
 1. `ypnus-lo-account-bridge.php` first (new file, inert on its own — nothing calls it yet).
-2. `ypnus-app-sso.php` (safe immediately: falls back to the old hardcoded-role, no-entitlement
+2. ~~`ypnus-app-sso.php`~~ (removed Nov 2026; this step no longer applies. Original note: safe immediately: falls back to the old hardcoded-role, no-entitlement
    behavior if the bridge somehow isn't present, and app.ypnus.com accepts either signature
    format already).
 3. `ypnus-brand-config.php`, `ypnus-commercial-optimize.php`, `ypnus-supabase-signup.php` — any

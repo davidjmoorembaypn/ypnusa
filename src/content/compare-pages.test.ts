@@ -121,6 +121,31 @@ describe("author and reviewer graph", () => {
     assert.ok(!JSON.stringify(graph).includes("tag="), "no affiliate link in structured data");
   });
 
+  it("attaches author and reviewer to the page's existing node when given its @id", () => {
+    const merged = authorReviewerGraphJsonLd({
+      url: "https://ypnus.com/compare/homebot-vs-cerebro-ai",
+      name: "Homebot vs Cerebro AI",
+      pageId: "https://ypnus.com/compare/homebot-vs-cerebro-ai#article",
+      pageType: "Article",
+    });
+    const mergedNodes = merged["@graph"] as Array<Record<string, unknown>>;
+    const node = mergedNodes.find((n) => n["@id"] === "https://ypnus.com/compare/homebot-vs-cerebro-ai#article")!;
+    assert.equal(node["@type"], "Article");
+    assert.deepEqual(node.author, { "@id": "https://ypnus.com/#person-david-moore" });
+    assert.deepEqual(node.reviewedBy, { "@id": "https://ypnus.com/#person-david-moore" });
+    // No second, competing page node, and nothing that would overwrite the page's own name or url.
+    assert.equal(mergedNodes.filter((n) => n["@type"] === "WebPage").length, 0);
+    assert.equal(node.name, undefined);
+    assert.equal(node.url, undefined);
+    assert.ok(!JSON.stringify(merged).includes("#reviewed-page"));
+  });
+
+  it("falls back to a plain WebPage node at the page's canonical #webpage id", () => {
+    const page = byType("WebPage");
+    assert.equal(page["@id"], "https://ypnus.com/research#webpage");
+    assert.equal(page.url, "https://ypnus.com/research");
+  });
+
   it("drops the author claim when the founder only reviewed the page", () => {
     const reviewed = authorReviewerGraphJsonLd({ url: "https://ypnus.com/blog/x", name: "X", written: false });
     const page = (reviewed["@graph"] as Array<Record<string, unknown>>).find((n) => n["@type"] === "WebPage")!;

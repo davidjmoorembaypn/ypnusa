@@ -66,6 +66,14 @@ export interface ReviewedPage {
   name: string;
   /** True when the founder also wrote the page; false when he only reviewed it. */
   written?: boolean;
+  /**
+   * The @id of the node the page already emits for itself (its WebPage, Article, Report...). When
+   * given, author and reviewer are attached to THAT node, so search engines merge them into one
+   * entity instead of seeing a second, competing page node. Omit it only for a page with no node.
+   */
+  pageId?: string;
+  /** The @type of that existing node. Defaults to WebPage. Must match what the page emits. */
+  pageType?: string;
 }
 
 /**
@@ -101,15 +109,24 @@ export function authorReviewerGraphJsonLd(page: ReviewedPage) {
         author: { "@id": FOUNDER_ID },
         url: BOOK_AMAZON_URL,
       },
-      {
-        "@type": "WebPage",
-        "@id": `${page.url}#reviewed-page`,
-        url: page.url,
-        name: page.name,
-        ...(page.written === false ? {} : { author: { "@id": FOUNDER_ID } }),
-        reviewedBy: { "@id": FOUNDER_ID },
-        publisher: { "@id": ORGANIZATION_ID },
-      },
+      page.pageId
+        ? {
+            // Same @id and @type as the page's own node: this only adds the people to it.
+            "@type": page.pageType ?? "WebPage",
+            "@id": page.pageId,
+            ...(page.written === false ? {} : { author: { "@id": FOUNDER_ID } }),
+            reviewedBy: { "@id": FOUNDER_ID },
+            publisher: { "@id": ORGANIZATION_ID },
+          }
+        : {
+            "@type": "WebPage",
+            "@id": `${page.url}#webpage`,
+            url: page.url,
+            name: page.name,
+            ...(page.written === false ? {} : { author: { "@id": FOUNDER_ID } }),
+            reviewedBy: { "@id": FOUNDER_ID },
+            publisher: { "@id": ORGANIZATION_ID },
+          },
     ],
   };
 }

@@ -30,10 +30,14 @@ if (!dir) {
 }
 
 const ZCTA = "860Z200US";
+/** The Census's file name prefix for this release, so downloaded files work without renaming. */
+const FILE_PREFIX = "acsdt5y2023-";
 
 /** Reads one table and returns Map<zip, Record<columnName, number>> for the estimate columns asked for. */
 function readTable(file, columns) {
-  const lines = fs.readFileSync(path.join(dir, file), "utf8").split(/\r?\n/);
+  const full = path.join(dir, `${FILE_PREFIX}${file}`);
+  if (!fs.existsSync(full)) throw new Error(`Missing ${full}. Download it from the URL at the top of this script.`);
+  const lines = fs.readFileSync(full, "utf8").split(/\r?\n/);
   const header = lines[0].split("|");
   const at = columns.map((c) => {
     const i = header.indexOf(c);

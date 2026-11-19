@@ -373,7 +373,7 @@ export function ComparisonGuidePage({ guide, origin = MARKETING_SITE_URL }: { gu
           </div>
         </section>
         <div className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6">
-          <AuthorReviewerCard path={guide.path} pageName={guide.title} />
+          <AuthorReviewerCard path={guide.path} pageName={guide.title} pageId={`${origin}${guide.path}#webpage`} />
         </div>
       </main>
       <SiteFooter />

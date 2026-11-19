@@ -8,6 +8,7 @@ import { FREE_SIGNUP_HREF, checkoutUrlForTier, payNowUrlForTier } from "@/lib/ch
 import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
 import { useCTAEngine } from "@/lib/hooks/useCTAEngine";
+import { ctaForZip, nudgesWithoutDemand } from "@/lib/cta/ctaEngine";
 
 type CheckState =
   | { status: "idle" }
@@ -131,6 +132,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   }, []);
 
   function tryAnotherZip() {
+    cta.reset();
     setCheck({ status: "idle" });
     setSubmit({ status: "idle" });
     setDetailsState("idle");
@@ -141,6 +143,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   async function runCheck(override?: string) {
     if (check.status === "checking") return;
     const clean = (override ?? zip).replace(/\D/g, "").slice(0, 5);
+    // A new lookup: drop the previous ZIP code's nudges now, not when (or if) new ones arrive.
+    cta.reset();
     syncZipToPageUrl(null);
     setZip(clean);
     if (clean.length !== 5) {
@@ -270,6 +274,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     setDetailsState(saved ? "saved" : "failed");
   }
 
+  // Only nudges built for the ZIP code on screen, and not the demand line (shown above already).
+  const activeCta = ctaForZip(cta.data, check.status === "result" ? check.zip : null);
+  const activeNudges = activeCta ? nudgesWithoutDemand(activeCta).slice(0, 2) : [];
   const showForm = check.status === "result";
   const claimed = check.status === "result" && !check.available;
   const place =
@@ -423,14 +430,11 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 ? "Pro plan, $99/mo, cancel anytime. Claiming now pays the first month and locks your ZIP code today. The 15-day trial lets you try the tools first, but someone who pays sooner can take the ZIP code."
                 : "Join the waitlist below and we'll tell you if this ZIP code opens up."}
             </p>
-            {cta.data?.microNudges?.length ? (
+            {activeNudges.length ? (
               <ul className="mt-3 space-y-1 text-[12px] leading-5 text-white/70">
-                {cta.data.microNudges
-                  .filter((nudge) => !nudge.startsWith("~"))
-                  .slice(0, 2)
-                  .map((nudge) => (
-                    <li key={nudge}>{nudge}</li>
-                  ))}
+                {activeNudges.map((nudge) => (
+                  <li key={nudge}>{nudge}</li>
+                ))}
               </ul>
             ) : null}
           </div>

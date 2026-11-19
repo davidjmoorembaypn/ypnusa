@@ -219,7 +219,7 @@ export function ComparePageView({ resolved }: { resolved: ResolvedComparePage })
                 ))}
               </ul>
             </nav>
-            <AuthorReviewerCard path={page.path} pageName={page.h1} className="mt-8" />
+            <AuthorReviewerCard path={page.path} pageName={page.h1} pageId={`${url}#article`} pageType="Article" className="mt-8" />
           </div>
         </section>
       </main>

@@ -238,7 +238,7 @@ export default function QuarterlyMortgageDemandReport() {
                 Territory audit for teams
               </Link>
             </p>
-            <AuthorReviewerCard path={REPORT_PATH} pageName={`${TITLE}, ${REPORT_EDITION}`} className="mt-8" />
+            <AuthorReviewerCard path={REPORT_PATH} pageName={`${TITLE}, ${REPORT_EDITION}`} pageId={`${url}#report`} pageType="Report" className="mt-8" />
           </div>
         </section>
       </main>

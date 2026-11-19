@@ -190,7 +190,7 @@ export default async function TopicPillarPage({ params }: { params: Promise<{ cl
           </div>
         </section>
         <div className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6">
-          <AuthorReviewerCard path={`/topics/${cluster.slug}`} pageName={cluster.title} />
+          <AuthorReviewerCard path={`/topics/${cluster.slug}`} pageName={cluster.title} pageId={`${url}#page`} pageType="CollectionPage" />
         </div>
       </main>
       <SiteFooter />

@@ -1,7 +1,6 @@
 import { FLAGSHIP_ZIPS, flagshipZip } from "@/content/zip-flagship";
 import { nearestZips, zipPlace, type ZipDistance } from "@/lib/geo/zip-geo";
-import { LOCAL_SEO_PROFILES } from "@/lib/local-seo";
-import { MARKETING_SITE_URL } from "@/lib/site";
+import { LOCAL_SEO_PROFILES, LOCAL_SEO_PUBLIC_ORIGIN } from "@/lib/local-seo";
 import { paidLedgerClaimedZips } from "@/lib/territory";
 
 /**
@@ -39,8 +38,15 @@ export function indexableZips(claimed: ReadonlySet<string> = paidLedgerClaimedZi
   return [...all].filter((zip) => zipIndexReason(zip, claimed) !== null).sort();
 }
 
+/**
+ * The one origin every /zip URL is built on: page canonical, Open Graph, JSON-LD and the sitemap
+ * entry. It is the same origin the hand-written local pages use, so the sitemap URL of a ZIP page
+ * always equals that page's canonical, whatever LOCAL_SEO_PUBLIC_ORIGIN is set to.
+ */
+export const ZIP_PUBLIC_ORIGIN = LOCAL_SEO_PUBLIC_ORIGIN;
+
 /** Self-referencing canonical: no query string, no UTM tags. */
-export function zipCanonicalUrl(zip: string, origin: string = MARKETING_SITE_URL): string {
+export function zipCanonicalUrl(zip: string, origin: string = ZIP_PUBLIC_ORIGIN): string {
   return `${origin}/zip/${zip}`;
 }
 

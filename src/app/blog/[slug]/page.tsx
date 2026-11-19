@@ -106,6 +106,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
+    "@id": `${MARKETING_SITE_URL}/blog/${post.slug}#article`,
     ...(cluster ? { articleSection: cluster.name } : {}),
     headline: post.title,
     description: post.description,
@@ -192,7 +193,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {post.closingHtml ? null : (
             <NextStepBlock step={nextStepForCluster(cluster?.slug)} source={`blog_post:${cluster?.slug ?? "none"}`} className="mt-12" />
           )}
-          <AuthorReviewerCard path={`/blog/${post.slug}`} pageName={post.title} written={byFounder} className="mt-12" />
+          <AuthorReviewerCard
+            path={`/blog/${post.slug}`}
+            pageName={post.title}
+            written={byFounder}
+            pageId={`${MARKETING_SITE_URL}/blog/${post.slug}#article`}
+            pageType="BlogPosting"
+            className="mt-12"
+          />
         </article>
         {cluster ? (
           <aside aria-labelledby="related-heading" className="mx-auto w-full max-w-3xl px-6 pb-10">

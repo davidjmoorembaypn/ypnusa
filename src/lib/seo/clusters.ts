@@ -1,5 +1,6 @@
 import type { BlogPost } from "@/content/blog";
 import { ALL_BLOG_POSTS } from "@/content/blog-all";
+import { CONSOLIDATED_POST_SLUGS } from "@/content/august-batch-consolidation";
 import { TOPIC_SEO } from "@/lib/seo/page-seo";
 
 /**
@@ -390,14 +391,21 @@ export function clusterForPost(post: Pick<BlogPost, "title" | "description">): T
   return best ?? (getCluster(DEFAULT_CLUSTER_SLUG) as TopicCluster);
 }
 
-/** Indexable posts only, newest first. */
+/**
+ * Indexable posts only, newest first. Posts folded into a stronger post by redirect
+ * (src/content/august-batch-consolidation.ts) are left out, so no listing links to a URL that redirects.
+ */
 export const INDEXABLE_POSTS: readonly BlogPost[] = [...ALL_BLOG_POSTS]
-  .filter((p) => !isThinPost(p))
+  .filter((p) => !isThinPost(p) && !CONSOLIDATED_POST_SLUGS.has(p.slug))
   .sort((a, b) => (a.date < b.date ? 1 : -1));
 
 /** Migrated posts whose keyword score lands in the wrong cluster (they carry no `cluster` field of their own). */
 const CLUSTER_OVERRIDES: Readonly<Record<string, string>> = {
   "how-to-get-more-google-reviews-as-a-loan-officer": "local-seo-for-loan-officers",
+  // Folding the 2026-08-07 batch into stronger posts (src/content/august-batch-consolidation.ts) left
+  // this cluster under the five posts a pillar needs. These two are about website lead capture.
+  "how-mlos-can-build-automated-co-branded-landing-pages-for-local-realtors": "loan-officer-websites",
+  "ai-lead-capture-tools-for-loan-officers": "loan-officer-websites",
 };
 
 const assignment = new Map<string, string>(

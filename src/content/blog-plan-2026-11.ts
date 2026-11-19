@@ -242,7 +242,7 @@ export const LOAN_OFFICER_LANDING_PAGE_CHECKLIST: BlogPost = {
 <ul>
 <li><strong>Test on your own phone</strong>, on cellular data, before you spend a dollar sending traffic.</li>
 <li><strong>Aim for Google's "good" Core Web Vitals:</strong> main content visible within about 2.5 seconds, taps that respond within about 200 milliseconds, and no layout jumping as the page loads.</li>
-<li><strong>Compress images</strong> and skip autoplay video, sliders and heavy chat widgets that load before the content. Our guide to <a href="/blog/maximizing-site-speed-core-web-vitals-for-high-converting-mlo-websites">site speed for loan officer websites</a> covers the common fixes.</li>
+<li><strong>Compress images</strong> and skip autoplay video, sliders and heavy chat widgets that load before the content.</li>
 </ul>
 
 <h2>6. Compliance details</h2>

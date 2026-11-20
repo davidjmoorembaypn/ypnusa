@@ -129,7 +129,7 @@ export function createMcpServer(options: McpServerOptions): McpServer {
           message: z.string().min(1).max(MAX_CEREBRO_MESSAGE).describe("What to say to Cerebro."),
           sessionId: z.string().min(1).max(160).optional().describe("The sessionId from an earlier reply, to continue that conversation."),
         },
-        annotations: { title: "Ask Cerebro", readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+        annotations: { title: "Ask Cerebro", readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       },
       async ({ message, sessionId }) => {
         try {

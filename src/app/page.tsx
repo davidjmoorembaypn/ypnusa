@@ -192,8 +192,8 @@ export default function Home() {
 
           <div className="max-w-xl lg:col-start-1 lg:row-start-2">
             <p className="text-lg text-white/90">
-              Cerebro answers and qualifies borrowers on your page 24/7, hands each one to you with a summary and drafts your
-              follow-ups for your OK. Paid plans add a ZIP code no other YPN USA loan officer can claim, anywhere in the country.
+              Cerebro answers and qualifies borrowers on your page 24/7, hands each one to you with a summary and emails routine
+              follow-ups for you, on its own or after your OK. Paid plans add a ZIP code no other YPN USA loan officer can claim, anywhere in the country.
             </p>
             <p className="mt-4 text-base font-semibold text-amber-200">
               Once yours is claimed, it&rsquo;s gone.

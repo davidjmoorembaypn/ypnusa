@@ -122,6 +122,10 @@ describe("toolsForMode", () => {
         "subscribe_rate_alerts",
         "platform_help",
         "mortgage_guide",
+        "housing_market_trend",
+        "mortgage_origination_trend",
+        "calculate_mortgage_scenario",
+        "calculate_income_property",
       ]),
     );
   });
@@ -140,6 +144,10 @@ describe("toolsForMode", () => {
         "save_prequal_details",
         "subscribe_rate_alerts",
         "mortgage_guide",
+        "housing_market_trend",
+        "mortgage_origination_trend",
+        "calculate_mortgage_scenario",
+        "calculate_income_property",
       ]),
     );
   });
@@ -163,6 +171,10 @@ describe("toolsForMode", () => {
         "list_appointments",
         "cancel_appointment",
         "mortgage_guide",
+        "housing_market_trend",
+        "mortgage_origination_trend",
+        "calculate_mortgage_scenario",
+        "calculate_income_property",
         "platform_help",
         "run_follow_ups",
         "draft_rate_alerts",

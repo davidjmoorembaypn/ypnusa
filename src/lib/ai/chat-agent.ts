@@ -41,6 +41,9 @@ import {
   SAVE_OFFICER_PROSPECT_TOOL,
 } from "./public-agent-tools";
 import { cancelAppointment, formatWhen, officerForAppointment, officerTimeZone } from "@/lib/appointments";
+import { ORIGINATIONS, originationTrend } from "./originations";
+import { HOUSING_MARKET, housingMarketTrend } from "./housing-market";
+import { MORTGAGE_SCENARIO, PROPERTY_SCENARIO, calculateScenario } from "./property-scenarios";
 import { executeKnowledgeTool, mortgagePreparationAnswer, MORTGAGE_GUIDE_TOOL, PLATFORM_HELP_TOOL } from "./knowledge";
 import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
 import {
@@ -101,7 +104,7 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
   if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(CHECK_TERRITORY_AVAILABILITY_TOOL);
   // Answer books: how YPN USA works (officers, and officers shopping on the site); home-loan basics (borrowers).
   if (mode === "mlo_dashboard" || mode === "public_site") tools.push(PLATFORM_HELP_TOOL);
-  tools.push(MORTGAGE_GUIDE_TOOL);
+  tools.push(MORTGAGE_GUIDE_TOOL, HOUSING_MARKET, ORIGINATIONS, MORTGAGE_SCENARIO, PROPERTY_SCENARIO);
   return tools;
 }
 
@@ -305,6 +308,15 @@ async function executeActionTool(
       const zip = typeof call.input.zip === "string" ? call.input.zip : "";
       return await executeTerritoryCheck(zip, session.mode === "mlo_dashboard" ? ctx.userEmail : undefined);
     }
+    if (call.toolName === ORIGINATIONS.name) return JSON.stringify(originationTrend(call.input));
+    if (call.toolName === HOUSING_MARKET.name) return JSON.stringify(await housingMarketTrend(call.input));
+    if ([MORTGAGE_SCENARIO.name, PROPERTY_SCENARIO.name].includes(call.toolName)) {
+      try {
+        return JSON.stringify(calculateScenario(call.toolName, call.input));
+      } catch (error) {
+        return JSON.stringify({ error: error instanceof Error ? error.message : "Check the scenario inputs." });
+      }
+    }
     if (call.toolName === "platform_help" || call.toolName === "mortgage_guide") {
       return executeKnowledgeTool(call.toolName, call.input.question);
     }
@@ -383,6 +395,7 @@ export function wrapToolData(toolName: string, output: string): string {
 }
 
 const ACTION_TOOL_NAMES = new Set([
+  HOUSING_MARKET.name, ORIGINATIONS.name, MORTGAGE_SCENARIO.name, PROPERTY_SCENARIO.name,
   "check_territory_availability",
   // get_pricing was missing here, so a "what do the plans cost?" question ended the turn on the
   // model's "let me pull that up" preface without ever running the tool.

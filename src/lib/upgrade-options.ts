@@ -1,7 +1,8 @@
 import { checkoutUrlForTier, payNowUrlForTier, prepaid5yUrlForTier } from "@/lib/checkout";
-import { getPricingTier, PREPAID_5Y, PREPAID_5Y_REFUND_WINDOW_DAYS, PREPAID_5Y_YEARS, PLAN_ENTITLEMENTS, TRIAL_DAYS } from "@/lib/pricing";
+import { getPricingTier, PREPAID_5Y, PUBLIC_MONTHLY_PRICE_CENTS, PREPAID_5Y_REFUND_WINDOW_DAYS, PREPAID_5Y_YEARS, PLAN_ENTITLEMENTS, TRIAL_DAYS } from "@/lib/pricing";
 import { BUSINESS_EMAIL } from "@/lib/author";
 import { PAID_DAILY_MESSAGE_LIMIT } from "@/lib/ai/chat-agent";
+import { STRIPE_PLANS, stripePlanCheckoutUrl } from "@/lib/stripe-plans";
 
 /**
  * What the dashboard's upgrade slide-over offers, built on the server from the live plans
@@ -19,6 +20,13 @@ export interface UpgradeOptions {
   prepaidPrice: string;
   prepaidYears: number;
   prepaidRefundDays: number;
+  /** Pro billed yearly (pay now, locks the ZIP code at once); null until its Payment Link exists. */
+  yearlyUrl: string | null;
+  yearlyPrice: string;
+  /** What a year costs billed monthly, for the comparison line. */
+  yearlyMonthlyTotal: string;
+  /** One more ZIP code for an officer who already has a plan; null until its Payment Links exist. */
+  extraZip: { monthlyUrl: string; monthlyPrice: string; yearlyUrl: string | null; yearlyPrice: string } | null;
   /** What the plan includes, from the same plan matrix the pricing page shows. */
   includes: string[];
   pricingHref: string;
@@ -42,6 +50,10 @@ export function upgradeOptions(): UpgradeOptions {
     prepaidPrice: dollars(PREPAID_5Y.growth.priceCents),
     prepaidYears: PREPAID_5Y_YEARS,
     prepaidRefundDays: PREPAID_5Y_REFUND_WINDOW_DAYS,
+    yearlyUrl: stripePlanCheckoutUrl("pro_yearly"),
+    yearlyPrice: dollars(STRIPE_PLANS.pro_yearly.priceCents),
+    yearlyMonthlyTotal: dollars(PUBLIC_MONTHLY_PRICE_CENTS.growth * 12),
+    extraZip: extraZipOptions(),
     includes: [
       ...PLAN_ENTITLEMENTS.filter((row) => row.growth !== "—").map((row) =>
         row.growth === "✓" ? row.label : `${row.label}: ${row.growth}`,
@@ -50,5 +62,16 @@ export function upgradeOptions(): UpgradeOptions {
     ],
     pricingHref: "/pricing",
     supportEmail: BUSINESS_EMAIL,
+  };
+}
+
+function extraZipOptions(): UpgradeOptions["extraZip"] {
+  const monthlyUrl = stripePlanCheckoutUrl("extra_zip_monthly");
+  if (!monthlyUrl) return null;
+  return {
+    monthlyUrl,
+    monthlyPrice: dollars(STRIPE_PLANS.extra_zip_monthly.priceCents),
+    yearlyUrl: stripePlanCheckoutUrl("extra_zip_yearly"),
+    yearlyPrice: dollars(STRIPE_PLANS.extra_zip_yearly.priceCents),
   };
 }

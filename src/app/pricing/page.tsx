@@ -6,6 +6,7 @@ import { FounderTrustStrip } from "@/components/founder-trust-strip";
 import {
   CURRENT_PAID_TIER_IDS,
   PREPAID_5Y,
+  PUBLIC_MONTHLY_PRICE_CENTS,
   PREPAID_5Y_REFUND_WINDOW_DAYS,
   PREPAID_5Y_YEARS,
   PLAN_ENTITLEMENTS,
@@ -17,6 +18,7 @@ import { TerritoryClaim } from "@/components/territory-claim";
 import { PricingCta } from "@/components/pricing-cta";
 import { PricingRoiCalculator } from "@/components/pricing-roi-calculator";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { STRIPE_PLANS, stripePlanCheckoutUrl } from "@/lib/stripe-plans";
 import { faqJsonLd, jsonLdScript, marketingMetadata, softwareApplicationJsonLd } from "@/lib/seo";
 import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { homeTrail } from "@/lib/seo/breadcrumbs";
@@ -33,6 +35,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 
+/** Offered only once their Stripe Payment Links exist (src/lib/stripe-plans.ts). */
+const PRO_YEARLY_LIVE = stripePlanCheckoutUrl("pro_yearly") !== null;
+const EXTRA_ZIP_LIVE = stripePlanCheckoutUrl("extra_zip_monthly") !== null;
+const PRO_YEARLY_PRICE = formatUsd(STRIPE_PLANS.pro_yearly.priceCents / 100);
+const EXTRA_ZIP_PRICES = `${formatUsd(STRIPE_PLANS.extra_zip_monthly.priceCents / 100)} a month or ${formatUsd(STRIPE_PLANS.extra_zip_yearly.priceCents / 100)} a year`;
+
 const PRICING_FAQ = [
   {
     q: "How much does it cost to start?",
@@ -40,7 +48,7 @@ const PRICING_FAQ = [
   },
   {
     q: "Does the 15-day trial lock my ZIP code?",
-    a: "No. The trial lets you try the tools; your ZIP code locks at your first payment. If another loan officer pays for the same ZIP code before you do, it's theirs. To lock your ZIP code today, choose \"Pay now & lock my ZIP code today\" (same monthly price, no trial) or a 5-year plan.",
+    a: `No. The trial lets you try the tools; your ZIP code locks at your first payment. If another loan officer pays for the same ZIP code before you do, it's theirs. To lock your ZIP code today, choose \"Pay now & lock my ZIP code today\" (same monthly price, no trial) or a 5-year plan${PRO_YEARLY_LIVE ? `, or Pro billed yearly at ${PRO_YEARLY_PRICE}` : ""}.`,
   },
   {
     q: "What happens after the 15-day trial?",
@@ -60,7 +68,7 @@ const PRICING_FAQ = [
   },
   {
     q: "What's an exclusive ZIP code?",
-    a: "One YPN USA loan officer holds a given ZIP code at a time, and borrower inquiries from YPN USA pages for that ZIP code route to them. Exclusivity applies within YPN USA. Each paid plan includes one ZIP code; additional ZIP codes are available as paid add-ons, subject to availability.",
+    a: `One YPN USA loan officer holds a given ZIP code at a time, and borrower inquiries from YPN USA pages for that ZIP code route to them. Exclusivity applies within YPN USA. Each paid plan includes one ZIP code; additional ZIP codes are available as paid add-ons, subject to availability.${EXTRA_ZIP_LIVE ? ` An extra ZIP code is ${EXTRA_ZIP_PRICES}, added from your dashboard.` : ""}`,
   },
 ];
 
@@ -244,6 +252,31 @@ export default function PricingPage() {
             </p>
           </div>
         </section>
+
+        {PRO_YEARLY_LIVE ? (
+          <section aria-labelledby="pro-yearly-heading" className="bg-white pt-16 text-slate-900 sm:pt-20">
+            <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4 rounded-3xl border border-violet-200 bg-violet-50 px-6 py-8 text-center sm:px-10">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-700">Pro, billed yearly</p>
+              <h2 id="pro-yearly-heading" className="text-2xl font-semibold lg:text-3xl">
+                {PRO_YEARLY_PRICE} a year: two months free, ZIP code locked today
+              </h2>
+              <p className="max-w-xl text-sm text-slate-600">
+                Everything in Pro for {formatUsd((PUBLIC_MONTHLY_PRICE_CENTS.growth * 12) / 100)} worth of monthly billing.
+                Your ZIP code locks the day you pay. Renews yearly; cancel anytime.
+              </p>
+              <PricingCta
+                tierId="growth"
+                variant="yearly"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-[#09081b] px-6 py-3 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              >
+                Get Pro yearly for {PRO_YEARLY_PRICE}
+              </PricingCta>
+              {EXTRA_ZIP_LIVE ? (
+                <p className="text-xs text-slate-500">Need more than one ZIP code? Add one for {EXTRA_ZIP_PRICES} from your dashboard.</p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         {/* ROI */}
         <section aria-labelledby="roi-heading" className="bg-white py-16 text-slate-900 sm:py-20">

@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import type { FulfillmentPayload } from "@/lib/fulfillment";
+import { stripePlanFrom } from "@/lib/stripe-plans";
 
 /**
  * Verifies a Stripe webhook payload's signature against STRIPE_WEBHOOK_SECRET
@@ -55,6 +56,10 @@ export function mapStripeEventToFulfillmentPayload(event: Stripe.Event): Fulfill
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const prepaid = prepaidTermFromMetadata(session.metadata);
+      const plan = stripePlanFrom({
+        metadataPlan: session.metadata?.ypnus_plan,
+        paymentLinkId: typeof session.payment_link === "string" ? session.payment_link : session.payment_link?.id,
+      });
       if (session.mode === "payment" && prepaid && typeof session.customer === "string") {
         const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
         if (!paymentIntentId) return null;
@@ -85,6 +90,7 @@ export function mapStripeEventToFulfillmentPayload(event: Stripe.Event): Fulfill
         eventType: "checkout.session.completed",
         paymentStatus: session.payment_status,
         tier: tierFromMetadata(session.metadata),
+        plan,
         customerEmail: session.customer_details?.email ?? session.customer_email ?? undefined,
         eventCreatedAt,
         eventId,
@@ -101,6 +107,7 @@ export function mapStripeEventToFulfillmentPayload(event: Stripe.Event): Fulfill
         eventType: event.type,
         subscriptionStatus: subscription.status,
         tier: tierFromMetadata(subscription.metadata),
+        plan: stripePlanFrom({ metadataPlan: subscription.metadata?.ypnus_plan, priceId: firstItem?.price?.id }),
         priceId: firstItem?.price?.id,
         productId: typeof firstItem?.price?.product === "string" ? firstItem.price.product : undefined,
         eventCreatedAt,

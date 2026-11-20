@@ -164,6 +164,8 @@ function liveZipSubscriptionForEmail(rawEmail: unknown): RevenueSubscriptionReco
           (subscription.status === "active" || subscription.status === "trialing") &&
           isLiveSubscription(subscription) &&
           subscription.claimedZips.length > 0 &&
+          // An extra ZIP code add-on isn't a plan: never take the officer's plan from it.
+          !subscription.addon &&
           normalizeEmail(subscription.ownerEmail) === email,
       )
       .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))[0] ?? null

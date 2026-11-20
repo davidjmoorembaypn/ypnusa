@@ -341,6 +341,8 @@ export interface RevenueSubscriptionRecord {
   stripePaymentIntentId?: string;
   /** Set when the first payment arrived but another loan officer had already paid for pendingZip. */
   zipLockConflict?: { zip: string; at: string };
+  /** An add-on (an extra ZIP code): holds its ZIP code but grants no plan access on its own. */
+  addon?: "extra_zip";
 }
 
 /** The three surfaces the AI assistant runs on — see src/lib/ai/prompts.ts. */

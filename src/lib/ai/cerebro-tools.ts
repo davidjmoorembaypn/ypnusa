@@ -553,7 +553,7 @@ function getMyAccount(ctx: MloToolContext): string {
         sub.status !== "cancelled" &&
         isLiveSubscription(sub),
     )
-    .map((sub) => ({ plan: sub.tier, status: sub.status, zipCodes: sub.claimedZips, since: sub.startedAt }));
+    .map((sub) => ({ plan: sub.addon ? "extra ZIP code add-on" : sub.tier, status: sub.status, zipCodes: sub.claimedZips, since: sub.startedAt }));
   const since30 = Date.now() - 30 * 86400000;
   const leads = officer ? db.borrowerLeads.filter((lead) => lead.assignedLoId === officer.id) : [];
   const actions = officer ? db.cerebroActions.filter((action) => action.loId === officer.id) : [];

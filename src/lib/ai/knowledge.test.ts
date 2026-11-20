@@ -35,3 +35,15 @@ describe("Cerebro answer books", () => {
     assert.match(parsed.note, /loan officer/);
   });
 });
+
+it("retrieves borrower closing answers with an official reference", () => {
+  for (const [question, expected] of [
+    ["Why did my cash to close change?", "closing_disclosure"],
+    ["What should I bring to closing?", "closing_day"],
+    ["The wire instructions changed. What do I do?", "closing_wire"],
+  ]) {
+    const topic = lookUp(MORTGAGE_GUIDE, question).topics[0];
+    assert.equal(topic.id, expected);
+    assert.match(topic.sourceUrl ?? "", /^https:\/\/www\.consumerfinance\.gov\//);
+  }
+});

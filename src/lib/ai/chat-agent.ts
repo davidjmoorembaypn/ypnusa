@@ -41,7 +41,7 @@ import {
   SAVE_OFFICER_PROSPECT_TOOL,
 } from "./public-agent-tools";
 import { cancelAppointment, formatWhen, officerForAppointment, officerTimeZone } from "@/lib/appointments";
-import { executeKnowledgeTool, MORTGAGE_GUIDE_TOOL, PLATFORM_HELP_TOOL } from "./knowledge";
+import { executeKnowledgeTool, mortgagePreparationAnswer, MORTGAGE_GUIDE_TOOL, PLATFORM_HELP_TOOL } from "./knowledge";
 import { type AiMessage, type AiProvider, type AiToolCall, type AiToolDefinition, getAiProvider } from "./provider";
 import {
   buildSystemPrompt,
@@ -101,7 +101,7 @@ export function toolsForMode(mode: AssistantMode): AiToolDefinition[] {
   if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(CHECK_TERRITORY_AVAILABILITY_TOOL);
   // Answer books: how YPN USA works (officers, and officers shopping on the site); home-loan basics (borrowers).
   if (mode === "mlo_dashboard" || mode === "public_site") tools.push(PLATFORM_HELP_TOOL);
-  if (CUSTOMER_FACING_MODES.includes(mode)) tools.push(MORTGAGE_GUIDE_TOOL);
+  tools.push(MORTGAGE_GUIDE_TOOL);
   return tools;
 }
 
@@ -434,6 +434,7 @@ export async function runWithTools(
   let lastText = "";
   /** Set after a tool-only round: the next call goes out without tools so the model must write text. */
   let textOnly = false;
+  let availableTools = tools;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     if (remaining() < MIN_ROUND_MS) {
@@ -442,7 +443,7 @@ export async function runWithTools(
     const result = await provider.generate({
       system,
       messages,
-      tools,
+      tools: availableTools,
       // Gemini tends to answer a "now write your reply" nudge with the same tool call again (or an
       // empty reply when the tool is missing), which left visitors with "Got it — one moment."
       // toolChoice none keeps the tools declared but makes it write text.
@@ -454,22 +455,27 @@ export async function runWithTools(
     // Every tool the model picked tells who the visitor is, captures included (a homebuyer wins).
     if (session.mode === "public_site") for (const call of result.toolCalls) noteAudience(session, call.toolName);
     for (const call of result.toolCalls) {
-      if (call.toolName === "capture_lead_qualification") {
+      if (call.toolName === "capture_lead_qualification" && !textOnly && availableTools === tools) {
         captureCalls.push(call);
         mergeCapture(call);
       }
     }
 
-    const actionCalls = result.toolCalls.filter((call) => ACTION_TOOL_NAMES.has(call.toolName));
+    const actionCalls = textOnly ? [] : result.toolCalls.filter((call) => ACTION_TOOL_NAMES.has(call.toolName));
     if (actionCalls.length === 0) {
-      // A tool-only turn (typically capture_lead_qualification with no text) would show the
-      // visitor nothing. Ask once for the reply in plain text instead of returning "".
-      if (!result.text.trim() && result.toolCalls.length > 0 && round < MAX_TOOL_ROUNDS - 1) {
+      // After intake, leave the other tools available for the original request.
+      // If the provider repeats the removed capture tool, require a text reply.
+      if (!textOnly && !result.text.trim() && result.toolCalls.length > 0 && round < MAX_TOOL_ROUNDS - 1) {
+        const afterCapture = availableTools.filter((tool) => tool.name !== "capture_lead_qualification");
+        const canContinue = afterCapture.length < availableTools.length && afterCapture.length > 0;
+        availableTools = afterCapture;
+        textOnly = !canContinue;
         messages.push({
           role: "user",
-          content: "[note] Your tool call was recorded. Now write your reply to the visitor in plain text.",
+          content: canContinue
+            ? "[note] Intake details recorded. Complete the visitor's original request now. Use the appropriate remaining tools before answering. Ask for missing information only when needed."
+            : "[note] Answer the visitor's original request in plain text using completed tool results.",
         });
-        textOnly = true;
         continue;
       }
       return { text: result.text, captureCalls, actionCalls: allActionCalls };
@@ -739,6 +745,9 @@ function rerouteLinkedLead(session: ChatSessionRecord): void {
  */
 export function fallbackReply(session: ChatSessionRecord): string {
   if (!CUSTOMER_FACING_MODES.includes(session.mode)) return "Done. What would you like to do next?";
+  const lastQuestion = session.messages.filter((message) => message.role === "user").at(-1)?.content;
+  const preparation = mortgagePreparationAnswer(lastQuestion ?? "");
+  if (preparation) return preparation;
   const f = session.capturedFields;
   if (!f.leadType) {
     return "Happy to help. Are you a loan officer, or are you buying, selling or refinancing a home?";
@@ -1075,7 +1084,10 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
     };
   }
 
-  const system = systemPromptFor(session);
+  const preparation = CUSTOMER_FACING_MODES.includes(session.mode) ? mortgagePreparationAnswer(userMessage) : undefined;
+  const system = preparation
+    ? systemPromptFor(session) + "\nAnswer the preparation question before asking for intake details. Use this borrower guide: " + preparation
+    : systemPromptFor(session);
   const history = trimHistoryForModel(session.messages);
   if (input.mode === "mlo_dashboard" || input.mode === "public_site") recordModelUsage(session);
 
@@ -1104,7 +1116,7 @@ export async function runAssistantTurn(input: AssistantTurnInput): Promise<Assis
       input.mode === "public_site" ? { maxTokens: 4096 } : {},
     );
 
-    reply = text.trim() || fallbackReply(session);
+    reply = text === OUT_OF_TIME_REPLY && preparation ? preparation : text.trim() || fallbackReply(session);
     if (actionCalls.some((call) => call.toolName === "request_human_handoff")) {
       handoffPhone = resolveHandoffPhone();
     }

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { BUSINESS_DESCRIPTION, BUSINESS_SERVICES } from "@/lib/business-profile";
+import { PLAN_ENTITLEMENTS, PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 
 /**
  * Cerebro's follow-up emails go out on their own by default ("live" mode) and wait for the officer only in
@@ -33,5 +34,17 @@ describe("business profile wording", () => {
     assert.ok(SHEET.includes(BUSINESS_DESCRIPTION), "docs/gbp-ready-to-paste.md has a different business description");
     assert.ok(SHEET.includes(`(${BUSINESS_DESCRIPTION.length} of 750 characters)`), "the sheet's character count is out of date");
     for (const service of BUSINESS_SERVICES) assert.ok(SHEET.includes(service.description), `the sheet is missing the ${service.name} text`);
+  });
+
+  it("does not tell visitors that every follow-up waits for approval, or that texts are sent", () => {
+    const read = (file: string) => readFileSync(join(process.cwd(), file), "utf8");
+    const pages = [read("src/app/page.tsx"), read("src/components/homepage/how-it-works.tsx")].join("\n");
+    for (const wrong of ["drafts your\n              follow-ups for your OK", "drafts SMS and email follow-up", "follow-ups for your OK."]) {
+      assert.ok(!pages.includes(wrong), `a homepage section still says "${wrong}"`);
+    }
+    assert.match(pages, /on its own/);
+    const plans = [...PUBLIC_PRICING_TIERS.flatMap((t) => t.features), ...PLAN_ENTITLEMENTS.map((r) => r.label)].join("\n");
+    assert.ok(!/SMS \+ email follow-ups/.test(plans), "a plan still promises SMS follow-ups");
+    assert.match(plans, /email follow-ups, sent for you or held for your OK/);
   });
 });

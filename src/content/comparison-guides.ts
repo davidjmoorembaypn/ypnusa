@@ -1110,7 +1110,7 @@ export const BEST_CRM_GUIDE: ComparisonGuide = {
       pricing: YPN_PRICING,
       table: {
         what: "AI assistant and local visibility; not a CRM",
-        ai: "Cerebro answers and qualifies borrowers 24/7; drafts follow-ups for your OK",
+        ai: "Cerebro answers and qualifies borrowers 24/7; emails follow-ups on its own or after your OK",
         price: "Free plan; paid from $99/mo, 15-day trial",
         bestFor: "LOs who need new borrowers feeding their CRM",
       },

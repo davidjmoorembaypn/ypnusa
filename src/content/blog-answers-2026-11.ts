@@ -606,7 +606,7 @@ export const WILL_AI_REPLACE_LOAN_OFFICERS: BlogPost = {
 <h2>What loan officers should do now</h2>
 <ol>
 <li><strong>Put an AI assistant at your front door</strong> so no borrower waits until morning. See <a href="/blog/what-ai-lead-follow-up-should-do-before-handoff">what AI follow-up should do before handing a borrower to you</a>.</li>
-<li><strong>Let AI draft, you approve.</strong> Follow-up messages, posts and agent co-marketing copy.</li>
+<li><strong>Let AI do the first draft, you stay in charge.</strong> Posts and agent co-marketing copy wait for your review. Cerebro emails routine follow-ups on its own by default, or holds them for your OK if you choose approve-first.</li>
 <li><strong>Keep the licensed work human.</strong> Rates, terms, applications and credit decisions stay with you. Our <a href="/blog/can-an-ai-chatbot-talk-to-mortgage-borrowers">chatbot compliance guide</a> lists the rules.</li>
 <li><strong>Spend the saved hours on relationships</strong>: past clients, agents and the borrowers who need real advice.</li>
 </ol>

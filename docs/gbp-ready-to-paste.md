@@ -14,10 +14,10 @@ Copy each block into the matching field in your Google Business Profile dashboar
 | Service area | United States (nationwide) and Central Valley, CA |
 | Hours | Monday to Saturday, 9:00 AM to 5:00 PM |
 
-## Business description (646 of 750 characters)
+## Business description (723 of 750 characters)
 
 ```
-YPN USA helps licensed Mortgage Loan Officers stop buying shared leads and start owning their local market. Each paid plan includes one exclusive ZIP code within YPN USA, a local page for that ZIP code, and Cerebro AI, an assistant that answers borrower questions 24/7, qualifies them and hands ready borrowers to the loan officer with a summary. Cerebro also drafts follow-up messages, local posts and Realtor co-marketing for the loan officer to review. Higher plans add a portable loan officer website and local city pages. Headquartered in Dinuba, CA, YPN USA serves mortgage professionals nationwide. Marketing technology only, not a lender.
+YPN USA helps licensed Mortgage Loan Officers stop buying shared leads and start owning their local market. Each paid plan includes one exclusive ZIP code within YPN USA, a local page for that ZIP code, and Cerebro AI, an assistant that answers borrower questions 24/7, qualifies them and hands ready borrowers to the loan officer with a summary. Cerebro also emails borrowers check-ins and first replies for the loan officer, on its own or after the officer approves them, and drafts local posts and Realtor co-marketing to review. Higher plans add a portable loan officer website and local city pages. Headquartered in Dinuba, CA, YPN USA serves mortgage professionals nationwide. Marketing technology only, not a lender.
 ```
 
 This is your description, trimmed to what the product does today. Left out: "turnkey, high-converting mortgage websites", "automated borrower engagement", "compliance-ready local program pages" and "permanent digital assets".
@@ -46,7 +46,7 @@ This is your description, trimmed to what the product does today. Left out: "tur
    ```
 6. **Borrower Follow-Up Assistant**
    ```
-   Cerebro spots which borrowers need a follow-up and drafts the text or email. You approve each message before it goes out.
+   Cerebro spots which borrowers need a follow-up and writes the email. By default it sends check-ins, first replies and rate alerts on its own to borrowers who agreed to be contacted, after compliance checks; in approve-first mode it holds each one for your OK. No texts or calls.
    ```
 
 ### Your original wording the product does not support yet
@@ -57,9 +57,9 @@ Not used on the site or above. Use it only once the feature is live.
 | --- | --- | --- |
 | Turnkey Mortgage Website Design | "High-converting, compliance-ready custom websites" | A public borrower page per paying officer, and a "portable MLO website" listed on Growth and Exclusive |
 | Hyper-Local Mortgage SEO Engine | "Automated ... city/ZIP landing pages engineered to rank" | A ZIP code page plus city pages; no ranking promise |
-| 24/7 AI Lead Capture | "Instant SMS/email engagement, and CRM lead routing" | Cerebro answers, qualifies and routes to you; it sends no texts or emails by itself |
+| 24/7 AI Lead Capture | "Instant SMS/email engagement, and CRM lead routing" | Cerebro answers, qualifies and routes to you, and emails check-ins, first replies and rate alerts (on its own by default, or after your approval); it sends no texts |
 | Realtor Co-Marketing Systems | "Automated co-branded listing tools and partner portals" | Cerebro drafts co-marketing posts; there are no listing tools or partner portals |
-| Automated Borrower Nurture Funnels | "Multi-day SMS and email follow-up workflows" | Cerebro drafts each follow-up and you approve it; nothing sends automatically |
+| Automated Borrower Nurture Funnels | "Multi-day SMS and email follow-up workflows" | Cerebro emails individual check-ins, first replies and rate alerts (on its own by default, or after your approval); it sends no texts or calls |
 
 ## Q&A seed entries
 

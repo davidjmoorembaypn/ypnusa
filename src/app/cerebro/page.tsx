@@ -51,7 +51,7 @@ const HANDOFF_STEPS: Array<[string, string]> = [
 
 const DASHBOARD: Array<[string, string]> = [
   ["Growth plan", "A plan for your ZIP code, built from what you tell Cerebro about your market and goals."],
-  ["Pipeline", "Who reached out, what they asked and who needs a call today, with follow-up drafted for your review."],
+  ["Pipeline", "Who reached out, what they asked and who needs a call today, with follow-up emails sent on its own or held for your approval."],
   ["Marketing drafts", "Posts and profile updates ready to edit and publish, so you're never starting from a blank page."],
 ];
 

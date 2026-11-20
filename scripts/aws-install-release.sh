@@ -196,6 +196,21 @@ else
 fi
 trap - ERR
 
+# Tell IndexNow about the pages of the build that is now live. This can never change the deploy
+# result: it runs only after verification passed, and any failure here is just a warning.
+# YPNUSA_SKIP_INDEXNOW=1 turns it off; YPNUSA_INSTALL_INDEXNOW lets the tests point at a stub.
+indexnow="${YPNUSA_INSTALL_INDEXNOW:-$dest/scripts/ping-indexnow.mjs}"
+if [ "${YPNUSA_SKIP_INDEXNOW:-0}" != "1" ] && [ -f "$indexnow" ]; then
+  echo "=== IndexNow ping (never fails the deploy)"
+  node_bin="$(command -v node || true)"
+  if [ -z "$node_bin" ] && [ -x /opt/node/bin/node ]; then node_bin=/opt/node/bin/node; fi
+  if [ -n "$node_bin" ] && timeout 120 "$node_bin" "$indexnow"; then
+    :
+  else
+    echo "WARNING: the IndexNow ping failed or node was not found; the deploy itself is fine. Run 'node $indexnow' by hand to retry." >&2
+  fi
+fi
+
 echo "=== Prune old releases (keep the 5 newest, skip the live one)"
 cd "$BASE/releases"
 ls -1dt */ 2>/dev/null | sed 's#/$##' | tail -n +6 | while read -r d; do

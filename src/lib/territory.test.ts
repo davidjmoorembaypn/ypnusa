@@ -26,11 +26,8 @@ describe("territory availability reflects only real claims", async () => {
   const { writeDb } = await import("./db");
   const { checkTerritory, totalClaimedTerritories } = await import("./territory");
   const { scoreZip, suggestTerritory } = await import("./agents/zipLogicAgent");
-  const savedSource = process.env.TERRITORY_SOURCE;
 
   after(() => {
-    if (savedSource === undefined) delete process.env.TERRITORY_SOURCE;
-    else process.env.TERRITORY_SOURCE = savedSource;
     fs.rmSync(dataDir, { recursive: true, force: true });
   });
 
@@ -61,7 +58,6 @@ describe("territory availability reflects only real claims", async () => {
   });
 
   it("zip agent reports availability only and recognises the viewer's own ZIP code", async () => {
-    process.env.TERRITORY_SOURCE = "local";
     writeDb((db) => {
       db.revenueSubscriptions = [sub({ claimedZips: ["93720"], ownerEmail: "Owner@Example.com" })];
     });

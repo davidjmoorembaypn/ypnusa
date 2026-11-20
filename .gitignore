@@ -42,3 +42,7 @@ next-env.d.ts
 /data/store.json
 /data/session-secret.key
 /data/officer-photos/
+
+# Local agent tooling config (kept on each machine, not in the repo)
+.codex/
+.agents/skills/run-ypnusa/

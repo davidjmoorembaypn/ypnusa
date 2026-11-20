@@ -57,8 +57,11 @@ You land as `root`.
    switches the `current` symlink, restarts `ypnusa.service`, and **rolls back
    automatically** if `/api/health` doesn't report the new commit within ~30s.
    It prunes old releases down to the 5 newest (skipping whichever is live).
-4. Confirm from anywhere: `curl https://app.ypnus.com/api/health` shows the new
+4. Confirm from anywhere: `curl https://ypnus.com/api/health` shows the new
    `build.commit`.
+   `app.ypnus.com` still resolves to this host, but it now answers every request with a 301 to
+   `ypnus.com`, so it can no longer be used for the health check. On the box itself the installer
+   checks `http://127.0.0.1:3000/api/health` directly.
 
 ### Auto-install (pull-based)
 
@@ -115,3 +118,15 @@ again, re-generalize it the same way and `systemctl daemon-reload`.
   or the Vercel preview projects auto-deployed from this same GitHub repo —
   three different places this code can end up running, only this one is
   production.
+
+## IndexNow (tell search engines about new pages)
+
+`node scripts/ping-indexnow.mjs` submits every ypnus.com URL in `/sitemap.xml` and
+`/local-seo-sitemap.xml` to IndexNow (`--dry-run` lists them without sending). It uses the
+key in `public/<32 hex>.txt` and refuses to run unless that file is live on production.
+
+`scripts/aws-install-release.sh` runs it automatically after a deploy passes its health check
+(never after a rollback). A failure there only prints a warning and does not change the deploy's
+exit code. `YPNUSA_SKIP_INDEXNOW=1` turns it off; to retry by hand run
+`node /opt/ypnusa/current/scripts/ping-indexnow.mjs`. The updater runs the installer from the
+release being installed, so the hook starts working with the first release that contains it.

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { TerritoryClaim } from "@/components/territory-claim";
 import { PredictiveHomepageEngine } from "@/components/homepage/PredictiveHomepageEngine";
 import { HeroVideo } from "@/components/homepage/HeroVideo";
+import { HowItWorks } from "@/components/homepage/how-it-works";
+import { ClientCalculatorPreview } from "@/components/homepage/client-calculator-preview";
 import { FloatingAssistantLazy } from "@/components/assistant/floating-assistant-lazy";
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 import { SiteHeader } from "@/components/site-header";
@@ -141,10 +143,11 @@ export default function Home() {
         <div className="relative z-10 mx-auto grid w-full max-w-6xl items-start gap-6 px-4 pb-14 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-x-12 lg:gap-y-8 lg:py-24">
           <div className="max-w-xl lg:col-start-1 lg:row-start-1">
             <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
-              For licensed mortgage loan officers
+              For licensed mortgage loan officers nationwide
             </span>
             <h1 className="mt-5 text-balance text-[2rem] font-semibold leading-[1.1] sm:text-4xl lg:mt-6 lg:text-[3.4rem] lg:leading-[1.08]">
-              Own your ZIP code. <span className="text-violet-300">Let Cerebro answer every borrower while you close loans.</span>
+              Stop losing borrowers to the lender who answered first.{" "}
+              <span className="text-violet-300">Cerebro answers them for you, day and night.</span>
             </h1>
 
             {/* Real, verifiable credentials only (see /about); no invented reviews, awards or user counts. */}
@@ -189,11 +192,11 @@ export default function Home() {
 
           <div className="max-w-xl lg:col-start-1 lg:row-start-2">
             <p className="text-lg text-white/90">
-              Mortgage lead generation built for loan officers: local pages that bring borrowers to you, Cerebro answering
-              and qualifying them day and night, and one ZIP code per paid plan that no other YPN USA loan officer can claim.
+              Cerebro answers and qualifies borrowers on your page 24/7, hands each one to you with a summary and drafts your
+              follow-ups for your OK. Paid plans add a ZIP code no other YPN USA loan officer can claim, anywhere in the country.
             </p>
             <p className="mt-4 text-base font-semibold text-amber-200">
-              One loan officer per ZIP code. Once yours is claimed, it&rsquo;s gone.
+              Once yours is claimed, it&rsquo;s gone.
             </p>
 
             <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-white/75">
@@ -223,6 +226,24 @@ export default function Home() {
             </OpenAssistantButton>
 
             <PredictiveHomepageEngine />
+          </div>
+        </div>
+      </section>
+
+      <HowItWorks />
+
+      {/* CLIENT CALCULATOR PREVIEW */}
+      <section id="calculator-preview" className="bg-slate-50 py-16 text-slate-900">
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className={EYEBROW_LIGHT}>Co-branded client tool</p>
+            <h2 className={H2}>Your borrowers and Realtor partners get a calculator with your name on it</h2>
+            <p className="mt-4 text-slate-700">
+              Try the preview. Once you claim a ZIP code, this payment and buying-power calculator is branded with your name and NMLS #.
+            </p>
+          </div>
+          <div className="mt-10">
+            <ClientCalculatorPreview source="home" />
           </div>
         </div>
       </section>

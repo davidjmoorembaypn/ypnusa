@@ -13,6 +13,7 @@ import { InstallAppCard } from "@/components/pwa/install-app-card";
 import { PhoneAlertsCard } from "@/components/pwa/phone-alerts-card";
 import { APP_THEME_COLOR } from "@/lib/pwa/theme";
 import { VisibilityScoreCard } from "@/components/visibility-score-card";
+import { MarketingKitCard } from "@/components/marketing-kit/marketing-kit-card";
 import { computeVisibilityScore } from "@/lib/visibility-score";
 import { requireSession } from "@/lib/auth";
 import { isPaidEntitlement, resolveEntitlement } from "@/lib/entitlements";
@@ -286,6 +287,8 @@ export default async function DashboardHubPage({
           score={computeVisibilityScore({ userId: session.sub, email: session.email })}
           chatAnchorId="cerebro-chat"
         />
+
+        <MarketingKitCard userId={session.sub} entitlement={entitlement} isAdmin={isAdmin} />
 
         <DashboardUpsell
           part="cerebro"

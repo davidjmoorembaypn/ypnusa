@@ -1,4 +1,4 @@
-import { decryptValue, encryptValue } from "@/lib/crypto/pii";
+import { decryptValue, encryptValue, isEncryptedValue, piiEncryptionStatus } from "@/lib/crypto/pii";
 import { ensureHouseOfficer } from "@/lib/crm";
 import { readDb, writeDb } from "@/lib/db";
 import { signValue, verifySignedValue } from "@/lib/session";
@@ -14,20 +14,29 @@ import type { LoanOfficerRecord } from "@/lib/types";
  * Calendar" says it isn't available yet and bookings keep using the officer's set hours plus an
  * emailed calendar invite.
  *
- * Scopes: calendar.events (create and delete the booked event) and calendar.freebusy (see when
- * the officer is busy, never what the events are). The refresh token is stored encrypted on the
+ * Scopes: calendar.events (create and delete the booked event), calendar.freebusy (see when
+ * the officer is busy, never what the events are) and calendar.settings.readonly (their time zone). The refresh token is stored encrypted on the
  * officer's record; access tokens live only in memory.
  */
 
 export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.freebusy",
+  // Only to read the officer's calendar time zone when they connect.
+  "https://www.googleapis.com/auth/calendar.settings.readonly",
 ];
 
 const STATE_MAX_AGE_MS = 15 * 60 * 1000;
 
+/**
+ * Connecting needs the OAuth client and working at-rest encryption: a refresh token is a
+ * long-lived credential and is never stored in plain text.
+ */
 export function googleOAuthConfigured(): boolean {
-  return Boolean(process.env.GOOGLE_OAUTH_CLIENT_ID?.trim() && process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim());
+  return (
+    Boolean(process.env.GOOGLE_OAUTH_CLIENT_ID?.trim() && process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim()) &&
+    piiEncryptionStatus() === "on"
+  );
 }
 
 export function googleRedirectUri(): string {
@@ -117,12 +126,14 @@ export async function completeGoogleConnection(loId: string, code: string): Prom
   } catch {
     // Keep the officer's existing time zone.
   }
+  const sealed = encryptValue(tokens.refresh_token);
+  if (!isEncryptedValue(sealed)) return { ok: false, error: "Calendar connection needs encryption turned on on the server." };
   writeDb((db) => {
     const officer = db.loanOfficers.find((item) => item.id === loId);
     if (!officer) return;
     officer.calendarProvider = "google";
     officer.calendarId = "primary";
-    officer.googleRefreshToken = encryptValue(tokens.refresh_token!) as string;
+    officer.googleRefreshToken = sealed;
     officer.googleConnectedAt = new Date().toISOString();
     if (timeZone) officer.calendarTimeZone = timeZone;
   });

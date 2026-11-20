@@ -8,6 +8,7 @@ import { logApiError } from "@/lib/http";
 import { PAID_PRICING_TIERS, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import { stripePlan } from "@/lib/stripe-plans";
+import { scheduleZipLockHook } from "@/lib/zip-scarcity";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 import { optionalText, requiredText } from "@/lib/validation";
 
@@ -343,10 +344,15 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         lastStripeEventId: eventId,
         lastStripeEventCreatedAt: eventCreatedAt,
       };
-  const { record: saved, zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(
+  const { record: saved, zipClaimed, zipConflict, zipNewlyLocked } = saveRevenueSubscriptionWithZipClaim(
     withPlan(record, payload.plan),
     isTrialCheckout ? null : zipToClaim,
   );
+  // Only a ZIP code that truly went from open to locked logs the neighbor alert (async, never blocks
+  // this webhook). A same-customer transfer or replacement is not new scarcity.
+  if (zipNewlyLocked && zipToClaim) {
+    scheduleZipLockHook(zipToClaim, saved.id, "checkout");
+  }
   if (zipConflict && zipToClaim) {
     // Paid, but another officer locked this ZIP code first. Flag it so the dashboard asks
     // the officer to pick an open one (see @/lib/zip-availability claimReplacementZip).
@@ -402,7 +408,8 @@ export function lockZipOnPaidInvoice(input: {
   if (!zip) return { applied: false, reason: "No pending ZIP code to lock." };
 
   const paid: RevenueSubscriptionRecord = { ...existing, status: "active", pendingZip: undefined, zipLockConflict: undefined };
-  const { zipClaimed, zipConflict } = saveRevenueSubscriptionWithZipClaim(paid, zip);
+  const { zipClaimed, zipConflict, zipNewlyLocked } = saveRevenueSubscriptionWithZipClaim(paid, zip);
+  if (zipNewlyLocked) scheduleZipLockHook(zip, existing.id, "first_payment");
   if (zipConflict) {
     saveRevenueSubscriptionWithZipClaim({ ...paid, zipLockConflict: { zip, at: new Date().toISOString() } }, null);
     logApiError(

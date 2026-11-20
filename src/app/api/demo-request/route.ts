@@ -5,7 +5,7 @@ import { LEAD_MESSAGE_MAX_LENGTH } from "@/lib/lead-sources";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { isValidZip, normalizeZip } from "@/lib/territory";
-import { fetchLiveTerritory } from "@/lib/live-territory";
+import { checkLedgerTerritory } from "@/lib/territory-ledger";
 import type { DemoRequestRecord } from "@/lib/types";
 import { isValidEmail, optionalText } from "@/lib/validation";
 import { escapeHtml, notifyOwnerOfLead } from "@/lib/email";
@@ -185,9 +185,9 @@ async function handlePost(request: Request) {
       consentAt: consent ? new Date().toISOString() : undefined,
     };
 
-    // This captures interest only. The live ledger, not seeded demo reservations,
+    // This captures interest only. The paid ledger, not seeded demo reservations,
     // determines availability; saving an inquiry must not claim paid exclusivity.
-    const territory = zip ? await fetchLiveTerritory(zip) : null;
+    const territory = zip ? checkLedgerTerritory(zip) : null;
     appendDemoRequest(record);
 
     appendAnalytics({

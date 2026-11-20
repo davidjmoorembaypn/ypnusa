@@ -3,7 +3,7 @@ import { SiloNav } from "@/components/silo-nav";
 import { NextStepBlock } from "@/components/next-step";
 import { CLUSTER_NEXT_STEPS } from "@/lib/cta/next-steps";
 import Link from "next/link";
-import { CopySnippet } from "@/components/copy-snippet";
+import { EmbedCodeModal } from "@/components/embed/embed-code-modal";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { marketingMetadata } from "@/lib/seo";
 import { PAGE_SEO } from "@/lib/seo/page-seo";
@@ -24,15 +24,8 @@ const BREADCRUMB_ITEMS = [
   { name: "Embeddable tools", href: "/embed" },
 ];
 
-function snippet(origin: string, path: string, height: number, title: string, creditPath: string, credit: string) {
-  return `<iframe src="${origin}${path}" title="${title}" width="100%" height="${height}" style="border:0;max-width:640px" loading="lazy"></iframe>
-<p style="font-size:12px"><a href="${origin}${creditPath}">${credit}</a></p>`;
-}
-
 export default async function EmbedLandingPage() {
   const origin = MARKETING_SITE_URL;
-  const equity = snippet(origin, "/embed/equity", 820, "Home equity snapshot", "/tools/equity", "Home equity calculator by YPN USA");
-  const intake = snippet(origin, "/embed/intake", 760, "Mortgage borrower intake assistant", "/ai-platform", "Mortgage lead assistant by YPN USA");
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -44,7 +37,7 @@ export default async function EmbedLandingPage() {
       <p className="mt-4 text-base leading-7 text-white/70">
         Give your visitors something useful to do on your own site. Copy one of the snippets below into
         your page (WordPress custom HTML block, Wix, Squarespace or any HTML page). Both tools are free.
-        The small credit line under each widget links back to YPN USA, and we appreciate you keeping it.
+        Each widget shows a small &ldquo;Powered by Cerebro AI&rdquo; line, and the credit line under it links back to YPN USA. We appreciate you keeping both.
       </p>
 
       <section className="mt-10">
@@ -53,7 +46,15 @@ export default async function EmbedLandingPage() {
           Visitors enter their home value and mortgage balance and see estimated equity and loan-to-value.
           Results are illustrative only.
         </p>
-        <CopySnippet code={equity} label="Home equity snapshot" />
+        <EmbedCodeModal
+          origin={origin}
+          path="/embed/equity"
+          height={860}
+          title="Home equity snapshot"
+          creditPath="/tools/equity"
+          creditText="Home equity calculator by YPN USA"
+          allowBranding
+        />
         <p className="mt-2 text-xs text-white/50">
           <Link href="/tools/equity" className="underline hover:text-white">
             See the full-page version
@@ -67,7 +68,14 @@ export default async function EmbedLandingPage() {
           A chat assistant that answers common mortgage questions and collects a borrower&apos;s details for
           follow-up. It is informational only and does not make credit decisions.
         </p>
-        <CopySnippet code={intake} label="AI intake assistant" />
+        <EmbedCodeModal
+          origin={origin}
+          path="/embed/intake"
+          height={800}
+          title="Mortgage borrower intake assistant"
+          creditPath="/ai-platform"
+          creditText="Mortgage lead assistant by YPN USA"
+        />
       </section>
 
       <p className="mt-12 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-white/50">

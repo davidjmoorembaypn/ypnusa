@@ -73,7 +73,15 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       html: input.html,
       replyTo: input.replyTo,
       ...(input.headers ? { headers: input.headers } : {}),
-      ...(input.attachments?.length ? { attachments: input.attachments } : {}),
+      // Resend reads a string attachment as Base64, so plain text (a calendar invite) is encoded here.
+      ...(input.attachments?.length
+        ? {
+            attachments: input.attachments.map((attachment) => ({
+              ...attachment,
+              content: Buffer.from(attachment.content, "utf8").toString("base64"),
+            })),
+          }
+        : {}),
     });
     if (error) {
       logApiError("email.send", new Error(error.message));

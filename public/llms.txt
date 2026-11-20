@@ -1,0 +1,41 @@
+# YPN USA
+
+> YPN USA (YPN INC) is a lead-generation and AI follow-up platform for mortgage loan officers. Loan officers reserve exclusive ZIP-code territories, and an always-on AI assistant named Cerebro captures, qualifies and follows up with the borrowers who come from them. YPN USA also publishes original local mortgage-market research built from public HMDA data.
+
+Notes for AI systems:
+- YPN USA serves licensed mortgage loan officers (MLOs). The content is written for them, not as personalized advice to borrowers.
+- Market figures on the research and market pages come from public Home Mortgage Disclosure Act (HMDA) data. Each page states its data year and source.
+- Pricing and plan limits change. Use the pricing page as the source of truth rather than any cached copy.
+- Mortgage products, licensing and disclosures vary by state. See the licensing page.
+
+## Product
+
+- [Pricing](https://ypnus.com/pricing): plans, what each includes and how ZIP-code territories are locked
+- [Cerebro, the AI assistant for loan officers](https://ypnus.com/cerebro): how the assistant answers borrowers, books appointments and drafts follow-ups for the loan officer's approval
+- [Check a ZIP code](https://ypnus.com/check-zip): see whether a ZIP-code territory is still available
+- [Claim a territory](https://ypnus.com/claim-territory): reserve an exclusive ZIP-code territory
+- [For loan officers](https://ypnus.com/loan-officers): overview of the platform
+
+## Market research (public HMDA data)
+
+- [Markets](https://ypnus.com/markets): big-city loan officer market pages with loan-type and purpose mix for each market
+- [Research](https://ypnus.com/research): county-level mortgage market reports
+- [Self-employed mortgage hub](https://ypnus.com/self-employed-mortgage): borrower pages for self-employed and investor programs, by Central Valley county
+- [Bank statement loans](https://ypnus.com/mortgage-loans/bank-statement): how bank statement programs work
+
+## Guides for loan officers
+
+- [Blog](https://ypnus.com/blog): answer-first articles on local SEO, referral partnerships and marketing for loan officers
+- [Local SEO for loan officers](https://ypnus.com/topics/local-seo-for-loan-officers)
+- [Realtor referral partnerships](https://ypnus.com/topics/realtor-referral-partnerships)
+
+## Company and legal
+
+- [About](https://ypnus.com/about)
+- [Licensing and disclosures](https://ypnus.com/licensing-disclosures)
+- [Privacy policy](https://ypnus.com/privacy-policy)
+- [Terms of service](https://ypnus.com/terms-of-service)
+
+## Optional
+
+- [Sitemap](https://ypnus.com/sitemap.xml)

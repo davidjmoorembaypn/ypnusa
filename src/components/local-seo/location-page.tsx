@@ -1,8 +1,13 @@
 import Link from "next/link";
+import { selfEmployedPathForCountyName } from "@/content/self-employed-loans";
 import { SiloNav } from "@/components/silo-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { ZipTerritoryBanner } from "@/components/local-seo/zip-territory-banner";
+import { ZipLocalIntelSection } from "@/components/local-seo/zip-local-intel";
+import type { ZipLocalIntel } from "@/content/zip-local-intel";
+import type { ZipDistance } from "@/lib/geo/zip-geo";
 import {
   LOCAL_SEO_PROFILES,
   LOCAL_SEO_PUBLIC_ORIGIN,
@@ -19,6 +24,8 @@ import {
 interface LocationPageProps {
   profile: LocalSeoProfile;
   business: PublicBusinessProfile;
+  /** ZIP code pages that pass the indexation gate: local facts, FAQs and indexable neighbor links. */
+  zipIntel?: { intel: ZipLocalIntel; neighbors: ZipDistance[] };
 }
 
 function LocalMetrics({ metrics }: Pick<LocalSeoProfile, "metrics">) {
@@ -224,7 +231,7 @@ function ReviewSection({
   );
 }
 
-export async function LocationPage({ profile, business }: LocationPageProps) {
+export async function LocationPage({ profile, business, zipIntel }: LocationPageProps) {
   const reviewFeed = await loadGbpReviews(business);
   const reviewUrl = buildGoogleReviewUrl(business.placeId);
   const canonicalUrl = `${LOCAL_SEO_PUBLIC_ORIGIN}${getLocalSeoPath(profile)}`;
@@ -340,6 +347,8 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
           </div>
         </section>
 
+        {profile.kind === "zip" ? <ZipTerritoryBanner zip={profile.slug} city={profile.city} state={profile.stateCode} /> : null}
+
         <section className="mx-auto grid max-w-6xl gap-10 px-6 py-16 lg:grid-cols-[1fr_22rem]">
           <div className="space-y-10">
             <article>
@@ -384,6 +393,8 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
           </article>
         </section>
 
+        {zipIntel ? <ZipLocalIntelSection intel={zipIntel.intel} neighbors={zipIntel.neighbors} /> : null}
+
         <section className="mx-auto max-w-6xl px-6 pb-16">
           <ReviewSection feed={reviewFeed} reviewUrl={reviewUrl} />
         </section>
@@ -406,6 +417,17 @@ export async function LocationPage({ profile, business }: LocationPageProps) {
                 ))}
               </div>
             </div>
+          </section>
+        ) : null}
+
+        {selfEmployedPathForCountyName(profile.county) ? (
+          <section className="mx-auto max-w-6xl px-6 pt-12">
+            <p className="text-slate-700">
+              Self-employed or buying a rental in {profile.county}?{" "}
+              <Link href={selfEmployedPathForCountyName(profile.county)!} className="font-semibold text-violet-700 underline">
+                Bank statement and DSCR loans in {profile.county}
+              </Link>
+            </p>
           </section>
         ) : null}
 

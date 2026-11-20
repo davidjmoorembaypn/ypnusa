@@ -62,16 +62,13 @@
     SSLProxyCheckPeerCN on
     SSLProxyCheckPeerExpire on
 
-    ProxyPass        /wp-json/    https://@WP_ORIGIN_HOST@/wp-json/    nocanon
-    ProxyPassReverse /wp-json/    https://@WP_ORIGIN_HOST@/wp-json/
-    ProxyPass        /wp-admin/   https://@WP_ORIGIN_HOST@/wp-admin/
-    ProxyPassReverse /wp-admin/   https://@WP_ORIGIN_HOST@/wp-admin/
+    # /wp-json/, /wp-admin/ and /wp-login.php are NOT proxied (removed Nov 2026, WordPress retired).
+    # They fall through to the Next.js app below, which answers 410 Gone (src/lib/gone.ts), so no
+    # public WordPress login form remains. Do not add them back.
     ProxyPass        /wp-content/ https://@WP_ORIGIN_HOST@/wp-content/
     ProxyPassReverse /wp-content/ https://@WP_ORIGIN_HOST@/wp-content/
     ProxyPass        /wp-includes/ https://@WP_ORIGIN_HOST@/wp-includes/
     ProxyPassReverse /wp-includes/ https://@WP_ORIGIN_HOST@/wp-includes/
-    ProxyPass        /wp-login.php https://@WP_ORIGIN_HOST@/wp-login.php
-    ProxyPassReverse /wp-login.php https://@WP_ORIGIN_HOST@/wp-login.php
     ProxyPassMatch   "^/((lo-[A-Za-z0-9_-]+|check-zip|pricing|onboarding|ypn-ai-borrower-intake|predictive-intelligence)\.html)$" "https://@WP_ORIGIN_HOST@/$1"
 
     # --- Everything else: the Next.js app ---

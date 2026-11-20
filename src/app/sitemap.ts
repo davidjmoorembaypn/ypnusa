@@ -5,6 +5,19 @@ import { LOCAL_SEO_PROFILES, getLocalSeoPath } from "@/lib/local-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { MLO_MARKETS } from "@/content/mlo-markets";
 import { REPORT_COUNTIES } from "@/content/market-report";
+import { METRO_MARKETS, metroPath } from "@/content/metro-markets";
+import { METRO_DATA_FETCHED_ON } from "@/content/metro-markets-data";
+import { RATE_SHEET_LINKS_CHECKED_ON } from "@/content/rate-sheet-directory";
+import { indexableZips, zipCanonicalUrl } from "@/lib/zip-index";
+import { COMPARE_PAGES } from "@/content/compare-pages";
+import { REPORT_PATH, REPORT_PUBLISHED } from "@/lib/demand-report";
+import {
+  BANK_STATEMENT_PATH,
+  SELF_EMPLOYED_HUB_PATH,
+  SELF_EMPLOYED_LAST_MODIFIED,
+  SELF_EMPLOYED_COUNTY_ANGLES,
+  selfEmployedCountyPath,
+} from "@/content/self-employed-loans";
 import { COMPARISON_GUIDES, COMPARISON_GUIDES_LAST_MODIFIED } from "@/content/comparison-guides";
 import {
   WP_TOP_PAGES,
@@ -17,6 +30,9 @@ import {
   WP_TERRITORY_PAGES,
   type WpImportedPage,
 } from "@/content/wp-import";
+
+/** Rebuilt hourly so a newly claimed ZIP code's page joins the sitemap (and a released one leaves). */
+export const revalidate = 3600;
 
 /**
  * Intentionally small sitemap for the product app.
@@ -104,14 +120,40 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${origin}/tools/equity`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/gbp-optimizer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${origin}/tools/social-writer`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
+    // Three head-to-head comparison pages and the quarterly demand report: the only editorial URLs added Nov 19, 2026.
+    ...COMPARE_PAGES.map((page) => ({
+      url: `${origin}${page.path}`,
+      lastModified: new Date(`${page.dateModified}T00:00:00.000Z`),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    { url: `${origin}${REPORT_PATH}`, lastModified: new Date(`${REPORT_PUBLISHED}T00:00:00.000Z`), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${origin}/teams/territory-audit`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${origin}/rate-sheets`, lastModified: new Date(`${RATE_SHEET_LINKS_CHECKED_ON}T00:00:00.000Z`), changeFrequency: "monthly", priority: 0.6 },
     ...PROGRAM_LIST.map((program) => ({
       url: `${origin}/mortgage-loans/${program.toLowerCase()}`,
-      lastModified: MARKETING_LAST_MODIFIED,
+      lastModified: program === "DSCR" ? new Date(`${SELF_EMPLOYED_LAST_MODIFIED}T00:00:00.000Z`) : MARKETING_LAST_MODIFIED,
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
-    // City pages only (a handful, hand-written). ZIP pages stay out on purpose: see the
-    // comment above about not flooding Google's "Not indexed" queue.
+    // Self-employed and investor borrower pages (src/content/self-employed-loans.ts). The DSCR
+    // page above was rewritten the same day, so it shares this lastmod.
+    ...[BANK_STATEMENT_PATH, SELF_EMPLOYED_HUB_PATH, ...REPORT_COUNTIES.filter((c) => SELF_EMPLOYED_COUNTY_ANGLES[c.slug]).map(selfEmployedCountyPath)].map((path) => ({
+      url: `${origin}${path}`,
+      lastModified: new Date(`${SELF_EMPLOYED_LAST_MODIFIED}T00:00:00.000Z`),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    // City pages (a handful, hand-written), then ZIP pages that pass the indexation gate in
+    // src/lib/zip-index.ts: 15 flagship ZIP codes, hand-written profiles and ZIP codes a paying loan
+    // officer holds. Every other ZIP page is noindex and stays out, per the warning above.
+    ...indexableZips().map((zip) => ({
+      // Built by the same function as the page's canonical, so the two can never differ.
+      url: zipCanonicalUrl(zip),
+      lastModified: SEO_PLAN_LAST_MODIFIED,
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
+    })),
     ...LOCAL_SEO_PROFILES.filter((profile) => profile.kind === "city").map((profile) => ({
       url: `${origin}${getLocalSeoPath(profile)}`,
       lastModified: MARKETING_LAST_MODIFIED,
@@ -135,6 +177,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // unique landing-page content, not the programmatic city/ZIP pages the
     // warning above is about.
     ...wpPageEntries(origin, "", WP_TOP_PAGES.filter((page) => !SITEMAP_EXCLUDED_TOP_SLUGS.has(page.slug))),
+    // Big-city market data pages (HMDA 2024), rebuilt Nov 2026 to replace the lost WordPress hubs.
+    ...METRO_MARKETS.map((m) => ({
+      url: `${origin}${metroPath(m)}`,
+      lastModified: new Date(METRO_DATA_FETCHED_ON),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
     ...wpPageEntries(origin, "/markets", WP_MARKET_PAGES),
     ...wpPageEntries(origin, "/loan-types", WP_LOAN_TYPE_PAGES),
     ...wpPageEntries(origin, "/vs", WP_VS_PAGES),

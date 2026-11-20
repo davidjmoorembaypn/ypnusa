@@ -47,6 +47,7 @@ export function computeVisibilityScore(input: { userId: string; email: string })
     mySessions.some((session) => session.messages.some((message) => message.role === "user" && message.content.trim() === prompt));
   const leads = db.crmLeads.filter((lead) => lead.assignedLoId === input.userId).length;
   const borrowerPage = publicOfficerPageFor(onboarding);
+  const badgeHost = db.marketingKits.find((kit) => kit.userId === input.userId)?.badgeHost;
 
   const steps: VisibilityStep[] = [
     {
@@ -93,6 +94,13 @@ export function computeVisibilityScore(input: { userId: string; email: string })
       label: "Ask past clients for Google reviews",
       done: asked(PROMPTS.reviews),
       cerebroPrompt: PROMPTS.reviews,
+    },
+    {
+      id: "website-badge",
+      label: badgeHost ? `YPN USA badge is on ${badgeHost}` : "Add the YPN USA badge to your own website",
+      done: Boolean(badgeHost),
+      href: "/dashboard#marketing-kit",
+      hrefLabel: "Get my badge code",
     },
     {
       id: "first-lead",

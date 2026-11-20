@@ -1,4 +1,5 @@
 import { AssistantChat } from "@/components/assistant/assistant-chat";
+import { EmbedAttribution } from "@/components/embed/embed-attribution";
 
 export default function EmbedCerebroPage() {
   return (
@@ -12,6 +13,7 @@ export default function EmbedCerebroPage() {
         placeholder="Type your ZIP code or biggest challenge…"
         funnelSource="cerebro_homepage_embed"
       />
+      <EmbedAttribution tone="dark" />
     </main>
   );
 }

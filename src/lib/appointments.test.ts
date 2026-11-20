@@ -13,16 +13,18 @@ import {
   formatWhen,
   listUpcoming,
   manageToken,
+  retryPendingConfirmations,
+  retryProviderCleanup,
   sendBookingConfirmation,
   sendDueReminders,
   verifyManageToken,
 } from "./appointments";
-import { bookAppointment, listAvailableSlots } from "./calendar";
+import { bookAppointment, listAvailableSlots, resolvedConnection } from "./calendar";
 import { recordOptOutAllChannels } from "./consent";
 import { HOUSE_OFFICER_ID } from "./crm";
 import { appendAppointment, appendBorrowerLead, readDb, writeDb } from "./db";
 import type { SendEmailInput } from "./email";
-import { connectState, officerForViewer, readConnectState } from "./google-calendar";
+import { connectState, googleOAuthConfigured, officerForViewer, readConnectState } from "./google-calendar";
 import { generateId } from "./id";
 import type { AppointmentRecord, LoanOfficerRecord } from "./types";
 
@@ -190,5 +192,85 @@ describe("appointments", () => {
     const ics = buildIcs(storedAppointment(new Date(Date.now() + 86400_000), officer.id, leadId), officer, lead, true);
     assert.match(ics, /METHOD:CANCEL/);
     assert.match(ics, /STATUS:CANCELLED/);
+  });
+
+  it("records only the side that was emailed and retries the other later", async () => {
+    const officer = addOfficer();
+    const lead = addLead(officer.id);
+    const created = new Date(Date.now() - 10 * 60_000);
+    const appointment = storedAppointment(new Date(Date.now() + 3 * 86400_000), officer.id, lead, { createdAt: created.toISOString() });
+    const calls: string[] = [];
+    const failBorrower = async (input: SendEmailInput) => {
+      calls.push(String(input.to));
+      return input.to === officer.email ? { sent: true } : { sent: false, reason: "provider error" };
+    };
+    assert.equal(await sendBookingConfirmation(appointment.id, new Date(), failBorrower), false);
+    let saved = readDb().appointments.find((item) => item.id === appointment.id)!;
+    assert.equal(saved.confirmationSentAt, undefined);
+    assert.equal(saved.borrowerConfirmedAt, undefined);
+    assert.ok(saved.officerNotifiedAt);
+    const { sent, send } = recorder();
+    await retryPendingConfirmations(new Date(), send);
+    // Only the borrower is emailed again; the officer already has theirs.
+    assert.deepEqual(sent.map((mail) => mail.to), ["sam@borrowermail.com"]);
+    saved = readDb().appointments.find((item) => item.id === appointment.id)!;
+    assert.ok(saved.confirmationSentAt);
+    await retryPendingConfirmations(new Date(), send);
+    assert.equal(sent.length, 1);
+  });
+
+  it("stops retrying a confirmation after six attempts", async () => {
+    const officer = addOfficer();
+    const appointment = storedAppointment(new Date(Date.now() + 3 * 86400_000), officer.id, addLead(officer.id), {
+      createdAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+    });
+    const failing = async () => ({ sent: false, reason: "down" });
+    for (let i = 0; i < 8; i++) await retryPendingConfirmations(new Date(), failing);
+    assert.equal(readDb().appointments.find((item) => item.id === appointment.id)?.confirmationAttempts, 6);
+  });
+
+  it("keeps a Google event's removal pending when Google can't be reached, and retries it", async () => {
+    const officer = addOfficer();
+    const appointment = storedAppointment(new Date(Date.now() + 2 * 86400_000), officer.id, addLead(officer.id), {
+      provider: "google",
+      externalEventId: "evt_123",
+    });
+    const { send } = recorder();
+    assert.equal((await cancelAppointment(appointment.id, "officer", new Date(), send)).ok, true);
+    let saved = readDb().appointments.find((item) => item.id === appointment.id)!;
+    assert.equal(saved.providerCleanup, "pending");
+    await retryProviderCleanup();
+    saved = readDb().appointments.find((item) => item.id === appointment.id)!;
+    assert.equal(saved.providerCleanup, "pending");
+    assert.equal(saved.providerCleanupAttempts, 2);
+  });
+
+  it("never uses the server-wide Google token for an officer who connected their own account", async () => {
+    process.env.GOOGLE_CALENDAR_ACCESS_TOKEN = "server-token";
+    try {
+      const officer = addOfficer();
+      writeDb((db) => {
+        const record = db.loanOfficers.find((item) => item.id === officer.id)!;
+        record.calendarProvider = "google";
+        record.calendarId = "primary";
+        record.googleRefreshToken = "enc:v1:not-usable";
+      });
+      const connection = await resolvedConnection(readDb().loanOfficers.find((item) => item.id === officer.id)!);
+      assert.equal(connection.provider, "local");
+      assert.equal(connection.token, undefined);
+    } finally {
+      delete process.env.GOOGLE_CALENDAR_ACCESS_TOKEN;
+    }
+  });
+
+  it("won't offer Google connection without encryption, so tokens are never stored in plain text", () => {
+    process.env.GOOGLE_OAUTH_CLIENT_ID = "id";
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = "secret";
+    try {
+      assert.equal(googleOAuthConfigured(), false);
+    } finally {
+      delete process.env.GOOGLE_OAUTH_CLIENT_ID;
+      delete process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+    }
   });
 });

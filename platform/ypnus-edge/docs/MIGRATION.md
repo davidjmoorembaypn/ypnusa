@@ -4,7 +4,7 @@ Nothing below has been executed. Every step that changes AWS, DNS or WordPress n
 approval at the time. Order matters. Stop at any failed check.
 
 ## 0. Preconditions
-1. Production app is healthy (`curl https://app.ypnus.com/api/health` shows JSON) and the pending release is deployed.
+1. Production app is healthy (`curl https://ypnus.com/api/health` shows JSON) and the pending release is deployed.
 2. Full WordPress backup (files + database) stored off-host, and a Search Console export of top pages/queries.
 3. List every public URL: WordPress `sitemap.xml` + Search Console "Pages" + analytics landing pages → `legacy-urls.txt`.
 4. Lower the DNS TTL of the apex and `www` to 300 seconds, 24 hours before cutover.

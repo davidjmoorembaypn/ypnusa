@@ -89,6 +89,10 @@ interface RawPost {
   readingMinutes: number;
   html: string;
   wpId: number;
+  /** Search-result title when it differs from the on-page title (<= 60 characters). */
+  metaTitle?: string;
+  /** FAQ already visible in `html`, mirrored as FAQPage JSON-LD (see BlogPost.schemaFaq). */
+  schemaFaq?: { q: string; a: string }[];
 }
 
 type PageSections = Record<string, WpImportedPage[]>;
@@ -153,6 +157,8 @@ export const WP_POSTS: readonly BlogPost[] = (postsData as RawPost[]).map((p, i)
   author: p.author,
   readingMinutes: p.readingMinutes,
   html: p.html,
+  ...(p.metaTitle ? { metaTitle: p.metaTitle } : {}),
+  ...(p.schemaFaq ? { schemaFaq: p.schemaFaq } : {}),
 }));
 
 /** Old WordPress path (with and without trailing slash) -> new app path. */

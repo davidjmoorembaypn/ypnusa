@@ -1,4 +1,5 @@
 import { YpnEmbedIntake } from "@/components/loanpilot-floating-assistant";
+import { EmbedAttribution } from "@/components/embed/embed-attribution";
 import { parseFunnelSourceParam } from "@/lib/local-seo";
 import { findPublicOfficerPage, shortIdFromSlug } from "@/lib/officer-profile";
 
@@ -51,6 +52,7 @@ export default async function EmbedIntakePage({
         {nmlsLine} · Equal Housing Opportunity · Marketing technology only — not a commitment to
         lend.
       </p>
+      <EmbedAttribution tone="light" />
     </main>
   );
 }

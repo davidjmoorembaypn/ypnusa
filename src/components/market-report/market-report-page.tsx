@@ -1,3 +1,4 @@
+import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -72,7 +73,6 @@ function datasetJsonLd(url: string, name: string, description: string, spatial: 
     temporalCoverage: `${PREVIOUS_YEAR}/${LATEST_YEAR}`,
     spatialCoverage: { "@type": "Place", name: spatial },
     dateModified: DATA_FETCHED_ON,
-    license: "https://creativecommons.org/licenses/by/4.0/",
     isAccessibleForFree: true,
     variableMeasured: ["Originated home loans", "Loan amount", "Loan type", "Loan purpose"],
   };
@@ -269,6 +269,9 @@ export function MarketReportHub({ origin = MARKETING_SITE_URL }: { origin?: stri
 
         <ZipCta source="market_report_hub" />
         <Methodology />
+        <div className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6">
+          <AuthorReviewerCard path="/research" pageName="Loan Officer Market Report" />
+        </div>
       </main>
       <SiteFooter />
     </div>
@@ -386,6 +389,9 @@ export function MarketReportCounty({ county, origin = MARKETING_SITE_URL }: { co
         </section>
 
         <Methodology />
+        <div className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6">
+          <AuthorReviewerCard path={`/research/${county.slug}`} pageName={countyTitle(county)} />
+        </div>
       </main>
       <SiteFooter />
     </div>

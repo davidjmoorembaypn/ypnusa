@@ -44,8 +44,16 @@ function handleApiCors(request: NextRequest): NextResponse {
   return response;
 }
 
+/**
+ * The MCP endpoint answers its own CORS and origin checks (src/lib/mcp/http.ts). It is a public,
+ * credential-free API for other origins such as claude.ai, so the credentialed marketing-site CORS above
+ * must not run on it: that would answer 403 to every other origin's preflight.
+ */
+const MCP_PATH = "/api/mcp";
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (pathname === MCP_PATH) return NextResponse.next();
   if (pathname.startsWith("/api/")) return handleApiCors(request);
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),

@@ -95,9 +95,9 @@ export const PAGE_SEO = {
 /** Topic pillar titles and descriptions (same rules), keyed by cluster slug. */
 export const TOPIC_SEO: Readonly<Record<string, PageSeo>> = {
   "exclusive-mortgage-leads": {
-    title: "Exclusive Mortgage Leads by ZIP Code for Loan Officers",
+    title: "Mortgage Leads for Loan Officers: Exclusive vs Shared",
     description:
-      "Exclusive vs shared mortgage leads, what they really cost, and how owning a ZIP code lets loan officers keep local borrower demand.",
+      "Mortgage leads for loan officers: exclusive vs shared leads, what they really cost, and how owning a ZIP code keeps local borrower demand.",
   },
   "ai-lead-automation": {
     title: "Mortgage CRM, AI Lead Capture & Automation | YPN USA",

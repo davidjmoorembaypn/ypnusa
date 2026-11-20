@@ -358,6 +358,7 @@ export const BEST_AI_ASSISTANTS_GUIDE: ComparisonGuide = {
   method:
     "We read each company's own website on November 17, 2026 and describe only what those pages say, in our own words. We did not test the products or receive anything to list them. Prices change, so confirm on each company's site. YPN Inc. publishes this page and sells YPN USA.",
   related: [
+    { label: "Homebot vs Cerebro AI", href: "/compare/homebot-vs-cerebro-ai" },
     { label: "All YPN USA comparisons", href: "/compare" },
     { label: "YPN USA vs LoanOfficer.ai", href: "/ypnus-vs-loanofficer-ai" },
     { label: "YPN USA vs Total Expert", href: "/vs/total-expert" },
@@ -882,6 +883,8 @@ export const ZILLOW_ALTERNATIVES_GUIDE: ComparisonGuide = {
   method:
     "We read each company's own website on November 17, 2026 and describe only what those pages say, in our own words. Zillow's lender pages were not available to us, so Zillow facts come from its SEC filings, its Flex FAQ and HousingWire's reporting. Where a company publishes no price, we cite HousingWire's reported figures and say so. We did not test the products or receive anything to list them. YPN Inc. publishes this page and sells YPN USA.",
   related: [
+    { label: "LendingTree vs exclusive ZIP code mortgage leads", href: "/compare/lendingtree-vs-exclusive-zip-mortgage-leads" },
+    { label: "Zillow Premier Lender alternatives", href: "/compare/zillow-premier-lender-alternatives" },
     { label: "All YPN USA comparisons", href: "/compare" },
     { label: "YPN USA vs Zillow Flex", href: "/vs/zillow-flex" },
     { label: "YPN USA vs LendingTree", href: "/vs/lendingtree" },
@@ -890,11 +893,279 @@ export const ZILLOW_ALTERNATIVES_GUIDE: ComparisonGuide = {
   ],
 };
 
+/* ------------------------------------------------------------------ */
+/* 4. Best CRM for loan officers                                       */
+/* ------------------------------------------------------------------ */
+
+const CRM_CHECKED = "2026-11-20";
+
+const CRM_COLUMNS = [
+  { key: "what", label: "What it is" },
+  { key: "ai", label: "AI and texting" },
+  { key: "price", label: "Published price" },
+  { key: "bestFor", label: "Best for" },
+];
+
+export const BEST_CRM_GUIDE: ComparisonGuide = {
+  slug: "best-crm-for-loan-officers",
+  path: "/best-crm-for-loan-officers",
+  title: "Best CRM for Loan Officers (2026), Compared | YPN USA",
+  description:
+    "Six mortgage CRMs for loan officers and brokers compared on price, AI, texting and LOS sync, plus what to add when your CRM has no new borrowers in it.",
+  h1: "Best CRM for mortgage loan officers (2026)",
+  breadcrumb: "Best CRM for loan officers",
+  eyebrow: "Comparison guide",
+  intro:
+    "A mortgage CRM is the system of record for your contacts, pipeline and follow-up. The right one depends on how many loan officers will use it, whether you want AI to answer leads for you, which loan origination system (LOS) it has to sync with, and whether you can see the price before a sales call. This guide compares six loan officer CRMs using each company's own website, then covers the one gap most of them share: a CRM organizes borrowers, but it rarely brings new ones in.",
+  datePublished: CRM_CHECKED,
+  dateModified: CRM_CHECKED,
+  about: ["Mortgage CRM", "Loan officer CRM", "CRM for mortgage brokers", "Mortgage loan officer"],
+  shortAnswer: [
+    "Want an AI CRM that answers and books new leads around the clock, with prices on the page? LoanOfficer.ai starts at $197 a month for two seats.",
+    "Want a mortgage-only CRM with texting and two-way LOS sync at a published price? BNTouch is $165 a month for one user, or $95 per user for 2 to 10 users.",
+    "Want a CRM built on Salesforce with direct LOS integrations? Jungo starts at $96 per user a month, billed annually.",
+    "Want AI phone calls and texts inside the CRM? Shape offers both, priced by quote.",
+    "Already happy with your CRM but short on new borrowers? YPN USA is not a CRM. Its AI assistant, Cerebro, answers borrowers on your own page and paid plans pass leads to your CRM. There is a free plan.",
+  ],
+  images: {
+    hero: { key: "photo-1526628953301-3e589a6a8b74", alt: "Mortgage CRM dashboard with pipeline charts on a computer screen" },
+    inline: [
+      { key: "photo-1554224155-cfa08c2a758f", alt: "Loan forms, a pen and a coffee mug on a dark desk" },
+      { key: "photo-1763038311036-6d18805537e5", alt: "Loan officer reviewing pipeline charts on her laptop" },
+    ],
+  },
+  tableCaption: "Mortgage CRMs for loan officers compared on what each is, AI and texting, published price and fit",
+  columns: CRM_COLUMNS,
+  options: [
+    {
+      id: "loanofficer-ai",
+      name: "LoanOfficer.ai",
+      website: "https://loanofficer.ai",
+      category: "AI mortgage CRM",
+      summary:
+        "LoanOfficer.ai calls itself the AI mortgage CRM built for loan officers. It says its AI follows up on every new lead around the clock, qualifies it and books consultations on your calendar, and it adds email and text automation, nurture and referral partner tools.",
+      bestFor: "Solo loan officers and small teams with a steady flow of leads who want the AI to make the first contact.",
+      notFor: "You want to keep the CRM you already use, or you need more new leads before you need a CRM to work them.",
+      highlights: [
+        "AI lead follow-up that answers and qualifies new leads 24/7.",
+        "AI appointment setter that books consultations.",
+        "Email and text automation, nurture and referral partner tools.",
+        "Setup includes LOS, lead provider, email and calendar integrations, according to its pricing page.",
+      ],
+      pricing:
+        "Starter $197 a month for 2 seats, Team $397 a month for 5 seats, Brokerage $697 a month for 10 seats, Enterprise custom. Every plan starts at $1 for 14 days, then a one-time $299 setup fee. Branded website add-on $99 a month plus $299 setup.",
+      table: {
+        what: "AI CRM built for loan officers",
+        ai: "AI answers, qualifies and books new leads; email and text",
+        price: "From $197/mo (2 seats) plus $299 setup",
+        bestFor: "Solo LOs and small teams with steady leads",
+      },
+      sources: [
+        { label: "LoanOfficer.ai home page", url: "https://loanofficer.ai", checked: CRM_CHECKED },
+        { label: "LoanOfficer.ai pricing", url: "https://loanofficer.ai/pricing", checked: CRM_CHECKED },
+      ],
+    },
+    {
+      id: "bntouch",
+      name: "BNTouch",
+      website: "https://bntouch.com",
+      category: "Mortgage-only CRM with texting and LOS sync",
+      summary:
+        "BNTouch says it has been built only for mortgage since 2004. It combines a CRM with texting, campaigns and two-way LOS sync, and offers a White Glove team that runs the system for you. Its Mortgage AI drafts follow-ups and suggests who to contact next.",
+      bestFor: "Loan officers, brokers and small teams who want a mortgage-specific CRM with LOS sync and a price on the page.",
+      notFor: "You want to try it before paying; BNTouch says it does not offer a free trial. Its AI call assistant is listed as coming soon.",
+      highlights: [
+        "Two-way LOS sync with Encompass, Calyx, BytePro, MeridianLink and LendingPad.",
+        "Automated two-way texting and marketing campaigns.",
+        "Mortgage AI drafts follow-ups and prioritizes who to contact.",
+        "Connects to more than 100 lead providers, including Zillow and LendingTree.",
+      ],
+      pricing:
+        "$165 a month for a single user; $95 per user a month for 2 to 10 users; custom for 10 or more. Includes 5,000 records per user and 100 texts or minutes a month, with usage beyond that billed extra. White Glove, credit checks and equity alerts are priced separately. Month to month; no free trial.",
+      table: {
+        what: "Mortgage-only CRM since 2004",
+        ai: "AI drafts follow-ups; automated two-way texting",
+        price: "$165/mo single user; $95/user for 2 to 10",
+        bestFor: "LOs and brokers who want LOS sync",
+      },
+      sources: [
+        { label: "BNTouch home page", url: "https://bntouch.com/", checked: CRM_CHECKED },
+        { label: "BNTouch pricing and features", url: "https://bntouch.com/pricing/", checked: CRM_CHECKED },
+      ],
+    },
+    {
+      id: "jungo",
+      name: "Jungo",
+      website: "https://ijungo.com",
+      category: "Mortgage CRM built on Salesforce",
+      summary:
+        "Jungo is a mortgage CRM built on Salesforce that keeps borrowers informed during the loan and keeps referral partners engaged. It says it suits a solo loan officer or an enterprise, and its Bundle plan adds Jungo SMS with automated, trigger-based texts.",
+      bestFor: "Loan officers and teams who want Salesforce underneath, direct LOS integrations and loan milestone updates for borrowers and partners.",
+      notFor: "You want AI that talks to borrowers; Jungo's pages don't describe one. Plans carry a setup fee.",
+      highlights: [
+        "Direct LOS integrations with Encompass, Calyx, LendingPad, Velocity and Byte; Arive through Zapier.",
+        "Borrower and referral partner updates through the loan.",
+        "Automated texts with custom triggers on the Bundle plan.",
+        "Connects to Floify, BombBomb, Mortgage Coach, Homebot, Blend and Optimal Blue.",
+      ],
+      pricing:
+        "Billed annually: Jungo Lite $96 per user a month, Bundle $125 per user a month. Billed monthly: Lite $119, Bundle $149 per user a month. Enterprise custom. Setup fee of $249 to $299 depending on plan. Check Jungo's page for contract terms.",
+      table: {
+        what: "Mortgage CRM on Salesforce",
+        ai: "No AI described; automated texts on Bundle",
+        price: "From $96/user/mo billed annually, plus setup",
+        bestFor: "Teams wanting Salesforce and LOS links",
+      },
+      sources: [
+        { label: "Jungo home page", url: "https://ijungo.com/", checked: CRM_CHECKED },
+        { label: "Jungo pricing", url: "https://ijungo.com/pricing/", checked: CRM_CHECKED },
+      ],
+    },
+    {
+      id: "shape",
+      name: "Shape",
+      website: "https://setshape.com",
+      category: "AI CRM with calling and texting",
+      summary:
+        "Shape is an AI-powered CRM it markets to mortgage lenders and brokers, with separate offers for solo and growing teams and for multi-branch lenders. Its AI calls and texts new leads and follows up right away, and it integrates with loan origination systems.",
+      bestFor: "Brokers and lenders who want AI phone calls and texts inside the CRM.",
+      notFor: "You want to see a price before a sales call. Calling, texting and email are billed by usage on top of the plan.",
+      highlights: [
+        "AI calling and AI texting for new leads.",
+        "Native LOS integrations including Encompass, LendingPad, LendingDox and Arive.",
+        "Core plan priced per user; Complete includes 5 users and the AI calling bot.",
+      ],
+      pricing:
+        "No dollar prices published. Core is per user, Complete includes 5 users, Enterprise is custom, all by quote. Calling, texting and email are pay as you go. Shape says paying annually saves up to 20%.",
+      table: {
+        what: "AI CRM for mortgage lenders and brokers",
+        ai: "AI calling and texting to new leads",
+        price: "Quote only; usage billed as you go",
+        bestFor: "Brokers wanting AI calls in the CRM",
+      },
+      sources: [
+        { label: "Shape for mortgage", url: "https://setshape.com/shape-ai-mortgage", checked: CRM_CHECKED },
+        { label: "Shape pricing", url: "https://setshape.com/pricing", checked: CRM_CHECKED },
+      ],
+    },
+    {
+      id: "surefire",
+      name: "Surefire",
+      trademarkName: "Surefire CRM",
+      website: "https://mortgagetech.ice.com/products/surefire",
+      category: "Mortgage marketing CRM from ICE Mortgage Technology",
+      summary:
+        "Surefire, from ICE Mortgage Technology, focuses on automating mortgage marketing and deepening relationships. It runs set-and-forget workflows across social, text and print aimed at borrowers, recruits, brokers and real estate agents.",
+      bestFor: "Mortgage marketers and loan officers whose company already runs on ICE and wants polished automated marketing.",
+      notFor: "You want published prices or AI that responds to leads; the product page shows neither.",
+      highlights: [
+        "Automated marketing workflows across social, text and print.",
+        "Content for borrowers, recruits, brokers and real estate agents.",
+        "Part of ICE Mortgage Technology, the company behind Encompass.",
+      ],
+      pricing: "Not published. Contact ICE to get started.",
+      table: {
+        what: "Mortgage marketing CRM from ICE",
+        ai: "No AI described; automated text and social",
+        price: "Not published",
+        bestFor: "Companies already on ICE",
+      },
+      sources: [{ label: "ICE Mortgage Technology: Surefire", url: "https://mortgagetech.ice.com/products/surefire", checked: CRM_CHECKED }],
+    },
+    {
+      id: "total-expert",
+      name: "Total Expert",
+      website: "https://www.totalexpert.com",
+      category: "Customer platform for financial institutions",
+      summary:
+        "Total Expert calls itself the customer operating system for financial services and sells to mortgage lenders, banks, credit unions and insurers. Its AI Sales Assistant nurtures and qualifies leads by voice, and it adds an AI SMS assistant.",
+      bestFor: "Lenders, banks and credit unions rolling out one platform to many loan officers.",
+      notFor: "You are an individual loan officer buying for yourself; it is sold to institutions by demo.",
+      highlights: [
+        "AI Sales Assistant that nurtures and qualifies leads by voice.",
+        "AI SMS assistant and SMS engagement.",
+        "Built for institutions and their compliance teams.",
+      ],
+      pricing: "Not published. Schedule a demo.",
+      table: {
+        what: "Customer platform for lenders and banks",
+        ai: "Voice AI and AI texting",
+        price: "Not published (demo)",
+        bestFor: "Lenders, banks and credit unions",
+      },
+      sources: [{ label: "Total Expert home page", url: "https://www.totalexpert.com/", checked: CRM_CHECKED }],
+    },
+    {
+      id: "ypn-usa",
+      name: "YPN USA with Cerebro",
+      trademarkName: "YPN USA",
+      website: "/cerebro",
+      category: "Not a CRM: the front door that brings borrowers to yours",
+      summary:
+        "YPN USA is marketing software for licensed loan officers, published by the company behind this page, and it is not a CRM. It fills the gap a CRM leaves: Cerebro, its AI assistant, answers borrower questions on your own page or website day and night, qualifies them and hands ready borrowers to you with a summary. Paid plans pass those leads to the CRM you already use.",
+      bestFor: "Loan officers who are happy with their CRM, or don't have one yet, and need more new borrowers coming in under their own name.",
+      notFor:
+        "You need a full CRM for your pipeline and past clients. Keep or pick one of the CRMs above for that. YPN USA does not sell lead lists, so inquiries build over time from your own pages and profile.",
+      highlights: YPN_HIGHLIGHTS,
+      pricing: YPN_PRICING,
+      table: {
+        what: "AI assistant and local visibility; not a CRM",
+        ai: "Cerebro answers and qualifies borrowers 24/7; drafts follow-ups for your OK",
+        price: "Free plan; paid from $99/mo, 15-day trial",
+        bestFor: "LOs who need new borrowers feeding their CRM",
+      },
+      sources: [...YPN_SOURCES.map((s) => ({ ...s, checked: CRM_CHECKED })), { label: "YPN USA alongside your CRM", url: "/platform/loan-officer-crm", checked: CRM_CHECKED }],
+      isYpn: true,
+    },
+  ],
+  howToChoose: [
+    "Count the users first. Prices here run from one seat to per-user plans to institution contracts, and the cheapest option for one loan officer is rarely the cheapest for ten.",
+    "Check the LOS sync by name. Ask whether it is two-way and whether your LOS is on the list, not just \"integrations available\".",
+    "Decide who makes the first contact. Some CRMs have AI that calls or texts new leads; others only send automated messages you set up.",
+    "Add up the full cost: setup fees, per-user seats, texting and calling usage, and add-ons such as websites or credit checks.",
+    "Ask where your new borrowers will come from. A CRM organizes leads you already have; you still need a source of new ones under your name.",
+  ],
+  faq: [
+    {
+      q: "What is the best CRM for a mortgage loan officer?",
+      a: "It depends on team size and what you want automated. LoanOfficer.ai is an AI CRM with published prices from $197 a month for two seats. BNTouch is a mortgage-only CRM at $165 a month for one user with LOS sync. Jungo runs on Salesforce from $96 per user a month billed annually. Shape adds AI calling, priced by quote.",
+    },
+    {
+      q: "What is the best CRM for mortgage brokers?",
+      a: "Brokers usually want LOS sync and per-user pricing that scales. BNTouch lists $95 per user a month for 2 to 10 users with two-way LOS sync, Jungo lists direct LOS integrations including Encompass and Arive through Zapier, and Shape offers separate plans for solo and growing broker teams by quote.",
+    },
+    {
+      q: "Is there a free CRM for loan officers?",
+      a: "None of the mortgage CRMs in this guide lists a free plan. LoanOfficer.ai starts at $1 for 14 days. YPN USA has a free plan, but it is an AI assistant and lead capture tool that works alongside a CRM, not a CRM itself.",
+    },
+    {
+      q: "Is YPN USA a CRM?",
+      a: "No. YPN USA brings in and qualifies new borrowers through Cerebro on your own page, then paid plans pass those leads to the CRM you use. Your CRM stays the home for your pipeline and past clients, and your LOS stays the system of record for the loan.",
+    },
+    {
+      q: "Do I need a CRM and an AI assistant?",
+      a: "Many loan officers use both. The CRM keeps your database and follow-up; the AI assistant answers new borrowers the moment they reach out, including at night. Some CRMs, such as LoanOfficer.ai and Shape, build the AI in.",
+    },
+  ],
+  method:
+    "We read each company's own website on November 20, 2026 and describe only what those pages say, in our own words. We did not test the products or receive anything to list them. Prices and features change, so confirm on each company's site before you buy. YPN Inc. publishes this page and sells YPN USA.",
+  related: [
+    { label: "YPN USA alongside your CRM", href: "/platform/loan-officer-crm" },
+    { label: "Mortgage CRM vs AI assistant", href: "/blog/mortgage-crm-vs-ai-assistant" },
+    { label: "Comparing CRMs: solo loan officer vs team", href: "/blog/mortgage-crm-solo-loan-officer-vs-team" },
+    { label: "Best AI assistants for loan officers", href: "/best-ai-assistants-for-loan-officers" },
+    { label: "YPN USA vs BNTouch", href: "/vs/bntouch" },
+    { label: "YPN USA vs Jungo", href: "/vs/jungo" },
+    { label: "YPN USA vs LoanOfficer.ai", href: "/ypnus-vs-loanofficer-ai" },
+  ],
+};
+
 export const COMPARISON_GUIDES: readonly ComparisonGuide[] = [
   BEST_AI_ASSISTANTS_GUIDE,
   LEADPOPS_ALTERNATIVES_GUIDE,
   ZILLOW_ALTERNATIVES_GUIDE,
+  BEST_CRM_GUIDE,
 ];
 
 /** Content review date for the sitemap's lastModified. */
-export const COMPARISON_GUIDES_LAST_MODIFIED = CHECKED;
+export const COMPARISON_GUIDES_LAST_MODIFIED = CRM_CHECKED;

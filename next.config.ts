@@ -1,4 +1,6 @@
 import { execSync } from "node:child_process";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import type { NextConfig } from "next";
 // Imported by relative path, not the "@/" alias: next.config.ts runs outside the
 // app's webpack/TS path-alias resolution, so "@/content/wp-import" (which itself
@@ -6,6 +8,9 @@ import type { NextConfig } from "next";
 import wpRedirects from "./src/content/wp-import/redirects.json";
 import legacyRedirects from "./src/content/legacy-redirects.json";
 import consolidatedPages from "./src/content/consolidated-pages.json";
+import wpPages from "./src/content/wp-import/pages.json";
+import wpPosts from "./src/content/wp-import/posts.json";
+import augustBatchRedirects from "./src/content/august-batch-redirects.json";
 
 function gitCommit(): string {
   try {
@@ -67,6 +72,38 @@ function withOptionalTrailingSlash(redirects: Redirect[]): Redirect[] {
   return out;
 }
 
+/**
+ * Posts folded into a stronger post (src/content/august-batch-redirects.json, see
+ * src/content/august-batch-consolidation.ts) no longer have a page of their own: /blog/<slug>
+ * is itself a redirect. Any other redirect whose destination is one of those pages would
+ * therefore take two hops (old URL -> /blog/<slug> -> /blog/<target>), so point it straight at
+ * the final page instead. Reads the same map as the /blog/<slug> redirects below, so the two
+ * cannot drift apart. Query strings, hashes and anything after the slug are kept.
+ */
+const consolidatedPosts = augustBatchRedirects as Record<string, string>;
+function toFinalDestination(redirect: Redirect): Redirect {
+  const match = /^\/blog\/([^/?#]+)(.*)$/.exec(redirect.destination);
+  const target = match ? consolidatedPosts[match[1]] : undefined;
+  return match && target ? { ...redirect, destination: `/blog/${target}${match[2]}` } : redirect;
+}
+
+/**
+ * WordPress also served every post at the site root ("/<slug>/"), and Google picked
+ * those root addresses as the canonical copy of many posts. They now 404, so send each
+ * one to its /blog page in one hop. Skips slugs that are already a page, a route folder
+ * or another redirect's source, so nothing that works today changes.
+ */
+function rootPostRedirects(taken: Redirect[]): Redirect[] {
+  const reserved = new Set<string>([
+    ...readdirSync(join(process.cwd(), "src/app")),
+    ...((wpPages as { top?: { slug: string }[] }).top ?? []).map((page) => page.slug),
+    ...taken.map((r) => r.source.replace(/\{\/\}\?$/, "").replace(/\/+$/, "").slice(1)),
+  ]);
+  return (wpPosts as { slug: string }[])
+    .filter((post) => !reserved.has(post.slug))
+    .map((post) => toFinalDestination({ source: `/${post.slug}`, destination: `/blog/${post.slug}`, permanent: true }));
+}
+
 const nextConfig: NextConfig = {
   // Smaller Hostinger / Node host deploys; `next start` still works.
   output: "standalone",
@@ -89,7 +126,7 @@ const nextConfig: NextConfig = {
   // one 308, and still strips the slash from any other URL (last rule in redirects()).
   skipTrailingSlashRedirect: true,
   async redirects() {
-    return withOptionalTrailingSlash([
+    const mapped = withOptionalTrailingSlash([
       {
         // Marketing copy, Stripe success URLs and prior deploy docs point at
         // /register. WordPress's lo-signup.html is gone now that ypnus.com runs this
@@ -137,7 +174,22 @@ const nextConfig: NextConfig = {
       { source: "/keywords/:tag", destination: "/blog", permanent: true },
       { source: "/category/:name", destination: "/blog", permanent: true },
       { source: "/:year(\\d{4})/:month(\\d{2})/:day(\\d{2})", destination: "/blog", permanent: true },
-    ]).concat([
+    ]).map(toFinalDestination);
+    // The 74 templated posts dated 2026-08-07 are folded into their closest strong post (see
+    // src/content/august-batch-consolidation.ts). Every redirect above that used to land on one of
+    // them (old WordPress and root addresses, the "-2" twins) now goes straight to the final page.
+    const augustBatch = withOptionalTrailingSlash(
+      Object.entries(augustBatchRedirects as Record<string, string>).map(([slug, target]) => ({
+        source: `/blog/${slug}`,
+        destination: `/blog/${target}`,
+        permanent: true,
+      })),
+    );
+    return mapped.concat(withOptionalTrailingSlash(rootPostRedirects(mapped))).concat(augustBatch).concat([
+      // WordPress's machine-translated Hebrew copies (/he/...) that Google still crawls:
+      // send each to the English address it copied.
+      { source: "/he", destination: "/", permanent: true },
+      { source: "/he/:path*", destination: "/:path*", permanent: true },
       // Every other URL with a trailing slash: one hop to the slash-less URL (what
       // Next did on its own before skipTrailingSlashRedirect). Must stay last.
       { source: "/:path+/", destination: "/:path+", permanent: true },

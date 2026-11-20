@@ -5,8 +5,10 @@ import { track } from "@/lib/track";
 import { trackFunnel } from "@/lib/funnel-events";
 import { postJson } from "@/lib/client-api";
 import { FREE_SIGNUP_HREF, checkoutUrlForTier, payNowUrlForTier } from "@/lib/checkout";
+import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { usePersonalization } from "@/lib/hooks/usePersonalization";
 import { useCTAEngine } from "@/lib/hooks/useCTAEngine";
+import { ctaForZip, nudgesWithoutDemand } from "@/lib/cta/ctaEngine";
 
 type CheckState =
   | { status: "idle" }
@@ -42,6 +44,12 @@ const VOLUME_OPTIONS = [
 ];
 
 
+
+/** "$299 Exclusive / $199 Growth / $99 Pro", from the public price list so the copy can't drift from /pricing. */
+const LOCK_PLAN_PRICES = (["elite", "pro", "growth"] as const)
+  .map((id) => PUBLIC_PRICING_TIERS.find((tier) => tier.id === id))
+  .flatMap((tier) => (tier ? [`${tier.price} ${tier.name}`] : []))
+  .join(" / ");
 
 /** Fired on `window` whenever a ZIP check resolves, so PricingCta can react live. */
 export const ZIP_CHECKED_EVENT = "ypnus:zip-checked";
@@ -124,6 +132,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   }, []);
 
   function tryAnotherZip() {
+    cta.reset();
     setCheck({ status: "idle" });
     setSubmit({ status: "idle" });
     setDetailsState("idle");
@@ -134,6 +143,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   async function runCheck(override?: string) {
     if (check.status === "checking") return;
     const clean = (override ?? zip).replace(/\D/g, "").slice(0, 5);
+    // A new lookup: drop the previous ZIP code's nudges now, not when (or if) new ones arrive.
+    cta.reset();
     syncZipToPageUrl(null);
     setZip(clean);
     if (clean.length !== 5) {
@@ -159,7 +170,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
         city?: string | null;
         state?: string | null;
         signupUrl?: string | null;
-        demand?: { total?: number } | null;
+        demand?: { total?: number; buyers?: number } | null;
         source?: string | null;
       };
       if (!data.valid) {
@@ -263,6 +274,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     setDetailsState(saved ? "saved" : "failed");
   }
 
+  // Only nudges built for the ZIP code on screen, and not the demand line (shown above already).
+  const activeCta = ctaForZip(cta.data, check.status === "result" ? check.zip : null);
+  const activeNudges = activeCta ? nudgesWithoutDemand(activeCta).slice(0, 2) : [];
   const showForm = check.status === "result";
   const claimed = check.status === "result" && !check.available;
   const place =
@@ -276,8 +290,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const resultTitle =
     check.status === "result"
       ? check.available
-        ? `${place} is open for exclusive claim`
-        : `${place} is claimed — join the waitlist`
+        ? `ZIP ${check.zip} is AVAILABLE — Lock out all competing YPN USA MLOs in this ZIP code (${LOCK_PLAN_PRICES}).`
+        : `ZIP ${check.zip} is LOCKED by another MLO — Join the priority waitlist or check adjacent ZIP codes.`
       : "";
 
   return (
@@ -318,7 +332,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/70">
             <p className="font-medium text-white">See it before you sign up</p>
             <p className="mt-1 text-[13px]">
-              Enter a 5-digit ZIP code to see if it&rsquo;s open and how many buyers, sellers and movers are expected there. Checking
+              Enter a 5-digit ZIP code to see if it&rsquo;s open and an estimate of how many households buy, sell or move there in 60 days. Checking
               doesn&rsquo;t reserve a ZIP code; it locks at your first payment on a paid plan.
             </p>
           </div>
@@ -366,10 +380,11 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 {resultTitle}
               </span>
             </p>
+            {check.city && check.state ? <p className="mt-1 text-[12px] text-white/70">{place}</p> : null}
             <p className="mt-1 text-[13px] text-white/80">{check.message}</p>
             {check.demandTotal ? (
               <p className="mt-2 text-[12px] text-white/65">
-                ~{check.demandTotal} buyers / sellers / movers in the next 60 days
+                About {check.demandTotal} households buy, sell or move in over a typical 60 days (Census-based estimate, not a lead count)
               </p>
             ) : null}
             {check.totalClaimed > 0 ? (
@@ -407,7 +422,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 onClick={tryAnotherZip}
                 className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-bold text-[#09081b] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
               >
-                Check another ZIP code →
+                Check an adjacent ZIP code →
               </button>
             )}
             <p className="mt-2 text-[12px] text-white/70">
@@ -415,14 +430,11 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 ? "Pro plan, $99/mo, cancel anytime. Claiming now pays the first month and locks your ZIP code today. The 15-day trial lets you try the tools first, but someone who pays sooner can take the ZIP code."
                 : "Join the waitlist below and we'll tell you if this ZIP code opens up."}
             </p>
-            {cta.data?.microNudges?.length ? (
+            {activeNudges.length ? (
               <ul className="mt-3 space-y-1 text-[12px] leading-5 text-white/70">
-                {cta.data.microNudges
-                  .filter((nudge) => !nudge.startsWith("~"))
-                  .slice(0, 2)
-                  .map((nudge) => (
-                    <li key={nudge}>{nudge}</li>
-                  ))}
+                {activeNudges.map((nudge) => (
+                  <li key={nudge}>{nudge}</li>
+                ))}
               </ul>
             ) : null}
           </div>

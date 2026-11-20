@@ -19,7 +19,7 @@ import type {
   LoanProgram,
   QualificationSummary,
 } from "@/lib/types";
-import { fetchLiveTerritory } from "@/lib/live-territory";
+import { checkLedgerTerritory } from "@/lib/territory-ledger";
 import { isPricingTierId, PUBLIC_PRICING_TIERS } from "@/lib/pricing";
 import { checkoutUrlForTier, payNowUrlForTier } from "@/lib/checkout";
 import { executeMloTool, MLO_TOOL_NAMES, MLO_TOOLS, type MloToolContext } from "./cerebro-tools";
@@ -226,8 +226,7 @@ export const PRICING_POLICY = {
  * an open ZIP code, and recognises a ZIP code the signed-in officer already holds.
  */
 async function executeTerritoryCheck(zip: string, viewerEmail?: string): Promise<string> {
-  const result = await fetchLiveTerritory(zip);
-  if (!result) return JSON.stringify({ error: "Territory lookup is temporarily unavailable." });
+  const result = checkLedgerTerritory(zip);
   if (!result.valid) return JSON.stringify({ available: false, message: result.message });
 
   const viewer = normalizeEmail(viewerEmail);

@@ -6,8 +6,9 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ALL_BLOG_POSTS, getAnyBlogPost } from "@/content/blog-all";
+import { faqForSchema } from "@/content/blog";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
-import { PostAuthorBox } from "@/components/seo/post-author-box";
+import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
 import { FOUNDER_ID, ORGANIZATION_ID, faqJsonLd, jsonLdScript, pageTitle, socialImageFor } from "@/lib/seo";
 import { homeTrail, topicTrail } from "@/lib/seo/breadcrumbs";
 import { AUTHOR_NAME } from "@/lib/author";
@@ -106,6 +107,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
+    "@id": `${MARKETING_SITE_URL}/blog/${post.slug}#article`,
     ...(cluster ? { articleSection: cluster.name } : {}),
     headline: post.title,
     description: post.description,
@@ -131,8 +133,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <SiteHeader />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
-      {post.faq?.length ? (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(post.faq)) }} />
+      {faqForSchema(post).length ? (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(faqForSchema(post))) }} />
       ) : null}
 
       <main id="main-content" className="flex-1 bg-white text-slate-900">
@@ -192,7 +194,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {post.closingHtml ? null : (
             <NextStepBlock step={nextStepForCluster(cluster?.slug)} source={`blog_post:${cluster?.slug ?? "none"}`} className="mt-12" />
           )}
-          {byFounder ? <PostAuthorBox /> : null}
+          <AuthorReviewerCard
+            path={`/blog/${post.slug}`}
+            pageName={post.title}
+            written={byFounder}
+            pageId={`${MARKETING_SITE_URL}/blog/${post.slug}#article`}
+            pageType="BlogPosting"
+            className="mt-12"
+          />
         </article>
         {cluster ? (
           <aside aria-labelledby="related-heading" className="mx-auto w-full max-w-3xl px-6 pb-10">

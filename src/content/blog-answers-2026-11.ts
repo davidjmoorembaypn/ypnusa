@@ -158,7 +158,7 @@ export const ZIP_CODE_LEAD_CHECKLIST: BlogPost = {
 </ul>
 
 <h2>4. How was consent collected?</h2>
-<p>If you'll call or text with an autodialer or prerecorded message, the Telephone Consumer Protection Act generally requires the borrower's prior express written consent. Ask to see the actual form the borrower filled out, what it said, and whether your company (or the vendor on your behalf) is the party named. Our guide to <a href="/blog/tcpa-compliance-automated-lead-consent-for-mortgage-loan-officers">TCPA consent for loan officers</a> covers what to look for.</p>
+<p>If you'll call or text with an autodialer or prerecorded message, the Telephone Consumer Protection Act generally requires the borrower's prior express written consent. Ask to see the actual form the borrower filled out, what it said, and whether your company (or the vendor on your behalf) is the party named. Our guide to <a href="/blog/text-message-marketing-for-loan-officers">TCPA consent for loan officers</a> covers what to look for.</p>
 
 <h2>5. What does the contract commit you to?</h2>
 <ul>
@@ -413,7 +413,7 @@ export const CAN_AI_CHATBOT_TALK_TO_BORROWERS: BlogPost = {
 <p>The simplest safe design: the bot explains how programs work in general terms and hands any "what would my rate or payment be?" question to the loan officer.</p>
 
 <h2>3. Consent before texts and calls</h2>
-<p>The Telephone Consumer Protection Act generally requires a borrower's prior express written consent before marketing calls or texts sent with an autodialer or an artificial or prerecorded voice. If your chatbot collects a phone number for follow-up, it should capture clear consent language, record when and how it was given, and honor opt-outs like "STOP" right away. See our <a href="/blog/tcpa-compliance-automated-lead-consent-for-mortgage-loan-officers">TCPA consent guide for loan officers</a>.</p>
+<p>The Telephone Consumer Protection Act generally requires a borrower's prior express written consent before marketing calls or texts sent with an autodialer or an artificial or prerecorded voice. If your chatbot collects a phone number for follow-up, it should capture clear consent language, record when and how it was given, and honor opt-outs like "STOP" right away. See our <a href="/blog/text-message-marketing-for-loan-officers">TCPA consent guide for loan officers</a>.</p>
 
 <h2>4. Fair lending: same questions, same treatment</h2>
 <p>The Equal Credit Opportunity Act and Regulation B prohibit discrimination on bases such as race, religion, national origin, sex, marital status and age, and Regulation B also bars discouraging people from applying on those bases. A chatbot should ask every borrower the same qualifying questions, never ask about protected characteristics, and never steer people away from applying. Review transcripts from time to time to make sure it behaves the same way for everyone.</p>

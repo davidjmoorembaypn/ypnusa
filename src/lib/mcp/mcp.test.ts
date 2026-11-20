@@ -162,7 +162,7 @@ describe("MCP endpoint", async () => {
       const zip = result.tools.find((t: { name: string }) => t.name === "check_zip_availability");
       assert.equal(zip.inputSchema.required[0], "zip");
       assert.equal(zip.annotations.readOnlyHint, true);
-      assert.equal(result.tools.find((t: { name: string }) => t.name === "ask_cerebro").annotations.readOnlyHint, false);
+      assert.equal(result.tools.find((t: { name: string }) => t.name === "ask_cerebro").annotations.readOnlyHint, true);
     });
 
     it("POST: tools/call returns text and structured content", async () => {

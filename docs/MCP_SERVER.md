@@ -56,3 +56,15 @@ curl -s https://ypnus.com/api/mcp -H 'content-type: application/json' -H 'accept
 - Per-officer sign-in (OAuth) so an officer can use their own Cerebro from Claude.
 - Stateful sessions with a server-to-client stream. Not needed by any tool today; the transport supports it if one is added.
 - A shared rate-limit store. Limits are in memory, per Node process, like the rest of the app.
+
+## Operating it on the production host
+
+Three scripts in `scripts/mcp/`. Setup and cleanup edit `/etc/ypnusa/app.env` (root-only), keep a timestamped backup, restart `ypnusa.service`, wait for a healthy build and put the old file back if the site does not come up. They only touch their own `# BEGIN ypnusa-mcp` block.
+
+| Script | Run as | What it does |
+| --- | --- | --- |
+| `setup.sh [--private] [--rotate] [--no-cerebro] [--hourly N] [--origins LIST] [--dry-run]` | root, on the host | Writes the MCP settings, restarts, checks health and the endpoint, prints how to connect Claude. `--private` makes a bearer token. |
+| `cleanup.sh [--lockdown] [--prune-backups] [--dry-run]` | root, on the host | Removes the settings (back to the defaults). `--lockdown` closes the endpoint to everyone with a token nobody holds, without a redeploy. |
+| `action.sh [--url U] [--token T] [--ask "msg"] [zip ...]` | anyone | Exercises the live endpoint: handshake, tool list, ZIP checks, nearby ZIP codes, GET and DELETE 405, CORS preflight. `--ask` also calls `ask_cerebro` (one paid model call). |
+
+Needs `curl` and `python3` (and `openssl` for tokens). To remove the endpoint entirely, revert its pull request and let the release pipeline deploy that.

@@ -75,14 +75,35 @@ export function businessAreaServed() {
   ];
 }
 
+/**
+ * Brand mark for schema.org `logo`/`image`: the same "Y" icon the site header and the
+ * web app manifest use, served as a static 512x512 PNG (src/app/app-icon/[size]).
+ */
+export const BUSINESS_LOGO = {
+  url: `${MARKETING_SITE_URL}/app-icon/512`,
+  width: 512,
+  height: 512,
+} as const;
+
 /** Site-wide Organization + ProfessionalService node (rendered once, in the root layout). */
 export function businessEntityJsonLd(founder: { "@id": string; name: string }) {
+  const logo = {
+    "@type": "ImageObject",
+    "@id": `${MARKETING_SITE_URL}/#logo`,
+    url: BUSINESS_LOGO.url,
+    contentUrl: BUSINESS_LOGO.url,
+    width: BUSINESS_LOGO.width,
+    height: BUSINESS_LOGO.height,
+    caption: BUSINESS_NAME,
+  };
   return {
     "@type": ["Organization", "ProfessionalService"],
     "@id": `${MARKETING_SITE_URL}/#organization`,
     name: BUSINESS_NAME,
     legalName: BUSINESS_LEGAL_NAME,
     url: MARKETING_SITE_URL,
+    logo,
+    image: { "@id": logo["@id"] },
     description: BUSINESS_DESCRIPTION,
     email: BUSINESS_EMAIL,
     telephone: BUSINESS_TELEPHONE,

@@ -95,6 +95,7 @@ export function SiteFooter() {
             <li><Link href="/research" className="transition hover:text-white">Loan officer market report</Link></li>
             <li><Link href="/self-employed-mortgage" className="transition hover:text-white">Self-employed and investor loans</Link></li>
             <li><Link href="/best-ai-assistants-for-loan-officers" className="transition hover:text-white">Best AI assistants for loan officers</Link></li>
+            <li><Link href="/best-crm-for-loan-officers" className="transition hover:text-white">Best CRM for loan officers</Link></li>
             <li><Link href="/mortgage-payment-calculator" className="transition hover:text-white">Mortgage payment calculator</Link></li>
             <li><Link href="/topics" className="transition hover:text-white">Guides by topic</Link></li>
             <li><Link href="/blog" className="transition hover:text-white">Blog</Link></li>

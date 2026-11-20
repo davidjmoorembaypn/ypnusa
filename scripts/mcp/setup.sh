@@ -37,17 +37,35 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-case "$hourly" in ""|*[!0-9]*) [ -z "$hourly" ] || { echo "--hourly must be a whole number" >&2; exit 2; } ;; esac
+if [ -n "$hourly" ] && ! [[ "$hourly" =~ ^[1-9][0-9]*$ ]]; then
+  echo "--hourly must be a positive whole number (use --no-cerebro to turn ask_cerebro off)." >&2; exit 2
+fi
 
 [ -f "$ENV_FILE" ] || { echo "No $ENV_FILE. Run this on the production host." >&2; exit 1; }
-[ "$dry" = 1 ] || [ "$(id -u)" = 0 ] || { echo "Run as root: sudo bash $0" >&2; exit 1; }
+[ "$dry" = 1 ] || [ "$(id -u)" = 0 ] || [ "${ALLOW_NON_ROOT:-0}" = 1 ] || { echo "Run as root: sudo bash $0" >&2; exit 1; }   # ALLOW_NON_ROOT is for the automated tests
+
+wait_healthy() {
+  for _ in $(seq 1 "$HEALTH_TRIES"); do
+    if curl -fsS -m 5 "$HEALTH_URL" 2>/dev/null | grep -q '"ok":true'; then return 0; fi
+    sleep 2
+  done
+  return 1
+}
+# A failed restart counts the same as an unhealthy site: both put the old settings back.
+restart_healthy() { "$SYSTEMCTL" restart "$SERVICE" && wait_healthy; }
+gen_token() {
+  local t
+  t="$(openssl rand -hex 32 2>/dev/null)" || return 1
+  [[ "$t" =~ ^[0-9a-f]{64}$ ]] || return 1
+  printf '%s' "$t"
+}
 
 strip_block() { awk -v b="$BEGIN" -v e="$END" '$0==b{skip=1;next} $0==e{skip=0;next} !skip' "$1"; }
 
 token=""
 if [ "$private" = 1 ]; then
-  existing="$(awk -F= '/^MCP_BEARER_TOKEN=/{print $2}' "$ENV_FILE" | tail -1)"
-  if [ -n "$existing" ] && [ "$rotate" = 0 ]; then token="$existing"; else token="$(openssl rand -hex 32)"; fi
+  existing="$(sed -n 's/^MCP_BEARER_TOKEN=//p' "$ENV_FILE" | tail -1)"
+  if [ -n "$existing" ] && [ "$rotate" = 0 ]; then token="$existing"; else token="$(gen_token)" || { echo "Could not generate a token (is openssl installed?). Nothing was changed." >&2; exit 1; }; fi
 fi
 
 block=""
@@ -71,15 +89,11 @@ else
   cp -p "$ENV_FILE" "$backup"
   install -m 600 "$new" "$ENV_FILE"
   echo "Backed up to $backup; wrote the new settings; restarting $SERVICE..."
-  "$SYSTEMCTL" restart "$SERVICE"
-  ok=0
-  for _ in $(seq 1 "$HEALTH_TRIES"); do
-    if curl -fsS -m 5 "$HEALTH_URL" 2>/dev/null | grep -q '"ok":true'; then ok=1; break; fi
-    sleep 2
-  done
-  if [ "$ok" != 1 ]; then
-    echo "The site did not come back healthy. Restoring the previous settings." >&2
-    install -m 600 "$backup" "$ENV_FILE"; "$SYSTEMCTL" restart "$SERVICE"
+  if ! restart_healthy; then
+    echo "The site did not restart healthy. Restoring the previous settings." >&2
+    install -m 600 "$backup" "$ENV_FILE"
+    if restart_healthy; then echo "The previous settings are back and the site is healthy again." >&2
+    else echo "WARNING: the site is still not healthy after restoring. Check: journalctl -u $SERVICE -n 50" >&2; fi
     exit 1
   fi
   echo "Healthy."

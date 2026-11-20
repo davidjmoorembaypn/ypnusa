@@ -31,7 +31,7 @@ H=(-H 'content-type: application/json' -H 'accept: application/json, text/event-
 body="" code=""
 rpc() {
   local out
-  out="$(curl -s -m 60 -w '\n%{http_code}' -X POST "$url" "${H[@]}" "${auth[@]}" \
+  out="$(curl -s -m 60 -w '\n%{http_code}' -X POST "$url" "${H[@]}" ${auth[@]+"${auth[@]}"} \
     -d "{\"jsonrpc\":\"2.0\",\"id\":$1,\"method\":\"$2\"${3:+,\"params\":$3}}")"
   code="${out##*$'\n'}"; body="${out%$'\n'*}"
 }
@@ -69,10 +69,10 @@ if [ -n "$locked_zip" ]; then
   [ -n "$near" ] && ok "find_nearby_open_zips $locked_zip: $near" || bad "find_nearby_open_zips $locked_zip: no answer"
 fi
 
-g="$(curl -s -m 20 -o /dev/null -D - "$url" "${auth[@]}" -H 'accept: text/event-stream')"
+g="$(curl -s -m 20 -o /dev/null -D - "$url" ${auth[@]+"${auth[@]}"} -H 'accept: text/event-stream')"
 last_status() { grep '^HTTP/' | tail -1; }   # the last status line: a proxy can print its own CONNECT line first
 echo "$g" | last_status | grep -q ' 405' && echo "$g" | grep -qi '^allow: POST, OPTIONS' && ok "GET: 405 with Allow: POST, OPTIONS" || bad "GET: expected 405 with Allow"
-d="$(curl -s -m 20 -o /dev/null -w '%{http_code}' -X DELETE "$url" "${auth[@]}" -H 'mcp-session-id: x')"
+d="$(curl -s -m 20 -o /dev/null -w '%{http_code}' -X DELETE "$url" ${auth[@]+"${auth[@]}"} -H 'mcp-session-id: x')"
 [ "$d" = 405 ] && ok "DELETE: 405" || bad "DELETE: expected 405, got $d"
 
 p="$(curl -s -m 20 -o /dev/null -D - -X OPTIONS "$url" -H 'origin: https://claude.ai' -H 'access-control-request-method: POST')"

@@ -17,7 +17,7 @@ const CEREBRO_POINTS: Array<[string, string]> = [
   ["Answers borrowers 24/7", "On your local page, at any hour, in plain language."],
   ["Qualifies every inquiry", "Goal, timeline, price range and contact details, with consent."],
   ["Hands the ready ones to you", "With a summary of the conversation, never to another lender."],
-  ["Works your pipeline", "Flags who needs a call and drafts follow-up and local posts for your review."],
+  ["Works your pipeline", "Flags who needs a call, follows up by email (on its own or after your approval) and drafts local posts for your review."],
 ];
 
 const HOW_ZIP_CODES_WORK: Array<[string, string]> = [

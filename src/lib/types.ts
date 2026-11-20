@@ -220,8 +220,15 @@ export interface AppointmentRecord {
   cancelledBy?: "borrower" | "officer" | "admin";
   /** IANA time zone the times are shown in (the officer's). */
   timeZone?: string;
+  /** Set once both sides are confirmed (or a side can't be emailed). */
   confirmationSentAt?: string;
+  borrowerConfirmedAt?: string;
+  officerNotifiedAt?: string;
+  confirmationAttempts?: number;
   reminderSentAt?: string;
+  /** After a cancel: whether the event still has to come off the officer's Google or Outlook calendar. */
+  providerCleanup?: "pending" | "done";
+  providerCleanupAttempts?: number;
 }
 
 export interface IntakeSessionRecord {

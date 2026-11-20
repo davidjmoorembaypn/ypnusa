@@ -219,9 +219,12 @@ export function startCerebroDispatchSchedule(): void {
     busy = true;
     try {
       const result = await dispatchCerebroMessages();
-      const { sendDueReminders } = await import("./appointments");
+      const { retryPendingConfirmations, retryProviderCleanup, sendDueReminders } = await import("./appointments");
       const reminders = await sendDueReminders();
       if (reminders) console.log(`[cerebro-dispatch] sent ${reminders} appointment reminder(s)`);
+      const confirmed = await retryPendingConfirmations();
+      if (confirmed) console.log(`[cerebro-dispatch] finished ${confirmed} appointment confirmation(s) on retry`);
+      await retryProviderCleanup();
       if (result.sent || result.toOfficer) console.log(`[cerebro-dispatch] sent ${result.sent}, held ${result.held}, back to officer ${result.toOfficer}`);
     } catch (error) {
       console.error("[cerebro-dispatch] pass failed", error instanceof Error ? error.message : error);

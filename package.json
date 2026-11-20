@@ -20,6 +20,7 @@
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.33.8",
     "@anthropic-ai/sdk": "0.123.0",
+    "@modelcontextprotocol/server": "^2.4.0",
     "next": "16.4.5",
     "openai": "^7.35.0",
     "react": "19.2.4",
@@ -29,6 +30,7 @@
     "web-push": "3.6.7"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

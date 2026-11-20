@@ -44,8 +44,36 @@ function handleApiCors(request: NextRequest): NextResponse {
   return response;
 }
 
+/**
+ * /api/mcp is the public, read-only MCP server (src/app/api/mcp/route.ts). It uses no cookies and
+ * returns only what the public site shows, so any origin may call it from a browser (claude.ai, the
+ * MCP Inspector), without credentials. This is the one exception to the allowlist above; do not
+ * widen it to routes that read a session.
+ */
+const MCP_CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Accept, Authorization, Mcp-Session-Id, Mcp-Protocol-Version, Mcp-Method, Mcp-Name, Last-Event-ID",
+  "Access-Control-Expose-Headers": "Mcp-Session-Id, Mcp-Protocol-Version",
+  "Access-Control-Max-Age": "600",
+};
+
+function handleMcpCors(request: NextRequest): NextResponse {
+  const response = request.method === "OPTIONS" ? new NextResponse(null, { status: 204 }) : NextResponse.next();
+  for (const [key, value] of Object.entries(MCP_CORS_HEADERS)) response.headers.set(key, value);
+  // Newer MCP clients send per-call headers (Mcp-Param-*) that can't be listed ahead of time, so a
+  // preflight is answered with exactly the headers it asked for. Safe here: no credentials are allowed.
+  const requested = request.headers.get("access-control-request-headers");
+  if (request.method === "OPTIONS" && requested) {
+    response.headers.set("Access-Control-Allow-Headers", requested);
+    response.headers.set("Vary", "Access-Control-Request-Headers");
+  }
+  return response;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (pathname === "/api/mcp") return handleMcpCors(request);
   if (pathname.startsWith("/api/")) return handleApiCors(request);
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),

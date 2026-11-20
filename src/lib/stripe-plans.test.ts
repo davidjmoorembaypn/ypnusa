@@ -51,6 +51,13 @@ describe("Pro yearly and the extra ZIP code add-on", async () => {
     assert.equal(stripePlanFrom({}), undefined);
   });
 
+  it("recognises the live Payment Links and prices without metadata", () => {
+    assert.equal(stripePlanFrom({ paymentLinkId: "plink_1UdvSbBuaeDJIFLw5iau4wWt" }), "pro_yearly");
+    assert.equal(stripePlanFrom({ priceId: "price_1UdvSNBuaeDJIFLwZbYJRkMf" }), "extra_zip_monthly");
+    assert.equal(stripePlanFrom({ priceId: "price_1UdvSOBuaeDJIFLwbMqTrrlh" }), "extra_zip_yearly");
+    assert.equal(stripePlanFrom({ paymentLinkId: "plink_somethingelse" }), undefined);
+  });
+
   it("the webhook passes ypnus_plan through from a checkout and a subscription", () => {
     const session = mapStripeEventToFulfillmentPayload({
       id: "evt_1",

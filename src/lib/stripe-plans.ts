@@ -59,9 +59,22 @@ interface StripeIds {
 
 /** Filled in from the Stripe Dashboard once each Payment Link exists. */
 const STRIPE_IDS: Readonly<Record<StripePlanKey, StripeIds>> = {
-  pro_yearly: {},
-  extra_zip_monthly: {},
-  extra_zip_yearly: {},
+  // Created in the live YPN INC Stripe account on 2026-11-20 (metadata ypnus_plan on each link and subscription).
+  pro_yearly: {
+    url: "https://buy.stripe.com/cNidR8eAqebTcCt6GG3AY0U",
+    paymentLinkId: "plink_1UdvSbBuaeDJIFLw5iau4wWt",
+    priceId: "price_1UdvS7BuaeDJIFLwAsfRMrYk",
+  },
+  extra_zip_monthly: {
+    url: "https://buy.stripe.com/9B6cN4fEu7NveKB5CC3AY0V",
+    paymentLinkId: "plink_1UdvScBuaeDJIFLwuSr99wDr",
+    priceId: "price_1UdvSNBuaeDJIFLwZbYJRkMf",
+  },
+  extra_zip_yearly: {
+    url: "https://buy.stripe.com/8x24gygIyffXbyp7KK3AY0W",
+    paymentLinkId: "plink_1UdvSdBuaeDJIFLwvaAHzvE8",
+    priceId: "price_1UdvSOBuaeDJIFLwbMqTrrlh",
+  },
 };
 
 function isPlanKey(value: unknown): value is StripePlanKey {

@@ -70,12 +70,13 @@ if [ -n "$locked_zip" ]; then
 fi
 
 g="$(curl -s -m 20 -o /dev/null -D - "$url" "${auth[@]}" -H 'accept: text/event-stream')"
-echo "$g" | head -1 | grep -q ' 405' && echo "$g" | grep -qi '^allow: POST, OPTIONS' && ok "GET: 405 with Allow: POST, OPTIONS" || bad "GET: expected 405 with Allow"
+last_status() { grep '^HTTP/' | tail -1; }   # the last status line: a proxy can print its own CONNECT line first
+echo "$g" | last_status | grep -q ' 405' && echo "$g" | grep -qi '^allow: POST, OPTIONS' && ok "GET: 405 with Allow: POST, OPTIONS" || bad "GET: expected 405 with Allow"
 d="$(curl -s -m 20 -o /dev/null -w '%{http_code}' -X DELETE "$url" "${auth[@]}" -H 'mcp-session-id: x')"
 [ "$d" = 405 ] && ok "DELETE: 405" || bad "DELETE: expected 405, got $d"
 
 p="$(curl -s -m 20 -o /dev/null -D - -X OPTIONS "$url" -H 'origin: https://claude.ai' -H 'access-control-request-method: POST')"
-echo "$p" | head -1 | grep -q ' 204' && echo "$p" | grep -qi '^access-control-allow-origin: https://claude.ai' && ok "preflight from claude.ai: 204 with CORS headers" || bad "preflight from claude.ai: expected 204 with CORS headers"
+echo "$p" | last_status | grep -q ' 204' && echo "$p" | grep -qi '^access-control-allow-origin: https://claude.ai' && ok "preflight from claude.ai: 204 with CORS headers" || bad "preflight from claude.ai: expected 204 with CORS headers"
 e="$(curl -s -m 20 -o /dev/null -w '%{http_code}' -X OPTIONS "$url" -H 'origin: https://evil.example')"
 [ "$e" = 403 ] && ok "preflight from an unknown origin: 403" || bad "preflight from an unknown origin: expected 403, got $e"
 

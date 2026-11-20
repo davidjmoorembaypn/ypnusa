@@ -143,10 +143,11 @@ export default function Home() {
         <div className="relative z-10 mx-auto grid w-full max-w-6xl items-start gap-6 px-4 pb-14 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-x-12 lg:gap-y-8 lg:py-24">
           <div className="max-w-xl lg:col-start-1 lg:row-start-1">
             <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
-              For licensed mortgage loan officers
+              For licensed mortgage loan officers nationwide
             </span>
             <h1 className="mt-5 text-balance text-[2rem] font-semibold leading-[1.1] sm:text-4xl lg:mt-6 lg:text-[3.4rem] lg:leading-[1.08]">
-              One loan officer per ZIP code. <span className="text-violet-300">Lock yours before another MLO does.</span>
+              Stop losing borrowers to the lender who answered first.{" "}
+              <span className="text-violet-300">Cerebro answers them for you, day and night.</span>
             </h1>
 
             {/* Real, verifiable credentials only (see /about); no invented reviews, awards or user counts. */}
@@ -191,8 +192,8 @@ export default function Home() {
 
           <div className="max-w-xl lg:col-start-1 lg:row-start-2">
             <p className="text-lg text-white/90">
-              An exclusive ZIP code territory for licensed mortgage loan officers, never a shared seat. Plus Cerebro AI lead
-              generation and co-branded Realtor and borrower tools, built only for MLOs.
+              Cerebro answers and qualifies borrowers on your page 24/7, hands each one to you with a summary and drafts your
+              follow-ups for your OK. Paid plans add a ZIP code no other YPN USA loan officer can claim, anywhere in the country.
             </p>
             <p className="mt-4 text-base font-semibold text-amber-200">
               Once yours is claimed, it&rsquo;s gone.

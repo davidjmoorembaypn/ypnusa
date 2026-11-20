@@ -719,11 +719,11 @@ ${src(FANNIE_HOMEREADY, "Fannie Mae: HomeReady mortgage")}
     },
     {
       q: "Can YPN USA send these emails for me?",
-      a: "No. Cerebro, YPN USA's AI assistant, can draft follow-up messages for you to review, but nothing is sent automatically. You approve each message and send it from your own email or CRM.",
+      a: "In part. Cerebro, YPN USA's AI assistant, can email borrowers check-ins, first replies and rate alerts for you. By default it sends them on its own, only to borrowers who agreed to be contacted and only when its compliance checks pass; in approve-first mode it holds each one for your OK. It sends no texts. The timed sequence in this guide runs in your own CRM or email tool.",
     },
   ],
   closingHtml: closing(
-    `<p><strong>Want follow-up drafted for you?</strong> YPN USA gives one loan officer each ZIP code within YPN USA, and Cerebro drafts follow-up messages for you to review. <a href="/check-zip">Check if your ZIP code is open</a> or <a href="/pricing">see plans</a>, starting free.</p>`,
+    `<p><strong>Want follow-up drafted for you?</strong> YPN USA gives one loan officer each ZIP code within YPN USA, and Cerebro follows up with borrowers by email, on its own or after your approval. <a href="/check-zip">Check if your ZIP code is open</a> or <a href="/pricing">see plans</a>, starting free.</p>`,
   ),
 };
 

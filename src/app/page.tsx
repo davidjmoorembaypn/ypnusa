@@ -37,7 +37,7 @@ const CEREBRO_TODAY = [
     audience: "For you, the loan officer",
     items: [
       ["Builds your growth plan", "Tell it your market and your biggest challenge; it maps the next steps for your ZIP code."],
-      ["Works your pipeline", "Surfaces who needs a call today and drafts the follow-up for your review."],
+      ["Works your pipeline", "Surfaces who needs a call today and follows up by email, on its own or after your approval."],
       ["Drafts your marketing", "Local posts, Google Business Profile updates and Realtor co-marketing, for you to edit."],
       ["Looks up live data", "Checks live ZIP code availability and quotes plans from the current price list."],
     ],
@@ -85,7 +85,7 @@ const FAQ = [
   },
   {
     q: "Do I still have to follow up myself?",
-    a: "Yes, for everything that needs a licensed loan officer. Cerebro answers, qualifies and records conversations and drafts follow-up and marketing for your review. You handle every application, rate conversation and credit decision.",
+    a: "Yes, for everything that needs a licensed loan officer. Cerebro answers, qualifies and records conversations, emails routine follow-ups (on its own by default, or after your approval) and drafts marketing for your review. You handle every application, rate conversation and credit decision.",
   },
   {
     q: "Which loan programs does it handle?",

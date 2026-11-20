@@ -32,7 +32,7 @@ export const BUSINESS_HOURS = {
 
 /** Under 750 characters (GBP limit). Only claims the product supports today. */
 export const BUSINESS_DESCRIPTION =
-  "YPN USA helps licensed Mortgage Loan Officers stop buying shared leads and start owning their local market. Each paid plan includes one exclusive ZIP code within YPN USA, a local page for that ZIP code, and Cerebro AI, an assistant that answers borrower questions 24/7, qualifies them and hands ready borrowers to the loan officer with a summary. Cerebro also drafts follow-up messages, local posts and Realtor co-marketing for the loan officer to review. Higher plans add a portable loan officer website and local city pages. Headquartered in Dinuba, CA, YPN USA serves mortgage professionals nationwide. Marketing technology only, not a lender.";
+  "YPN USA helps licensed Mortgage Loan Officers stop buying shared leads and start owning their local market. Each paid plan includes one exclusive ZIP code within YPN USA, a local page for that ZIP code, and Cerebro AI, an assistant that answers borrower questions 24/7, qualifies them and hands ready borrowers to the loan officer with a summary. Cerebro also emails borrowers check-ins and first replies for the loan officer, on its own or after the officer approves them, and drafts local posts and Realtor co-marketing to review. Higher plans add a portable loan officer website and local city pages. Headquartered in Dinuba, CA, YPN USA serves mortgage professionals nationwide. Marketing technology only, not a lender.";
 
 export const BUSINESS_SERVICES: ReadonlyArray<{ name: string; description: string }> = [
   {
@@ -63,7 +63,7 @@ export const BUSINESS_SERVICES: ReadonlyArray<{ name: string; description: strin
   {
     name: "Borrower Follow-Up Assistant",
     description:
-      "Cerebro spots which borrowers need a follow-up and drafts the text or email. You approve each message before it goes out.",
+      "Cerebro spots which borrowers need a follow-up and writes the email. By default it sends check-ins, first replies and rate alerts on its own to borrowers who agreed to be contacted, after compliance checks; in approve-first mode it holds each one for your OK. No texts or calls.",
   },
 ];
 

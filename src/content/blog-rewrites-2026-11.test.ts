@@ -218,9 +218,14 @@ describe("second batch of rewrites (landing pages, referrals, email follow-up)",
     }
   });
 
-  it("does not claim YPN USA sends messages by itself", () => {
-    const text = visibleText([EMAIL_FOLLOW_UP_SEQUENCES.html, ...(EMAIL_FOLLOW_UP_SEQUENCES.faq ?? []).map((f) => f.a)].join(" "));
-    assert.match(text, /nothing is sent automatically/);
+  it("describes Cerebro's emails as the code behaves: on its own by default, held in approve-first mode, no texts", () => {
+    const text = visibleText([EMAIL_FOLLOW_UP_SEQUENCES.html, EMAIL_FOLLOW_UP_SEQUENCES.closingHtml ?? "", ...(EMAIL_FOLLOW_UP_SEQUENCES.faq ?? []).map((f) => f.a)].join(" "));
+    assert.match(text, /By default it sends them on its own/);
+    assert.match(text, /approve-first mode it holds each one for your OK/);
+    assert.match(text, /It sends no texts/);
+    for (const wrong of ["nothing is sent automatically", "You approve each message", "drafts follow-up messages for you to review"]) {
+      assert.ok(!text.includes(wrong), `still says "${wrong}"`);
+    }
   });
 
   it("states every loan program number it uses with its source link", () => {

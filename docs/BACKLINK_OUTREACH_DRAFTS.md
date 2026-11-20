@@ -10,7 +10,7 @@ All business facts below come from `src/lib/business-profile.ts` and `docs/gbp-r
 
 1. **Never pay for a link, trade links, or accept a listing that requires a reciprocal link.** Google treats those as link spam. Skip any directory that charges for a followed link.
 2. **Use the same name, address and phone number everywhere** (the block below). Inconsistent details weaken local listings.
-3. **Say only what the product does today.** Exclusivity applies within YPN USA (other lenders can still market in the same ZIP code). Cerebro answers, qualifies and drafts; it does not send texts or emails by itself. No ranking promises, no customer counts, no results claims, no "best" or "#1".
+3. **Say only what the product does today.** Exclusivity applies within YPN USA (other lenders can still market in the same ZIP code). Cerebro answers, qualifies, emails check-ins and first replies (on its own by default, or after the officer approves them) and drafts posts; it sends no texts. No ranking promises, no customer counts, no results claims, no "best" or "#1".
 4. **Disclose who you are** in every email: you are the founder and you are asking for a link to your own site.
 5. **Follow CAN-SPAM for every outreach email**, even one-to-one: accurate sender and subject line, your postal address, and a working way to say "no thanks." Honor opt-outs within 10 business days.
 6. **Send one email, and at most one follow-up** a week or more later. If there is no reply, stop.
@@ -55,10 +55,10 @@ YPN USA gives licensed loan officers one exclusive ZIP code within YPN USA, a lo
 YPN USA is an AI mortgage marketing platform for licensed loan officers who want to own their local market instead of buying shared leads. Each paid plan includes one exclusive ZIP code within YPN USA, a local page for it and Cerebro AI, which answers and qualifies borrowers 24/7. Free to start.
 ```
 
-### Long (646 characters, same text as the Google Business Profile)
+### Long (723 characters, same text as the Google Business Profile)
 
 ```
-YPN USA helps licensed Mortgage Loan Officers stop buying shared leads and start owning their local market. Each paid plan includes one exclusive ZIP code within YPN USA, a local page for that ZIP code, and Cerebro AI, an assistant that answers borrower questions 24/7, qualifies them and hands ready borrowers to the loan officer with a summary. Cerebro also drafts follow-up messages, local posts and Realtor co-marketing for the loan officer to review. Higher plans add a portable loan officer website and local city pages. Headquartered in Dinuba, CA, YPN USA serves mortgage professionals nationwide. Marketing technology only, not a lender.
+YPN USA helps licensed Mortgage Loan Officers stop buying shared leads and start owning their local market. Each paid plan includes one exclusive ZIP code within YPN USA, a local page for that ZIP code, and Cerebro AI, an assistant that answers borrower questions 24/7, qualifies them and hands ready borrowers to the loan officer with a summary. Cerebro also emails borrowers check-ins and first replies for the loan officer, on its own or after the officer approves them, and drafts local posts and Realtor co-marketing to review. Higher plans add a portable loan officer website and local city pages. Headquartered in Dinuba, CA, YPN USA serves mortgage professionals nationwide. Marketing technology only, not a lender.
 ```
 
 ## Directory types, with the framing to use for each

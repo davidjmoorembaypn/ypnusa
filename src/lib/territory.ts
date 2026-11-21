@@ -1,5 +1,7 @@
 import { readDb, writeDb } from "./db";
+import { paidLedgerSnapshot } from "@/lib/persistence/ledger-read-model";
 import { isLiveSubscription } from "@/lib/subscription-live";
+import { isValidZip, normalizeZip } from "@/lib/zip-format";
 import type { DemoRequestRecord, RevenueSubscriptionRecord } from "./types";
 
 /**
@@ -31,15 +33,7 @@ export interface TerritoryCheckResult {
   message: string;
 }
 
-export function normalizeZip(raw: unknown): string {
-  if (typeof raw !== "string" && typeof raw !== "number") return "";
-  const digits = String(raw).replace(/\D/g, "");
-  return digits.slice(0, 5);
-}
-
-export function isValidZip(zip: string): boolean {
-  return /^\d{5}$/.test(zip);
-}
+export { isValidZip, normalizeZip };
 
 function liveClaimedZips(): Set<string> {
   const db = readDb();
@@ -109,15 +103,27 @@ function buildResult(zip: string, claimedZips: Set<string>): TerritoryCheckResul
   };
 }
 
-/** Every ZIP code held by a live paid subscription (Stripe or admin adjustment). Seeds, trials and demo requests hold nothing. */
+/**
+ * Every ZIP code held by a live paid subscription (Stripe or admin adjustment). Seeds, trials and
+ * demo requests hold nothing.
+ *
+ * Answers from this app's data file unless the ZIP code ledger has been moved to PostgreSQL
+ * (YPN_LEDGER_STORE, see @/lib/persistence/mode): then it answers from PostgreSQL's ledger, and
+ * falls back to the data file whenever PostgreSQL has no fresh answer.
+ */
 export function paidLedgerClaimedZips(): Set<string> {
+  return paidLedgerSnapshot(() => paidLedgerClaimedZipsFromDataFile());
+}
+
+/** The same ledger, always computed from the data file. The fallback and the comparison baseline. */
+export function paidLedgerClaimedZipsFromDataFile(now: number = Date.now()): Set<string> {
   const claimed = new Set<string>();
   readDb()
     .revenueSubscriptions.filter(
       (subscription) =>
         // Only paid records hold claimedZips now (a trial's ZIP code waits in pendingZip
         // until the first payment); expired prepaid terms and cancellations release it.
-        isLiveSubscription(subscription) &&
+        isLiveSubscription(subscription, now) &&
         (subscription.source === "stripe_webhook" || subscription.source === "admin_adjustment"),
     )
     .forEach((subscription) =>

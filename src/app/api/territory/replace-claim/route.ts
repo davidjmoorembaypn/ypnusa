@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   try {
     const parsed = await parseJsonBody(request);
     if (!parsed.ok || !isRecord(parsed.data)) return jsonError("Enter a 5-digit ZIP code.", 400, "INVALID_BODY");
-    const result = claimReplacementZip({ email: session.email }, parsed.data.zip);
+    const result = await claimReplacementZip({ email: session.email }, parsed.data.zip);
     if (result.ok) return NextResponse.json({ ok: true, zip: result.zip }, { headers: { "Cache-Control": "no-store" } });
     if (result.reason === "invalid_zip") return jsonError("Enter a 5-digit ZIP code.", 400, "INVALID_ZIP");
     if (result.reason === "no_conflict") return jsonError("Your plan already has its ZIP code, or there is no paid plan on this account.", 409, "NO_CONFLICT");

@@ -1,6 +1,7 @@
 import { normalizeEmail } from "@/lib/accounts";
 import { MLO_MARKETS } from "@/content/mlo-markets";
-import { readDb, saveRevenueSubscription, saveRevenueSubscriptionWithZipClaim } from "@/lib/db";
+import { readDb } from "@/lib/db";
+import { subscriptionRepository } from "@/lib/repositories";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import { scheduleZipLockHook } from "@/lib/zip-scarcity";
@@ -136,18 +137,23 @@ export type ReplacementResult =
   | { ok: false; reason: "no_conflict" | "invalid_zip" | "taken"; nearby?: string[] };
 
 /** Locks an open ZIP code for a paid plan that holds none: its first pick was taken, or it never had one. */
-export function claimReplacementZip(viewer: { email: string }, rawZip: unknown, now: number = Date.now()): ReplacementResult {
+export async function claimReplacementZip(
+  viewer: { email: string },
+  rawZip: unknown,
+  now: number = Date.now(),
+): Promise<ReplacementResult> {
   const sub = viewerPlanNeedingZip(viewer, now);
   if (!sub) return { ok: false, reason: "no_conflict" };
   const zip = normalizeZip(rawZip);
   if (!isValidZip(zip)) return { ok: false, reason: "invalid_zip" };
   // The claim itself re-checks inside one write, so two officers can't both get it.
-  const { record, zipClaimed, zipConflict, zipNewlyLocked } = saveRevenueSubscriptionWithZipClaim(sub, zip);
+  const subscriptions = subscriptionRepository();
+  const { record, zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(sub, zip);
   if (zipConflict || !zipClaimed) {
     // A conflicted claim saves the record as given, so the zipLockConflict flag stays on it.
     return { ok: false, reason: "taken", nearby: nearbyOpenZips(zip, now) };
   }
-  saveRevenueSubscription({ ...record, zipLockConflict: undefined });
+  await subscriptions.save({ ...record, zipLockConflict: undefined });
   if (zipNewlyLocked) scheduleZipLockHook(zip, sub.id, "replacement");
   return { ok: true, zip };
 }

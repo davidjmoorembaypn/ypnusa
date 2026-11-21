@@ -159,6 +159,9 @@ A healthy answer looks like this (the build and times will differ):
 | `storage.piiEncryption` | `on` | Borrower personal data is encrypted on the server. |
 | `email` | `on` | The site can send email (sign-in links, lead alerts, Cerebro's borrower emails). |
 
+The `database` part of the answer is explained in [POSTGRES_PHASE1.md](POSTGRES_PHASE1.md). Until a database is
+connected it reads `"configured":false` and everything in it can be ignored.
+
 If the page doesn't load at all, or `ok` isn't `true`, the site is down: reinstall the last good build (section 3)
 and contact a developer.
 
@@ -203,5 +206,6 @@ The settings that matter most, by name only:
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Phone alerts. | The server makes and saves its own pair, so alerts still work. |
 | `GA_MEASUREMENT_API_SECRET` | Sends "first payment" events to Google Analytics. | Payments are logged on the server only. |
 | `YPNUSA_BACKUP_S3_URI` | Off-server backup copies. | Backups stay on the server only. |
+| `DATABASE_URL`, `YPN_LEDGER_STORE`, `YPN_SUBSCRIPTION_STORE` | The move of paid plans and ZIP code locks to a PostgreSQL database, step by step. See [POSTGRES_PHASE1.md](POSTGRES_PHASE1.md). | The site uses the data file only, as it always has. |
 
 Never paste any of these values into GitHub, a chat, an email or a document.

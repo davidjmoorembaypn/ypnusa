@@ -108,7 +108,7 @@ export function StickyZipBar({ heroId = "hero" }: { heroId?: string }) {
               />
               {status.available ? (
                 <>
-                  {status.zip} is OPEN <span className="font-normal text-slate-700">&mdash; Lock your territory now</span>
+                  {status.zip} is OPEN <span className="font-normal text-slate-700">&mdash; Pro $99/mo locks it today</span>
                 </>
               ) : (
                 <>
@@ -125,7 +125,7 @@ export function StickyZipBar({ heroId = "hero" }: { heroId?: string }) {
                 }}
                 className="inline-flex min-h-[44px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-emerald-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-800"
               >
-                Lock ZIP<span className="hidden sm:inline">&nbsp;{status.zip}</span>
+                Lock ZIP code<span className="hidden sm:inline">&nbsp;{status.zip}</span>
               </a>
             ) : null}
             <button

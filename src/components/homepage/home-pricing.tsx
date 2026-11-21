@@ -229,17 +229,17 @@ export function HomePricing() {
                         onClick={() => track("home_cta_click", { cta: "pricing_lock_needs_zip", plan: tier.id, billing })}
                         className={`${showPrepaid ? BTN_ACCENT : BTN_PRIMARY} w-full`}
                       >
-                        {showPrepaid ? `Lock ZIP for ${PREPAID_5Y_YEARS} Years (One Payment)` : "Lock ZIP Today (First Payment Now)"}
+                        {showPrepaid ? `Lock ZIP Code for ${PREPAID_5Y_YEARS} Years (One Payment)` : "Lock ZIP Code Today (First Payment Now)"}
                       </a>
                       <p className="text-center text-xs text-slate-700">Check your ZIP code first, so it is locked with your payment.</p>
                     </>
                   ) : showPrepaid ? (
                     <PricingCta tierId={tier.id} variant="prepaid_5y" aria-describedby={termsId} className={`${BTN_ACCENT} w-full`}>
-                      Lock ZIP {lockableZip} for {PREPAID_5Y_YEARS} Years (One Payment)
+                      Lock ZIP Code {lockableZip} for {PREPAID_5Y_YEARS} Years (One Payment)
                     </PricingCta>
                   ) : (
                     <PricingCta tierId={tier.id} variant="pay_now" className={`${BTN_PRIMARY} w-full`}>
-                      Lock ZIP {lockableZip} Today (First Payment Now)
+                      Lock ZIP Code {lockableZip} Today (First Payment Now)
                     </PricingCta>
                   )}
                   <PricingCta tierId={tier.id} variant="trial" className={`${BTN_SECONDARY} w-full`}>

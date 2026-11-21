@@ -19,31 +19,31 @@ const STEPS: ReadonlyArray<{ title: string; body: string }> = [
 /** Three-step summary shown directly under the hero. Written for licensed mortgage loan officers only. */
 export function HowItWorks() {
   return (
-    <section id="how-it-works" aria-labelledby="how-it-works-heading" className="border-y border-white/10 bg-[#0d0b26] py-14">
+    <section id="how-it-works" aria-labelledby="how-it-works-heading" className="border-y border-slate-200 bg-slate-50 py-14 text-slate-900">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-200">How it works for loan officers</p>
-          <h2 id="how-it-works-heading" className="mt-3 text-3xl font-semibold text-white lg:text-4xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-800">How it works for loan officers</p>
+          <h2 id="how-it-works-heading" className="mt-3 text-3xl font-semibold text-slate-900 lg:text-4xl">
             Lock a ZIP code. Capture leads. Convert faster.
           </h2>
         </div>
         <ol className="mt-10 grid gap-5 md:grid-cols-3">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="rounded-3xl bg-white/5 p-6 ring-1 ring-white/15">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-amber-400 text-base font-bold text-[#09081b]" aria-hidden>
+            <li key={step.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-base font-bold text-white" aria-hidden>
                 {i + 1}
               </span>
-              <h3 className="mt-4 text-lg font-semibold text-white">
+              <h3 className="mt-4 text-lg font-semibold text-slate-900">
                 <span className="sr-only">Step {i + 1}: </span>
                 {step.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-white/80">{step.body}</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">{step.body}</p>
             </li>
           ))}
         </ol>
-        <p className="mt-6 text-center text-sm text-white/75">
+        <p className="mt-6 text-center text-sm text-slate-700">
           Plans: {PUBLIC_PRICING_TIERS.map((t) => `${t.name} ${t.price}`).join(", ")}. Paid plans are monthly and include one exclusive ZIP code.{" "}
-          <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
+          <Link href="/pricing" className="font-semibold text-violet-800 underline underline-offset-2 hover:text-violet-950">
             Compare plans
           </Link>
         </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { track } from "@/lib/track";
+import { ZipInput } from "@/components/zip-input";
 
 /**
  * One-field ZIP code check that hands off to /claim-territory?zip=…, where the full check
@@ -21,13 +22,9 @@ export function ZipQuickCheck({ source, tone = "light" }: { source: string; tone
       <label className="sr-only" htmlFor={`zip-quick-${source}`}>
         Your ZIP code
       </label>
-      <input
+      <ZipInput
         id={`zip-quick-${source}`}
         name="zip"
-        inputMode="numeric"
-        autoComplete="postal-code"
-        pattern="[0-9]{5}"
-        maxLength={5}
         required
         placeholder="Your ZIP code"
         className={`min-h-[48px] flex-1 rounded-full border px-5 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${dark ? "border-white/25 bg-white/10 text-white placeholder:text-white/60" : "border-slate-300 bg-white text-slate-900 placeholder:text-slate-500"}`}

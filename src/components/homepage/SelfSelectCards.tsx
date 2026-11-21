@@ -32,17 +32,17 @@ export function SelfSelectCards({
             type="button"
             onClick={() => onSelect(option.intent)}
             aria-pressed={isSelected}
-            className={`flex flex-col items-start gap-1 rounded-2xl border px-4 py-3.5 text-left transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 ${
+            className={`flex flex-col items-start gap-1 rounded-2xl border px-4 py-3.5 text-left transition duration-200 hover:-translate-y-0.5 ${
               isSelected
-                ? "border-amber-300 bg-amber-400/15 ring-1 ring-amber-300/60"
-                : "border-white/20 bg-white/5 hover:bg-white/10"
+                ? "border-emerald-700 bg-emerald-50 ring-1 ring-emerald-700"
+                : "border-slate-300 bg-white hover:bg-slate-50"
             }`}
           >
             <span className="text-xl" aria-hidden>
               {option.icon}
             </span>
-            <span className="text-sm font-semibold text-white">{option.label}</span>
-            <span className="text-xs text-white/65">{option.sub}</span>
+            <span className="text-sm font-semibold text-slate-900">{option.label}</span>
+            <span className="text-xs text-slate-700">{option.sub}</span>
           </button>
         );
       })}

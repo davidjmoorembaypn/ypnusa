@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { track } from "@/lib/track";
+import { ZipInput } from "@/components/zip-input";
+import { isCompleteZip } from "@/lib/zip-session";
 
 /** 60-day estimate from /api/territory/check (Census-based, see src/lib/zip-demand.ts). */
 interface Demand {
@@ -71,24 +73,35 @@ export function ZipDemandCheck() {
           Your ZIP code (where you work)
         </label>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-          <input
+          <ZipInput
             id={inputId}
-            inputMode="numeric"
-            autoComplete="postal-code"
-            maxLength={5}
-            placeholder="e.g. 93701"
             value={zip}
-            onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
+            onValueChange={(next) => {
+              setZip(next);
+              if (state.kind === "error") setState({ kind: "idle" });
+            }}
+            invalid={state.kind === "error"}
+            placeholder="e.g. 93701"
             className="min-h-[52px] w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-base font-semibold tracking-wide text-slate-900 outline-none ring-violet-300 placeholder:font-normal placeholder:text-slate-500 focus:ring-2"
           />
           <button
             type="submit"
             disabled={state.kind === "loading"}
-            className="min-h-[52px] shrink-0 rounded-2xl bg-amber-400 px-6 py-3 text-base font-bold text-[#09081b] shadow-lg shadow-amber-500/30 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:opacity-60"
+            data-ready={isCompleteZip(zip) ? "true" : "false"}
+            className={`min-h-[52px] shrink-0 rounded-2xl px-6 py-3 text-base font-bold text-[#09081b] hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:opacity-60 ${
+              isCompleteZip(zip) ? "bg-amber-400 shadow-lg shadow-amber-500/30" : "bg-amber-200"
+            }`}
           >
             {state.kind === "loading" ? "Checking…" : "Show my 60-day estimate"}
           </button>
         </div>
+        <p className="mt-2 text-[13px] text-white/80">
+          {isCompleteZip(zip)
+            ? "✓ 5 digits. Ready to check."
+            : zip.length > 0
+              ? `Enter ${5 - zip.length} more digit${5 - zip.length === 1 ? "" : "s"}.`
+              : "Numbers only, 5 digits."}
+        </p>
       </form>
 
       <div aria-live="polite" role="status" className="mt-5 min-h-[120px]">

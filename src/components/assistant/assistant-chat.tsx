@@ -91,8 +91,11 @@ export function AssistantChat(props: {
   placeholder?: string;
   /** One-tap first messages shown while the conversation is empty. */
   starterPrompts?: readonly string[];
+  /** "light" is the public floating widget's white surface; the dashboard and embed stay dark. */
+  tone?: "dark" | "light";
 }) {
   const { mode, funnelSource } = props;
+  const light = props.tone === "light";
   const title = props.title ?? "Assistant";
   const placeholder = props.placeholder ?? "Type a message…";
   const starterPrompts = props.starterPrompts ?? (mode === "mlo_dashboard" ? DEFAULT_MLO_STARTERS : []);
@@ -272,18 +275,18 @@ export function AssistantChat(props: {
 
   return (
     // Solid background: the floating widget places this over page content.
-    <div className="rounded-3xl border border-white/10 bg-slate-950 p-4 shadow-2xl shadow-black/20 sm:p-6">
+    <div className={light ? "bg-white p-4 text-slate-900" : "rounded-3xl border border-white/10 bg-slate-950 p-4 shadow-2xl shadow-black/20 sm:p-6"}>
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <h3 className={`text-lg font-semibold ${light ? "text-slate-900" : "text-white"}`}>{title}</h3>
         {status ? (
-          <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/60">
+          <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${light ? "border-slate-300 bg-slate-50 text-slate-700" : "border-white/15 bg-white/5 text-white/60"}`}>
             {status}
           </span>
         ) : null}
       </div>
 
       {providerConfigured === false ? (
-        <p className="mt-2 text-xs leading-5 text-amber-200/70">
+        <p className={`mt-2 text-xs leading-5 ${light ? "text-amber-900" : "text-amber-200/70"}`}>
           Cerebro is offline for a moment. Your messages are saved — please try again shortly.
         </p>
       ) : null}
@@ -292,10 +295,10 @@ export function AssistantChat(props: {
         <div className="flex min-w-0 flex-col gap-3">
           <div
             ref={scrollerRef}
-            className="flex h-[55vh] max-h-[34rem] min-h-[14rem] flex-col gap-3 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-4"
+            className={`flex h-[55vh] max-h-[34rem] min-h-[14rem] flex-col gap-3 overflow-y-auto rounded-2xl border p-4 ${light ? "border-slate-200 bg-slate-50" : "border-white/10 bg-black/20"}`}
           >
             {msgs.length === 0 ? (
-              <p className="m-auto max-w-xs text-center text-sm text-white/60">
+              <p className={`m-auto max-w-xs text-center text-sm ${light ? "text-slate-700" : "text-white/60"}`}>
                 Say hello to start the conversation.
               </p>
             ) : null}
@@ -305,14 +308,18 @@ export function AssistantChat(props: {
                 key={bubble.id}
                 className={`max-w-[85%] break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                   bubble.role === "assistant"
-                    ? "self-start rounded-bl-[4px] bg-white/10 text-white ring-1 ring-white/10"
+                    ? light
+                      ? "self-start rounded-bl-[4px] bg-white text-slate-900 ring-1 ring-slate-300"
+                      : "self-start rounded-bl-[4px] bg-white/10 text-white ring-1 ring-white/10"
                     : bubble.role === "user"
-                      ? "self-end whitespace-pre-wrap rounded-br-[4px] bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-md shadow-violet-950/30"
-                      : "self-center text-center text-xs italic text-white/60"
+                      ? light
+                        ? "self-end whitespace-pre-wrap rounded-br-[4px] bg-violet-700 text-white"
+                        : "self-end whitespace-pre-wrap rounded-br-[4px] bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-md shadow-violet-950/30"
+                      : `self-center text-center text-xs italic ${light ? "text-slate-700" : "text-white/60"}`
                 }`}
               >
                 {bubble.role === "assistant" ? (
-                  <RichText text={bubble.body} linkClassName="font-semibold text-violet-200 underline underline-offset-2" />
+                  <RichText text={bubble.body} linkClassName={`font-semibold underline underline-offset-2 ${light ? "text-violet-800" : "text-violet-200"}`} />
                 ) : (
                   bubble.body
                 )}
@@ -320,18 +327,18 @@ export function AssistantChat(props: {
             ))}
 
             {busy ? (
-              <article className="self-start rounded-2xl rounded-bl-[4px] bg-white/10 px-4 py-2.5 text-sm text-white/50 ring-1 ring-white/10">
+              <article className={`self-start rounded-2xl rounded-bl-[4px] px-4 py-2.5 text-sm ring-1 ${light ? "bg-white text-slate-600 ring-slate-300" : "bg-white/10 text-white/50 ring-white/10"}`}>
                 <span className="inline-flex gap-1">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/50 [animation-delay:-0.3s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/50 [animation-delay:-0.15s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/50" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
                 </span>
               </article>
             ) : null}
           </div>
 
           {authRequired ? (
-            <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${light ? "border-amber-300 bg-amber-50 text-amber-950" : "border-amber-300/25 bg-amber-400/10 text-amber-100"}`}>
               Sign in to use this assistant.{" "}
               <Link href="/login" className="font-semibold underline underline-offset-2">
                 Go to login
@@ -344,7 +351,7 @@ export function AssistantChat(props: {
             <button
               type="button"
               onClick={() => sendMessage(lastFailed, { retry: true })}
-              className="self-start rounded-full border border-amber-300/40 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-100 transition hover:bg-amber-400/20"
+              className={`self-start rounded-full border px-4 py-2 text-xs font-semibold transition ${light ? "border-amber-400 bg-amber-50 text-amber-950 hover:bg-amber-100" : "border-amber-300/40 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20"}`}
             >
               Retry
             </button>
@@ -358,7 +365,7 @@ export function AssistantChat(props: {
                   type="button"
                   disabled={busy}
                   onClick={() => sendMessage(prompt)}
-                  className="rounded-full border border-violet-400/40 bg-violet-500/10 px-4 py-2 text-left text-sm font-semibold text-violet-100 transition hover:bg-violet-500/20 disabled:opacity-50"
+                  className={`rounded-full border px-4 py-2 text-left text-sm font-semibold transition disabled:opacity-50 ${light ? "border-violet-300 bg-violet-50 text-violet-900 hover:bg-violet-100" : "border-violet-400/40 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"}`}
                 >
                   {prompt}
                 </button>
@@ -377,26 +384,26 @@ export function AssistantChat(props: {
               disabled={busy || authRequired}
               type="text"
               placeholder={placeholder}
-              className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-black/20 px-4 text-base text-white outline-none placeholder:text-white/60 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 disabled:opacity-50"
+              className={`h-11 min-w-0 flex-1 rounded-full border px-4 text-base outline-none focus:ring-2 disabled:opacity-50 ${light ? "border-slate-400 bg-white text-slate-900 placeholder:text-slate-600 focus:border-violet-700 focus:ring-violet-700/30" : "border-white/10 bg-black/20 text-white placeholder:text-white/60 focus:border-violet-400 focus:ring-violet-400/20"}`}
             />
             <button
               type="submit"
               disabled={busy || authRequired || !draft.trim()}
-              className="h-11 shrink-0 rounded-full bg-gradient-to-r from-violet-500 to-violet-700 px-5 text-sm font-semibold text-white shadow-lg shadow-violet-950/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+              className={`h-11 shrink-0 rounded-full px-5 text-sm font-semibold text-white transition disabled:cursor-not-allowed ${light ? "bg-violet-700 hover:bg-violet-800 disabled:bg-slate-500" : "bg-gradient-to-r from-violet-500 to-violet-700 shadow-lg shadow-violet-950/30 hover:brightness-110 disabled:opacity-40"}`}
             >
               {busy ? "Sending…" : "Send"}
             </button>
           </form>
 
           {mode !== "mlo_dashboard" ? (
-            <p className="text-[11px] leading-4 text-white/60">
+            <p className={`text-[11px] leading-4 ${light ? "text-slate-700" : "text-white/60"}`}>
               Chats are answered by AI and saved so we can respond. Please don&rsquo;t share sensitive
               personal or financial details.{" "}
               <a
                 href={marketingUrl("/privacy-policy")}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline hover:text-white/70"
+                className={`underline ${light ? "hover:text-slate-900" : "hover:text-white/70"}`}
               >
                 Privacy Policy
               </a>

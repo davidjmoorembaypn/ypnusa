@@ -11,12 +11,12 @@ import type { DynamicHeroCopy } from "@/lib/analytics-behavior";
 export function DynamicHero({ copy }: { copy: DynamicHeroCopy }) {
   return (
     <>
-      <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
+      <span className="inline-flex rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-900">
         {copy.eyebrow}
       </span>
       <a
         href={copy.primaryCtaHref}
-        className="inline-flex items-center justify-center rounded-full bg-amber-400 px-7 py-3.5 text-sm font-semibold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+        className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-7 py-3.5 text-sm font-bold text-white shadow-sm transition duration-200 hover:bg-emerald-800"
       >
         {copy.primaryCtaLabel}
       </a>

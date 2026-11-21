@@ -241,7 +241,7 @@ describe("fallbackReply", () => {
     assert.match(fallbackReply(session({ capturedFields: { leadType: "buyer", zip: "93291", name: "A", phone: "5595550100" } })), /contact you/);
   });
 
-  it("keeps the tools declared but sets toolChoice none on the nudge round", async () => {
+  it("forces a text answer if the provider attempts capture again after continuation", async () => {
     const { runWithTools } = await import("./chat-agent");
     const seen: Array<string | undefined> = [];
     const provider = {
@@ -255,6 +255,7 @@ describe("fallbackReply", () => {
     };
     const result = await runWithTools(provider, "sys", [{ role: "user", content: "hi" }], toolsForMode("public_site"), session(), () => {});
     assert.equal(result.text, "What's the ZIP code?");
-    assert.deepEqual(seen, [undefined, "none"]);
+    assert.deepEqual(seen, [undefined, undefined, "none"]);
+    assert.equal(result.captureCalls.length, 1);
   });
 });

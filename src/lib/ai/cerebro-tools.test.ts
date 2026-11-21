@@ -250,3 +250,14 @@ describe("MLO tools are unreachable from a public session", () => {
     assert.match(outputs[0], /not_available/);
   });
 });
+
+it("builds a page draft for the requested audience and sections", async () => {
+  const result = JSON.parse(await executeMloTool({
+    toolName: "draft_landing_page",
+    input: { goal: "prepare buyers for closing", offer: "closing checklist", audience: "Fresno homebuyers", sections: ["hero", "closing checklist", "faq"] },
+  }, { paidPlan: true }));
+  assert.equal(result.draftOnly, true);
+  assert.equal(result.offer, "closing checklist");
+  assert.equal(result.page.audience, "Fresno homebuyers");
+  assert.deepEqual(result.page.sections.map((section: { id: string }) => section.id), ["hero", "closing checklist", "faq"]);
+});

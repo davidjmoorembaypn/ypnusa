@@ -22,6 +22,7 @@ export interface KnowledgeTopic {
   answer: string;
   /** A page on ypnus.com to point to, when there is one. */
   link?: string;
+  sourceUrl?: string;
 }
 
 export const PLATFORM_HELP: KnowledgeTopic[] = [
@@ -104,6 +105,27 @@ export const PLATFORM_HELP: KnowledgeTopic[] = [
 
 export const MORTGAGE_GUIDE: KnowledgeTopic[] = [
   {
+    id: "closing_disclosure",
+    title: "Reviewing the Closing Disclosure and cash to close",
+    keywords: ["closing disclosure", "cash to close", "cash-to-close", "loan estimate changed", "changed fees"],
+    answer: "Compare the Closing Disclosure with your Loan Estimate, especially the loan terms, monthly payment, closing costs and cash to close. Cash to close is the amount due at settlement after deposits, credits and other adjustments. Ask your loan officer to walk through any unexpected difference before signing.",
+    sourceUrl: "https://www.consumerfinance.gov/owning-a-home/closing-disclosure/",
+  },
+  {
+    id: "closing_day",
+    title: "What to bring to closing",
+    keywords: ["bring to closing", "bring to my closing", "closing day", "closing appointment", "closing checklist", "at signing"],
+    answer: "Confirm the appointment and what your settlement agent requires. Have your photo ID, Closing Disclosure, requested documents and questions ready. Confirm the amount and accepted payment method directly with the settlement agent before arranging funds.",
+    sourceUrl: "https://www.consumerfinance.gov/documents/5504/cfpb_buying-a-house_mortgage-closing_checklist.pdf",
+  },
+  {
+    id: "closing_wire",
+    title: "Verifying closing wire instructions",
+    keywords: ["wire instructions", "wiring instructions", "wire transfer", "wire fraud", "changed bank details"],
+    answer: "Pause before sending money. Call your settlement contact using a phone number you independently verified earlier to confirm the instructions. If you already sent funds to a suspicious account, contact your bank immediately.",
+    sourceUrl: "https://www.consumerfinance.gov/documents/5504/cfpb_buying-a-house_mortgage-closing_checklist.pdf",
+  },
+  {
     id: "process",
     title: "How getting a mortgage works",
     keywords: ["process", "steps", "how does", "how long", "start", "first step", "timeline"],
@@ -168,6 +190,14 @@ export const MORTGAGE_GUIDE: KnowledgeTopic[] = [
   },
 ];
 
+/** A verified answer for first-meeting questions, even when a model returns only intake fields. */
+export function mortgagePreparationAnswer(message: string): string | undefined {
+  const question = /\?|\b(?:what|which|how|should I|do I need)\b/i.test(message);
+  const preparation = /\b(?:documents?|paperwork)\b.{0,60}\b(?:gather|bring|prepare|need|ready)\b|\b(?:gather|bring|prepare|need|ready)\b.{0,60}\b(?:documents?|paperwork|first (?:call|conversation|meeting))\b/i;
+  if (/\b(?:closing|signing|wire)\b/i.test(message)) return undefined;
+  if (question && preparation.test(message)) return MORTGAGE_GUIDE.find((topic) => topic.id === "documents")?.answer;
+}
+
 function score(topic: KnowledgeTopic, question: string): number {
   const q = question.toLowerCase();
   let points = 0;
@@ -206,7 +236,7 @@ export const PLATFORM_HELP_TOOL: AiToolDefinition = {
 export const MORTGAGE_GUIDE_TOOL: AiToolDefinition = {
   name: "mortgage_guide",
   description:
-    "Look up general home-loan education for a borrower: the mortgage process, prequal vs preapproval, loan types, documents, credit, down payment and closing costs, rates, refinancing, what's in a payment. Call for any general mortgage question from a borrower and answer from what it returns, in plain words. It never covers one person's numbers: hand those to the loan officer.",
+    "Look up checked home-loan education for a borrower or an officer drafting a borrower reply, including Closing Disclosure review, cash to close, signing-day preparation and wire verification: the mortgage process, prequal vs preapproval, loan types, documents, credit, down payment and closing costs, rates, refinancing, what's in a payment. Call for any general mortgage question from a borrower and answer from what it returns, in plain words. It never covers one person's numbers: hand those to the loan officer.",
   inputSchema: {
     type: "object",
     properties: { question: { type: "string", description: "The borrower's question in their words." } },

@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { PricingCta } from "@/components/pricing-cta";
 import { formatUsd } from "@/lib/format";
 import { track } from "@/lib/track";
+import { useZipStatus } from "@/lib/zip-session";
 import { MobileCollapse } from "./mobile-collapse";
 import {
   PREPAID_5Y,
@@ -112,6 +113,10 @@ export function HomePricing() {
   const [billing, setBilling] = useState<Billing>("monthly");
   const prepaid = billing === "prepaid_5y";
   const termsId = useId();
+  // A "lock" checkout only locks a ZIP code if one travels with the payment. Until the visitor
+  // has checked an open ZIP code, the lock buttons send them to the ZIP code check, not to Stripe.
+  const zipStatus = useZipStatus();
+  const lockableZip = zipStatus?.available ? zipStatus.zip : null;
   const proSavings = Math.round(prepaid5ySavingsRatio("growth") * 100);
 
   return (
@@ -217,13 +222,24 @@ export function HomePricing() {
 
               {paid ? (
                 <div className="mt-6 grid gap-2 md:mt-8">
-                  {showPrepaid ? (
+                  {!lockableZip ? (
+                    <>
+                      <a
+                        href="#claim"
+                        onClick={() => track("home_cta_click", { cta: "pricing_lock_needs_zip", plan: tier.id, billing })}
+                        className={`${showPrepaid ? BTN_ACCENT : BTN_PRIMARY} w-full`}
+                      >
+                        {showPrepaid ? `Lock ZIP for ${PREPAID_5Y_YEARS} Years (One Payment)` : "Lock ZIP Today (First Payment Now)"}
+                      </a>
+                      <p className="text-center text-xs text-slate-700">Check your ZIP code first, so it is locked with your payment.</p>
+                    </>
+                  ) : showPrepaid ? (
                     <PricingCta tierId={tier.id} variant="prepaid_5y" aria-describedby={termsId} className={`${BTN_ACCENT} w-full`}>
-                      Lock ZIP for {PREPAID_5Y_YEARS} Years (One Payment)
+                      Lock ZIP {lockableZip} for {PREPAID_5Y_YEARS} Years (One Payment)
                     </PricingCta>
                   ) : (
                     <PricingCta tierId={tier.id} variant="pay_now" className={`${BTN_PRIMARY} w-full`}>
-                      Lock ZIP Today (First Payment Now)
+                      Lock ZIP {lockableZip} Today (First Payment Now)
                     </PricingCta>
                   )}
                   <PricingCta tierId={tier.id} variant="trial" className={`${BTN_SECONDARY} w-full`}>

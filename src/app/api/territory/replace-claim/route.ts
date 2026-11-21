@@ -8,8 +8,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/territory/replace-claim { zip } — for a paid plan whose ZIP code another
- * officer locked first: locks an open ZIP code of the officer's choice instead.
+ * POST /api/territory/replace-claim { zip } — for a paid plan that holds no ZIP code (another
+ * officer locked its pick first, or the checkout carried none): locks an open ZIP code of the
+ * officer's choice.
  */
 export async function POST(request: Request) {
   const session = await getSession();
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
     const result = claimReplacementZip({ email: session.email }, parsed.data.zip);
     if (result.ok) return NextResponse.json({ ok: true, zip: result.zip }, { headers: { "Cache-Control": "no-store" } });
     if (result.reason === "invalid_zip") return jsonError("Enter a 5-digit ZIP code.", 400, "INVALID_ZIP");
-    if (result.reason === "no_conflict") return jsonError("There's no ZIP code to replace on your plan.", 409, "NO_CONFLICT");
+    if (result.reason === "no_conflict") return jsonError("Your plan already has its ZIP code, or there is no paid plan on this account.", 409, "NO_CONFLICT");
     return NextResponse.json(
       { ok: false, error: "That ZIP code is taken. Try one of the open ones nearby.", code: "ZIP_TAKEN", nearby: result.nearby ?? [] },
       { status: 409, headers: { "Cache-Control": "no-store" } },

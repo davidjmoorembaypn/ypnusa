@@ -5,10 +5,11 @@ import { useState } from "react";
 import { track } from "@/lib/track";
 
 /**
- * Shown on the dashboard when an officer paid for a ZIP code that another officer locked
- * moments before their payment went through. They pick an open one here (or ask for a refund).
+ * Shown on the dashboard when a paid plan holds no ZIP code: either another officer locked the
+ * officer's pick moments before their payment went through (takenZip is set), or they paid
+ * without choosing one. They pick an open one here (or ask for a refund).
  */
-export function ZipConflictBanner(props: { takenZip: string; nearby: string[]; supportEmail: string }) {
+export function ZipConflictBanner(props: { takenZip?: string; nearby: string[]; supportEmail: string }) {
   const { takenZip, supportEmail } = props;
   const router = useRouter();
   const [nearby, setNearby] = useState(props.nearby);
@@ -54,9 +55,15 @@ export function ZipConflictBanner(props: { takenZip: string; nearby: string[]; s
   return (
     <section className="rounded-3xl border border-amber-300 bg-amber-50 p-5 text-sm leading-6 text-amber-950" aria-labelledby="zip-conflict-title">
       <h2 id="zip-conflict-title" className="text-base font-semibold">
-        Pick your ZIP code: {takenZip} was taken just before your payment went through
+        {takenZip
+          ? `Pick your ZIP code: ${takenZip} was taken just before your payment went through`
+          : "Pick your ZIP code: your plan is active, but no ZIP code is locked to you yet"}
       </h2>
-      <p className="mt-1">Your plan is active. Choose an open ZIP code to lock it to you, or ask us for a refund.</p>
+      <p className="mt-1">
+        {takenZip
+          ? "Your plan is active. Choose an open ZIP code to lock it to you, or ask us for a refund."
+          : "Borrower requests are routed by ZIP code, so none can reach you until you lock one. Enter an open ZIP code to lock it now."}
+      </p>
       {nearby.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {nearby.map((zip) => (
@@ -85,9 +92,9 @@ export function ZipConflictBanner(props: { takenZip: string; nearby: string[]; s
           autoComplete="postal-code"
           maxLength={5}
           value={typed}
-          onChange={(event) => setTyped(event.target.value)}
-          placeholder="Another ZIP code"
-          aria-label="Another ZIP code"
+          onChange={(event) => setTyped(event.target.value.replace(/\D/g, "").slice(0, 5))}
+          placeholder={takenZip ? "Another ZIP code" : "Your ZIP code"}
+          aria-label={takenZip ? "Another ZIP code" : "Your ZIP code"}
           className="min-w-0 flex-1 rounded-full border border-amber-300 bg-white px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-amber-300"
         />
         <button
@@ -104,7 +111,7 @@ export function ZipConflictBanner(props: { takenZip: string; nearby: string[]; s
         </p>
       ) : null}
       <a
-        href={`mailto:${supportEmail}?subject=${encodeURIComponent(`Refund: ZIP code ${takenZip} was taken`)}`}
+        href={`mailto:${supportEmail}?subject=${encodeURIComponent(takenZip ? `Refund: ZIP code ${takenZip} was taken` : "Refund: no ZIP code on my plan")}`}
         className="mt-3 inline-block font-semibold underline underline-offset-2"
       >
         Ask for a refund instead

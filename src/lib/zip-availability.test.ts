@@ -10,7 +10,7 @@ process.env.LOANPILOT_DATA_DIR = dataDir;
 describe("ZIP code availability before and at payment", async () => {
   const { applyFulfillmentEvent } = await import("./fulfillment");
   const { appendBorrowerLead, readDb, saveRevenueSubscription, writeDb } = await import("./db");
-  const { checkZipForViewer, claimReplacementZip, nearbyOpenZips, viewerZipConflict } = await import("./zip-availability");
+  const { checkZipForViewer, claimReplacementZip, nearbyOpenZips, viewerPlanNeedingZip, viewerZipConflict } = await import("./zip-availability");
   const { generateId } = await import("./id");
   const { HOUSE_OFFICER_ID } = await import("./crm");
 
@@ -118,6 +118,55 @@ describe("ZIP code availability before and at payment", async () => {
     assert.equal(record("sub_second").zipLockConflict, undefined);
     assert.equal(viewerZipConflict(viewer), null);
     assert.deepEqual(claimReplacementZip(viewer, "93720"), { ok: false, reason: "no_conflict" });
+  });
+
+  it("an officer who paid without choosing a ZIP code can lock one from the dashboard", () => {
+    // The pricing buttons open checkout before a ZIP code is checked, so no ZIP code arrives.
+    const paid = payNow("sub_nozip", "cus_nozip", "");
+    assert.equal(paid.ok && paid.applied, true);
+    assert.deepEqual(record("sub_nozip").claimedZips, []);
+    assert.equal(record("sub_nozip").zipLockConflict, undefined);
+
+    const viewer = { email: "cus_nozip@example.com" };
+    // Not a "taken first" conflict, but still a paid plan that needs a ZIP code.
+    assert.equal(viewerZipConflict(viewer), null);
+    assert.equal(viewerPlanNeedingZip(viewer)?.stripeSubscriptionId, "sub_nozip");
+
+    // A ZIP code someone else holds is still refused.
+    payNow("sub_holder", "cus_holder", "93291");
+    const taken = claimReplacementZip(viewer, "93291");
+    assert.equal(!taken.ok && taken.reason, "taken");
+
+    assert.deepEqual(claimReplacementZip(viewer, "93292"), { ok: true, zip: "93292" });
+    assert.deepEqual(record("sub_nozip").claimedZips, ["93292"]);
+    assert.equal(viewerPlanNeedingZip(viewer), null);
+    assert.equal(checkZipForViewer({ email: "someone@example.com" }, "93292").available, false);
+    // One ZIP code per plan: a second pick is refused.
+    assert.deepEqual(claimReplacementZip(viewer, "93720"), { ok: false, reason: "no_conflict" });
+  });
+
+  it("a trial, or a plan waiting for its first invoice, cannot lock a ZIP code this way", () => {
+    applyFulfillmentEvent({
+      stripeCustomerId: "cus_trial",
+      stripeSubscriptionId: "sub_trial",
+      zip: "",
+      eventType: "checkout.session.completed",
+      paymentStatus: "no_payment_required",
+      tier: "growth",
+      customerEmail: "cus_trial@example.com",
+      eventCreatedAt: 1_900_000_000,
+      eventId: "evt_trial",
+    });
+    assert.equal(record("sub_trial").status, "trialing");
+    assert.equal(viewerPlanNeedingZip({ email: "cus_trial@example.com" }), null);
+    assert.deepEqual(claimReplacementZip({ email: "cus_trial@example.com" }, "93292"), { ok: false, reason: "no_conflict" });
+
+    writeDb((db) => {
+      const sub = db.revenueSubscriptions.find((s) => s.stripeSubscriptionId === "sub_trial")!;
+      sub.status = "active";
+      sub.pendingZip = "93277";
+    });
+    assert.equal(viewerPlanNeedingZip({ email: "cus_trial@example.com" }), null);
   });
 
   it("an officer without a conflicted plan can't use the replacement path to grab a second ZIP code", () => {

@@ -153,6 +153,9 @@ A healthy answer looks like this (the build and times will differ):
 | `build.commit` | the build you installed | Which build is live. `17e6e2d` here means `app-build-17e6e2d`. |
 | `storage.persistent` | `true` | Customer data is saved to disk, not lost on restart. |
 | `storage.degraded` | `false` | The data store is working normally. |
+| `storage.unavailable` | `false` | `true` means the data file is there but can't be read. The site refuses to read or save data (ZIP code checks, sign-ins and checkouts show an error) instead of showing every ZIP code as open, and it recovers by itself when the file reads again. If it stays `true`, contact a developer; do not restart in a loop. |
+| `storage.sizeMb` | grows slowly | Size of the data file. |
+| `storage.headroom` | `ok` | `warn` (64 MB+) means the data file is getting large and saves are slowing down: plan the move to a database. `critical` (256 MB+) means it is close to the size at which it can no longer be saved. |
 | `storage.piiEncryption` | `on` | Borrower personal data is encrypted on the server. |
 | `email` | `on` | The site can send email (sign-in links, lead alerts, Cerebro's borrower emails). |
 

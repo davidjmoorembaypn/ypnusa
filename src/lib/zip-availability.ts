@@ -104,13 +104,40 @@ export function viewerZipConflict(viewer: { email: string }, now: number = Date.
   );
 }
 
+/**
+ * The viewer's live paid plan that holds no ZIP code, so the dashboard can ask them to pick one.
+ * Two ways to get there: another officer locked their ZIP code first (zipLockConflict is set), or
+ * the checkout carried no ZIP code at all (the pricing buttons work before a ZIP code is checked).
+ * Without this second case a paying officer had no territory, no lead routing, and no way to fix it.
+ *
+ * Trials are left out (their ZIP code locks at the first payment), and so is a plan still waiting
+ * for its first invoice to lock a remembered ZIP code (pendingZip).
+ */
+export function viewerPlanNeedingZip(viewer: { email: string }, now: number = Date.now()): RevenueSubscriptionRecord | null {
+  const conflicted = viewerZipConflict(viewer, now);
+  if (conflicted) return conflicted;
+  const email = normalizeEmail(viewer.email);
+  if (!email) return null;
+  return (
+    readDb().revenueSubscriptions.find(
+      (sub) =>
+        normalizeEmail(sub.ownerEmail) === email &&
+        isLiveSubscription(sub, now) &&
+        sub.status === "active" &&
+        (sub.source === "stripe_webhook" || sub.source === "admin_adjustment") &&
+        sub.claimedZips.length === 0 &&
+        !sub.pendingZip,
+    ) ?? null
+  );
+}
+
 export type ReplacementResult =
   | { ok: true; zip: string }
   | { ok: false; reason: "no_conflict" | "invalid_zip" | "taken"; nearby?: string[] };
 
-/** Locks an open ZIP code for a paid plan whose original pick was taken first. */
+/** Locks an open ZIP code for a paid plan that holds none: its first pick was taken, or it never had one. */
 export function claimReplacementZip(viewer: { email: string }, rawZip: unknown, now: number = Date.now()): ReplacementResult {
-  const sub = viewerZipConflict(viewer, now);
+  const sub = viewerPlanNeedingZip(viewer, now);
   if (!sub) return { ok: false, reason: "no_conflict" };
   const zip = normalizeZip(rawZip);
   if (!isValidZip(zip)) return { ok: false, reason: "invalid_zip" };

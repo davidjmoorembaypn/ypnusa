@@ -12,6 +12,19 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 21, 2026 — next build (data safety and paid plans without a ZIP code)
+
+- **Customer data is safer:** if the server ever fails to read the data file, the site now stops and shows an error
+  (ZIP code checks, sign-ins and checkouts) instead of carrying on with an empty copy. Before, a sold ZIP code could
+  show as open and the next save replaced the real data file. It recovers by itself once the file reads again.
+- **Faster ZIP code checks as data grows:** a ZIP code check used to copy every lead and chat first. It now reads only
+  the list of paid plans, and the data file is saved in a smaller form. The health check shows the data file's size
+  and warns when it is getting too large for one file.
+- **Paid without a ZIP code? Pick one in the dashboard:** an officer who paid before choosing a ZIP code had no
+  territory and no way to fix it. The dashboard now asks them to lock an open one.
+- **"Lock ZIP" buttons need a ZIP code:** on the home page, the "Lock ZIP Today" and "Lock ZIP for 5 Years" buttons
+  take you to the ZIP code check first if you haven't checked one, so the ZIP code is always attached to the payment.
+
 ## Nov 21, 2026 — next build (home page follow-up)
 
 - **Hero video is back in view:** the footage plays at full strength again. The headline, credentials and ZIP code

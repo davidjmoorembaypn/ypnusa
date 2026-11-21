@@ -285,6 +285,41 @@ let diskWritable = true;
 let lastStorageError: string | undefined;
 
 /**
+ * Thrown by readDb() and writeDb() while the data file exists but could not be read
+ * (a disk or permission error, or a corrupt file that could not be moved aside).
+ *
+ * The store is the system of record for paid ZIP codes, so it fails closed: answering from
+ * an empty store would report every sold ZIP code as open, and the next write would replace
+ * the real file with that empty store. Callers get an error instead, the file is left
+ * untouched, and the read is tried again on a later call, so a passing fault clears itself.
+ */
+export class StoreUnavailableError extends Error {
+  readonly code = "STORE_UNAVAILABLE";
+  constructor(detail: string) {
+    super(`The data store is temporarily unavailable: ${detail}`);
+    this.name = "StoreUnavailableError";
+  }
+}
+
+/** When the last read of an existing data file failed (ms since epoch), or null when the store is readable. */
+let unreadableSince: number | null = null;
+/** Why the last read failed. Kept apart from lastStorageError, which other storage steps reset. */
+let unreadableReason: string | undefined;
+let lastReadAttemptAt = 0;
+/** A failed read is retried at most this often, so an outage doesn't re-read a large file on every request. */
+const UNREADABLE_RETRY_MS = 1_000;
+
+/** Size of the last snapshot written or loaded, in bytes (0 before the first one). */
+let lastSnapshotBytes = 0;
+/**
+ * V8 cannot build a string longer than about 512 MB, and the snapshot is one JSON string, so
+ * the store stops being able to save somewhere below that. Health reports headroom against it.
+ */
+const SNAPSHOT_HARD_LIMIT_BYTES = 512 * 1024 * 1024;
+const SNAPSHOT_WARN_BYTES = 64 * 1024 * 1024;
+const SNAPSHOT_CRITICAL_BYTES = 256 * 1024 * 1024;
+
+/**
  * Stat of the data file as of the last time this process loaded or flushed
  * it. hydrate() compares against this on every call so it can notice a
  * sibling process's write (Hostinger can run more than one against the same
@@ -368,7 +403,11 @@ function flushToDisk(db: DbShape): void {
     try {
       // Personal fields are encrypted on the way to disk when PII_ENCRYPTION_KEY is set
       // (see src/lib/crypto/pii-snapshot.ts); memory always holds plain values.
-      fs.writeSync(fd, JSON.stringify(sealSnapshot(db), null, 2));
+      // Compact JSON: the file is rewritten whole on every change, so indentation only
+      // made each write bigger and slower. `jq . store.json` pretty-prints it for a person.
+      const serialized = JSON.stringify(sealSnapshot(db));
+      lastSnapshotBytes = Buffer.byteLength(serialized);
+      fs.writeSync(fd, serialized);
       fs.fsyncSync(fd);
     } finally {
       fs.closeSync(fd);
@@ -396,8 +435,10 @@ function flushToDisk(db: DbShape): void {
 }
 
 /** Reads and validates one snapshot file. Throws if it is missing, unreadable or not valid JSON. */
-function readSnapshot(file: string): DbShape {
-  return normalize(openSnapshot(JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8")) as unknown));
+function readSnapshot(file: string, track = true): DbShape {
+  const raw = fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8");
+  if (track) lastSnapshotBytes = Buffer.byteLength(raw);
+  return normalize(openSnapshot(JSON.parse(raw) as unknown));
 }
 
 /**
@@ -406,16 +447,24 @@ function readSnapshot(file: string): DbShape {
  * A snapshot that exists but cannot be parsed is never overwritten: it is moved
  * aside to `store.json.corrupt-<timestamp>` for manual recovery, and the store
  * is restored from the rolling `store.json.bak` when that is still valid.
- * Plain I/O errors (e.g. permissions) leave the file untouched and serve from
- * memory so the next write cannot clobber data we simply failed to read.
+ * Plain I/O errors (e.g. permissions), and a corrupt file that cannot be moved
+ * aside, leave the file untouched and throw StoreUnavailableError: nothing is
+ * served from an empty store and nothing is written until the file reads again.
  */
 function loadFromDisk(): DbShape {
   let snapshotUnreadable = false;
   const file = dbPath();
+  lastReadAttemptAt = Date.now();
   if (fs.existsSync(/*turbopackIgnore: true*/ file)) {
     try {
       memoryDb = readSnapshot(file);
       lastKnownStat = statOrNull(file);
+      if (unreadableSince !== null) {
+        console.error(`[db] Data snapshot at ${file} is readable again; resuming normal service.`);
+        unreadableSince = null;
+        unreadableReason = undefined;
+        lastStorageError = undefined;
+      }
       return memoryDb;
     } catch (error) {
       lastStorageError = `Unreadable data snapshot at ${file}: ${describeFsError(error)}`;
@@ -428,6 +477,8 @@ function loadFromDisk(): DbShape {
           console.error(`[db] Corrupt snapshot preserved as ${quarantine}.`);
           try {
             memoryDb = readSnapshot(`${file}.bak`);
+            unreadableSince = null;
+            unreadableReason = undefined;
             console.error(`[db] Restored the store from ${file}.bak (last good snapshot).`);
             flushToDisk(memoryDb);
             return memoryDb;
@@ -445,8 +496,17 @@ function loadFromDisk(): DbShape {
     }
   }
 
+  if (snapshotUnreadable) {
+    // Fail closed. Keep no in-memory copy, so every later call tries the file again.
+    memoryDb = null;
+    unreadableSince ??= Date.now();
+    unreadableReason = lastStorageError ?? "the data file could not be read";
+    throw new StoreUnavailableError(unreadableReason);
+  }
+
+  unreadableSince = null;
   memoryDb = emptyDb();
-  if (!snapshotUnreadable) flushToDisk(memoryDb);
+  flushToDisk(memoryDb);
   return memoryDb;
 }
 
@@ -458,9 +518,42 @@ function loadFromDisk(): DbShape {
  * since, and we reload.
  */
 function hydrate(): DbShape {
-  if (!memoryDb) return loadFromDisk();
+  if (!memoryDb) {
+    if (unreadableSince !== null && Date.now() - lastReadAttemptAt < UNREADABLE_RETRY_MS) {
+      throw new StoreUnavailableError(unreadableReason ?? "the data file could not be read");
+    }
+    return loadFromDisk();
+  }
   if (sameStat(statOrNull(dbPath()), lastKnownStat)) return memoryDb;
   return loadFromDisk();
+}
+
+/**
+ * A read-only copy of the store whose collections are cloned one at a time, on first use.
+ *
+ * Callers still get isolated copies (they cannot mutate live state), but a caller that only
+ * needs `revenueSubscriptions` no longer pays to copy every lead and chat transcript too. A
+ * ZIP code check used to deep-clone the whole store; it now clones one collection. Each
+ * collection is copied when it is first read, so use the result right away rather than
+ * holding it across later writes (every caller already does).
+ */
+function lazySnapshot(live: DbShape): DbShape {
+  const view = {} as DbShape;
+  for (const key of Object.keys(live) as Array<keyof DbShape>) {
+    Object.defineProperty(view, key, {
+      enumerable: true,
+      configurable: true,
+      get() {
+        const copy = structuredClone(live[key]);
+        Object.defineProperty(view, key, { value: copy, enumerable: true, configurable: true, writable: true });
+        return copy;
+      },
+      set(next) {
+        Object.defineProperty(view, key, { value: next, enumerable: true, configurable: true, writable: true });
+      },
+    });
+  }
+  return view;
 }
 
 export function ensureDataDirExists(): void {
@@ -468,8 +561,8 @@ export function ensureDataDirExists(): void {
 }
 
 export function readDb(): DbShape {
-  // Return a deep clone so callers cannot accidentally mutate live state.
-  return structuredClone(hydrate());
+  // Copies, never the live objects, so callers cannot accidentally mutate live state.
+  return lazySnapshot(hydrate());
 }
 
 const LOCK_STALE_MS = 10_000;
@@ -568,7 +661,7 @@ export function writeDb(mutator: (db: DbShape) => void): DbShape {
     const db = hydrate();
     mutator(db);
     flushToDisk(db);
-    return structuredClone(db);
+    return lazySnapshot(db);
   } finally {
     writeDbDepth -= 1;
     release?.();
@@ -868,15 +961,45 @@ export function appendAnalytics(event: Omit<AnalyticsEventRecord, "id" | "create
   });
 }
 
-/** Exposed for diagnostics/health checks. */
-export function storageMode(): { persistent: boolean; dir: string; error?: string } {
-  hydrate();
+export type StorageHeadroom = "ok" | "warn" | "critical";
+
+/** Exposed for diagnostics/health checks. Never throws: an unreadable store is reported, not raised. */
+export function storageMode(): {
+  persistent: boolean;
+  dir: string;
+  error?: string;
+  /** True while the data file exists but cannot be read; reads and writes are refused until it can. */
+  unavailable: boolean;
+  /** Size of the data file as last written or loaded. */
+  sizeBytes: number;
+  /** How close the single-file store is to the size at which it can no longer be saved. */
+  headroom: StorageHeadroom;
+} {
+  let unavailable = false;
+  try {
+    hydrate();
+  } catch (error) {
+    if (!(error instanceof StoreUnavailableError)) throw error;
+    unavailable = true;
+  }
+  const headroom: StorageHeadroom =
+    lastSnapshotBytes >= SNAPSHOT_CRITICAL_BYTES ? "critical" : lastSnapshotBytes >= SNAPSHOT_WARN_BYTES ? "warn" : "ok";
   return {
-    persistent: diskWritable,
+    persistent: diskWritable && !unavailable,
     dir: dataDir(),
-    error: lastStorageError,
+    error: unavailable ? unreadableReason : lastStorageError,
+    unavailable,
+    sizeBytes: lastSnapshotBytes,
+    headroom,
   };
 }
+
+/** The size above which the store can no longer be written, for tests and diagnostics. */
+export const SNAPSHOT_LIMITS = {
+  warnBytes: SNAPSHOT_WARN_BYTES,
+  criticalBytes: SNAPSHOT_CRITICAL_BYTES,
+  hardLimitBytes: SNAPSHOT_HARD_LIMIT_BYTES,
+} as const;
 
 /**
  * Appends a verified payment unless this invoice or Stripe event was already

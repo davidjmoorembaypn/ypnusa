@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { track } from "@/lib/track";
+import { MobileCollapse } from "./mobile-collapse";
 import { formatUsd } from "@/lib/format";
 import {
   DEFAULT_ASSUMPTIONS,
@@ -143,6 +144,13 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
   const badgeName = previewName.trim() || "Your Name";
   const badgeNmls = previewNmls || "000000";
   const personalized = Boolean(previewName.trim() || previewNmls);
+  // Once per visit, and never the text itself: only that the preview was personalized.
+  const personalizeTracked = useRef(false);
+  const notePersonalized = (field: "name" | "nmls") => {
+    if (personalizeTracked.current) return;
+    personalizeTracked.current = true;
+    track("calculator_preview_personalized", { source, field });
+  };
 
   const downPct = round2(downPaymentPercent(homePrice, downPayment));
   const payment = useMemo(
@@ -170,7 +178,10 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
               maxLength={60}
               placeholder="e.g. Jordan Rivera"
               value={previewName}
-              onChange={(e) => setPreviewName(e.target.value.replace(/[<>]/g, "").slice(0, 60))}
+              onChange={(e) => {
+                setPreviewName(e.target.value.replace(/[<>]/g, "").slice(0, 60));
+                notePersonalized("name");
+              }}
               className={`${FIELD} font-medium`}
             />
           </div>
@@ -186,7 +197,10 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
               maxLength={12}
               placeholder="e.g. 123456"
               value={previewNmls}
-              onChange={(e) => setPreviewNmls(e.target.value.replace(/\D/g, "").slice(0, 12))}
+              onChange={(e) => {
+                setPreviewNmls(e.target.value.replace(/\D/g, "").slice(0, 12));
+                notePersonalized("nmls");
+              }}
               className={`${FIELD} font-medium`}
             />
           </div>
@@ -205,7 +219,7 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-800">Client calculator preview</p>
       </div>
 
-      <div className="p-5 sm:p-8">
+      <MobileCollapse label="Open the calculator" name="calculator_preview" className="p-4 sm:p-8">
         <div role="group" aria-label="Calculator type" className="flex flex-wrap gap-2">
           {MODES.map((m) => (
             <button
@@ -273,7 +287,9 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
           exclude HOA dues and mortgage insurance premiums on FHA, VA or USDA loans.
         </p>
 
-        <div className="mt-6 flex flex-col items-start gap-3 rounded-2xl bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+      </MobileCollapse>
+
+        <div className="mx-4 mb-4 flex flex-col items-start gap-3 rounded-2xl bg-slate-50 p-4 sm:mx-8 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-700">
             On your pages this calculator carries <span className="font-semibold">your name and NMLS #</span>. Claim your exclusive ZIP code to
             get yours.
@@ -286,7 +302,6 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
             Check &amp; claim my ZIP code &rarr;
           </a>
         </div>
-      </div>
     </div>
     </div>
   );

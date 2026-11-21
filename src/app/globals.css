@@ -54,18 +54,6 @@ body {
   background: linear-gradient(100deg, rgba(9, 8, 27, .84) 0%, rgba(9, 8, 27, .65) 42%, rgba(9, 8, 27, .28) 100%);
 }
 
-/* Homepage (light theme): a near-white wash over the hero footage. Text only ever sits where the
-   wash is 92%+ white, so navy copy keeps well over 4.5:1 whatever frame is behind it. */
-.ypn-hero-scrim-light {
-  background: rgba(255, 255, 255, .95);
-}
-
-@media (min-width: 1024px) {
-  .ypn-hero-scrim-light {
-    background: linear-gradient(100deg, rgba(255, 255, 255, .97) 0%, rgba(255, 255, 255, .94) 58%, rgba(248, 250, 252, .78) 100%);
-  }
-}
-
 /* Light-theme pages: one high-contrast focus ring for every interactive element (navy on white is
    15:1; the 2px offset keeps it visible around filled buttons too). Unlayered on purpose, so it
    also applies to elements that carry a utility resetting their outline. */

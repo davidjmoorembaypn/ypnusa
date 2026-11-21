@@ -19,7 +19,7 @@ const STEPS: ReadonlyArray<{ title: string; body: string }> = [
 /** Three-step summary shown directly under the hero. Written for licensed mortgage loan officers only. */
 export function HowItWorks() {
   return (
-    <section id="how-it-works" aria-labelledby="how-it-works-heading" className="border-y border-slate-200 bg-slate-50 py-14 text-slate-900">
+    <section id="how-it-works" aria-labelledby="how-it-works-heading" className="border-y border-slate-200 bg-slate-50 py-10 text-slate-900 md:py-14">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-800">How it works for loan officers</p>
@@ -27,17 +27,17 @@ export function HowItWorks() {
             Lock a ZIP code. Capture leads. Convert faster.
           </h2>
         </div>
-        <ol className="mt-10 grid gap-5 md:grid-cols-3">
+        <ol className="mt-6 grid gap-3 md:mt-10 md:grid-cols-3 md:gap-5">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <li key={step.title} className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:block md:p-6">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-base font-bold text-white" aria-hidden>
                 {i + 1}
               </span>
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">
+              <h3 className="self-center text-base font-semibold text-slate-900 md:mt-4 md:text-lg">
                 <span className="sr-only">Step {i + 1}: </span>
                 {step.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-700">{step.body}</p>
+              <p className="col-start-2 mt-1 text-sm leading-relaxed text-slate-700 md:mt-2">{step.body}</p>
             </li>
           ))}
         </ol>

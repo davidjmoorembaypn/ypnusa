@@ -13,6 +13,8 @@ import { CerebroSandbox } from "@/components/homepage/cerebro-sandbox";
 import { HomePricing } from "@/components/homepage/home-pricing";
 import { FaqAccordion } from "@/components/homepage/faq-accordion";
 import { StickyZipBar } from "@/components/homepage/sticky-zip-bar";
+import { MobileCollapse } from "@/components/homepage/mobile-collapse";
+import { TrackedAnchor } from "@/components/homepage/tracked-anchor";
 import { BTN_PRIMARY, EYEBROW, H2, LINK } from "@/components/homepage/ui";
 import { YouTubeFacade } from "@/components/youtube-facade";
 import { EXPLAINER_VIDEO, explainerVideoJsonLd } from "@/lib/explainer-video";
@@ -164,11 +166,15 @@ export default function Home() {
       {/* HERO */}
       <section id="hero" className="relative isolate overflow-hidden border-b border-slate-200">
         <HeroVideo />
-        <div className="ypn-hero-scrim-light pointer-events-none absolute inset-0" aria-hidden />
-        {/* One column on phones in the order headline, credentials, ZIP code check, stats, so the
-            check sits above the fold; two columns from lg up with the check beside the headline. */}
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-start gap-5 px-4 pb-10 pt-6 sm:px-6 sm:pt-10 lg:grid-cols-[minmax(0,1fr)_27rem] lg:gap-x-12 lg:gap-y-6 lg:py-16">
-          <div className="max-w-xl lg:col-start-1 lg:row-start-1">
+        {/* The footage plays at full strength. Copy never sits on it: every word is on a solid
+            white panel (one per block on phones, one shared panel behind the left column from lg
+            up), so contrast does not depend on which frame is showing. */}
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-start gap-4 px-4 pb-10 pt-24 sm:px-6 sm:pt-28 lg:grid-cols-[minmax(0,1fr)_27rem] lg:gap-x-16 lg:gap-y-6 lg:px-14 lg:py-24">
+          <div
+            aria-hidden
+            className="hidden rounded-[2rem] bg-white shadow-2xl shadow-slate-900/25 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:-m-8 lg:block lg:self-stretch"
+          />
+          <div data-cerebro-avoid="" className="relative rounded-3xl bg-white p-4 shadow-xl shadow-slate-900/20 sm:p-6 lg:col-start-1 lg:row-start-1 lg:max-w-xl lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none">
             <p className="hidden text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-800 sm:block">
               For licensed mortgage loan officers nationwide
             </p>
@@ -178,7 +184,7 @@ export default function Home() {
             </h1>
 
             {/* Real, verifiable credentials only (see /about); no invented reviews, awards or user counts. */}
-            <p className="mt-4 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-[13px] font-medium leading-6 text-slate-800">
+            <p className="mt-4 rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-[13px] font-medium leading-6 text-slate-800">
               <span className="font-semibold text-slate-900">{AUTHOR_NAME}</span> &middot; 25+ yrs &middot; 2,000+ loans &middot; Wells
               Fargo &amp; JPMorgan Chase &middot;{" "}
               <a
@@ -194,18 +200,18 @@ export default function Home() {
             </p>
           </div>
 
-          <div id="claim" className="w-full scroll-mt-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+          <div id="claim" className="relative w-full scroll-mt-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
             <TerritoryClaim source="hero" />
           </div>
 
-          <div className="max-w-xl lg:col-start-1 lg:row-start-2">
+          <div data-cerebro-avoid="" className="relative rounded-3xl bg-white p-4 shadow-xl shadow-slate-900/20 sm:p-6 lg:col-start-1 lg:row-start-2 lg:max-w-xl lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none">
             <dl className="grid grid-cols-3 gap-2 sm:gap-3">
               {[
                 ["24/7", "Borrower answers"],
                 ["1 per ZIP code", "YPN USA loan officer"],
                 ["15 days", "Free trial, paid plans"],
               ].map(([stat, label]) => (
-                <div key={label} className="flex flex-col-reverse rounded-2xl border border-slate-200 bg-white px-3 py-3 sm:px-4">
+                <div key={label} className="flex flex-col-reverse rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 sm:px-4">
                   <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-700 sm:text-[11px]">{label}</dt>
                   <dd className="text-base font-bold text-slate-900 sm:text-xl">{stat}</dd>
                 </div>
@@ -224,7 +230,7 @@ export default function Home() {
       <HowItWorks />
 
       {/* CLIENT CALCULATOR PREVIEW */}
-      <section id="calculator-preview" className="bg-white py-16">
+      <section id="calculator-preview" className="bg-white py-12 md:py-16">
         <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
             <p className={EYEBROW}>Co-branded client tool</p>
@@ -234,14 +240,14 @@ export default function Home() {
               your branding on your pages.
             </p>
           </div>
-          <div className="mt-10">
+          <div className="mt-6 md:mt-10">
             <ClientCalculatorPreview source="home" />
           </div>
         </div>
       </section>
 
       {/* LIVE CEREBRO */}
-      <section id="cerebro" className="border-y border-slate-200 bg-slate-50 py-16">
+      <section id="cerebro" className="border-y border-slate-200 bg-slate-50 py-12 md:py-16">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
             <p className={EYEBROW}>Meet Cerebro</p>
@@ -255,12 +261,13 @@ export default function Home() {
             <CerebroSandbox />
           </div>
 
-          <h3 className="mt-14 text-center text-2xl font-semibold text-slate-900">What Cerebro does for you today</h3>
+          <h3 className="mt-10 text-center text-2xl font-semibold text-slate-900 md:mt-14">What Cerebro does for you today</h3>
           <p className="mx-auto mt-3 max-w-2xl text-center text-slate-700">
             Cerebro works for your borrowers on your pages, under your brand, and for you inside your dashboard. These features
             are live now.
           </p>
-          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <MobileCollapse label="See everything Cerebro does today" name="cerebro_features" className="mt-8">
+          <div className="grid gap-6 lg:grid-cols-2">
             {CEREBRO_TODAY.map((column) => (
               <div key={column.audience} className={CARD}>
                 <h4 className="text-lg font-semibold text-slate-900">{column.audience}</h4>
@@ -275,6 +282,7 @@ export default function Home() {
               </div>
             ))}
           </div>
+          </MobileCollapse>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">Programs supported:</span>
             {PROGRAMS.map((p) => (
@@ -300,11 +308,12 @@ export default function Home() {
       </section>
 
       {/* COMING TO CEREBRO */}
-      <section className="bg-white py-16">
+      <section className="bg-white py-12 md:py-16">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <h2 className={H2}>Coming to Cerebro</h2>
           <p className="mt-3 max-w-2xl text-slate-700">In development and not available yet.</p>
-          <ul className="mt-8 grid gap-4 md:grid-cols-3">
+          <MobileCollapse label="See what's coming (3 features in development)" name="coming_soon" className="mt-6 md:mt-8">
+          <ul className="grid gap-4 md:grid-cols-3">
             {COMING_SOON.map(([title, body]) => (
               <li key={title} className="rounded-2xl border border-dashed border-slate-400 bg-slate-50 p-5">
                 <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-950">
@@ -315,11 +324,12 @@ export default function Home() {
               </li>
             ))}
           </ul>
+          </MobileCollapse>
         </div>
       </section>
 
       {/* YOUR ZIP CODE */}
-      <section id="territories" className="border-y border-slate-200 bg-slate-50 py-16 lg:py-20">
+      <section id="territories" className="border-y border-slate-200 bg-slate-50 py-12 md:py-16 lg:py-20">
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start lg:gap-12">
           <div>
             <p className={EYEBROW}>Exclusive ZIP codes</p>
@@ -340,9 +350,9 @@ export default function Home() {
                 </li>
               ))}
             </ul>
-            <a href="#claim" className={`mt-6 ${BTN_PRIMARY}`}>
+            <TrackedAnchor href="#claim" cta="territories_check_zip" className={`mt-6 ${BTN_PRIMARY}`}>
               Check my ZIP code
-            </a>
+            </TrackedAnchor>
             <p className={SUBTLE_LINKS}>
               Related reading:{" "}
               <Link href="/topics/exclusive-mortgage-leads" className={LINK}>
@@ -409,8 +419,8 @@ export default function Home() {
       </section>
 
       {/* TEAMS + GUARDRAILS */}
-      <section className="bg-white py-16">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-2">
+      <section className="bg-white py-12 md:py-16">
+        <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 sm:px-6 md:gap-8 lg:grid-cols-2">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
             <p className={EYEBROW}>For teams</p>
             <h2 className="mt-3 text-2xl font-semibold text-slate-900 lg:text-3xl">For managers and teams</h2>
@@ -470,9 +480,9 @@ export default function Home() {
               Full ROI calculator
             </Link>
             <span aria-hidden> &middot; </span>
-            <a href="#claim" className={LINK}>
+            <TrackedAnchor href="#claim" cta="pricing_check_zip" className={LINK}>
               Check your ZIP code first
-            </a>
+            </TrackedAnchor>
           </p>
         </div>
       </section>
@@ -551,9 +561,9 @@ export default function Home() {
             <FaqAccordion items={FAQ} />
           </div>
           <div className="mt-10 text-center">
-            <a href="#claim" className={`${BTN_PRIMARY} min-h-[52px] px-8 text-base`}>
+            <TrackedAnchor href="#claim" cta="faq_check_zip" className={`${BTN_PRIMARY} min-h-[52px] px-8 text-base`}>
               Check my ZIP code
-            </a>
+            </TrackedAnchor>
           </div>
         </div>
       </section>

@@ -38,6 +38,14 @@ type CheckState =
     }
   | { status: "error"; message: string };
 
+/** A nearby ZIP code the ledger confirmed as open (GET /api/territory/neighbors). */
+interface OpenNeighbor {
+  zip: string;
+  city: string;
+  state: string;
+  miles: number;
+}
+
 type SubmitState =
   | { status: "idle" }
   | { status: "submitting" }
@@ -71,6 +79,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const [check, setCheck] = useState<CheckState>({ status: "idle" });
   const [submit, setSubmit] = useState<SubmitState>({ status: "idle" });
   const [consent, setConsent] = useState(false);
+  // Open ZIP codes near a locked one, keyed by the ZIP code they were looked up for.
+  const [neighbors, setNeighbors] = useState<{ forZip: string; list: OpenNeighbor[] } | null>(null);
   const personalization = usePersonalization();
   const cta = useCTAEngine();
 
@@ -171,9 +181,24 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
       if (data.available) syncZipToPageUrl(data.zip);
       publishZipStatus({ zip: data.zip, available: data.available, city: data.city, state: data.state });
       track("zip_check", { zip: data.zip, available: data.available, source });
+      if (!data.available) void loadNeighbors(data.zip);
       void enrichWithIntelligence(data.zip, data.available, data.demand?.total ?? undefined);
     } catch {
       setCheck({ status: "error", message: "Couldn't reach the territory service — try again." });
+    }
+  }
+
+  /** Best effort: a locked ZIP code still gets a result if this lookup fails or finds nothing. */
+  async function loadNeighbors(lockedZip: string) {
+    try {
+      const res = await fetch(`/api/territory/neighbors?zip=${encodeURIComponent(lockedZip)}`, { signal: AbortSignal.timeout(15_000) });
+      if (!res.ok) return;
+      const data = (await res.json()) as { neighbors?: OpenNeighbor[] };
+      const list = (data.neighbors ?? []).filter((n) => isCompleteZip(n.zip)).slice(0, 3);
+      setNeighbors({ forZip: lockedZip, list });
+      if (list.length) track("zip_neighbors_shown", { zip: lockedZip, count: list.length, source });
+    } catch {
+      /** noop */
     }
   }
 
@@ -274,6 +299,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
 
   const ready = isCompleteZip(zip);
   const checking = check.status === "checking";
+  const openNearby = check.status === "result" && !check.available && neighbors?.forZip === check.zip ? neighbors.list : [];
 
   return (
     <div className="w-full rounded-3xl border border-slate-200 bg-white p-4 text-slate-900 shadow-xl shadow-slate-900/10 sm:p-6 md:p-8">
@@ -383,13 +409,48 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 </a>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={tryAnotherZip}
-                className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition duration-200 hover:bg-emerald-800"
-              >
-                Check an adjacent ZIP code →
-              </button>
+              <>
+                {openNearby.length ? (
+                  <div className="mt-4">
+                    <p className="text-[13px] font-semibold text-slate-900">Open ZIP codes nearby. Tap one to check it:</p>
+                    <ul className="mt-2 grid gap-2">
+                      {openNearby.map((n) => (
+                        <li key={n.zip}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              track("zip_neighbor_click", { from_zip: check.zip, zip: n.zip, source });
+                              void runCheck(n.zip);
+                            }}
+                            className="flex min-h-[48px] w-full items-center justify-between gap-3 rounded-2xl border border-emerald-700 bg-white px-4 py-2 text-left text-sm transition hover:bg-emerald-50"
+                          >
+                            <span className="min-w-0">
+                              <span className="font-bold text-slate-900">{n.zip}</span>{" "}
+                              <span className="text-slate-700">
+                                {n.city}, {n.state}
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-[12px] font-semibold text-emerald-800">
+                              {n.miles < 1 ? "under 1 mi" : `about ${Math.round(n.miles)} mi`} · open →
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={tryAnotherZip}
+                  className={`mt-3 inline-flex min-h-[48px] items-center justify-center rounded-full px-5 py-3 text-sm font-bold transition duration-200 ${
+                    openNearby.length
+                      ? "border border-slate-400 bg-white text-slate-900 hover:bg-slate-50"
+                      : "bg-emerald-700 text-white hover:bg-emerald-800"
+                  }`}
+                >
+                  {openNearby.length ? "Check a different ZIP code" : "Check an adjacent ZIP code →"}
+                </button>
+              </>
             )}
             <p className="mt-2 text-[12px] text-slate-700">
               {check.available

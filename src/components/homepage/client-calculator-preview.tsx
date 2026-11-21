@@ -27,7 +27,7 @@ const toNumber = (value: string) => {
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 const FIELD =
-  "mt-1 min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base font-semibold text-slate-900 outline-none ring-violet-300 focus:ring-2";
+  "mt-1 min-h-[44px] w-full rounded-xl border border-slate-400 bg-white px-3 py-2 text-base font-semibold text-slate-900";
 const LABEL = "block text-sm font-semibold text-slate-700";
 
 function NumberField({
@@ -135,6 +135,14 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
   const [termYears, setTermYears] = useState<number>(30);
   const [budget, setBudget] = useState(3_200);
   const [budgetDownPct, setBudgetDownPct] = useState(10);
+  // Preview branding only: typed here, shown in the header badge, never stored or sent anywhere.
+  const [previewName, setPreviewName] = useState("");
+  const [previewNmls, setPreviewNmls] = useState("");
+  const nameId = useId();
+  const nmlsId = useId();
+  const badgeName = previewName.trim() || "Your Name";
+  const badgeNmls = previewNmls || "000000";
+  const personalized = Boolean(previewName.trim() || previewNmls);
 
   const downPct = round2(downPaymentPercent(homePrice, downPayment));
   const payment = useMemo(
@@ -147,12 +155,54 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
   );
 
   return (
+    <div>
+      <fieldset className="mb-4 rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+        <legend className="px-1 text-sm font-semibold text-slate-900">See it with your name on it (optional)</legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor={nameId} className={LABEL}>
+              Preview Your Name
+            </label>
+            <input
+              id={nameId}
+              type="text"
+              autoComplete="off"
+              maxLength={60}
+              placeholder="e.g. Jordan Rivera"
+              value={previewName}
+              onChange={(e) => setPreviewName(e.target.value.replace(/[<>]/g, "").slice(0, 60))}
+              className={`${FIELD} font-medium`}
+            />
+          </div>
+          <div>
+            <label htmlFor={nmlsId} className={LABEL}>
+              Preview Your NMLS #
+            </label>
+            <input
+              id={nmlsId}
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={12}
+              placeholder="e.g. 123456"
+              value={previewNmls}
+              onChange={(e) => setPreviewNmls(e.target.value.replace(/\D/g, "").slice(0, 12))}
+              className={`${FIELD} font-medium`}
+            />
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-slate-600">Updates the calculator header as you type. Nothing you enter here is saved or sent.</p>
+      </fieldset>
+
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-xl">
-      <div className="flex flex-col gap-1 border-b border-slate-200 bg-[#13254a] px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-semibold">
-          Your Name &middot; NMLS #000000 <span className="font-normal text-white/70">(preview branding)</span>
+      <div className="flex flex-col gap-1 border-b border-slate-200 bg-slate-100 px-5 py-4 text-slate-900 sm:flex-row sm:items-center sm:justify-between">
+        <p className="min-w-0 break-words text-sm font-semibold" aria-live="polite" data-testid="calculator-brand-badge">
+          <span className="inline-flex max-w-full flex-wrap items-center gap-x-1.5 rounded-full border border-slate-300 bg-white px-3 py-1">
+            {badgeName} &middot; NMLS #{badgeNmls}
+          </span>{" "}
+          {personalized ? null : <span className="font-normal text-slate-600">(preview branding)</span>}
         </p>
-        <p className="text-xs uppercase tracking-[0.2em] text-amber-200">Client calculator preview</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-800">Client calculator preview</p>
       </div>
 
       <div className="p-5 sm:p-8">
@@ -163,8 +213,8 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
               type="button"
               aria-pressed={mode === m.id}
               onClick={() => setMode(m.id)}
-              className={`min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${
-                mode === m.id ? "border-violet-700 bg-violet-700 text-white" : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+              className={`min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                mode === m.id ? "border-violet-700 bg-violet-700 text-white" : "border-slate-400 bg-white text-slate-800 hover:bg-slate-50"
               }`}
             >
               {m.label}
@@ -231,12 +281,13 @@ export function ClientCalculatorPreview({ claimHref = "#claim", source = "home" 
           <a
             href={claimHref}
             onClick={() => track("calculator_preview_cta", { source, mode })}
-            className="inline-flex min-h-[48px] shrink-0 items-center justify-center rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-[#09081b] shadow-lg shadow-amber-500/30 transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+            className="inline-flex min-h-[48px] shrink-0 items-center justify-center rounded-full bg-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800"
           >
             Check &amp; claim my ZIP code &rarr;
           </a>
         </div>
       </div>
+    </div>
     </div>
   );
 }

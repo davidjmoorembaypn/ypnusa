@@ -12,6 +12,26 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 21, 2026 — next build (home page redesign)
+
+- **Light home page:** the home page is now white with dark text and green buttons, checked against WCAG AA
+  contrast. The header and footer are light on the home page only; every other page keeps its dark look.
+- **ZIP code check:** every public ZIP code field takes digits only, five at most, tells you how many digits are
+  left, and the button turns solid green on the fifth digit. Once you scroll past the top of the home page a slim
+  bar at the bottom shows your checked ZIP code ("93618 is OPEN") with one button, or a one-line lookup. The second
+  ZIP code form half-way down the page is gone.
+- **Cerebro button:** Cerebro starts as a small "Ask Cerebro" button and never sits on the ZIP code check. It opens
+  its greeting by itself only after 12 seconds or 40% of the way down the page, and never once you have used a ZIP
+  code field.
+- **Try-it sections:** type your name and NMLS # to see them on the client calculator; three sample Cerebro
+  conversations (FHA, VA, DSCR) with the lead summary and follow-up draft you would get; a table comparing YPN USA
+  with shared lead vendors.
+- **Pricing:** a commission slider ("1 closed loan = $5,000 commission, covering 50 months of Pro"), a Monthly /
+  5-Year Territory Lock switch, and two clear buttons on each paid plan: "Lock ZIP Today (First Payment Now)" and
+  "Start 15-Day Free Trial (No ZIP Lock)". Prices and checkout links are unchanged.
+- **Footer:** four columns on every page (Product, Loan Programs, Markets, Company & Legal) plus one row of guides.
+  The licensing line now reads "California DRE #01852847".
+
 ## Nov 17, 2026 — next build (daily health check fixes)
 
 - **Faster home page on phones:** phones now load a light portrait version of the hero picture (about 25 KB instead

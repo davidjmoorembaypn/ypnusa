@@ -9,8 +9,11 @@ import { FloatingAssistantLazy } from "@/components/assistant/floating-assistant
 import { OpenAssistantButton } from "@/components/assistant/open-assistant-button";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { PUBLIC_PRICING_TIERS } from "@/lib/pricing";
-import { PricingCta } from "@/components/pricing-cta";
+import { CerebroSandbox } from "@/components/homepage/cerebro-sandbox";
+import { HomePricing } from "@/components/homepage/home-pricing";
+import { FaqAccordion } from "@/components/homepage/faq-accordion";
+import { StickyZipBar } from "@/components/homepage/sticky-zip-bar";
+import { BTN_PRIMARY, EYEBROW, H2, LINK } from "@/components/homepage/ui";
 import { YouTubeFacade } from "@/components/youtube-facade";
 import { EXPLAINER_VIDEO, explainerVideoJsonLd } from "@/lib/explainer-video";
 import { FOUNDER_ID, faqJsonLd, jsonLdScript, marketingMetadata, softwareApplicationJsonLd } from "@/lib/seo";
@@ -44,13 +47,6 @@ const CEREBRO_TODAY = [
   },
 ] as const;
 
-const DAY_ON_AUTOPILOT: Array<[string, string]> = [
-  ["9:42 PM", "A borrower on your page asks whether they can buy with a small down payment. Cerebro explains the basics in plain language and asks a few qualifying questions."],
-  ["9:47 PM", "They share their timeline, price range and area, and agree to be contacted. Cerebro records the conversation and routes it to you."],
-  ["7:30 AM", "You open your dashboard and see the summary, plus who else needs a call today."],
-  ["8:15 AM", "You call a borrower who already knows the basics. A local post Cerebro drafted is waiting for your review."],
-];
-
 const COMING_SOON: Array<[string, string]> = [
   ["Done-for-you Google profile setup", "Cerebro setting up and filling in your Google Business Profile for you."],
   ["Local Visibility Score", "How visible you are in local search for your ZIP code, and what to fix first."],
@@ -65,6 +61,37 @@ const NEVER = [
 ];
 
 const PROGRAMS = ["FHA", "VA", "Conventional", "DSCR", "HELOC", "Refinance", "Jumbo"];
+
+/** YPN USA vs. shared lead vendors. Vendor figures are typical ranges, labelled as such under the table. */
+const COMPARISON: ReadonlyArray<{ feature: string; ypn: string; shared: string }> = [
+  {
+    feature: "Territory Exclusivity",
+    ypn: "1 MLO per ZIP code within YPN USA",
+    shared: "The same lead is commonly resold 4–6x",
+  },
+  {
+    feature: "24/7 AI Borrower Qualification",
+    ypn: "Included: Cerebro answers and qualifies day and night",
+    shared: "Usually not included; you chase the lead yourself",
+  },
+  {
+    feature: "Co-Branded Client Calculator",
+    ypn: "Included, with your name and NMLS #",
+    shared: "Rarely offered",
+  },
+  {
+    feature: "Lead Ownership Across Brokerages",
+    ypn: "Your leads stay yours if you change companies",
+    shared: "Often tied to the vendor or your employer's account",
+  },
+];
+
+const FOUNDER_CREDENTIALS: ReadonlyArray<[string, string]> = [
+  ["Experience", "25+ years as a loan officer"],
+  ["Loans closed", "2,000+"],
+  ["Formerly", "JPMorgan Chase and Wells Fargo"],
+  ["Education", "MBA, Fresno State"],
+];
 
 const FAQ = [
   {
@@ -120,110 +147,74 @@ const HOME_WEBPAGE_JSON_LD = {
   inLanguage: "en-US",
 };
 
-const H2 = "text-3xl font-semibold lg:text-4xl";
-const EYEBROW_DARK = "text-xs font-semibold uppercase tracking-[0.3em] text-violet-200";
-const EYEBROW_LIGHT = "text-xs font-semibold uppercase tracking-[0.3em] text-violet-700";
+const CARD = "rounded-3xl border border-slate-200 bg-white p-6 shadow-sm";
+const SUBTLE_LINKS = "mt-4 text-sm text-slate-700";
 
 export default function Home() {
   return (
-    <div className="flex min-h-full flex-col overflow-x-clip bg-[#09081b] pb-24 text-white md:pb-0">
-      <SiteHeader />
+    // pb reserves room for the sticky ZIP bar, so it never covers the last line of the footer.
+    <div className="ypn-light flex min-h-full flex-col overflow-x-clip bg-slate-50 pb-[4.5rem] text-slate-900">
+      <SiteHeader tone="light" />
 
-      <main id="main-content">
+      <main id="main-content" className="bg-white">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(HOME_WEBPAGE_JSON_LD) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(softwareApplicationJsonLd()) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(FAQ)) }} />
 
       {/* HERO */}
-      <section className="relative isolate overflow-hidden">
+      <section id="hero" className="relative isolate overflow-hidden border-b border-slate-200">
         <HeroVideo />
-        <div className="ypn-hero-scrim pointer-events-none absolute inset-0" aria-hidden />
-        {/* One column on phones in the order headline, credentials, ZIP code check, details, so the
+        <div className="ypn-hero-scrim-light pointer-events-none absolute inset-0" aria-hidden />
+        {/* One column on phones in the order headline, credentials, ZIP code check, stats, so the
             check sits above the fold; two columns from lg up with the check beside the headline. */}
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-start gap-6 px-4 pb-14 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-x-12 lg:gap-y-8 lg:py-24">
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-start gap-5 px-4 pb-10 pt-6 sm:px-6 sm:pt-10 lg:grid-cols-[minmax(0,1fr)_27rem] lg:gap-x-12 lg:gap-y-6 lg:py-16">
           <div className="max-w-xl lg:col-start-1 lg:row-start-1">
-            <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
+            <p className="hidden text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-800 sm:block">
               For licensed mortgage loan officers nationwide
-            </span>
-            <h1 className="mt-5 text-balance text-[2rem] font-semibold leading-[1.1] sm:text-4xl lg:mt-6 lg:text-[3.4rem] lg:leading-[1.08]">
+            </p>
+            <h1 className="text-balance text-[1.75rem] font-semibold leading-[1.12] text-slate-900 sm:mt-4 sm:text-4xl lg:text-[3.1rem] lg:leading-[1.08]">
               Stop losing borrowers to the lender who answered first.{" "}
-              <span className="text-violet-300">Cerebro answers them for you, day and night.</span>
+              <span className="text-violet-800">Cerebro answers them for you, day and night.</span>
             </h1>
 
             {/* Real, verifiable credentials only (see /about); no invented reviews, awards or user counts. */}
-            <div className="mt-5 rounded-2xl border border-white/15 bg-[#09081b]/60 px-4 py-3 backdrop-blur-sm">
-              <p className="text-[13px] font-semibold text-white">
-                Built by licensed loan officer {AUTHOR_NAME}
-              </p>
-              <ul className="mt-2 flex flex-wrap gap-1.5 text-[12px] font-medium text-white/90">
-                {[
-                  "25+ years as a loan officer",
-                  "2,000+ loans closed",
-                  "Formerly Wells Fargo & JPMorgan Chase",
-                  `NMLS #${NMLS_ID}`,
-                  `CA DRE #${CA_DRE_ID}`,
-                ].map((item) => (
-                  <li key={item} className="rounded-full bg-white/10 px-2.5 py-1 ring-1 ring-white/15">
-                    {item}
-                  </li>
-                ))}
-              </ul>
+            <p className="mt-4 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-[13px] font-medium leading-6 text-slate-800">
+              <span className="font-semibold text-slate-900">{AUTHOR_NAME}</span> &middot; 25+ yrs &middot; 2,000+ loans &middot; Wells
+              Fargo &amp; JPMorgan Chase &middot;{" "}
               <a
                 href={NMLS_CONSUMER_ACCESS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 inline-flex min-h-[32px] items-center text-[12px] font-semibold text-violet-200 underline underline-offset-2 hover:text-white"
+                aria-label={`NMLS #${NMLS_ID}, verify on NMLS Consumer Access (opens in a new tab)`}
+                className="whitespace-nowrap font-semibold text-violet-800 underline underline-offset-2 hover:text-violet-950"
               >
-                Verify on NMLS Consumer Access
-              </a>
-            </div>
+                NMLS #{NMLS_ID}
+              </a>{" "}
+              &middot; <span className="whitespace-nowrap">CA DRE #{CA_DRE_ID}</span>
+            </p>
           </div>
 
           <div id="claim" className="w-full scroll-mt-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
             <TerritoryClaim source="hero" />
-            <p className="mt-3 text-center text-xs text-white/75">
-              Checking is free &mdash; your ZIP code locks at your first payment.{" "}
-              <Link href="/pricing" className="font-semibold text-violet-200 underline hover:text-white">
-                Plans from $99/mo
-              </Link>
-              : pay now to lock it today, or try the tools free for 15 days first.
-            </p>
           </div>
 
           <div className="max-w-xl lg:col-start-1 lg:row-start-2">
-            <p className="text-lg text-white/90">
-              Cerebro answers and qualifies borrowers on your page 24/7, hands each one to you with a summary and drafts your
-              follow-ups for your OK. Paid plans add a ZIP code no other YPN USA loan officer can claim, anywhere in the country.
-            </p>
-            <p className="mt-4 text-base font-semibold text-amber-200">
-              Once yours is claimed, it&rsquo;s gone.
-            </p>
-
-            <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-white/75">
-              {["Free to start", "Free plan needs no card", "15-day trial on paid plans"].map((item) => (
-                <li key={item} className="flex items-center gap-1.5">
-                  <span aria-hidden className="text-emerald-400">✓</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-
-            <dl className="mt-6 grid grid-cols-3 gap-2 sm:gap-4">
+            <dl className="grid grid-cols-3 gap-2 sm:gap-3">
               {[
                 ["24/7", "Borrower answers"],
                 ["1 per ZIP code", "YPN USA loan officer"],
                 ["15 days", "Free trial, paid plans"],
               ].map(([stat, label]) => (
-                <div key={label} className="rounded-2xl bg-white/5 px-3 py-3 ring-1 ring-white/15 sm:px-4">
-                  <dt className="text-base font-bold text-violet-200 sm:text-xl">{stat}</dt>
-                  <dd className="text-[10px] uppercase tracking-wide text-white/75 sm:text-[11px]">{label}</dd>
+                <div key={label} className="flex flex-col-reverse rounded-2xl border border-slate-200 bg-white px-3 py-3 sm:px-4">
+                  <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-700 sm:text-[11px]">{label}</dt>
+                  <dd className="text-base font-bold text-slate-900 sm:text-xl">{stat}</dd>
                 </div>
               ))}
             </dl>
-
-            <OpenAssistantButton className="mt-5 inline-flex min-h-[44px] items-center text-sm font-semibold text-violet-100 underline underline-offset-4 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200">
-              Have a question first? Ask Cerebro
-            </OpenAssistantButton>
+            <p className="mt-4 text-base text-slate-800">
+              Cerebro answers and qualifies borrowers on your page and hands each one to you with a summary. Paid plans add a ZIP
+              code no other YPN USA loan officer can claim.
+            </p>
 
             <PredictiveHomepageEngine />
           </div>
@@ -233,13 +224,14 @@ export default function Home() {
       <HowItWorks />
 
       {/* CLIENT CALCULATOR PREVIEW */}
-      <section id="calculator-preview" className="bg-slate-50 py-16 text-slate-900">
+      <section id="calculator-preview" className="bg-white py-16">
         <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <p className={EYEBROW_LIGHT}>Co-branded client tool</p>
-            <h2 className={H2}>Your borrowers and Realtor partners get a calculator with your name on it</h2>
+            <p className={EYEBROW}>Co-branded client tool</p>
+            <h2 className={`mt-3 ${H2}`}>Your borrowers and Realtor partners get a calculator with your name on it</h2>
             <p className="mt-4 text-slate-700">
-              Try the preview. Once you claim a ZIP code, this payment and buying-power calculator is branded with your name and NMLS #.
+              Type your name and NMLS # to preview it. Once you claim a ZIP code, this payment and buying-power calculator carries
+              your branding on your pages.
             </p>
           </div>
           <div className="mt-10">
@@ -248,86 +240,77 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WHAT CEREBRO DOES TODAY */}
-      <section id="cerebro" className="border-b border-white/10 bg-[#0d0b26] py-16">
+      {/* LIVE CEREBRO */}
+      <section id="cerebro" className="border-y border-slate-200 bg-slate-50 py-16">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <p className={EYEBROW_DARK}>Meet Cerebro</p>
-            <h2 className={`mt-3 text-white ${H2}`}>What Cerebro does for you today</h2>
-            <p className="mt-4 text-white/80">
-              Cerebro works for your borrowers on your pages, under your brand, and for you inside your dashboard. These
-              features are live now.
+            <p className={EYEBROW}>Meet Cerebro</p>
+            <h2 className={`mt-3 ${H2}`}>Live Cerebro: from a borrower&rsquo;s first question to your next call</h2>
+            <p className="mt-4 text-slate-700">
+              Pick a scenario. On the left is the conversation on your page; on the right is what lands in your dashboard, with
+              a follow-up drafted for you.
             </p>
           </div>
-          <div className="mt-10 grid gap-6 lg:grid-cols-2">
+          <div className="mt-8">
+            <CerebroSandbox />
+          </div>
+
+          <h3 className="mt-14 text-center text-2xl font-semibold text-slate-900">What Cerebro does for you today</h3>
+          <p className="mx-auto mt-3 max-w-2xl text-center text-slate-700">
+            Cerebro works for your borrowers on your pages, under your brand, and for you inside your dashboard. These features
+            are live now.
+          </p>
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
             {CEREBRO_TODAY.map((column) => (
-              <div key={column.audience} className="rounded-3xl bg-white/5 p-6 ring-1 ring-white/15">
-                <h3 className="text-lg font-semibold text-white">{column.audience}</h3>
+              <div key={column.audience} className={CARD}>
+                <h4 className="text-lg font-semibold text-slate-900">{column.audience}</h4>
                 <ul className="mt-4 grid gap-4 sm:grid-cols-2">
                   {column.items.map(([title, body]) => (
                     <li key={title}>
-                      <p className="text-sm font-semibold text-violet-100">{title}</p>
-                      <p className="mt-1 text-[13px] leading-relaxed text-white/75">{body}</p>
+                      <p className="text-sm font-semibold text-violet-900">{title}</p>
+                      <p className="mt-1 text-[13px] leading-relaxed text-slate-700">{body}</p>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
           </div>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm font-semibold">
-            <Link
-              href="/cerebro"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-7 py-3 text-[#09081b] shadow-xl shadow-amber-500/30 transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-            >
-              Meet Cerebro
-            </Link>
-            <Link href="/topics/ai-lead-automation" className="text-violet-200 underline underline-offset-4 hover:text-white">
-              Mortgage CRM and AI guides
-            </Link>
-          </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-white/70">Programs supported:</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-700">Programs supported:</span>
             {PROGRAMS.map((p) => (
-              <span key={p} className="rounded-full border border-white/25 px-3 py-1 text-xs font-semibold text-white/85">
+              <span key={p} className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800">
                 {p}
               </span>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* A DAY ON AUTOPILOT */}
-      <section className="bg-white py-16 text-slate-900">
-        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
-          <h2 className={H2}>
-            A day on autopilot <span className="text-xl font-medium text-slate-600 lg:text-2xl">(illustration)</span>
-          </h2>
-          <ol className="mt-8 space-y-4">
-            {DAY_ON_AUTOPILOT.map(([time, body]) => (
-              <li key={time} className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:grid-cols-[90px_1fr]">
-                <span className="font-mono text-sm font-semibold text-violet-800">{time}</span>
-                <p className="text-sm leading-relaxed text-slate-700">{body}</p>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-4 text-xs text-slate-600">
-            An illustration of how a day can look, not a real borrower and not a promise of leads or loans.
-          </p>
+          <div className="mt-8 text-center">
+            <Link href="/cerebro" className={BTN_PRIMARY}>
+              Meet Cerebro
+            </Link>
+            <p className={SUBTLE_LINKS}>
+              Have a question first?{" "}
+              <OpenAssistantButton className={LINK}>Ask Cerebro</OpenAssistantButton>
+              <span aria-hidden> &middot; </span>
+              <Link href="/topics/ai-lead-automation" className={LINK}>
+                Mortgage CRM and AI guides
+              </Link>
+            </p>
+          </div>
         </div>
       </section>
 
       {/* COMING TO CEREBRO */}
-      <section className="border-t border-slate-200 bg-slate-50 py-16 text-slate-900">
+      <section className="bg-white py-16">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <h2 className={H2}>Coming to Cerebro</h2>
           <p className="mt-3 max-w-2xl text-slate-700">In development and not available yet.</p>
           <ul className="mt-8 grid gap-4 md:grid-cols-3">
             {COMING_SOON.map(([title, body]) => (
-              <li key={title} className="rounded-2xl border border-dashed border-slate-300 bg-white p-5">
-                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+              <li key={title} className="rounded-2xl border border-dashed border-slate-400 bg-slate-50 p-5">
+                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-950">
                   Coming soon
                 </span>
-                <h3 className="mt-3 font-semibold">{title}</h3>
+                <h3 className="mt-3 font-semibold text-slate-900">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-700">{body}</p>
               </li>
             ))}
@@ -336,78 +319,125 @@ export default function Home() {
       </section>
 
       {/* YOUR ZIP CODE */}
-      <section id="territories" className="relative isolate overflow-hidden bg-[#09081b] py-20">
-        <div className="ypn-aurora pointer-events-none absolute inset-0 opacity-80" aria-hidden />
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
-          <div className="space-y-6">
-            <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-violet-100">
-              Exclusive ZIP codes
-            </span>
-            <h2 className={H2}>Your ZIP code, yours alone</h2>
-            <p className="text-lg text-white/85">
-              Each paid plan includes one ZIP code. While you hold it, no other YPN USA loan officer can claim it, and
-              borrower inquiries from your YPN USA pages for that ZIP code route to you. No lead resold to five competitors,
-              no race to dial first.
+      <section id="territories" className="border-y border-slate-200 bg-slate-50 py-16 lg:py-20">
+        <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start lg:gap-12">
+          <div>
+            <p className={EYEBROW}>Exclusive ZIP codes</p>
+            <h2 className={`mt-3 ${H2}`}>Your ZIP code, yours alone</h2>
+            <p className="mt-4 text-lg text-slate-800">
+              Each paid plan includes one ZIP code. While you hold it, no other YPN USA loan officer can claim it, and borrower
+              inquiries from your YPN USA pages for that ZIP code route to you.
             </p>
-            <ul className="space-y-3 text-sm text-white/90">
+            <ul className="mt-6 space-y-3 text-sm text-slate-800">
               {[
                 "One YPN USA loan officer per ZIP code",
                 "First come, first served; it locks at your first payment",
                 "Add neighboring ZIP codes as paid add-ons, subject to availability",
               ].map((item) => (
-                <li key={item} className="flex items-start gap-3 rounded-2xl bg-white/5 px-4 py-3 ring-1 ring-white/15">
-                  <span aria-hidden className="text-amber-300">◆</span>
+                <li key={item} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                  <span aria-hidden className="font-bold text-emerald-700">✓</span>
                   {item}
                 </li>
               ))}
             </ul>
-            <p className="text-sm text-white/75">
-              Exclusivity applies within YPN USA; other lenders can still market in your area. Compare{" "}
-              <Link href="/topics/exclusive-mortgage-leads" className="font-semibold text-violet-200 underline hover:text-white">
-                exclusive mortgage leads
-              </Link>{" "}
-              with shared ones, or{" "}
-              <Link href="/loan-officers" className="font-semibold text-violet-200 underline hover:text-white">
+            <a href="#claim" className={`mt-6 ${BTN_PRIMARY}`}>
+              Check my ZIP code
+            </a>
+            <p className={SUBTLE_LINKS}>
+              Related reading:{" "}
+              <Link href="/topics/exclusive-mortgage-leads" className={LINK}>
+                exclusive vs. shared mortgage leads
+              </Link>
+              <span aria-hidden> &middot; </span>
+              <Link href="/loan-officers" className={LINK}>
                 find your market
               </Link>
-              .
             </p>
           </div>
 
-          <TerritoryClaim source="territory_section" />
+          <div>
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full table-fixed border-collapse text-left text-[13px] leading-snug sm:text-sm">
+                <caption className="border-b border-slate-200 px-4 py-3 text-left text-base font-semibold text-slate-900">
+                  YPN USA vs. shared lead portals
+                </caption>
+                <colgroup>
+                  <col className="w-[30%]" />
+                  <col className="w-[36%]" />
+                  <col className="w-[34%]" />
+                </colgroup>
+                <thead>
+                  <tr className="align-bottom">
+                    <th scope="col" className="px-3 py-3 font-semibold text-slate-700 sm:px-4">
+                      <span className="sr-only">Feature</span>
+                    </th>
+                    <th scope="col" className="bg-emerald-50 px-3 py-3 font-bold text-emerald-950 sm:px-4">
+                      YPN USA
+                      <span className="block text-xs font-semibold text-emerald-900">$99&ndash;$299/mo</span>
+                    </th>
+                    <th scope="col" className="px-3 py-3 font-bold text-slate-900 sm:px-4">
+                      Shared Lead Vendors
+                      <span className="block text-xs font-semibold text-slate-700">$500&ndash;$2,500+/mo</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARISON.map((row) => (
+                    <tr key={row.feature} className="border-t border-slate-200 align-top">
+                      <th scope="row" className="break-words px-3 py-3 font-semibold text-slate-900 sm:px-4">
+                        {row.feature}
+                      </th>
+                      <td className="break-words bg-emerald-50 px-3 py-3 font-medium text-emerald-950 sm:px-4">
+                        <span aria-hidden className="font-bold text-emerald-700">✓ </span>
+                        {row.ypn}
+                      </td>
+                      <td className="break-words px-3 py-3 text-slate-800 sm:px-4">
+                        <span aria-hidden className="font-bold text-slate-600">✕ </span>
+                        {row.shared}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-xs text-slate-600">
+              Shared lead vendor pricing and resale practices are typical ranges and vary by vendor. Exclusivity applies within
+              YPN USA; other lenders can still market in your area.
+            </p>
+          </div>
         </div>
       </section>
 
       {/* TEAMS + GUARDRAILS */}
-      <section className="bg-white py-16 text-slate-900">
+      <section className="bg-white py-16">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-2">
-          <div className="rounded-3xl border border-slate-200 p-6 sm:p-8">
-            <p className={EYEBROW_LIGHT}>For teams</p>
-            <h2 className="mt-3 text-2xl font-semibold lg:text-3xl">For managers and teams</h2>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
+            <p className={EYEBROW}>For teams</p>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-900 lg:text-3xl">For managers and teams</h2>
             <p className="mt-4 text-slate-700">
               Give every loan officer on your team their own ZIP code, local pages and Cerebro follow-up from day one. Your
               loan officers cover different ZIP codes instead of competing for the same borrowers. Each loan officer is on
               their own plan, from $99 a month.
             </p>
-            <Link href="/teams" className="mt-5 inline-flex font-semibold text-violet-700 underline underline-offset-4 hover:text-violet-900">
+            <Link href="/teams" className={`mt-5 inline-flex ${LINK}`}>
               YPN USA for teams
             </Link>
           </div>
-          <div className="rounded-3xl bg-[#09081b] p-6 text-white sm:p-8">
-            <p className={EYEBROW_DARK}>Guardrails</p>
-            <h2 className="mt-3 text-2xl font-semibold lg:text-3xl">What Cerebro never does</h2>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+            <p className={EYEBROW}>Guardrails</p>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-900 lg:text-3xl">What Cerebro never does</h2>
             <ul className="mt-5 grid gap-3 sm:grid-cols-2">
               {NEVER.map((item) => (
-                <li key={item} className="flex items-center gap-2 text-sm text-white/90">
-                  <span aria-hidden className="text-amber-300">✕</span>
+                <li key={item} className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <span aria-hidden className="font-bold text-rose-700">✕</span>
                   {item}
                 </li>
               ))}
             </ul>
-            <p className="mt-5 text-sm text-white/75">
+            <p className="mt-5 text-sm text-slate-700">
               Cerebro assists licensed loan officers; it does not replace one. Every borrower conversation is handed to you,
               the licensed MLO. Scoring and qualification are informational; see our{" "}
-              <Link href="/licensing-disclosures" className="underline hover:text-white">
+              <Link href="/licensing-disclosures" className={LINK}>
                 licensing &amp; disclosures
               </Link>
               .
@@ -417,125 +447,94 @@ export default function Home() {
       </section>
 
       {/* PLANS AND ROI */}
-      <section id="pricing" className="border-t border-slate-200 bg-slate-50 py-20 text-slate-900">
+      <section id="pricing" className="border-y border-slate-200 bg-slate-50 py-16 lg:py-20">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <p className={EYEBROW_LIGHT}>Pricing</p>
+            <p className={EYEBROW}>Pricing</p>
             <h2 className={`mt-3 ${H2}`}>Plans and ROI</h2>
             <p className="mt-4 text-slate-700">
-              Start free. Check your ZIP code free, then lock it with your first payment on any paid plan.{" "}
-              <Link href="/roi" className="font-semibold text-violet-700 underline">
-                See how many extra loans cover a plan
-              </Link>
-              .
+              Start free. Check your ZIP code free, then lock it with your first payment on any paid plan.
             </p>
           </div>
 
-          <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {PUBLIC_PRICING_TIERS.map((tier) => (
-              <article
-                key={tier.id}
-                className={`flex min-h-full flex-col rounded-3xl border p-6 transition duration-200 hover:-translate-y-1 md:p-8 ${
-                  tier.highlight
-                    ? "border-violet-400 bg-[#09081b] text-white shadow-2xl shadow-violet-500/20 ring-2 ring-violet-400/40"
-                    : "border-slate-200 bg-white text-slate-900 shadow-sm"
-                }`}
-              >
-                {tier.highlight ? (
-                  <span className="mb-3 inline-flex w-fit rounded-full bg-amber-400 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#09081b]">
-                    Most popular
-                  </span>
-                ) : null}
-                <h3 className="text-lg font-semibold">{tier.name}</h3>
-                <p className={`mt-1 text-sm ${tier.highlight ? "text-white/75" : "text-slate-600"}`}>{tier.tagline}</p>
-                <div className="mt-5 flex items-end gap-1">
-                  <span className="text-4xl font-bold">{tier.price}</span>
-                  <span className={`pb-1 text-sm ${tier.highlight ? "text-white/75" : "text-slate-600"}`}>{tier.cadence}</span>
-                </div>
-                <ul className="mt-6 flex-1 space-y-3 text-sm">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
-                      <span aria-hidden className={tier.highlight ? "text-amber-300" : "text-violet-700"}>✓</span>
-                      <span className={tier.highlight ? "text-white/90" : "text-slate-700"}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <PricingCta
-                  tierId={tier.id}
-                  className={`mt-8 inline-flex min-h-[48px] items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 ${
-                    tier.highlight
-                      ? "bg-amber-400 text-[#09081b] shadow-lg shadow-amber-500/30"
-                      : "bg-[#09081b] text-white"
-                  }`}
-                >
-                  {tier.cta}
-                </PricingCta>
-                <a
-                  href="#territories"
-                  className={`mt-2 inline-flex min-h-[44px] items-center justify-center text-center text-xs font-semibold underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 ${
-                    tier.highlight ? "text-white/80 focus-visible:ring-violet-300" : "text-violet-700 focus-visible:ring-violet-500"
-                  }`}
-                >
-                  Check your ZIP code first
-                </a>
-              </article>
-            ))}
+          <div className="mt-10">
+            <HomePricing />
           </div>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-700">
-            {["Free plan — no credit card", "Cancel anytime", "5-year prepaid plans available"].map((item) => (
-              <span key={item} className="flex items-center gap-1.5">
-                <span aria-hidden className="text-emerald-700">✓</span>
-                {item}
-              </span>
-            ))}
-          </div>
-          <p className="mt-4 text-center text-sm">
-            <Link href="/pricing" className="font-semibold text-violet-700 underline">
+
+          <p className="mt-6 text-center text-sm text-slate-700">
+            <Link href="/pricing" className={LINK}>
               Compare every plan
-            </Link>{" "}
-            <span className="text-slate-600">·</span>{" "}
-            <Link href="/claim-territory" className="font-semibold text-violet-700 underline">
-              Claim your ZIP code
             </Link>
+            <span aria-hidden> &middot; </span>
+            <Link href="/roi" className={LINK}>
+              Full ROI calculator
+            </Link>
+            <span aria-hidden> &middot; </span>
+            <a href="#claim" className={LINK}>
+              Check your ZIP code first
+            </a>
           </p>
         </div>
       </section>
 
       {/* BUILT BY A LOAN OFFICER (+ explainer video) */}
-      <section id="how-it-works-video" className="border-y border-white/10 bg-[#0b0a20] py-16">
+      <section id="how-it-works-video" className="bg-white py-16">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(explainerVideoJsonLd()) }} />
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:gap-12">
-          <YouTubeFacade videoId={EXPLAINER_VIDEO.id} title={EXPLAINER_VIDEO.title} />
+        <div className="mx-auto grid w-full max-w-6xl items-start gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:gap-12">
+          <figure>
+            <YouTubeFacade videoId={EXPLAINER_VIDEO.id} title={EXPLAINER_VIDEO.title} tone="light" />
+            <figcaption className="mt-3 text-sm text-slate-700">
+              <span className="font-semibold text-slate-900">Watch: {EXPLAINER_VIDEO.title}.</span> David explains why holding a
+              ZIP code that is exclusive within YPN USA beats renting clicks and shared leads.
+            </figcaption>
+          </figure>
           <div>
-            <p className={EYEBROW_DARK}>Built by a loan officer</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white lg:text-3xl">Built by a 25-year loan officer</h2>
-            <p className="mt-3 text-white/80">
-              {AUTHOR_NAME} closed 2,000+ loans over 25+ years, formerly with JPMorgan Chase and Wells Fargo, and holds a
-              Fresno State MBA. NMLS #{NMLS_ID} · California DRE #{CA_DRE_ID}. In the video, he explains why holding a ZIP
-              code that is exclusive within YPN USA beats renting clicks and shared leads.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold">
-              <Link
-                href="/consultation"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-6 py-3 text-[#09081b] transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+            <p className={EYEBROW}>Built by a loan officer</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900 lg:text-3xl">Built by a 25-year loan officer</h2>
+            <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
+              <p className="text-lg font-semibold text-slate-900">{AUTHOR_NAME}</p>
+              <p className="text-sm text-slate-700">Founder, YPN USA</p>
+              <dl className="mt-4 grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+                {FOUNDER_CREDENTIALS.map(([label, value]) => (
+                  <div key={label} className="contents">
+                    <dt className="text-slate-700">{label}</dt>
+                    <dd className="font-semibold text-slate-900">{value}</dd>
+                  </div>
+                ))}
+                <div className="contents">
+                  <dt className="text-slate-700">Licenses</dt>
+                  <dd className="font-semibold text-slate-900">
+                    NMLS #{NMLS_ID} &middot; California DRE #{CA_DRE_ID}
+                  </dd>
+                </div>
+              </dl>
+              <a
+                href={NMLS_CONSUMER_ACCESS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`mt-4 inline-flex min-h-[32px] items-center text-sm ${LINK}`}
               >
-                Talk to the founder
-              </Link>
-              <Link href="/about" className="inline-flex min-h-[48px] items-center text-violet-200 underline underline-offset-4 hover:text-white">
+                Verify on NMLS Consumer Access
+              </a>
+            </div>
+            <Link href="/consultation" className={`mt-6 ${BTN_PRIMARY}`}>
+              Talk to the founder
+            </Link>
+            <p className={SUBTLE_LINKS}>
+              <Link href="/about" className={LINK}>
                 About David
               </Link>
-            </div>
-            <p className="mt-6 text-sm text-white/75">
+              <span aria-hidden> &middot; </span>
               Free guides:{" "}
-              <Link href="/blog/mortgage-lead-channels-ranked-for-2026" className="text-violet-200 underline hover:text-white">
+              <Link href="/blog/mortgage-lead-channels-ranked-for-2026" className={LINK}>
                 mortgage lead channels ranked
               </Link>
               ,{" "}
-              <Link href="/topics/loan-officer-marketing" className="text-violet-200 underline hover:text-white">
+              <Link href="/topics/loan-officer-marketing" className={LINK}>
                 loan officer marketing
               </Link>{" "}
               and{" "}
-              <Link href="/topics/local-seo-for-loan-officers" className="text-violet-200 underline hover:text-white">
+              <Link href="/topics/local-seo-for-loan-officers" className={LINK}>
                 local SEO for loan officers
               </Link>
               .
@@ -545,25 +544,14 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section className="bg-slate-50 py-20 text-slate-900">
+      <section className="border-t border-slate-200 bg-slate-50 py-16 lg:py-20">
         <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
           <h2 className={`text-center ${H2}`}>Questions loan officers ask</h2>
-          <div className="mt-10 space-y-4">
-            {FAQ.map((item) => (
-              <details key={item.q} className="group rounded-2xl border border-slate-200 bg-white p-5 [&_summary]:cursor-pointer">
-                <summary className="flex items-center justify-between text-base font-semibold text-slate-900 marker:content-none">
-                  {item.q}
-                  <span aria-hidden className="ml-4 text-violet-700 transition group-open:rotate-45">＋</span>
-                </summary>
-                <p className="mt-3 text-sm leading-relaxed text-slate-700">{item.a}</p>
-              </details>
-            ))}
+          <div className="mt-10">
+            <FaqAccordion items={FAQ} />
           </div>
           <div className="mt-10 text-center">
-            <a
-              href="#territories"
-              className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-amber-400 px-8 py-4 text-base font-bold text-[#09081b] shadow-lg shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-            >
+            <a href="#claim" className={`${BTN_PRIMARY} min-h-[52px] px-8 text-base`}>
               Check my ZIP code
             </a>
           </div>
@@ -571,17 +559,9 @@ export default function Home() {
       </section>
       </main>
 
-      <SiteFooter />
+      <SiteFooter tone="light" />
 
-      {/* Mobile sticky conversion bar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[#09081b]/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur md:hidden">
-        <a
-          href="#territories"
-          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-[#09081b] shadow-lg shadow-amber-500/30 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-        >
-          Check my ZIP code — free
-        </a>
-      </div>
+      <StickyZipBar heroId="hero" />
 
       <FloatingAssistantLazy />
     </div>

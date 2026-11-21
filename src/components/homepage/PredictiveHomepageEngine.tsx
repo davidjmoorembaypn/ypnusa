@@ -25,8 +25,8 @@ export function PredictiveHomepageEngine() {
   if (!enabled) return null;
 
   return (
-    <div className="mt-8 space-y-4 rounded-3xl border border-white/15 bg-white/[0.04] p-5 backdrop-blur">
-      <p className="text-xs font-semibold uppercase tracking-wide text-white/60">What brings you here today?</p>
+    <div className="mt-8 space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">What brings you here today?</p>
       <SelfSelectCards
         selected={tracking.visitorIntent}
         onSelect={(intent) => {

@@ -8,11 +8,15 @@ import { track } from "@/lib/track";
  * visitor clicks, so the page doesn't load YouTube's player (~1MB of script) up front.
  * The player itself comes from youtube-nocookie.com.
  */
-export function YouTubeFacade({ videoId, title }: { videoId: string; title: string }) {
+export function YouTubeFacade({ videoId, title, tone = "dark" }: { videoId: string; title: string; tone?: "dark" | "light" }) {
   const [playing, setPlaying] = useState(false);
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black shadow-2xl shadow-black/40 ring-1 ring-white/15">
+    <div
+      className={`relative aspect-video w-full overflow-hidden rounded-3xl bg-black ${
+        tone === "light" ? "shadow-xl shadow-slate-900/15 ring-1 ring-slate-300" : "shadow-2xl shadow-black/40 ring-1 ring-white/15"
+      }`}
+    >
       {playing ? (
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}

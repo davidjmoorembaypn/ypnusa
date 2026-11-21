@@ -78,15 +78,15 @@ export function InteractiveCalculator({ onInteract }: { onInteract?: () => void 
 
       <div className="mt-8 grid gap-4 rounded-2xl bg-slate-50 p-5 text-center sm:grid-cols-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Est. pre-qualification</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">Est. pre-qualification</p>
           <p className="mt-1 text-2xl font-bold text-slate-900">{usd(estimatedPreQualification)}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Est. monthly payment</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">Est. monthly payment</p>
           <p className="mt-1 text-2xl font-bold text-slate-900">{usd(estimatedMonthly)}/mo</p>
         </div>
       </div>
-      <p className="mt-4 text-center text-xs text-slate-400">
+      <p className="mt-4 text-center text-xs text-slate-700">
         Rough estimate only, not a loan offer or credit decision. Your loan officer will run real numbers.
       </p>
     </div>

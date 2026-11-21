@@ -69,17 +69,27 @@ export function FloatingAssistantWidget({ startInChat = false }: { startInChat?:
   useEffect(() => {
     const card = document.getElementById("claim");
     if (!card) return;
+    // The ZIP code card, plus any block the page marks as "keep the pill off this" (hero panels on phones).
+    const avoid = [card, ...document.querySelectorAll<HTMLElement>("[data-cerebro-avoid]")];
     let frame = 0;
     const measure = () => {
       frame = 0;
       const pill = launcherRef.current?.getBoundingClientRect();
       if (!pill) return;
-      const area = card.getBoundingClientRect();
       // Inset by the card's own padding: brushing its empty edge is not covering it.
       const inset = 16;
-      const apart =
-        pill.right < area.left + inset || pill.left > area.right - inset || pill.bottom < area.top + inset || pill.top > area.bottom - inset;
-      setOverZipCard(!apart);
+      setOverZipCard(
+        avoid.some((element) => {
+          const area = element.getBoundingClientRect();
+          if (area.width === 0 || area.height === 0) return false;
+          return !(
+            pill.right < area.left + inset ||
+            pill.left > area.right - inset ||
+            pill.bottom < area.top + inset ||
+            pill.top > area.bottom - inset
+          );
+        }),
+      );
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(measure);
@@ -88,7 +98,7 @@ export function FloatingAssistantWidget({ startInChat = false }: { startInChat?:
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
     const observer = typeof ResizeObserver === "function" ? new ResizeObserver(schedule) : null;
-    observer?.observe(card);
+    for (const element of avoid) observer?.observe(element);
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       window.removeEventListener("scroll", schedule);
@@ -265,7 +275,10 @@ export function FloatingAssistantWidget({ startInChat = false }: { startInChat?:
         <button
           type="button"
           ref={launcherRef}
-          onClick={() => setView("greeting")}
+          onClick={() => {
+            track("assistant_launcher_click", { source: "homepage_floating_widget" });
+            setView("greeting");
+          }}
           aria-haspopup="dialog"
           aria-hidden={overZipCard || undefined}
           tabIndex={overZipCard ? -1 : undefined}

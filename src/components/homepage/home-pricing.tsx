@@ -3,6 +3,8 @@
 import { useId, useState } from "react";
 import { PricingCta } from "@/components/pricing-cta";
 import { formatUsd } from "@/lib/format";
+import { track } from "@/lib/track";
+import { MobileCollapse } from "./mobile-collapse";
 import {
   PREPAID_5Y,
   PREPAID_5Y_REFUND_WINDOW_DAYS,
@@ -36,6 +38,9 @@ function CommissionRoiBar() {
   const [bps, setBps] = useState(125);
   const commission = Math.round((loanAmount * bps) / 10_000);
   const months = Math.floor(commission / PRO_MONTHLY_DOLLARS);
+  /** One event when a slider is released, not one per pixel dragged. */
+  const report = (field: "loan_amount" | "bps") =>
+    track("home_roi_adjust", { field, loan_amount: loanAmount, bps, commission, months_of_pro: months });
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6" data-testid="commission-roi">
@@ -57,6 +62,8 @@ function CommissionRoiBar() {
             step={10_000}
             value={loanAmount}
             onChange={(event) => setLoanAmount(Number(event.target.value))}
+            onPointerUp={() => report("loan_amount")}
+            onKeyUp={() => report("loan_amount")}
             aria-valuetext={formatUsd(loanAmount)}
             className="mt-2 h-11 w-full accent-emerald-700"
           />
@@ -78,6 +85,8 @@ function CommissionRoiBar() {
             step={5}
             value={bps}
             onChange={(event) => setBps(Number(event.target.value))}
+            onPointerUp={() => report("bps")}
+            onKeyUp={() => report("bps")}
             aria-valuetext={`${bps} basis points`}
             className="mt-2 h-11 w-full accent-emerald-700"
           />
@@ -121,7 +130,10 @@ export function HomePricing() {
               key={value}
               type="button"
               aria-pressed={billing === value}
-              onClick={() => setBilling(value)}
+              onClick={() => {
+                if (billing !== value) track("home_billing_toggle", { billing: value });
+                setBilling(value);
+              }}
               className={`min-h-[44px] whitespace-nowrap rounded-full px-4 text-sm font-semibold transition sm:px-6 ${
                 billing === value ? "bg-slate-900 text-white" : "text-slate-800 hover:bg-slate-100"
               }`}
@@ -180,7 +192,8 @@ export function HomePricing() {
                 </div>
               )}
 
-              <ul className="mt-6 flex-1 space-y-3 text-sm">
+              <MobileCollapse label={`See what's in ${tier.name}`} name={`plan_features_${tier.id}`} className="mt-6 flex-1">
+              <ul className="space-y-3 text-sm">
                 {tier.features
                   .filter((feature) => !(paid && TRIAL_FEATURE.test(feature)))
                   .map((feature) => (
@@ -200,9 +213,10 @@ export function HomePricing() {
                   </li>
                 ) : null}
               </ul>
+              </MobileCollapse>
 
               {paid ? (
-                <div className="mt-8 grid gap-2">
+                <div className="mt-6 grid gap-2 md:mt-8">
                   {showPrepaid ? (
                     <PricingCta tierId={tier.id} variant="prepaid_5y" aria-describedby={termsId} className={`${BTN_ACCENT} w-full`}>
                       Lock ZIP for {PREPAID_5Y_YEARS} Years (One Payment)
@@ -217,7 +231,7 @@ export function HomePricing() {
                   </PricingCta>
                 </div>
               ) : (
-                <div className="mt-8 grid gap-2">
+                <div className="mt-6 grid gap-2 md:mt-8">
                   <PricingCta tierId={tier.id} className={`${BTN_SECONDARY} w-full`}>
                     Start Free (No ZIP Lock)
                   </PricingCta>

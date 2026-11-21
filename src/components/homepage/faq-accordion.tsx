@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { track } from "@/lib/track";
 
 /**
  * FAQ accordion: each question is a real button with aria-expanded and aria-controls pointing at
@@ -12,6 +13,7 @@ export function FaqAccordion({ items }: { items: ReadonlyArray<{ q: string; a: s
   const [open, setOpen] = useState<ReadonlySet<number>>(() => new Set([0]));
 
   function toggle(index: number) {
+    if (!open.has(index)) track("home_faq_open", { question: items[index].q.slice(0, 90), position: index + 1 });
     setOpen((current) => {
       const next = new Set(current);
       if (next.has(index)) next.delete(index);

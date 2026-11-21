@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import { track } from "@/lib/track";
+import { MobileCollapse } from "./mobile-collapse";
 
 interface Scenario {
   id: string;
@@ -117,6 +118,28 @@ const SCENARIOS: readonly Scenario[] = [
 
 type Draft = "sms" | "email";
 
+function ChatTurns({ turns }: { turns: Scenario["chat"] }) {
+  return (
+    <ol className="mt-3 flex flex-col gap-3">
+      {turns.map((turn, i) => (
+        <li
+          key={i}
+          className={`max-w-[88%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+            turn.from === "borrower"
+              ? "self-end rounded-br-md bg-slate-900 text-white"
+              : "self-start rounded-bl-md border border-slate-200 bg-slate-50 text-slate-900"
+          }`}
+        >
+          <span className={`block text-[11px] font-semibold uppercase tracking-wide ${turn.from === "borrower" ? "text-slate-200" : "text-violet-800"}`}>
+            {turn.from === "borrower" ? "Borrower" : "Cerebro"}
+          </span>
+          {turn.text}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 /**
  * "Live Cerebro" sandbox: three tabs, each showing a borrower conversation on the left and what
  * the loan officer receives on the right (lead summary plus a follow-up draft awaiting approval).
@@ -199,23 +222,10 @@ export function CerebroSandbox() {
                   <h3 className="text-sm font-semibold text-slate-900">On your page: borrower chat</h3>
                   <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-900">{item.program}</span>
                 </div>
-                <ol className="mt-4 flex flex-col gap-3">
-                  {item.chat.map((turn, i) => (
-                    <li
-                      key={i}
-                      className={`max-w-[88%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                        turn.from === "borrower"
-                          ? "self-end rounded-br-md bg-slate-900 text-white"
-                          : "self-start rounded-bl-md border border-slate-200 bg-slate-50 text-slate-900"
-                      }`}
-                    >
-                      <span className={`block text-[11px] font-semibold uppercase tracking-wide ${turn.from === "borrower" ? "text-slate-200" : "text-violet-800"}`}>
-                        {turn.from === "borrower" ? "Borrower" : "Cerebro"}
-                      </span>
-                      {turn.text}
-                    </li>
-                  ))}
-                </ol>
+                <ChatTurns turns={item.chat.slice(0, 2)} />
+                <MobileCollapse label={`Show the rest of the conversation (${item.chat.length - 2} more)`} name={`sandbox_chat_${item.id}`} className="mt-3">
+                  <ChatTurns turns={item.chat.slice(2)} />
+                </MobileCollapse>
               </section>
 
               {/* What the loan officer receives */}
@@ -243,7 +253,10 @@ export function CerebroSandbox() {
                           type="button"
                           aria-pressed={draft === kind}
                           aria-controls={draftPanelId}
-                          onClick={() => setDraft(kind)}
+                          onClick={() => {
+                            if (draft !== kind) track("cerebro_sandbox_draft", { scenario: item.id, draft: kind });
+                            setDraft(kind);
+                          }}
                           className={`min-h-[36px] rounded-full px-4 text-xs font-semibold transition ${
                             draft === kind ? "bg-slate-900 text-white" : "text-slate-800 hover:bg-slate-100"
                           }`}

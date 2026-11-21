@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ZipInput } from "@/components/zip-input";
 import { checkoutUrlForTier, payNowUrlForTier } from "@/lib/checkout";
 import { trackFunnel } from "@/lib/funnel-events";
@@ -43,6 +43,13 @@ export function StickyZipBar({ heroId = "hero" }: { heroId?: string }) {
     observer.observe(hero);
     return () => observer.disconnect();
   }, [heroId]);
+
+  const shownTracked = useRef(false);
+  useEffect(() => {
+    if (!pastHero || shownTracked.current) return;
+    shownTracked.current = true;
+    track("home_sticky_zip_bar_shown", { state: status ? (status.available ? "open" : "locked") : "lookup" });
+  }, [pastHero, status]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -124,6 +131,7 @@ export function StickyZipBar({ heroId = "hero" }: { heroId?: string }) {
             <button
               type="button"
               onClick={() => {
+                track("home_sticky_zip_bar_change", { zip: status.zip, available: status.available });
                 setEditing(true);
                 setError(null);
               }}

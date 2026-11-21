@@ -12,6 +12,21 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 21, 2026 — next build (home page follow-up)
+
+- **Hero video is back in view:** the footage plays at full strength again. The headline, credentials and ZIP code
+  check sit on solid white panels over it, so the text stays easy to read. Phones still get the still picture, not
+  the video, to keep the page fast.
+- **Locked ZIP code? See what is open nearby:** when a ZIP code is taken, the result now lists up to three open ZIP
+  codes close by, with the town and distance. Tap one to check it.
+- **Shorter home page on phones:** the calculator, the rest of each sample Cerebro conversation, Cerebro's feature
+  list, the "coming soon" list and each plan's feature list open with one tap instead of being spread out. The page
+  is about a fifth shorter on a phone and pricing is much closer to the top. Larger screens are unchanged.
+- **Cerebro button:** on phones it also stays off the headline and stats panels at the top of the page.
+- **Measurement:** the home page now records use of the sticky ZIP bar, the pricing switch, the commission
+  sliders, the calculator preview, FAQ questions and the main buttons (Google Analytics events; no names or NMLS
+  numbers typed into the calculator preview are recorded).
+
 ## Nov 21, 2026 — next build (home page redesign)
 
 - **Light home page:** the home page is now white with dark text and green buttons, checked against WCAG AA

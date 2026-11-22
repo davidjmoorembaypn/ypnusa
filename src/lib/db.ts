@@ -75,6 +75,48 @@ function dbPath(): string {
   return path.join(dataDir(), "store.json");
 }
 
+/**
+ * Which store decided paid plans last, as noted beside the data file ("json" or "postgres").
+ * Read when the database cannot be, so a switch back to the data file during a database outage
+ * knows it still owes a hand-over (see src/lib/repositories/persistence.ts, AuthorityMarker).
+ * No file: the data file has always decided. An unreadable file is read as "postgres", the
+ * answer that makes a switch back wait for the database rather than risk overwriting a write.
+ */
+function persistenceAuthorityPath(): string {
+  return path.join(dataDir(), "persistence-authority.json");
+}
+
+export function readPersistenceAuthorityNote(): "json" | "postgres" {
+  let raw: string;
+  try {
+    raw = fs.readFileSync(/*turbopackIgnore: true*/ persistenceAuthorityPath(), "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return "json";
+    return "postgres";
+  }
+  try {
+    const parsed = JSON.parse(raw) as { authority?: unknown };
+    return parsed.authority === "json" ? "json" : "postgres";
+  } catch {
+    return "postgres";
+  }
+}
+
+/** Writes the note durably (temp file, fsync, rename). Throws when it cannot. */
+export function writePersistenceAuthorityNote(value: "json" | "postgres"): void {
+  if (!ensureDataDir()) throw new StoreNotDurableError("the data folder is not available");
+  const target = persistenceAuthorityPath();
+  const tmp = `${target}.${process.pid}.tmp`;
+  const fd = fs.openSync(/*turbopackIgnore: true*/ tmp, "w");
+  try {
+    fs.writeSync(fd, JSON.stringify({ authority: value, updatedAt: new Date().toISOString() }));
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.renameSync(/*turbopackIgnore: true*/ tmp, target);
+}
+
 /** Private files the app keeps beside the store (not in backups or the web root), e.g. the Search Console key. */
 export function secretsDir(): string {
   return path.join(/*turbopackIgnore: true*/ dataDir(), "secrets");
@@ -387,35 +429,41 @@ function rotateLastGoodSnapshot(target: string): void {
   }
 }
 
+/**
+ * Writes the whole snapshot to disk: a temp file, fsync, then rename, so a crash or power loss
+ * mid-write can't truncate or lose the snapshot (rename is atomic on the same filesystem; fsync
+ * makes the new bytes durable before the swap). Throws when any step fails.
+ */
+function writeSnapshotFile(db: DbShape, target: string, tmp: string): void {
+  const fd = fs.openSync(/*turbopackIgnore: true*/ tmp, "w");
+  try {
+    // Personal fields are encrypted on the way to disk when PII_ENCRYPTION_KEY is set
+    // (see src/lib/crypto/pii-snapshot.ts); memory always holds plain values.
+    // Compact JSON: the file is rewritten whole on every change, so indentation only
+    // made each write bigger and slower. `jq . store.json` pretty-prints it for a person.
+    const serialized = JSON.stringify(sealSnapshot(db));
+    lastSnapshotBytes = Buffer.byteLength(serialized);
+    fs.writeSync(fd, serialized);
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  rotateLastGoodSnapshot(target);
+  fs.renameSync(/*turbopackIgnore: true*/ tmp, target);
+  lastStorageError = undefined;
+  lastKnownStat = statOrNull(target);
+}
+
 function flushToDisk(db: DbShape): void {
   if (!diskWritable) return;
   if (!ensureDataDir()) {
     diskWritable = false;
     return;
   }
-  // Write to a temp file, fsync it, then rename so a crash or power loss
-  // mid-write can't truncate or lose the snapshot (rename is atomic on the
-  // same filesystem; fsync makes the new bytes durable before the swap).
   const target = dbPath();
   const tmp = `${target}.${process.pid}.tmp`;
   try {
-    const fd = fs.openSync(/*turbopackIgnore: true*/ tmp, "w");
-    try {
-      // Personal fields are encrypted on the way to disk when PII_ENCRYPTION_KEY is set
-      // (see src/lib/crypto/pii-snapshot.ts); memory always holds plain values.
-      // Compact JSON: the file is rewritten whole on every change, so indentation only
-      // made each write bigger and slower. `jq . store.json` pretty-prints it for a person.
-      const serialized = JSON.stringify(sealSnapshot(db));
-      lastSnapshotBytes = Buffer.byteLength(serialized);
-      fs.writeSync(fd, serialized);
-      fs.fsyncSync(fd);
-    } finally {
-      fs.closeSync(fd);
-    }
-    rotateLastGoodSnapshot(target);
-    fs.renameSync(/*turbopackIgnore: true*/ tmp, target);
-    lastStorageError = undefined;
-    lastKnownStat = statOrNull(target);
+    writeSnapshotFile(db, target, tmp);
   } catch (error) {
     // Disk unavailable or read-only: keep serving from memory. Stop retrying
     // so we don't throw on every request.
@@ -668,6 +716,50 @@ export function writeDb(mutator: (db: DbShape) => void): DbShape {
   }
 }
 
+/** Thrown by writeDbDurably() when the snapshot did not reach the disk. Memory already holds the change. */
+export class StoreNotDurableError extends Error {
+  readonly code = "STORE_NOT_DURABLE";
+  constructor(detail: string, options?: { cause?: unknown }) {
+    super(`The data file was not written to disk: ${detail}`, options);
+    this.name = "StoreNotDurableError";
+  }
+}
+
+/**
+ * writeDb() for callers that must know the change is on disk: the copy of a payment that
+ * PostgreSQL already decided, and a hand-over back to the data file. Unlike writeDb() it never
+ * reports success for a write that stayed in memory: it tries the disk even after an earlier
+ * failure, and throws StoreNotDurableError when the snapshot could not be written.
+ *
+ * It does not change what writeDb() does: a failure here leaves writeDb()'s own state alone.
+ */
+export function writeDbDurably(mutator: (db: DbShape) => void): DbShape {
+  const dirReady = ensureDataDir();
+  const release = writeDbDepth === 0 && dirReady ? acquireLock() : null;
+  writeDbDepth += 1;
+  try {
+    const db = hydrate();
+    mutator(db);
+    if (!dirReady) throw new StoreNotDurableError("the data folder is not available");
+    const target = dbPath();
+    const tmp = `${target}.${process.pid}.tmp`;
+    try {
+      writeSnapshotFile(db, target, tmp);
+    } catch (error) {
+      try {
+        fs.rmSync(/*turbopackIgnore: true*/ tmp, { force: true });
+      } catch {
+        // Best effort only.
+      }
+      throw new StoreNotDurableError(describeFsError(error), { cause: error });
+    }
+    return lazySnapshot(db);
+  } finally {
+    writeDbDepth -= 1;
+    release?.();
+  }
+}
+
 export function persistSession(session: IntakeSessionRecord): void {
   writeDb((db) => {
     const idx = db.sessions.findIndex((s) => s.id === session.id);
@@ -763,6 +855,20 @@ export function saveRevenueSubscription(subscription: RevenueSubscriptionRecord)
     if (idx >= 0) db.revenueSubscriptions[idx] = subscription;
     else db.revenueSubscriptions.push(subscription);
   });
+}
+
+/** saveRevenueSubscription() through writeDbDurably(): throws StoreNotDurableError when the disk did not take it. */
+export function saveRevenueSubscriptionDurably(subscription: RevenueSubscriptionRecord): void {
+  writeDbDurably((db) => {
+    const idx = db.revenueSubscriptions.findIndex((s) => s.id === subscription.id);
+    if (idx >= 0) db.revenueSubscriptions[idx] = subscription;
+    else db.revenueSubscriptions.push(subscription);
+  });
+}
+
+/** Writes the current store to disk now. Throws StoreNotDurableError when it cannot. */
+export function flushDbDurably(): void {
+  writeDbDurably(() => undefined);
 }
 
 /**

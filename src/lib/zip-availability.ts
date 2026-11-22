@@ -1,7 +1,7 @@
 import { normalizeEmail } from "@/lib/accounts";
 import { MLO_MARKETS } from "@/content/mlo-markets";
 import { readDb } from "@/lib/db";
-import { subscriptionRepository } from "@/lib/repositories";
+import { onePlanAtATime, retryStaleWrites, subscriptionRepository } from "@/lib/repositories";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import { scheduleZipLockHook } from "@/lib/zip-scarcity";
@@ -89,20 +89,34 @@ export function checkZipForViewer(viewer: { email: string }, rawZip: unknown, no
   return { zip, valid: true, available: false, yours: false, nearby: nearbyOpenZips(zip, now) };
 }
 
+/** A live paid plan of this officer whose ZIP code was taken by someone else before the payment landed. */
+function isConflictedPlan(sub: RevenueSubscriptionRecord, email: string, now: number): boolean {
+  return (
+    normalizeEmail(sub.ownerEmail) === email &&
+    isLiveSubscription(sub, now) &&
+    sub.status === "active" &&
+    sub.zipLockConflict !== undefined &&
+    sub.claimedZips.length === 0
+  );
+}
+
+/** A live paid plan of this officer that never had a ZIP code (and is not waiting to lock one). */
+function isPlanWithoutZip(sub: RevenueSubscriptionRecord, email: string, now: number): boolean {
+  return (
+    normalizeEmail(sub.ownerEmail) === email &&
+    isLiveSubscription(sub, now) &&
+    sub.status === "active" &&
+    (sub.source === "stripe_webhook" || sub.source === "admin_adjustment") &&
+    sub.claimedZips.length === 0 &&
+    !sub.pendingZip
+  );
+}
+
 /** The viewer's paid plan whose ZIP code was taken by someone else before the payment landed. */
 export function viewerZipConflict(viewer: { email: string }, now: number = Date.now()): RevenueSubscriptionRecord | null {
   const email = normalizeEmail(viewer.email);
   if (!email) return null;
-  return (
-    readDb().revenueSubscriptions.find(
-      (sub) =>
-        normalizeEmail(sub.ownerEmail) === email &&
-        isLiveSubscription(sub, now) &&
-        sub.status === "active" &&
-        sub.zipLockConflict !== undefined &&
-        sub.claimedZips.length === 0,
-    ) ?? null
-  );
+  return readDb().revenueSubscriptions.find((sub) => isConflictedPlan(sub, email, now)) ?? null;
 }
 
 /**
@@ -119,17 +133,7 @@ export function viewerPlanNeedingZip(viewer: { email: string }, now: number = Da
   if (conflicted) return conflicted;
   const email = normalizeEmail(viewer.email);
   if (!email) return null;
-  return (
-    readDb().revenueSubscriptions.find(
-      (sub) =>
-        normalizeEmail(sub.ownerEmail) === email &&
-        isLiveSubscription(sub, now) &&
-        sub.status === "active" &&
-        (sub.source === "stripe_webhook" || sub.source === "admin_adjustment") &&
-        sub.claimedZips.length === 0 &&
-        !sub.pendingZip,
-    ) ?? null
-  );
+  return readDb().revenueSubscriptions.find((sub) => isPlanWithoutZip(sub, email, now)) ?? null;
 }
 
 export type ReplacementResult =
@@ -142,18 +146,30 @@ export async function claimReplacementZip(
   rawZip: unknown,
   now: number = Date.now(),
 ): Promise<ReplacementResult> {
-  const sub = viewerPlanNeedingZip(viewer, now);
-  if (!sub) return { ok: false, reason: "no_conflict" };
+  const found = viewerPlanNeedingZip(viewer, now);
+  if (!found) return { ok: false, reason: "no_conflict" };
   const zip = normalizeZip(rawZip);
   if (!isValidZip(zip)) return { ok: false, reason: "invalid_zip" };
-  // The claim itself re-checks inside one write, so two officers can't both get it.
+  const email = normalizeEmail(viewer.email) as string;
   const subscriptions = subscriptionRepository();
-  const { record, zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(sub, zip);
-  if (zipConflict || !zipClaimed) {
-    // A conflicted claim saves the record as given, so the zipLockConflict flag stays on it.
-    return { ok: false, reason: "taken", nearby: nearbyOpenZips(zip, now) };
-  }
-  await subscriptions.save({ ...record, zipLockConflict: undefined });
-  if (zipNewlyLocked) scheduleZipLockHook(zip, sub.id, "replacement");
-  return { ok: true, zip };
+  return onePlanAtATime(found.stripeSubscriptionId, () =>
+    retryStaleWrites(async (): Promise<ReplacementResult> => {
+      // The plan was found in the data file's copy, which can be behind the store in charge
+      // (PostgreSQL). Read it again from there and check it still needs a ZIP code: a plan
+      // cancelled there must not be brought back to life by this write.
+      const current = await subscriptions.findById(found.id);
+      if (!current || !(isConflictedPlan(current, email, now) || isPlanWithoutZip(current, email, now))) {
+        return { ok: false, reason: "no_conflict" };
+      }
+      // The claim itself re-checks inside one write, so two officers can't both get it.
+      const { record, zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(current, zip, { expected: current });
+      if (zipConflict || !zipClaimed) {
+        // A conflicted claim saves the record as given, so the zipLockConflict flag stays on it.
+        return { ok: false, reason: "taken", nearby: nearbyOpenZips(zip, now) };
+      }
+      await subscriptions.save({ ...record, zipLockConflict: undefined });
+      if (zipNewlyLocked) scheduleZipLockHook(zip, current.id, "replacement");
+      return { ok: true, zip };
+    }),
+  );
 }

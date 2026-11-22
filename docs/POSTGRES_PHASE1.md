@@ -81,7 +81,8 @@ The `database` part of the answer:
 | `parityClean` | `true` | Both stores hold the same plans and the same locked ZIP codes. `null` in step 1. |
 | `parityMismatches` | `0` | How many records or ZIP codes differ. The server log lists them. |
 | `mirrorFailures` | `0` | Copies to the other store that failed since the last restart. They are re-copied automatically; a number that keeps climbing means the database is unstable. |
-| `writeFailures` | `0` | Payment events refused because PostgreSQL was in charge and unreachable. Stripe sends each one again. |
+| `writeFailures` | `0` | Payment events refused because PostgreSQL was in charge (or, after a rollback, still owed its hand-over) and unreachable. Stripe sends each one again. |
+| `dataFileBehind` | `false` | On step 4 only: the data file's copy of a payment could not be written to disk. It is re-copied on the next payment; `true` that stays means the server's disk needs attention. |
 | `readMismatches`, `ledgerMismatches` | `0` | Times the two stores gave different answers to the same question in shadow mode. |
 | `ledgerFallbacks` | `0`, or not climbing | Times a ZIP code check was answered from the data file because PostgreSQL had no fresh answer. |
 
@@ -106,6 +107,12 @@ the store that was in charge is copied in full to the other one before the newly
 | Any step, database gone for good | remove `DATABASE_URL` | The data file has a copy of every write and takes over alone. |
 
 After a rollback, run the health check and confirm `parityClean` is `true` (or `null` on `json`).
+
+Rolling back from step 4 while the database is down: payment events are refused (Stripe sends them again)
+until the database is reachable and its copy has been handed over to the data file. This is on purpose:
+an event the data file accepted before the hand-over would be overwritten by the database's older copy.
+The data file keeps its own note of this in `persistence-authority.json` beside `store.json`. Removing
+`DATABASE_URL` entirely skips the wait, and the data file then decides from the copy it has.
 
 The hourly, daily and before-install backups of the data file continue unchanged through every step
 ([OPERATIONS.md](OPERATIONS.md) section 5), and they still contain the plans and ZIP code locks.

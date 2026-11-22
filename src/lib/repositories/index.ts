@@ -1,12 +1,16 @@
+import { readPersistenceAuthorityNote, writePersistenceAuthorityNote } from "@/lib/db";
 import { configureLedgerReadModel } from "@/lib/persistence/ledger-read-model";
 import { resolvePersistenceModes } from "@/lib/persistence/mode";
 import { createPgClient, databaseSettings } from "@/lib/persistence/sql-client";
 import { JsonSubscriptionRepository, JsonTerritoryLedgerRepository } from "./json-repositories";
-import { Persistence, type PersistenceStatus } from "./persistence";
+import { Persistence, type Authority, type AuthorityMarker, type PersistenceStatus } from "./persistence";
 import type { SubscriptionRepository, TerritoryLedgerRepository } from "./types";
 
 export type { SubscriptionRepository, TerritoryLedgerRepository, ZipClaimOutcome } from "./types";
 export type { ParityReport, PersistenceStatus, SyncReport } from "./persistence";
+export type { SaveOptions } from "./types";
+export { StaleWriteError } from "./subscription-record";
+export { onePlanAtATime, retryStaleWrites } from "./plan-lock";
 
 /**
  * The one place the app gets its repositories from. Which store sits behind them comes from the
@@ -19,6 +23,18 @@ export type { ParityReport, PersistenceStatus, SyncReport } from "./persistence"
 const KEY = Symbol.for("ypnusa.persistence");
 const holder = globalThis as unknown as Record<symbol, Persistence | undefined>;
 
+/** The note beside the data file, read once and then kept in memory (this process is its only writer). */
+function fileAuthorityMarker(): AuthorityMarker {
+  let value: Authority | null = null;
+  return {
+    read: () => (value ??= readPersistenceAuthorityNote()),
+    write: (next) => {
+      writePersistenceAuthorityNote(next);
+      value = next;
+    },
+  };
+}
+
 function build(): Persistence {
   const modes = resolvePersistenceModes();
   for (const warning of modes.warnings) console.warn(`[persistence] ${warning}`);
@@ -27,6 +43,7 @@ function build(): Persistence {
     modes,
     json: { subscriptions: new JsonSubscriptionRepository(), ledger: new JsonTerritoryLedgerRepository() },
     connect: settings ? () => createPgClient(settings) : null,
+    authorityMarker: fileAuthorityMarker(),
   }).activate();
 }
 

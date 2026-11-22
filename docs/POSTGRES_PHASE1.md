@@ -16,6 +16,27 @@ Code: [src/lib/repositories](../src/lib/repositories) and [src/lib/persistence](
 
 ---
 
+## 0. Before `DATABASE_URL` is set (pre-activation checklist)
+
+Every line must be true. None of them is done by the code.
+
+1. **A managed PostgreSQL 16 database exists** in the same AWS region as the app server (us-east-2), not
+   reachable from the internet, with its security group allowing only the app server.
+2. **Automated backups are on** for it, with point-in-time restore and at least 7 days kept, and one restore
+   has been tried into a scratch database.
+3. **Its certificate bundle is on the server** (for Amazon RDS, the regional bundle) and `DATABASE_CA_FILE`
+   points at it.
+4. **The concurrency tests have passed against that database** from a machine that can reach it:
+   `TEST_DATABASE_URL=<address of a scratch database on the same server> npm test`, with
+   `postgres-concurrency.test.ts`, `sql-client.test.ts` and `review-findings.test.ts` all passing (none skipped).
+5. **The data-file backup is running**: `/api/health` shows `backup.status` = `ok`
+   ([OPERATIONS.md](OPERATIONS.md) section 4).
+6. **A fresh before-change backup is taken** just before the first restart with the setting:
+   `sudo /usr/local/sbin/ypnusa-backup pre-deploy`.
+7. **The site is on a build that includes PRs #217 and #220** (`build.commit` in `/api/health`).
+
+---
+
 ## 1. The three settings
 
 They live in the server settings file (`/etc/ypnusa/app.env`, see [OPERATIONS.md](OPERATIONS.md) section 6).
@@ -82,6 +103,7 @@ The `database` part of the answer:
 | `ledger`, `subscriptions` | the step you are on | The values in use. If they differ from what you set, the server log says why. |
 | `parityClean` | `true` | Both stores hold the same plans and the same locked ZIP codes. `null` in step 1. |
 | `parityMismatches` | `0` | How many records or ZIP codes differ. The server log lists them. |
+| `parityCheckedAt` | within the last 5 minutes | When the two stores were last compared. They are compared at every start and every 5 minutes while PostgreSQL is kept in step (steps 2 to 4). |
 | `mirrorFailures` | `0` | Copies to the other store that failed since the last restart. They are re-copied automatically; a number that keeps climbing means the database is unstable. |
 | `writeFailures` | `0` | Payment events refused because PostgreSQL was in charge (or, after a rollback, still owed its hand-over) and unreachable. Stripe sends each one again. |
 | `dataFileBehind` | `false` | On step 4 only: the data file's copy of a payment could not be written to disk. It is re-copied on the next payment; `true` that stays means the server's disk needs attention. |

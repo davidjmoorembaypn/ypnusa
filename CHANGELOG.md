@@ -12,6 +12,21 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 22, 2026 — next build (database move: fixes found in review, before it is switched on)
+
+Nothing changes on the live site with this build: it stays on the data file until a server setting is switched.
+
+- **Three problems fixed before the database is ever turned on.** A second review of the database work found that,
+  once switched on, the site could have stalled payments at start-up, lost changes made during a rollback, and
+  recorded one Stripe subscription twice. All three are fixed and covered by tests.
+- **The two stores are now compared every 5 minutes**, not only at start, and any difference is counted, logged and
+  repaired from the store in charge.
+- **Health check:** adds when the stores were last compared, how many differences were found, whether a switch was
+  refused, and how long database writes take.
+- **The MCP endpoint's ZIP code tools are tested at every step of the move**, including a database outage.
+- **Runbook:** [docs/POSTGRES_PHASE1.md](docs/POSTGRES_PHASE1.md) now has the checklist to complete before connecting a
+  database, what to monitor, and the exact conditions for rolling back.
+
 ## Nov 21, 2026 — next build (groundwork for moving to a database)
 
 Nothing changes on the live site with this build: it stays on the data file until a server setting is switched.

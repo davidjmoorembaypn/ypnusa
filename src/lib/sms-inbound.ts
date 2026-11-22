@@ -30,10 +30,18 @@ export interface InboundSmsResult {
   reply?: string;
 }
 
-/** The last ten digits of a US phone number, however it was typed. Empty when there are fewer. */
+/**
+ * One phone number however it was typed: a 10-digit US number and the same number with a
+ * leading 1 give the same key; any other number keeps all its digits (country code included),
+ * so two international numbers that only share their last ten digits never match. Empty when
+ * there are fewer than ten digits.
+ */
 export function phoneKey(raw: string | undefined): string {
   const digits = (raw ?? "").replace(/\D/g, "");
-  return digits.length >= 10 ? digits.slice(-10) : "";
+  if (digits.length < 10) return "";
+  if (digits.length === 10) return digits;
+  if (digits.length === 11 && digits.startsWith("1")) return digits.slice(1);
+  return digits;
 }
 
 function keyword(body: string): string {

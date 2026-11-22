@@ -35,7 +35,7 @@ describe("borrower messaging compliance", async () => {
   const { processDueFollowUps, scheduleBorrowerJourney } = await import("./automation");
   const { bookAppointment, listAvailableSlots } = await import("./calendar");
   const { dispatchCerebroMessages, emailHtml } = await import("./cerebro-dispatch");
-  const { canContact, latestConsent } = await import("./consent");
+  const { canContact, latestConsent, partnerConsentTime } = await import("./consent");
   const { logCrmActivity } = await import("./crm");
   const { appendAppointment, appendBorrowerLead, persistFollowUpsBatch, readDb, saveCerebroAction, writeDb } = await import("./db");
   const { generateId } = await import("./id");
@@ -352,6 +352,29 @@ describe("borrower messaging compliance", async () => {
       assert.equal(latestConsent(readDb(), lead.id, "sms"), undefined);
       assert.deepEqual(handleInboundSms({ from: "+15595559999", body: "STOP", messageSid: "SM_unknown" }), { action: "opted_out", leads: 0 });
       assert.equal(phoneKey("555-0147"), "");
+    });
+
+    it("two international numbers sharing their last ten digits are different senders", () => {
+      assert.equal(phoneKey("+1 (559) 555-0147"), phoneKey("559-555-0147"));
+      assert.notEqual(phoneKey("+44 5595550147"), phoneKey("+52 5595550147"));
+      assert.notEqual(phoneKey("+44 5595550147"), phoneKey("+1 5595550147"));
+      const officer = addOfficer();
+      const uk = addLead(officer.id, { phone: "+44 5595556100", email: "uk@borrowermail.com" });
+      const mx = addLead(officer.id, { phone: "+52 5595556100", email: "mx@borrowermail.com" });
+      assert.deepEqual(handleInboundSms({ from: "+445595556100", body: "STOP", messageSid: "SM_uk_stop" }), { action: "opted_out", leads: 1 });
+      assert.equal(latestConsent(readDb(), uk.id, "sms")?.granted, false);
+      assert.equal(latestConsent(readDb(), mx.id, "sms"), undefined, "the other borrower's consent is untouched");
+      handleInboundSms({ from: "+525595556100", body: "STOP", messageSid: "SM_mx_stop" });
+      assert.deepEqual(handleInboundSms({ from: "+445595556100", body: "START", messageSid: "SM_uk_start" }), { action: "opted_in", leads: 1 });
+      assert.equal(latestConsent(readDb(), mx.id, "sms")?.granted, false, "a START from one number never re-allows another");
+    });
+
+    it("a partner's consent time in the future is not used, so a later STOP still wins", () => {
+      const now = new Date("2026-11-22T12:00:00Z");
+      assert.equal(partnerConsentTime("2026-11-22T12:10:00Z", now), now.toISOString());
+      assert.equal(partnerConsentTime("2026-11-22T11:00:00Z", now), "2026-11-22T11:00:00.000Z");
+      assert.equal(partnerConsentTime("not a date", now), now.toISOString());
+      assert.equal(partnerConsentTime(undefined, now), now.toISOString());
     });
 
     it("START allows texts again and nothing else; HELP gets a reply", () => {

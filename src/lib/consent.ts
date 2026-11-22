@@ -183,3 +183,9 @@ export function contactDecisionFor(
 ): ContactDecision {
   return canContact({ db: readDb(), borrowerLeadId, channel, legacyConsent });
 }
+
+/** When a partner says consent was given: their time if it is valid and not in the future, otherwise now. */
+export function partnerConsentTime(raw: string | undefined, now: Date): string {
+  const at = raw ? Date.parse(raw) : Number.NaN;
+  return Number.isNaN(at) || at > now.getTime() ? now.toISOString() : new Date(at).toISOString();
+}

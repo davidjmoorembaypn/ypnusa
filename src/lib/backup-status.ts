@@ -67,8 +67,10 @@ export function interpretBackupStatus(raw: unknown, now: number = Date.now()): B
 /** Reads the status file named by YPNUSA_BACKUP_STATUS_FILE (or the default). Never throws. */
 export function backupHealth(env: NodeJS.ProcessEnv = process.env, now: number = Date.now()): BackupHealth {
   const file = env.YPNUSA_BACKUP_STATUS_FILE?.trim() || DEFAULT_BACKUP_STATUS_FILE;
+  // turbopackIgnore: the path is only known at runtime; without it the build's file tracer
+  // cannot tell which file this reads and copies the whole project into the release bundle.
   try {
-    return interpretBackupStatus(JSON.parse(fs.readFileSync(file, "utf8")), now);
+    return interpretBackupStatus(JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8")), now);
   } catch {
     return UNKNOWN;
   }

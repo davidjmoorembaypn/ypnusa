@@ -42,3 +42,5 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test
       - run: npm run build
+      # The release bundle must not contain the project's own source (see the script for why).
+      - run: node scripts/check-standalone-bundle.mjs

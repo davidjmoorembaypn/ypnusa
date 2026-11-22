@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -30,7 +30,8 @@ function setup(opts: { failRestart?: string[]; unhealthy?: string[]; live?: stri
   const base = path.join(root, "opt");
   const stubs = path.join(root, "stubs");
   const build = path.join(root, "build");
-  for (const d of [base, stubs, build, path.join(base, "releases")]) mkdirSync(d, { recursive: true });
+  const workspace = path.join(root, "workspace");
+  for (const d of [base, stubs, build, workspace, path.join(base, "releases")]) mkdirSync(d, { recursive: true });
   const live = opts.live === undefined ? OLD : opts.live;
   if (live) {
     mkdirSync(path.join(base, "releases", live));
@@ -94,6 +95,7 @@ exit 0`,
     YPNUSA_INSTALL_APP_URL: "http://app.test",
     YPNUSA_INSTALL_BACKUP_TOOL: path.join(root, "no-backup-tool"),
     YPNUSA_INSTALL_LOCK_DIR: path.join(root, "lock"),
+    YPNUSA_INSTALL_WORK_ROOT: workspace,
     YPNUSA_INSTALL_VERIFY_TRIES: "2",
   };
   return { root, base, env };
@@ -114,6 +116,7 @@ test("a healthy build is switched in and kept", (t) => {
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /DEPLOY OK: live build 2222222/);
   assert.equal(liveOf(e), NEW);
+  assert.deepEqual(readdirSync(path.join(e.root, "workspace")), []);
 });
 
 test("a build whose service fails to restart is rolled back to the previous build", (t) => {

@@ -6,6 +6,7 @@ import {
   parseJsonBody,
   requireSecret,
 } from "@/lib/http";
+import { partnerConsentTime } from "@/lib/consent";
 import { generateId } from "@/lib/id";
 import { claimKey, leadFingerprint, releaseKey, setKeyRef } from "@/lib/idempotency";
 import { finalizeIntakeArtifacts } from "@/lib/intake-pipeline";
@@ -113,9 +114,9 @@ export async function POST(request: Request) {
           consentCapture: {
             source: consentSource ? `lead_webhook:${consentSource}` : "lead_webhook",
             textShown: optionalText(parsed.data.consentText, 2000),
-            // The sender's time when it is usable, but never later than now: a sender whose
-            // clock runs fast must not date consent after an opt-out the borrower makes later.
-            at: new Date(Math.min(Date.now(), Date.parse(consentCapturedAt ?? "") || Date.now())).toISOString(),
+            // The partner's own time is kept only when it is not in the future: a clock running
+            // ahead must never date a grant after a STOP or unsubscribe recorded on ours.
+            at: partnerConsentTime(consentCapturedAt, new Date()),
             channels: ["email", "sms"] as ConsentChannel[],
           },
         }
@@ -147,3 +148,4 @@ export async function POST(request: Request) {
     { status: 201 },
   );
 }
+

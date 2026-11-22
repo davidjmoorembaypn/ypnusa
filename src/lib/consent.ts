@@ -108,12 +108,6 @@ export function ledgerTime(db: Pick<DbShape, "consents">, borrowerLeadId: string
   return new Date(Math.max(now.getTime(), Number.isNaN(floor) ? 0 : floor)).toISOString();
 }
 
-/** A time someone else supplied, never later than now: nobody can agree to something in the future. */
-function notInFuture(at: string | undefined, now: Date): string {
-  const parsed = at ? Date.parse(at) : Number.NaN;
-  return new Date(Number.isNaN(parsed) ? now.getTime() : Math.min(parsed, now.getTime())).toISOString();
-}
-
 /**
  * Appends a consent grant or opt-out inside a writeDb() the caller already holds, filed after
  * every earlier entry for that lead and channel.
@@ -169,7 +163,7 @@ export function consentRecordsForCapture(input: {
   if (!input.consented) return [];
   // When they agreed, as the capture says, but never in the future: a sender's fast clock must
   // not date a grant after an opt-out the borrower makes later.
-  const at = notInFuture(input.capture.at, new Date());
+  const at = partnerConsentTime(input.capture.at, new Date());
   const channels = (input.capture.channels ?? DEFAULT_CAPTURE_CHANNELS).filter((channel) => {
     if (channel === "ai_voice") return false;
     return channel === "email" ? Boolean(input.email?.trim()) : Boolean(input.phone?.trim());
@@ -219,4 +213,10 @@ export function contactDecisionFor(
   legacyConsent?: boolean,
 ): ContactDecision {
   return canContact({ db: readDb(), borrowerLeadId, channel, legacyConsent });
+}
+
+/** When a partner says consent was given: their time if it is valid and not in the future, otherwise now. */
+export function partnerConsentTime(raw: string | undefined, now: Date): string {
+  const at = raw ? Date.parse(raw) : Number.NaN;
+  return Number.isNaN(at) || at > now.getTime() ? now.toISOString() : new Date(at).toISOString();
 }

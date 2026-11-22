@@ -105,6 +105,66 @@ export function recordConsent(input: Omit<ConsentRecord, "id" | "at"> & { at?: s
   return record;
 }
 
+/**
+ * How a borrower's consent to be contacted was captured: where, when, and the exact wording they
+ * agreed to. Written to the ledger with the lead, so "did they agree, to what, and when" can be
+ * answered later from the record and not from a bare yes/no.
+ */
+export interface ConsentCapture {
+  /** Where it was captured: "intake_form", "chat_assistant", "lead_webhook". */
+  source: string;
+  /** The exact wording the borrower saw or was asked. */
+  textShown?: string;
+  /** When they agreed. Defaults to now. */
+  at?: string;
+  /**
+   * The channels that wording covers. Defaults to email and text (the two the intake question
+   * names). A phone call is only included when the wording asked for it.
+   */
+  channels?: ConsentChannel[];
+}
+
+const DEFAULT_CAPTURE_CHANNELS: ConsentChannel[] = ["email", "sms"];
+
+/**
+ * The ledger entries for one lead's consent at capture: one grant per channel the wording covers
+ * and the lead gave an address for. Nothing when they did not agree. AI voice is never granted
+ * here: it needs its own explicit grant.
+ */
+export function consentRecordsForCapture(input: {
+  borrowerLeadId: string;
+  consented: boolean;
+  email?: string;
+  phone?: string;
+  capture: ConsentCapture;
+}): ConsentRecord[] {
+  if (!input.consented) return [];
+  const at = input.capture.at && !Number.isNaN(Date.parse(input.capture.at)) ? new Date(input.capture.at).toISOString() : new Date().toISOString();
+  const channels = (input.capture.channels ?? DEFAULT_CAPTURE_CHANNELS).filter((channel) => {
+    if (channel === "ai_voice") return false;
+    return channel === "email" ? Boolean(input.email?.trim()) : Boolean(input.phone?.trim());
+  });
+  return [...new Set(channels)].map((channel) => ({
+    id: generateId("consent"),
+    borrowerLeadId: input.borrowerLeadId,
+    channel,
+    granted: true,
+    source: input.capture.source,
+    ...(input.capture.textShown ? { textShown: input.capture.textShown.slice(0, 2000) } : {}),
+    at,
+  }));
+}
+
+/** Writes the capture-time ledger entries for a new lead. Returns what was written. */
+export function recordCaptureConsent(input: Parameters<typeof consentRecordsForCapture>[0]): ConsentRecord[] {
+  const records = consentRecordsForCapture(input);
+  if (records.length === 0) return records;
+  writeDb((db) => {
+    db.consents.push(...records);
+  });
+  return records;
+}
+
 /** Records an opt-out on every channel for a lead (e.g. after a STOP reply). */
 export function recordOptOutAllChannels(borrowerLeadId: string, source: string): void {
   const at = new Date().toISOString();

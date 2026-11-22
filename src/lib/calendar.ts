@@ -1,6 +1,6 @@
 import { DEFAULT_TIME_ZONE, sendBookingConfirmation } from "./appointments";
 import { ensureHouseOfficer, HOUSE_OFFICER_ID } from "./crm";
-import { appendAppointment, readDb } from "./db";
+import { appendAppointment, cancelPendingFollowUps, readDb } from "./db";
 import { googleAccessToken, googleOAuthConfigured } from "./google-calendar";
 import { requestProviderJson } from "./outbound";
 import { generateId } from "./id";
@@ -486,6 +486,9 @@ export async function bookAppointment(input: {
   };
 
   appendAppointment(record);
+  // The borrower has a call booked, so the "would you like to book a call?" follow-ups that
+  // are still queued for them must not go out.
+  cancelPendingFollowUps(input.borrowerLeadId);
   // Emails go out in the background so the chat answers right away.
   void sendBookingConfirmation(record.id);
   return record;

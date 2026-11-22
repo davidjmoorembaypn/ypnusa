@@ -72,6 +72,8 @@ describe("automation.ts outreach personalization connector", async () => {
       assert.ok(officer);
       officer.entitlementTier = "growth";
       officer.entitlementStatus = "active";
+      // Every borrower message must show the officer's NMLS ID, so the test officer has one.
+      officer.nmlsId = "123456";
     });
     server = http.createServer((req, res) => {
       let raw = "";

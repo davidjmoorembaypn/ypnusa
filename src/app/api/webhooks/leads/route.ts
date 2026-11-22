@@ -11,7 +11,7 @@ import { claimKey, leadFingerprint, releaseKey, setKeyRef } from "@/lib/idempote
 import { finalizeIntakeArtifacts } from "@/lib/intake-pipeline";
 import { coerceLoanProgram } from "@/lib/programs";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import type { BorrowerAnswers, IntakeSessionRecord } from "@/lib/types";
+import type { BorrowerAnswers, ConsentChannel, IntakeSessionRecord } from "@/lib/types";
 import { optionalText } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -29,6 +29,10 @@ interface InboundLeadPayload {
   purchaseRefiIntent?: unknown;
   funnelSource?: unknown;
   contactConsent?: unknown;
+  /** Proof of consent from the sender: the wording the borrower agreed to, when, and where. */
+  consentText?: unknown;
+  consentCapturedAt?: unknown;
+  consentSource?: unknown;
   /** The sender's own id for this lead; the same id is only processed once. */
   externalId?: unknown;
 }
@@ -93,6 +97,10 @@ export async function POST(request: Request) {
     return jsonOk({ duplicate: true, borrowerLeadId: claim.ref ?? null }, { status: 200 });
   }
 
+  // Whatever proof of consent the sender gave is kept with the lead (wording, time, page).
+  // A sender that gives none is recorded as exactly that: a bare "lead_webhook" entry.
+  const consentCapturedAt = optionalText(parsed.data.consentCapturedAt, 40);
+  const consentSource = optionalText(parsed.data.consentSource, 200);
   const session: IntakeSessionRecord = {
     id: generateId("sess"),
     createdAt: new Date().toISOString(),
@@ -100,6 +108,16 @@ export async function POST(request: Request) {
     loanProgram: program,
     answers,
     status: "qualified",
+    ...(answers.contactConsent === true
+      ? {
+          consentCapture: {
+            source: consentSource ? `lead_webhook:${consentSource}` : "lead_webhook",
+            textShown: optionalText(parsed.data.consentText, 2000),
+            at: consentCapturedAt && !Number.isNaN(Date.parse(consentCapturedAt)) ? new Date(consentCapturedAt).toISOString() : new Date().toISOString(),
+            channels: ["email", "sms"] as ConsentChannel[],
+          },
+        }
+      : {}),
   };
   let result: Awaited<ReturnType<typeof finalizeIntakeArtifacts>>;
   try {

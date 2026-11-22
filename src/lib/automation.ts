@@ -2,7 +2,7 @@ import { appendAnalytics, persistFollowUpsBatch, readDb, writeDb } from "./db";
 import { canContact } from "./consent";
 import { automationDailyLimitFor, resolveOfficerEntitlement } from "./entitlements";
 import { generateId } from "./id";
-import { deliverOutreach, OutreachNotConfiguredError } from "./outreach";
+import { deliverOutreach, OutreachBlockedError, OutreachNotConfiguredError } from "./outreach";
 import { buildZipContext } from "./agents/zipContext";
 import { buildCountyEvents } from "./agents/countyEvents";
 import { scoreLead, type Lead } from "./agents/predictiveAgent";
@@ -129,10 +129,12 @@ export function scheduleBorrowerJourney(
 ): ScheduledFollowUpRecord[] {
   if (answers.contactConsent !== true) return [];
 
-  const email = answers.email ?? "borrower-not-provided@loanapilot.ai";
-  const phone = answers.phone ?? "+10005550199";
+  // A message is only queued for a channel the borrower actually gave an address for. (Before,
+  // a missing phone or email was replaced by a placeholder and the message was sent to it.)
+  const email = answers.email?.trim();
+  const phone = answers.phone?.trim();
 
-  const plans: FollowUpPlan[] = [
+  const allPlans: FollowUpPlan[] = [
     "immediate_confirmation_email",
     "immediate_sms_ack",
     "day_1_educational_email",
@@ -142,6 +144,8 @@ export function scheduleBorrowerJourney(
     "day_60_check_in",
     "day_90_check_in",
   ];
+  const plans = allPlans.filter((plan) => (plan === "immediate_sms_ack" ? Boolean(phone) : Boolean(email)));
+  if (plans.length === 0) return [];
 
   const anchor = Date.now();
   const created: ScheduledFollowUpRecord[] = plans.map((plan) => ({
@@ -149,7 +153,7 @@ export function scheduleBorrowerJourney(
     borrowerLeadId,
     plan,
     channel: plan === "immediate_sms_ack" ? "sms" : "email",
-    recipient: plan === "immediate_sms_ack" ? phone : email,
+    recipient: (plan === "immediate_sms_ack" ? phone : email) as string,
     scheduledAt: new Date(anchor + offsetSinceNow(plan)).toISOString(),
     status: "pending",
     bodySummary: nurtureCopy[plan],
@@ -290,6 +294,18 @@ export async function processDueFollowUps(options?: {
           current.lastError = error.message;
         });
         events.push(`${job.plan}:${job.channel}:provider_not_configured`);
+        continue;
+      }
+      if (error instanceof OutreachBlockedError) {
+        // The compliance checks refused it (no NMLS ID, wrong state, or the wording): it is
+        // not sent and not retried. Later steps are checked again when they come due.
+        writeDb((db) => {
+          const current = db.followUps.find((item) => item.id === jobId);
+          if (!current) return;
+          current.status = "cancelled";
+          current.lastError = `Not sent: ${error.reason}`.slice(0, 500);
+        });
+        events.push(`${job.plan}:${job.channel}:blocked`);
         continue;
       }
       const message = error instanceof Error ? error.message : "Unknown outreach delivery failure.";

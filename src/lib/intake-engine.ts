@@ -212,6 +212,14 @@ export async function intakeTick(payload: IntakeTickRequest): Promise<IntakeTick
       ...merged.answers,
       loanProgram: session.loanProgram,
     };
+    if (awaiting.fieldPath === "contactConsent") {
+      // Keep the exact question they answered and when, for the consent ledger. The question
+      // names text and email, so those are the channels a "yes" covers.
+      session.consentCapture =
+        merged.answers.contactConsent === true
+          ? { source: "intake_form", textShown: awaiting.prompt, at: new Date().toISOString(), channels: ["email", "sms"] }
+          : undefined;
+    }
     persistSession(session);
 
     appendAnalytics({

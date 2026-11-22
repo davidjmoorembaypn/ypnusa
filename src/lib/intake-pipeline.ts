@@ -192,6 +192,7 @@ export async function finalizeIntakeArtifacts(
     officerProfile.id,
     session.funnelSource,
     session.id,
+    session.consentCapture,
   );
 
   notifyAssignedOfficer({

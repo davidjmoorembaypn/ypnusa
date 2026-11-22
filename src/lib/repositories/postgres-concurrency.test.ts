@@ -100,6 +100,52 @@ describe("one ZIP code, many payments at once (PostgreSQL server)", { skip: url 
     }
   });
 
+  it("events for one new Stripe subscription arriving at once on separate connections make exactly one plan", async () => {
+    const { PostgresSubscriptionRepository } = await import("./postgres-repositories");
+    const { retryStaleWrites } = await import("./plan-lock");
+    const { subscription } = await import("./test-support");
+    const subscriptions = new PostgresSubscriptionRepository(client);
+    for (let round = 0; round < 10; round += 1) {
+      const stripeSubscriptionId = `sub_race_${round}`;
+      // Each event reads, finds no plan, and creates one, naming what it read (nothing).
+      const event = (tier: "pro" | "growth") =>
+        retryStaleWrites(async () => {
+          const found = await subscriptions.findByStripeSubscriptionId(stripeSubscriptionId);
+          return subscriptions.save(found ? { ...found, tier } : subscription({ stripeSubscriptionId, tier }), { expected: found });
+        }, 10);
+      await Promise.all([event("pro"), event("growth"), event("pro"), event("growth")]);
+      const { rows } = await client.query("select id from revenue_subscriptions where stripe_subscription_id = $1", [stripeSubscriptionId]);
+      assert.equal(rows.length, 1);
+    }
+  });
+
+  it("a first paid invoice and a status update at once on separate connections keep the ZIP code locked", async () => {
+    const { PostgresSubscriptionRepository } = await import("./postgres-repositories");
+    const { retryStaleWrites } = await import("./plan-lock");
+    const { subscription } = await import("./test-support");
+    const subscriptions = new PostgresSubscriptionRepository(client);
+    for (let round = 0; round < 10; round += 1) {
+      const zip = String(98000 + round);
+      const trial = await subscriptions.save(subscription({ status: "trialing", pendingZip: zip }));
+      const key = trial.stripeSubscriptionId as string;
+      const invoice = retryStaleWrites(async () => {
+        const found = (await subscriptions.findByStripeSubscriptionId(key)) as typeof trial;
+        if (!found.pendingZip) return null;
+        return subscriptions.saveWithZipClaim({ ...found, status: "active", pendingZip: undefined }, found.pendingZip, { expected: found });
+      }, 10);
+      const update = retryStaleWrites(async () => {
+        const found = (await subscriptions.findByStripeSubscriptionId(key)) as typeof trial;
+        return subscriptions.save({ ...found, status: "active", tier: "pro" }, { expected: found });
+      }, 10);
+      await Promise.all([invoice, update]);
+      const stored = await subscriptions.findById(trial.id);
+      assert.deepEqual(stored?.claimedZips, [zip]);
+      assert.equal(stored?.pendingZip, undefined);
+      const { rows } = await client.query("select 1 from zip_claims where zip = $1 and released_at is null", [zip]);
+      assert.equal(rows.length, 1);
+    }
+  });
+
   it("the driver's own types round-trip (bigint, timestamps, arrays)", async () => {
     const { PostgresSubscriptionRepository } = await import("./postgres-repositories");
     const { differingFields } = await import("./subscription-record");

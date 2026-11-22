@@ -4,7 +4,7 @@ import { runSchemaMigrations } from "@/lib/persistence/schema";
 import { DatabaseUnavailableError, type SqlClient } from "@/lib/persistence/sql-client";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 import { PostgresSubscriptionRepository, PostgresTerritoryLedgerRepository } from "./postgres-repositories";
-import { RecordNotStorableError, differingFields, sameSubscription } from "./subscription-record";
+import { RecordNotStorableError, StaleWriteError, differingFields, sameSubscription } from "./subscription-record";
 import type { SubscriptionRepository, TerritoryLedgerRepository, ZipClaimOutcome } from "./types";
 
 /**
@@ -23,7 +23,10 @@ import type { SubscriptionRepository, TerritoryLedgerRepository, ZipClaimOutcome
  *             availability and every dashboard keep answering from the data file's copy.
  *
  * Switching mode in either direction is lossless: at start, the store that was in charge last
- * is copied in full to the other before anything else happens.
+ * is copied in full to the other before anything else happens. The data file keeps its own note
+ * of that (AuthorityMarker): after PostgreSQL has been in charge, a switch back refuses payment
+ * events until the hand-over has run, so an event accepted during a database outage can never
+ * be overwritten by the older copy when the database returns.
  */
 
 export type Authority = "json" | "postgres";
@@ -62,13 +65,26 @@ export interface PersistenceStatus {
   parity: { clean: boolean; mismatches: number; checkedAt: string } | null;
   /** Copies to the other store that failed or were skipped since start. Zero before any switch. */
   mirrorFailures: number;
-  /** Payment-flow reads and writes refused because PostgreSQL was in charge and unreachable. */
+  /** Payment-flow reads and writes refused because PostgreSQL was in charge (or still owed its hand-over) and unreachable. */
   writeFailures: number;
+  /** The data file's copy missed a write PostgreSQL decided and has not yet been re-copied to disk. */
+  dataFileBehind: boolean;
   /** Subscription reads in shadow mode whose PostgreSQL copy differed. */
   readMismatches: number;
   ledgerMismatches: number;
   /** Times the ZIP code ledger answered from the data file because PostgreSQL had no fresh answer. */
   ledgerFallbacks: number;
+}
+
+/**
+ * The data file's own durable note of which store was in charge last. It is read when the
+ * database cannot be, so a switch back to the data file during an outage knows it still owes a
+ * hand-over. Null in a deployment that has never used PostgreSQL behaves as "json".
+ */
+export interface AuthorityMarker {
+  read(): Authority;
+  /** Must be on disk when it returns. Throws when it cannot be written. */
+  write(value: Authority): void;
 }
 
 export interface PersistenceOptions {
@@ -82,6 +98,8 @@ export interface PersistenceOptions {
   /** How long to wait before re-checking a difference, so a write in flight is not reported. */
   recheckAfterMs?: number;
   log?: (message: string) => void;
+  /** See AuthorityMarker. Without one, nothing is refused on a switch back (tests that do not need it). */
+  authorityMarker?: AuthorityMarker | null;
 }
 
 const LIST_LIMIT = 20;
@@ -98,6 +116,8 @@ export class Persistence {
   private readonly retryAfterMs: number;
   private readonly recheckAfterMs: number;
   private readonly log: (message: string) => void;
+  private readonly marker: AuthorityMarker | null;
+  private warnedNoDatabaseForHandover = false;
 
   private pg: { client: SqlClient; subscriptions: PostgresSubscriptionRepository; ledger: PostgresTerritoryLedgerRepository } | null = null;
   private ready = false;
@@ -117,25 +137,21 @@ export class Persistence {
     this.retryAfterMs = options.retryAfterMs ?? 10_000;
     this.recheckAfterMs = options.recheckAfterMs ?? 250;
     this.log = options.log ?? ((message) => console.log(`[persistence] ${message}`));
+    this.marker = options.authorityMarker ?? null;
 
     this.subscriptions = {
       findById: (id) => this.read((repository) => repository.findById(id), (record) => (record ? [record] : [])),
       findByStripeSubscriptionId: (id) =>
         this.read((repository) => repository.findByStripeSubscriptionId(id), (record) => (record ? [record] : [])),
       list: () => this.read((repository) => repository.list(), (records) => records),
-      save: async (record) => {
-        await this.write(record, async (repository) => {
-          await repository.save(record);
-          return record;
-        });
-      },
-      saveWithZipClaim: async (record, zip) => {
+      save: (record, options) => this.write(record, (repository) => repository.save(record, options)),
+      saveWithZipClaim: async (record, zip, options) => {
         let outcome!: ZipClaimOutcome;
-        await this.write(record, async (repository) => {
-          outcome = await repository.saveWithZipClaim(record, zip);
+        const stored = await this.write(record, async (repository) => {
+          outcome = await repository.saveWithZipClaim(record, zip, options);
           return outcome.record;
         });
-        return outcome;
+        return { ...outcome, record: stored };
       },
     };
 
@@ -168,8 +184,12 @@ export class Persistence {
   }
 
   /** Connects, prepares the tables and brings the two stores in line. Never throws. */
-  start(): Promise<boolean> {
-    return this.ensureReady();
+  async start(): Promise<boolean> {
+    const ready = await this.ensureReady();
+    // After start-up has finished, never inside it: a ZIP code check made while it ran may
+    // already be loading the ledger, and that load waits for start-up to finish.
+    if (ready && this.modes.ledger === "postgres") await refreshLedgerReadModel();
+    return ready;
   }
 
   /** Waits for background comparisons. For tests and for a clean shutdown. */
@@ -206,6 +226,7 @@ export class Persistence {
         : null,
       mirrorFailures: this.counters.mirrorFailures,
       writeFailures: this.counters.writeFailures,
+      dataFileBehind: this.needsResync && this.desiredAuthority === "postgres",
       readMismatches: this.counters.readMismatches,
       ledgerMismatches: this.counters.ledgerMismatches,
       ledgerFallbacks: readModel.fallbacks,
@@ -305,6 +326,8 @@ export class Persistence {
         report.failed.push(record.id);
       }
     }
+    // A copy to the data file counts only once it is on disk (it is the store a rollback returns to).
+    if (from === "postgres") await this.json.subscriptions.flushDurably?.();
     if (report.failed.length > 0 || report.refusedClaims.length > 0) {
       this.log(
         `copy from ${from} left work for a person: ${JSON.stringify({
@@ -329,9 +352,15 @@ export class Persistence {
     const now = this.clock();
     if (now - this.lastAttemptAt < this.retryAfterMs) return Promise.resolve(false);
     this.lastAttemptAt = now;
-    this.starting = this.boot().finally(() => {
-      this.starting = null;
-    });
+    this.starting = this.boot()
+      .finally(() => {
+        this.starting = null;
+      })
+      .then((ready) => {
+        // Not awaited, and only once start-up has settled (see start()).
+        if (ready && this.modes.ledger === "postgres") void refreshLedgerReadModel();
+        return ready;
+      });
     return this.starting;
   }
 
@@ -348,10 +377,15 @@ export class Persistence {
       const applied = await runSchemaMigrations(this.pg.client);
       if (applied.length > 0) this.log(`applied database migrations: ${applied.join(", ")}`);
 
-      // Hand-over: if the other store was in charge last time, it holds the truth. Copy it over
-      // in full before this process lets the newly chosen store decide anything.
       const stored = await this.storedAuthority();
       const desired = this.desiredAuthority;
+      // The data file notes that PostgreSQL is in charge before PostgreSQL is told so: a crash in
+      // between can only make a later switch back wait for the database, never skip a hand-over.
+      if (desired === "postgres") this.writeMarker("postgres");
+
+      // Hand-over: if the other store was in charge last time, it holds the truth. Copy it over
+      // in full before this process lets the newly chosen store decide anything. A copy to the
+      // data file counts only once it is on disk (synchronise throws otherwise).
       if (stored !== desired) {
         const handover = await this.synchronise(stored);
         this.log(`hand-over from ${stored} to ${desired}: ${handover.copied} copied, ${handover.unchanged} already in step`);
@@ -361,9 +395,22 @@ export class Persistence {
           [desired],
         );
       }
+      if (desired === "json") this.writeMarker("json");
+
       // Keep the other store in step. In json mode PostgreSQL is not kept up to date at all.
+      let behind = false;
       if (this.modes.subscriptions !== "json") {
-        const sync = await this.synchronise(desired);
+        let sync: SyncReport | null = null;
+        try {
+          sync = await this.synchronise(desired);
+        } catch (error) {
+          // The data file could not be written to disk. PostgreSQL still decides correctly; the
+          // copy is retried on the next write and health reports it (dataFileBehind).
+          if (desired !== "postgres" || error instanceof DatabaseUnavailableError) throw error;
+          behind = true;
+          this.counters.mirrorFailures += 1;
+          this.log(`the data file's copy could not be written to disk (${error instanceof Error ? error.name : "error"}); it will be re-copied`);
+        }
         this.ready = true;
         let parity = await this.checkParity();
         if (parity && !parity.clean && desired === "json") {
@@ -372,19 +419,49 @@ export class Persistence {
           parity = await this.checkParity();
         }
         this.log(
-          `ready (ledger=${this.modes.ledger}, subscriptions=${this.modes.subscriptions}): ${sync.copied} copied, ${sync.unchanged} already in step, parity ${parity?.clean ? "clean" : "NOT clean"}`,
+          `ready (ledger=${this.modes.ledger}, subscriptions=${this.modes.subscriptions}): ${sync?.copied ?? 0} copied, ${sync?.unchanged ?? 0} already in step, parity ${parity?.clean ? "clean" : "NOT clean"}`,
         );
       } else {
         this.ready = true;
         this.log("database reachable and tables in place; the data file is still the only store in use");
       }
-      this.needsResync = false;
-      if (this.modes.ledger === "postgres") await refreshLedgerReadModel();
+      this.needsResync = behind;
       return true;
     } catch (error) {
       this.ready = false;
       this.log(`database not ready: ${error instanceof Error ? error.message : String(error)}`);
       return false;
+    }
+  }
+
+  private writeMarker(value: Authority): void {
+    if (!this.marker || this.marker.read() === value) return;
+    this.marker.write(value);
+  }
+
+  /**
+   * True while the data file is set to decide but PostgreSQL was in charge last and has not yet
+   * handed over: the data file may be missing writes PostgreSQL accepted, and anything it accepted
+   * now would be overwritten by the hand-over. Payment events are refused until it has run.
+   */
+  private owesHandover(): boolean {
+    if (!this.marker || this.desiredAuthority !== "json" || this.marker.read() !== "postgres") return false;
+    if (!this.connect) {
+      if (!this.warnedNoDatabaseForHandover) {
+        this.warnedNoDatabaseForHandover = true;
+        this.log("PostgreSQL was in charge last but no database is configured: the data file decides alone from its own copy");
+      }
+      return false;
+    }
+    return true;
+  }
+
+  /** Runs the owed hand-over first, or refuses the request when the database cannot be reached. */
+  private async settleHandover(): Promise<void> {
+    if (!this.owesHandover()) return;
+    if (!(await this.ensureReady()) || this.owesHandover()) {
+      this.log("payment event refused: PostgreSQL was in charge last and the hand-over to the data file has not run yet");
+      throw this.refused();
     }
   }
 
@@ -400,6 +477,7 @@ export class Persistence {
     run: (repository: SubscriptionRepository) => Promise<T>,
     recordsOf: (value: T) => RevenueSubscriptionRecord[],
   ): Promise<T> {
+    await this.settleHandover();
     if (!this.connect || this.modes.subscriptions === "json") return run(this.json.subscriptions);
 
     if (this.modes.subscriptions === "shadow") {
@@ -478,20 +556,18 @@ export class Persistence {
 
   // ---- writes ---------------------------------------------------------------------------
 
-  /** Runs one write on the store in charge, then copies the stored record to the other store. */
+  /** Runs one write on the store in charge, then copies the stored record to the other store. Returns it as stored. */
   private async write(
     input: RevenueSubscriptionRecord,
     run: (repository: SubscriptionRepository) => Promise<RevenueSubscriptionRecord>,
-  ): Promise<void> {
-    if (!this.connect || this.modes.subscriptions === "json") {
-      await run(this.json.subscriptions);
-      return;
-    }
+  ): Promise<RevenueSubscriptionRecord> {
+    await this.settleHandover();
+    if (!this.connect || this.modes.subscriptions === "json") return run(this.json.subscriptions);
 
     if (this.modes.subscriptions === "shadow") {
       const stored = await run(this.json.subscriptions);
       await this.mirror("postgres", stored);
-      return;
+      return stored;
     }
 
     if (!(await this.ensureReady()) || !this.pg) throw this.refused();
@@ -499,14 +575,20 @@ export class Persistence {
     try {
       stored = await run(this.pg.subscriptions);
     } catch (error) {
-      if (error instanceof RecordNotStorableError) throw error;
+      // Not an outage: the caller reads again and retries (stale), or the record is bad.
+      if (error instanceof RecordNotStorableError || error instanceof StaleWriteError) throw error;
       this.log(`write for subscription ${input.id} refused: the database did not accept it`);
       throw this.refused(error);
     }
     await this.mirror("json", stored);
+    return stored;
   }
 
-  /** Copies one stored record to the store that is not in charge. Never fails the request. */
+  /**
+   * Copies one stored record to the store that is not in charge. Never fails the request.
+   * A copy to PostgreSQL is stored exactly as the data file has it; a copy to the data file
+   * counts only once it is on disk. A copy that fails is repaired by a full re-copy later.
+   */
   private async mirror(to: Authority, record: RevenueSubscriptionRecord): Promise<void> {
     try {
       if (to === "postgres") {
@@ -515,11 +597,13 @@ export class Persistence {
           await this.synchronise("json");
           this.needsResync = false;
         } else {
-          await this.pg.subscriptions.save(record);
+          await this.pg.subscriptions.saveReportingSkippedClaims(record);
         }
       } else if (this.needsResync) {
         await this.synchronise("postgres");
         this.needsResync = false;
+      } else if (this.json.subscriptions.saveDurably) {
+        await this.json.subscriptions.saveDurably(record);
       } else {
         await this.json.subscriptions.save(record);
       }

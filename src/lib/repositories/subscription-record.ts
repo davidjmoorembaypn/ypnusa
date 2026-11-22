@@ -18,6 +18,22 @@ export class RecordNotStorableError extends Error {
   }
 }
 
+/**
+ * Thrown when a write was decided from a copy of the plan that is no longer current: another
+ * event changed the plan (or created it) after this one read it. Nothing was written. The caller
+ * reads the plan again and decides again.
+ */
+export class StaleWriteError extends Error {
+  readonly code = "STALE_WRITE";
+  constructor(
+    readonly recordId: string,
+    reason: string,
+  ) {
+    super(`Subscription ${recordId} changed while this write was being decided: ${reason}`);
+    this.name = "StaleWriteError";
+  }
+}
+
 export const SUBSCRIPTION_COLUMNS = [
   "id",
   "created_at",

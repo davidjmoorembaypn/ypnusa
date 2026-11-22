@@ -1,12 +1,14 @@
 import {
   findRevenueSubscriptionByStripeSubscriptionId,
+  flushDbDurably,
   readDb,
   saveRevenueSubscription,
+  saveRevenueSubscriptionDurably,
   saveRevenueSubscriptionWithZipClaim,
 } from "@/lib/db";
 import { paidLedgerClaimedZipsFromDataFile } from "@/lib/territory";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
-import type { SubscriptionRepository, TerritoryLedgerRepository, ZipClaimOutcome } from "./types";
+import type { SaveOptions, SubscriptionRepository, TerritoryLedgerRepository, ZipClaimOutcome } from "./types";
 
 /**
  * The data file (store.json) behind the repository contracts. These are the same functions the
@@ -29,12 +31,24 @@ export class JsonSubscriptionRepository implements SubscriptionRepository {
     return readDb().revenueSubscriptions;
   }
 
-  async save(record: RevenueSubscriptionRecord): Promise<void> {
+  // `options.expected` is not needed here (see SaveOptions): the data file's read and write
+  // cannot be interleaved, and its behaviour stays exactly as it always was.
+  async save(record: RevenueSubscriptionRecord, _options?: SaveOptions): Promise<RevenueSubscriptionRecord> {
     saveRevenueSubscription(record);
+    return record;
   }
 
-  async saveWithZipClaim(record: RevenueSubscriptionRecord, zip: string | null): Promise<ZipClaimOutcome> {
+  async saveWithZipClaim(record: RevenueSubscriptionRecord, zip: string | null, _options?: SaveOptions): Promise<ZipClaimOutcome> {
     return saveRevenueSubscriptionWithZipClaim(record, zip);
+  }
+
+  /** Used only for copies of what PostgreSQL decided: never reports a write that stayed in memory. */
+  async saveDurably(record: RevenueSubscriptionRecord): Promise<void> {
+    saveRevenueSubscriptionDurably(record);
+  }
+
+  async flushDurably(): Promise<void> {
+    flushDbDurably();
   }
 }
 

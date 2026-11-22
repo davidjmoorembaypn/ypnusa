@@ -2,8 +2,8 @@ import type { SqlClient, SqlExecutor } from "@/lib/persistence/sql-client";
 import { claimHolderKey, isLiveSubscription } from "@/lib/subscription-live";
 import { isValidZip, normalizeZip } from "@/lib/zip-format";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
-import { SUBSCRIPTION_COLUMNS, ledgerZips, recordToRow, rowToRecord } from "./subscription-record";
-import type { SubscriptionRepository, TerritoryLedgerRepository, ZipClaimOutcome } from "./types";
+import { SUBSCRIPTION_COLUMNS, StaleWriteError, ledgerZips, recordToRow, rowToRecord, sameSubscription } from "./subscription-record";
+import type { SaveOptions, SubscriptionRepository, TerritoryLedgerRepository, ZipClaimOutcome } from "./types";
 
 /**
  * PostgreSQL behind the repository contracts.
@@ -20,6 +20,8 @@ import type { SubscriptionRepository, TerritoryLedgerRepository, ZipClaimOutcome
 
 /** First key of the two-part advisory lock: keeps ZIP code locks apart from any other lock. */
 const ZIP_LOCK_NAMESPACE = 7781;
+/** Same for the lock on one Stripe subscription's plans. Always taken before any ZIP code lock. */
+const STRIPE_SUBSCRIPTION_LOCK_NAMESPACE = 7782;
 
 const COLUMN_LIST = SUBSCRIPTION_COLUMNS.join(", ");
 const UPSERT_SQL = `
@@ -36,6 +38,31 @@ async function lockZips(tx: SqlExecutor, zips: string[]): Promise<void> {
   for (const zip of [...new Set(zips)].sort()) {
     await tx.query("select pg_advisory_xact_lock($1::int, hashtext($2))", [ZIP_LOCK_NAMESPACE, zip]);
   }
+}
+
+/**
+ * Refuses a write decided from a copy of the plan that is no longer current (SaveOptions.expected).
+ * Takes the Stripe subscription's lock first, so two events for one plan are checked one after
+ * the other even when the plan does not exist yet (there is no row to lock).
+ */
+async function checkExpected(tx: SqlExecutor, record: RevenueSubscriptionRecord, options: SaveOptions | undefined): Promise<void> {
+  if (!options || options.expected === undefined) return;
+  const stripeSubscriptionId = record.stripeSubscriptionId ?? options.expected?.stripeSubscriptionId;
+  if (stripeSubscriptionId) {
+    await tx.query("select pg_advisory_xact_lock($1::int, hashtext($2))", [STRIPE_SUBSCRIPTION_LOCK_NAMESPACE, stripeSubscriptionId]);
+  }
+  const expected = options.expected;
+  if (expected === null) {
+    const { rows } = await tx.query<{ id: string }>(
+      "select id from revenue_subscriptions where id = $1 or ($2::text is not null and stripe_subscription_id = $2) limit 1",
+      [record.id, stripeSubscriptionId ?? null],
+    );
+    if (rows.length > 0) throw new StaleWriteError(record.id, `a plan for this Stripe subscription already exists (${rows[0].id})`);
+    return;
+  }
+  const { rows } = await tx.query(`select ${COLUMN_LIST} from revenue_subscriptions where id = $1 for update`, [expected.id]);
+  if (rows.length === 0) throw new StaleWriteError(expected.id, "the plan no longer exists");
+  if (!sameSubscription(rowToRecord(rows[0]), expected)) throw new StaleWriteError(expected.id, "another event changed the plan first");
 }
 
 /** A prepaid term that has ended no longer holds its ZIP codes: free them before deciding anything. */
@@ -72,24 +99,35 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
     return rows.map(rowToRecord);
   }
 
-  async save(record: RevenueSubscriptionRecord): Promise<void> {
-    await this.saveReportingSkippedClaims(record);
+  /**
+   * Saves a plan PostgreSQL decides on. A ZIP code the plan lists but another holder took in the
+   * meantime (a plan reactivated after its ZIP code was sold) is left off the stored plan and
+   * recorded as zipLockConflict, so the dashboard asks the officer to pick an open one.
+   */
+  async save(record: RevenueSubscriptionRecord, options?: SaveOptions): Promise<RevenueSubscriptionRecord> {
+    return this.client.transaction(async (tx) => {
+      await checkExpected(tx, record, options);
+      await lockZips(tx, ledgerZips(record));
+      return (await this.store(tx, record, this.clock(), "decide")).stored;
+    });
   }
 
   /**
-   * Saves the subscription and brings its ledger claims in line. Returns the ZIP codes the
-   * record lists that the ledger refused because another holder already has them (possible only
-   * for data copied from the data file, which never enforced the rule). The first holder keeps them.
+   * Copies a plan another store decided (start-up copy, shadow mirror) exactly as written, and
+   * returns the ZIP codes it lists that the ledger refused because another holder already has
+   * them (possible only for data from the data file, which never enforced the rule). The first
+   * holder keeps them; the copy is reported, never changed.
    */
   async saveReportingSkippedClaims(record: RevenueSubscriptionRecord): Promise<string[]> {
     return this.client.transaction(async (tx) => {
       await lockZips(tx, ledgerZips(record));
-      return this.store(tx, record, this.clock());
+      return (await this.store(tx, record, this.clock(), "copy")).skipped;
     });
   }
 
-  async saveWithZipClaim(subscription: RevenueSubscriptionRecord, zip: string | null): Promise<ZipClaimOutcome> {
+  async saveWithZipClaim(subscription: RevenueSubscriptionRecord, zip: string | null, options?: SaveOptions): Promise<ZipClaimOutcome> {
     return this.client.transaction(async (tx) => {
+      await checkExpected(tx, subscription, options);
       const now = this.clock();
       const ledgerZip = zip === null ? null : normalizeZip(zip);
       const decidable = ledgerZip !== null && isValidZip(ledgerZip);
@@ -119,17 +157,51 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
           ? { ...subscription, claimedZips: subscription.claimedZips.filter((claimed) => claimed !== zip) }
           : subscription;
 
-      await this.store(tx, record, now);
-      return { record, zipClaimed, zipConflict, zipNewlyLocked };
+      const { stored } = await this.store(tx, record, now, "decide");
+      return { record: stored, zipClaimed, zipConflict, zipNewlyLocked };
     });
   }
 
-  /** Upserts the row, then makes `zip_claims` match it. The caller already holds the ZIP code locks. */
-  private async store(tx: SqlExecutor, record: RevenueSubscriptionRecord, now: number): Promise<string[]> {
+  /**
+   * Upserts the row, then makes `zip_claims` match it. The caller already holds the ZIP code locks.
+   * "decide": a ZIP code another holder has is taken off the stored plan and flagged as a conflict.
+   * "copy": the plan is stored exactly as given and the refused ZIP codes are only reported.
+   */
+  private async store(
+    tx: SqlExecutor,
+    input: RevenueSubscriptionRecord,
+    now: number,
+    mode: "decide" | "copy",
+  ): Promise<{ stored: RevenueSubscriptionRecord; skipped: string[] }> {
+    const live = isLiveSubscription(input, now);
+    const wanted = live ? ledgerZips(input) : [];
+    const holder = claimHolderKey(input);
+
+    // Who holds each ZIP code this plan wants, before anything changes.
+    let claims: Array<{ id: string | number; zip: string; subscription_id: string; holder_key: string }> = [];
+    if (wanted.length > 0) {
+      await releaseExpired(tx, wanted, now);
+      claims = (
+        await tx.query<{ id: string | number; zip: string; subscription_id: string; holder_key: string }>(
+          "select id, zip, subscription_id, holder_key from zip_claims where zip = any($1::text[]) and released_at is null",
+          [wanted],
+        )
+      ).rows;
+    }
+    const takenByAnother = (zip: string) => claims.some((row) => row.zip === zip && row.subscription_id !== input.id && row.holder_key !== holder);
+    const skipped = wanted.filter((zip) => takenByAnother(zip) && !claims.some((row) => row.zip === zip && row.subscription_id === input.id));
+
+    let record = input;
+    if (mode === "decide" && skipped.length > 0) {
+      record = {
+        ...input,
+        claimedZips: input.claimedZips.filter((raw) => !skipped.includes(normalizeZip(raw))),
+        zipLockConflict: input.zipLockConflict ?? { zip: skipped[0], at: new Date(now).toISOString() },
+      };
+    }
     await tx.query(UPSERT_SQL, recordToRow(record));
 
-    const live = isLiveSubscription(record, now);
-    const desired = live ? ledgerZips(record) : [];
+    const desired = wanted.filter((zip) => !(mode === "decide" && skipped.includes(zip)));
     const expired = Boolean(record.expiresAt) && Date.parse(record.expiresAt as string) <= now;
     const reason = record.status === "cancelled" ? "cancelled" : !live && expired ? "expired" : "removed";
     await tx.query(
@@ -137,21 +209,12 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
         where subscription_id = $1 and released_at is null and not (zip = any($4::text[]))`,
       [record.id, new Date(now), reason, desired],
     );
-    if (desired.length === 0) return [];
+    if (desired.length === 0) return { stored: record, skipped };
 
-    await releaseExpired(tx, desired, now);
-    const holder = claimHolderKey(record);
     const expiresAt = record.expiresAt ? new Date(Date.parse(record.expiresAt)) : null;
-    const { rows } = await tx.query<{ id: string | number; zip: string; subscription_id: string; holder_key: string }>(
-      "select id, zip, subscription_id, holder_key from zip_claims where zip = any($1::text[]) and released_at is null",
-      [desired],
-    );
-
-    const skipped: string[] = [];
     for (const zip of desired) {
-      const claims = rows.filter((row) => row.zip === zip);
-      const mine = claims.find((row) => row.subscription_id === record.id);
-      const heldByAnother = claims.some((row) => row.subscription_id !== record.id && row.holder_key !== holder);
+      const mine = claims.find((row) => row.zip === zip && row.subscription_id === record.id);
+      const heldByAnother = takenByAnother(zip);
       if (mine) {
         await tx.query("update zip_claims set source = $2, expires_at = $3, holder_key = $4 where id = $1", [
           mine.id,
@@ -160,9 +223,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
           // A changed Stripe customer is recorded only when nobody else's claim would then clash.
           heldByAnother ? mine.holder_key : holder,
         ]);
-      } else if (heldByAnother) {
-        skipped.push(zip);
-      } else {
+      } else if (!heldByAnother) {
         await tx.query(
           `insert into zip_claims (zip, subscription_id, holder_key, source, claimed_at, expires_at)
            values ($1, $2, $3, $4, $5, $6)`,
@@ -170,7 +231,7 @@ export class PostgresSubscriptionRepository implements SubscriptionRepository {
         );
       }
     }
-    return skipped;
+    return { stored: record, skipped };
   }
 }
 

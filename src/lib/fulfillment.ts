@@ -1,4 +1,4 @@
-import { subscriptionRepository } from "@/lib/repositories";
+import { onePlanAtATime, retryStaleWrites, subscriptionRepository } from "@/lib/repositories";
 import { generateId } from "@/lib/id";
 import { logApiError } from "@/lib/http";
 import { PAID_PRICING_TIERS, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
@@ -167,8 +167,18 @@ function reportedTier(record: RevenueSubscriptionRecord): PricingTierId | undefi
  * Applies one already-trusted fulfillment event to the local revenue-subscription
  * ledger. Returns a structured result rather than an HTTP response so both front
  * doors (internal-secret and direct-Stripe) can map it to their own response shape.
+ *
+ * Events for one Stripe subscription are decided one at a time, and each write names the copy
+ * of the plan it was decided from, so two events arriving together (checkout and
+ * subscription-created, or a first paid invoice and a status update) can neither make two plans
+ * nor overwrite each other's ZIP code changes. See @/lib/repositories/plan-lock.
  */
-export async function applyFulfillmentEvent(payload: FulfillmentPayload): Promise<FulfillmentResult> {
+export function applyFulfillmentEvent(payload: FulfillmentPayload): Promise<FulfillmentResult> {
+  const planKey = typeof payload.stripeSubscriptionId === "string" ? payload.stripeSubscriptionId.trim() : null;
+  return onePlanAtATime(planKey, () => retryStaleWrites(() => applyFulfillmentEventOnce(payload)));
+}
+
+async function applyFulfillmentEventOnce(payload: FulfillmentPayload): Promise<FulfillmentResult> {
   // Every read and write of the subscription goes through the repository, so the same code runs
   // on the data file and on PostgreSQL (see @/lib/repositories).
   const subscriptions = subscriptionRepository();
@@ -208,7 +218,18 @@ export async function applyFulfillmentEvent(payload: FulfillmentPayload): Promis
       lastStripeEventId: eventId,
       lastStripeEventCreatedAt: eventCreatedAt,
     };
-    await subscriptions.save(cancelled);
+    await subscriptions.save(cancelled, { expected: existing });
+    // Data written before one plan per Stripe subscription was enforced can hold a second copy;
+    // a copy left active would keep its ZIP code locked after the cancellation.
+    const duplicates = (await subscriptions.list()).filter(
+      (record) => record.stripeSubscriptionId === stripeSubscriptionId && record.id !== existing.id && record.status !== "cancelled",
+    );
+    for (const duplicate of duplicates) {
+      await subscriptions.save(
+        { ...duplicate, status: "cancelled", lastStripeEventId: eventId, lastStripeEventCreatedAt: eventCreatedAt },
+        { expected: duplicate },
+      );
+    }
     return { ok: true, applied: true, created: false, subscriptionId: cancelled.id, status: cancelled.status };
   }
 
@@ -260,8 +281,7 @@ export async function applyFulfillmentEvent(payload: FulfillmentPayload): Promis
           lastStripeEventId: eventId,
           lastStripeEventCreatedAt: eventCreatedAt,
         };
-    const planned = withPlan(record, payload.plan);
-    await subscriptions.save(planned);
+    const planned = await subscriptions.save(withPlan(record, payload.plan), { expected: existing });
     return { ok: true, applied: true, created: !existing, subscriptionId: planned.id, tier: reportedTier(planned), status: planned.status };
   }
 
@@ -349,6 +369,7 @@ export async function applyFulfillmentEvent(payload: FulfillmentPayload): Promis
   const { record: saved, zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(
     withPlan(record, payload.plan),
     isTrialCheckout ? null : zipToClaim,
+    { expected: existing },
   );
   // Only a ZIP code that truly went from open to locked logs the neighbor alert (async, never blocks
   // this webhook). A same-customer transfer or replacement is not new scarcity.
@@ -395,7 +416,15 @@ export interface PaidInvoiceLockResult {
  * loan officer pays for it first, they get it and this record is flagged zipLockConflict.
  * Idempotent: a repeat delivery after the lock is a no-op.
  */
-export async function lockZipOnPaidInvoice(input: {
+export function lockZipOnPaidInvoice(input: {
+  stripeSubscriptionId: string | undefined;
+  amountPaidCents: number;
+  invoiceStatus: string | null | undefined;
+}): Promise<PaidInvoiceLockResult> {
+  return onePlanAtATime(input.stripeSubscriptionId, () => retryStaleWrites(() => lockZipOnPaidInvoiceOnce(input)));
+}
+
+async function lockZipOnPaidInvoiceOnce(input: {
   stripeSubscriptionId: string | undefined;
   amountPaidCents: number;
   invoiceStatus: string | null | undefined;
@@ -411,10 +440,10 @@ export async function lockZipOnPaidInvoice(input: {
   if (!zip) return { applied: false, reason: "No pending ZIP code to lock." };
 
   const paid: RevenueSubscriptionRecord = { ...existing, status: "active", pendingZip: undefined, zipLockConflict: undefined };
-  const { zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(paid, zip);
+  const { record: saved, zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(paid, zip, { expected: existing });
   if (zipNewlyLocked) scheduleZipLockHook(zip, existing.id, "first_payment");
   if (zipConflict) {
-    await subscriptions.saveWithZipClaim({ ...paid, zipLockConflict: { zip, at: new Date().toISOString() } }, null);
+    await subscriptions.saveWithZipClaim({ ...saved, zipLockConflict: { zip, at: new Date().toISOString() } }, null);
     logApiError(
       "fulfillment",
       new Error(`First payment for subscription ${existing.id} arrived, but ZIP code ${zip} was already locked by another paid subscription.`),

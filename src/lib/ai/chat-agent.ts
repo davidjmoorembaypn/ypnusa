@@ -807,7 +807,13 @@ export function linkQualifiedLead(session: ChatSessionRecord): void {
   const officerSlug =
     pageOfficer && officerLicensedFor(pageOfficer, { zip: f.zip, state: f.state }) ? pageOfficer.slug : undefined;
   const route = routeLead({ program: answers.loanProgram, zip: answers.zip, officerSlug });
-  const result = logCrmActivity(answers, qualification, route.officer.id, session.funnelSource, session.id);
+  // The assistant asks for consent to follow up by phone, text and email (see prompts.ts). There
+  // is no fixed wording to store, so the entry names the chat session: its transcript is the
+  // record of exactly what was asked and answered.
+  const result = logCrmActivity(answers, qualification, route.officer.id, session.funnelSource, session.id, {
+    source: `chat_assistant:${session.id}`,
+    channels: ["email", "sms", "call"],
+  });
 
   session.borrowerLeadId = result.borrowerLeadId;
   session.crmLeadId = result.crmLeadId;

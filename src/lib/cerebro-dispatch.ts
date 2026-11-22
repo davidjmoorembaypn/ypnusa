@@ -5,8 +5,8 @@ import { canContact } from "@/lib/consent";
 import { borrowerFacingOfficer, HOUSE_OFFICER_ID, houseOfficerRecord } from "@/lib/crm";
 import { readDb, saveCerebroAction } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
-import { signValue, verifySignedValue } from "@/lib/session";
-import { MARKETING_SITE_URL } from "@/lib/site";
+import { BUSINESS_ADDRESS_LINE, BUSINESS_NAME } from "@/lib/business-profile";
+import { unsubscribeHeaders, unsubscribeUrl } from "@/lib/unsubscribe-link";
 import type { BorrowerLeadRecord, CerebroQueuedActionRecord, LoanOfficerRecord } from "@/lib/types";
 
 /**
@@ -39,6 +39,9 @@ export const AUTO_SEND_KINDS: ReadonlySet<CerebroQueuedActionRecord["kind"]> = n
   "rate_alert_draft",
 ]);
 
+/** Messages that push toward a first conversation, so a booking makes them stale. Rate alerts are not. */
+const BOOKING_SENSITIVE_KINDS: ReadonlySet<CerebroQueuedActionRecord["kind"]> = new Set(["follow_up_draft", "nudge_draft"]);
+
 /** Never more than this many emails in one pass (cost and sender-reputation guard). */
 const MAX_SENDS_PER_PASS = 25;
 const NMLS_PLACEHOLDER = "[add your NMLS ID]";
@@ -66,23 +69,8 @@ export function replyModeFor(officer: LoanOfficerRecord): "live" | "approve" {
   return officer.cerebroReplyMode === "approve" ? "approve" : "live";
 }
 
-export function unsubscribeToken(borrowerLeadId: string): string {
-  return signValue(`unsub:${borrowerLeadId}`);
-}
-
-export function verifyUnsubscribeToken(borrowerLeadId: string, token: string): boolean {
-  return Boolean(borrowerLeadId && token) && verifySignedValue(`unsub:${borrowerLeadId}`, token);
-}
-
-export function unsubscribeUrl(borrowerLeadId: string): string {
-  const params = new URLSearchParams({ l: borrowerLeadId, t: unsubscribeToken(borrowerLeadId) });
-  return `${MARKETING_SITE_URL}/unsubscribe?${params.toString()}`;
-}
-
-function oneClickUrl(borrowerLeadId: string): string {
-  const params = new URLSearchParams({ l: borrowerLeadId, t: unsubscribeToken(borrowerLeadId) });
-  return `${MARKETING_SITE_URL}/api/unsubscribe?${params.toString()}`;
-}
+// The link helpers live in src/lib/unsubscribe-link.ts (the follow-up journey uses them too).
+export { unsubscribeToken, unsubscribeUrl, verifyUnsubscribeToken } from "@/lib/unsubscribe-link";
 
 export function emailHtml(body: string, officer: LoanOfficerRecord, borrowerLeadId: string, sentWithoutReview: boolean): string {
   const firstName = officer.name.split(/\s+/)[0] || officer.name;
@@ -95,6 +83,8 @@ export function emailHtml(body: string, officer: LoanOfficerRecord, borrowerLead
       ? `Cerebro is an AI assistant. It can't quote rates or make loan decisions; ${escapeHtml(firstName)} handles those.`
       : `Sent with the help of Cerebro, ${escapeHtml(firstName)}'s AI assistant.`,
     `<a href="${escapeHtml(unsubscribeUrl(borrowerLeadId))}">Unsubscribe</a> from these emails.`,
+    // The sender's postal address, which every commercial email must carry.
+    escapeHtml(`${BUSINESS_NAME}, ${BUSINESS_ADDRESS_LINE}`),
   ].join("<br>");
   return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#13254a">${header}${text}<hr style="border:none;border-top:1px solid #ddd;margin:20px 0"><p style="font-size:12px;color:#666">${footer}</p></div>`;
 }
@@ -125,6 +115,17 @@ export function decideDispatch(
   // Written for another officer before the lead moved (a ZIP code claim or a reroute): never send it.
   if (lead.assignedLoId !== action.loId) return { action: "skip" };
   if (isTestLead(lead)) return { action: "skip" };
+  // A follow-up or nudge written before the borrower booked a call is out of date: it would ask
+  // them to do what they already did. It never goes out on its own.
+  if (
+    !approved &&
+    BOOKING_SENSITIVE_KINDS.has(action.kind) &&
+    db.appointments.some(
+      (item) => item.borrowerLeadId === lead.id && item.status !== "cancelled" && Date.parse(item.end) > now.getTime() && item.createdAt > action.createdAt,
+    )
+  ) {
+    return { action: "needs_officer", reason: "Needs your OK: the borrower booked a call after this was written." };
+  }
   if (!approved && Date.parse(action.createdAt) < Date.parse(LIVE_REPLIES_SINCE)) {
     return action.status === "awaiting_approval" ? { action: "skip" } : { action: "needs_officer", reason: "Needs your OK: drafted before Cerebro sent emails on its own." };
   }
@@ -192,10 +193,7 @@ export async function dispatchCerebroMessages(now = new Date(), send: typeof sen
       html: emailHtml(decision.body, officer, action.borrowerLeadId, decision.sentWithoutReview),
       replyTo: officer.email,
       fromName: `${officer.name} via YPN USA`,
-      headers: {
-        "List-Unsubscribe": `<${oneClickUrl(action.borrowerLeadId)}>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      },
+      headers: unsubscribeHeaders(action.borrowerLeadId),
     });
     if (!outcome.sent) {
       saveCerebroAction({ ...action, status: "held", holdReason: `Email didn't send: ${outcome.reason ?? "unknown error"}`, updatedAt: stamp });

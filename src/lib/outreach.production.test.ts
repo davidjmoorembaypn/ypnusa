@@ -102,8 +102,10 @@ describe("outreach in production with no provider configured", async () => {
 
   it("still uses the demo provider outside production", async () => {
     env.NODE_ENV = "test";
-    const officer = readDb().loanOfficers.find((item) => item.id === "lo_jordan_lee");
-    assert.ok(officer);
+    const stored = readDb().loanOfficers.find((item) => item.id === "lo_jordan_lee");
+    assert.ok(stored);
+    // Every borrower message must show the officer's NMLS ID, so the test officer has one.
+    const officer = { ...stored, nmlsId: "123456" };
     const result = await deliverOutreach(followUp, { lead, officer });
     assert.equal(result.provider, "demo");
   });

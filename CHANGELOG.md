@@ -12,6 +12,21 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 22, 2026 — next build (borrower messaging rules)
+
+- **STOP now stops messages.** A borrower who replies STOP to a text is opted out of texts, calls and email, and
+  anything still queued for them is cancelled. This needs one setting in Twilio first: see
+  [docs/COMPLIANCE_MESSAGING.md](docs/COMPLIANCE_MESSAGING.md), section 4.
+- **Every follow-up email has an unsubscribe link and our postal address**, and Gmail and Yahoo show their own
+  unsubscribe button. Unsubscribing also cancels what was queued.
+- **Every follow-up message shows the loan officer's NMLS ID** and the other required lines. A message is not sent
+  if the officer has no NMLS ID on their profile, or the borrower is in a state the officer has not listed a
+  license for. **Officers: check your NMLS ID is on your profile.**
+- **A record of consent is kept:** when a borrower agrees to be contacted, the site now stores when, where and the
+  exact question they answered.
+- **No more "book a call" nudges after a borrower books one.**
+- **Fix:** a follow-up is no longer sent to a placeholder address when a borrower left out their phone or email.
+
 ## Nov 21, 2026 — next build (groundwork for moving to a database)
 
 Nothing changes on the live site with this build: it stays on the data file until a server setting is switched.

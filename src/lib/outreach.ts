@@ -6,8 +6,12 @@ import type {
 } from "./types";
 import type { PersonalizationSummary } from "./personalization/personalizationEngine";
 import { OUTBOUND_TIMEOUT_MS } from "./outbound";
+import { checkMarketingCompliance } from "./ai/marketing-compliance";
+import { BUSINESS_ADDRESS_LINE, BUSINESS_NAME } from "./business-profile";
+import { applyComplianceGuardrails, describeBlock } from "./compliance/guardrails";
 import { escapeHtml, sendEmail } from "./email";
 import { borrowerFacingOfficer } from "./crm";
+import { unsubscribeHeaders, unsubscribeUrl } from "./unsubscribe-link";
 
 export interface OutreachContext {
   lead: BorrowerLeadRecord;
@@ -25,6 +29,18 @@ export class OutreachNotConfiguredError extends Error {
   constructor(channel: string) {
     super(`No ${channel} outreach provider is configured.`);
     this.name = "OutreachNotConfiguredError";
+  }
+}
+
+/**
+ * This message must not go out as written: the officer's NMLS ID is missing, the borrower is in a
+ * state the officer is not licensed in, or the wording fails the advertising check. Not a delivery
+ * failure and not retried: the job is cancelled with the reason.
+ */
+export class OutreachBlockedError extends Error {
+  constructor(readonly reason: string) {
+    super(`Outreach blocked: ${reason}`);
+    this.name = "OutreachBlockedError";
   }
 }
 
@@ -76,6 +92,91 @@ export function composeOutreach(
   };
 }
 
+/** A journey message ready to send: disclosures added, and for email the unsubscribe link and postal address. */
+export interface PreparedOutreach {
+  subject: string;
+  /** Plain text. For a text message this is the whole message. */
+  text: string;
+  /** Email only. */
+  html?: string;
+  headers?: Record<string, string>;
+  replyTo?: string;
+  fromName?: string;
+  /** The disclosure lines that were added (NMLS IDs, state lines, Equal Housing). */
+  disclosures: string[];
+  /** Email only: the borrower's one-click way out. */
+  unsubscribeUrl?: string;
+}
+
+const STOP_LINE = /Reply STOP to opt out/i;
+
+/**
+ * Turns a journey step into a message that may go to a borrower, through the same checks as
+ * Cerebro's emails (src/lib/cerebro-dispatch.ts):
+ *
+ * 1. The advertising check: no rates, payments, guarantees or invented track record.
+ * 2. The compliance engine (src/lib/compliance): the officer's NMLS ID, the company's NMLS ID,
+ *    state lines and Equal Housing are added; a missing NMLS ID or a borrower in a state the
+ *    officer is not licensed in blocks the message.
+ * 3. Email gets an unsubscribe link (in the body and as one-click headers), the sender's postal
+ *    address, and the officer as reply-to. A text always ends with the STOP line.
+ *
+ * Throws OutreachBlockedError when the message must not go out.
+ */
+export function prepareOutreach(job: ScheduledFollowUpRecord, context: OutreachContext): PreparedOutreach {
+  const officer = borrowerFacingOfficer(context.officer);
+  const { subject, body } = composeOutreach(job.plan, { ...context, officer });
+
+  const problems = checkMarketingCompliance({ fields: { message: `${subject}\n${body}` }, nmlsId: officer.nmlsId });
+  if (problems.length > 0) throw new OutreachBlockedError(problems[0]);
+
+  const isSms = job.channel === "sms";
+  const guarded = applyComplianceGuardrails({
+    text: body,
+    channel: isSms ? "sms" : "email",
+    officer: {
+      name: officer.name,
+      nmlsId: officer.nmlsId,
+      company: officer.company,
+      companyNmlsId: officer.companyNmlsId,
+      licenses: officer.licenses,
+      equalHousing: officer.equalHousing,
+    },
+    zip: context.lead.answers.zip,
+  });
+  if (guarded.blocked) throw new OutreachBlockedError(describeBlock(guarded.reasons[0], guarded.state));
+
+  if (isSms) {
+    const text = STOP_LINE.test(guarded.text) ? guarded.text : `${guarded.text.trimEnd()} Reply STOP to opt out.`;
+    return { subject, text, disclosures: guarded.appended };
+  }
+
+  const leadId = context.lead.id;
+  const leave = unsubscribeUrl(leadId);
+  const sender = `${BUSINESS_NAME}, ${BUSINESS_ADDRESS_LINE}`;
+  const footerText = [
+    `Sent by the YPN USA virtual assistant for ${officer.name}. Reply to this email to reach them.`,
+    `Unsubscribe: ${leave}`,
+    sender,
+  ];
+  const html =
+    `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#13254a">` +
+    `<p>${escapeHtml(guarded.text).replace(/\n/g, "<br>")}</p>` +
+    `<hr style="border:none;border-top:1px solid #ddd;margin:20px 0">` +
+    `<p style="font-size:12px;color:#666">${escapeHtml(footerText[0])}<br>` +
+    `<a href="${escapeHtml(leave)}">Unsubscribe</a> from these emails.<br>${escapeHtml(sender)}</p></div>`;
+  return {
+    subject,
+    text: `${guarded.text}\n\n${footerText.join("\n")}`,
+    html,
+    headers: unsubscribeHeaders(leadId),
+    replyTo: officer.email,
+    fromName: `${officer.name} via ${BUSINESS_NAME}`,
+    disclosures: guarded.appended,
+    unsubscribeUrl: leave,
+  };
+}
+
 async function responseMessageId(response: Response): Promise<string | undefined> {
   const headerId =
     response.headers.get("x-message-id") ??
@@ -105,8 +206,7 @@ async function assertSuccessful(response: Response, provider: string): Promise<v
 async function deliverWebhook(
   job: ScheduledFollowUpRecord,
   context: OutreachContext,
-  subject: string,
-  body: string,
+  prepared: PreparedOutreach,
   url: string,
 ): Promise<OutreachDeliveryResult> {
   const response = await fetch(url, {
@@ -124,8 +224,15 @@ async function deliverWebhook(
       channel: job.channel,
       recipient: job.recipient,
       plan: job.plan,
-      subject,
-      body,
+      subject: prepared.subject,
+      // The full message: disclosures, and for email the unsubscribe line and postal address.
+      // Whatever sends this must send it whole.
+      body: prepared.text,
+      html: prepared.html,
+      headers: prepared.headers,
+      replyTo: prepared.replyTo,
+      unsubscribeUrl: prepared.unsubscribeUrl,
+      disclosures: prepared.disclosures,
     }),
     signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
   });
@@ -157,15 +264,14 @@ async function deliverTwilio(
   return { provider: "twilio", messageId: await responseMessageId(response) };
 }
 
-async function deliverResend(
-  job: ScheduledFollowUpRecord,
-  subject: string,
-  body: string,
-): Promise<OutreachDeliveryResult> {
+async function deliverResend(job: ScheduledFollowUpRecord, prepared: PreparedOutreach): Promise<OutreachDeliveryResult> {
   const result = await sendEmail({
     to: job.recipient,
-    subject,
-    html: `<p>${escapeHtml(body).replace(/\n/g, "<br>")}</p>`,
+    subject: prepared.subject,
+    html: prepared.html ?? `<p>${escapeHtml(prepared.text).replace(/\n/g, "<br>")}</p>`,
+    replyTo: prepared.replyTo,
+    fromName: prepared.fromName,
+    headers: prepared.headers,
   });
   if (!result.sent) throw new Error(`Resend delivery failed: ${result.reason ?? "unknown error"}`);
   return { provider: "resend", messageId: `resend_${job.id}` };
@@ -173,8 +279,7 @@ async function deliverResend(
 
 async function deliverSendGrid(
   job: ScheduledFollowUpRecord,
-  subject: string,
-  body: string,
+  prepared: PreparedOutreach,
   apiKey: string,
   fromEmail: string,
 ): Promise<OutreachDeliveryResult> {
@@ -186,9 +291,14 @@ async function deliverSendGrid(
     },
     body: JSON.stringify({
       personalizations: [{ to: [{ email: job.recipient }] }],
-      from: { email: fromEmail, name: "YPN USA" },
-      subject,
-      content: [{ type: "text/plain", value: body }],
+      from: { email: fromEmail, name: prepared.fromName ?? "YPN USA" },
+      ...(prepared.replyTo ? { reply_to: { email: prepared.replyTo } } : {}),
+      subject: prepared.subject,
+      content: [
+        { type: "text/plain", value: prepared.text },
+        ...(prepared.html ? [{ type: "text/html", value: prepared.html }] : []),
+      ],
+      ...(prepared.headers ? { headers: prepared.headers } : {}),
     }),
     signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
   });
@@ -201,10 +311,11 @@ export async function deliverOutreach(
   context: OutreachContext,
 ): Promise<OutreachDeliveryResult> {
   context = { ...context, officer: borrowerFacingOfficer(context.officer) };
-  const { subject, body } = composeOutreach(job.plan, context);
+  // Throws OutreachBlockedError before any provider is contacted.
+  const prepared = prepareOutreach(job, context);
   const webhookUrl = process.env.OUTREACH_WEBHOOK_URL?.trim();
   if (webhookUrl) {
-    return deliverWebhook(job, context, subject, body, webhookUrl);
+    return deliverWebhook(job, context, prepared, webhookUrl);
   }
 
   if (job.channel === "sms") {
@@ -212,16 +323,16 @@ export async function deliverOutreach(
     const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
     const fromNumber = process.env.TWILIO_FROM_NUMBER?.trim();
     if (accountSid && authToken && fromNumber) {
-      return deliverTwilio(job, body, accountSid, authToken, fromNumber);
+      return deliverTwilio(job, prepared.text, accountSid, authToken, fromNumber);
     }
   } else {
     const apiKey = process.env.SENDGRID_API_KEY?.trim();
     const fromEmail = process.env.SENDGRID_FROM_EMAIL?.trim();
     if (apiKey && fromEmail) {
-      return deliverSendGrid(job, subject, body, apiKey, fromEmail);
+      return deliverSendGrid(job, prepared, apiKey, fromEmail);
     }
     if (process.env.RESEND_API_KEY?.trim()) {
-      return deliverResend(job, subject, body);
+      return deliverResend(job, prepared);
     }
   }
 

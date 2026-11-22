@@ -1,5 +1,6 @@
 import { findAccountByEmail, normalizeEmail, upsertAccount } from "./accounts";
 import { BUSINESS_EMAIL } from "./author";
+import { recordCaptureConsent, type ConsentCapture } from "./consent";
 import { appendBorrowerLead, appendCrmLead, readDb, writeDb } from "./db";
 import { generateId } from "./id";
 import { findPublicOfficerPage, officerSlug } from "./officer-profile";
@@ -278,6 +279,8 @@ export function logCrmActivity(
   assignedLoId: string,
   funnelSource?: string,
   sessionId?: string,
+  /** How the borrower's consent was captured. Without it the entry still records the time and funnel. */
+  consent?: ConsentCapture,
 ): CrmSyncResult {
   const borrowerId = generateId("lead");
 
@@ -317,6 +320,15 @@ export function logCrmActivity(
 
   appendBorrowerLead(lead);
   appendCrmLead(crm);
+  // Every lead that agreed to be contacted gets a consent ledger entry: when, where and the
+  // wording. This is the only place leads are created, so no capture point can skip it.
+  recordCaptureConsent({
+    borrowerLeadId: borrowerId,
+    consented: answers.contactConsent === true,
+    email: answers.email,
+    phone: answers.phone,
+    capture: consent ?? { source: funnelSource ? `unspecified:${funnelSource}` : "unspecified" },
+  });
 
   return { borrowerLeadId: borrowerId, crmLeadId: crm.id, assignedLoId, notes };
 }

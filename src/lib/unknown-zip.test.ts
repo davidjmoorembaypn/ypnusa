@@ -8,7 +8,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "loanpilot-unknown-zip-"))
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
 describe("a five-digit code that isn't a U.S. ZIP code can't be checked as open or locked", async () => {
-  const { isKnownZip } = await import("./geo/zip-geo");
+  const { isKnownZip } = await import("./zip-known");
   const { checkLedgerTerritory } = await import("./territory-ledger");
   const { applyFulfillmentEvent } = await import("./fulfillment");
   const { readDb } = await import("./db");
@@ -46,5 +46,29 @@ describe("a five-digit code that isn't a U.S. ZIP code can't be checked as open 
     assert.ok(record);
     assert.deepEqual(record.claimedZips, []);
     assert.equal(record.status, "active");
+  });
+});
+
+describe("territory ZIP codes and the other ZIP code checks", async () => {
+  const { isKnownZip } = await import("./zip-known");
+  const { checkZip } = await import("./mcp/tools");
+  const { checkZipForViewer } = await import("./zip-availability");
+
+  it("Puerto Rico, the Virgin Islands, Guam and American Samoa ZIP codes are real", () => {
+    for (const zip of ["00601", "00901", "00802", "96910", "96799"]) assert.equal(isKnownZip(zip), true, zip);
+  });
+
+  it("the MCP check calls an unknown code invalid, not locked", () => {
+    const answer = checkZip("00000");
+    assert.equal(answer.valid, false);
+    assert.equal(answer.status, "invalid");
+    assert.equal(checkZip("00601").status, "open");
+  });
+
+  it("the dashboard won't offer an unknown code for sale", () => {
+    const answer = checkZipForViewer({ email: "lo@example.com" }, "00000");
+    assert.equal(answer.valid, false);
+    assert.equal(answer.available, false);
+    assert.equal(checkZipForViewer({ email: "lo@example.com" }, "00601").available, true);
   });
 });

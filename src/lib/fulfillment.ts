@@ -2,7 +2,7 @@ import { subscriptionRepository } from "@/lib/repositories";
 import { generateId } from "@/lib/id";
 import { logApiError } from "@/lib/http";
 import { PAID_PRICING_TIERS, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
-import { isKnownZip } from "@/lib/geo/zip-geo";
+import { isKnownZip } from "@/lib/zip-known";
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import { stripePlan } from "@/lib/stripe-plans";
 import { scheduleZipLockHook } from "@/lib/zip-scarcity";

@@ -1,4 +1,5 @@
-import { isKnownZip, zipPlace } from "@/lib/geo/zip-geo";
+import { zipPlace } from "@/lib/geo/zip-geo";
+import { isKnownZip } from "@/lib/zip-known";
 import { checkPaidLedgerTerritory, type TerritoryCheckResult } from "@/lib/territory";
 
 /**

@@ -64,14 +64,6 @@ export function zipPlace(zip: string): ZipPlace | null {
   return i === undefined ? null : places[i];
 }
 
-/**
- * True when the ZIP code is in the bundled U.S. ZIP code list. A five-digit string that isn't
- * (00000, a typo) is not a real ZIP code, so it can't be checked as open or locked by a payment.
- */
-export function isKnownZip(zip: string): boolean {
-  return zipPlace(zip) !== null;
-}
-
 export function zipDatasetSize(): number {
   return load().places.length;
 }

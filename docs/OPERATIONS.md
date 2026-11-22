@@ -158,6 +158,8 @@ A healthy answer looks like this (the build and times will differ):
 | `storage.headroom` | `ok` | `warn` (64 MB+) means the data file is getting large and saves are slowing down: plan the move to a database. `critical` (256 MB+) means it is close to the size at which it can no longer be saved. |
 | `storage.piiEncryption` | `on` | Borrower personal data is encrypted on the server. |
 | `email` | `on` | The site can send email (sign-in links, lead alerts, Cerebro's borrower emails). |
+| `backup.status` | `ok` | The hourly data backup ran in the last 2.5 hours. `stale`: no backup for longer (the timer stopped). `failing`: the latest run failed. `unknown`: the backup tool is not installed on this server or has never run (install it with `aws/ops/install-ops.sh`, section 5). Anything but `ok` needs a developer the same day. |
+| `backup.offHost` | `ok` | The latest backup was also copied to Amazon S3. `off`: no S3 bucket is set (`YPNUSA_BACKUP_S3_URI`), so every copy lives on the one server. `failed`: the S3 copy failed; the local copy is fine. |
 
 The `database` part of the answer is explained in [POSTGRES_PHASE1.md](POSTGRES_PHASE1.md). Until a database is
 connected it reads `"configured":false` and everything in it can be ignored.

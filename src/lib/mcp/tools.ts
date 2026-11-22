@@ -49,6 +49,10 @@ export function checkZip(rawZip: unknown): ZipAnswer {
     };
   }
   const result = checkLedgerTerritory(zip);
+  if (!result.valid) {
+    // Five digits but not a real U.S. ZIP code: invalid, never "locked".
+    return { zip: result.zip, valid: false, status: "invalid", available: false, city: null, state: null, message: result.message, demand: null };
+  }
   return {
     zip: result.zip,
     valid: true,

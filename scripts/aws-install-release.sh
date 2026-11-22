@@ -63,7 +63,7 @@ else
   url="https://github.com/$REPO/releases/latest/download"
 fi
 
-work="$(mktemp -d /tmp/ypnusa-deploy-XXXXXX)"
+mkdir -p /var/tmp && work="$(mktemp -d /var/tmp/ypnusa-deploy-XXXXXX)"
 trap 'rm -rf "$work"' EXIT
 cd "$work"
 

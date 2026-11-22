@@ -66,6 +66,7 @@ const jsonLd = {
       "@id": `${MARKETING_SITE_URL}/#website`,
       name: "YPN USA",
       url: MARKETING_SITE_URL,
+      inLanguage: "en-US",
       publisher: { "@id": `${MARKETING_SITE_URL}/#organization` },
     },
   ],

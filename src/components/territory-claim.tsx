@@ -201,9 +201,11 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   /** Best effort: a locked ZIP code still gets a result if this lookup fails or finds nothing. */
   async function loadNeighbors(lockedZip: string) {
     const request = new AbortController();
+    neighborRequest.current?.abort();
     neighborRequest.current = request;
+    const timeout = window.setTimeout(() => request.abort(), 15_000);
     try {
-      const signal = AbortSignal.any([request.signal, AbortSignal.timeout(15_000)]);
+      const { signal } = request;
       const res = await fetch(`/api/territory/neighbors?zip=${encodeURIComponent(lockedZip)}`, { signal });
       if (!res.ok) return;
       const data = (await res.json()) as { neighbors?: OpenNeighbor[] };
@@ -214,6 +216,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     } catch {
       /** noop */
     } finally {
+      window.clearTimeout(timeout);
       if (neighborRequest.current === request) neighborRequest.current = null;
     }
   }

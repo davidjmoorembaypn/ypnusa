@@ -40,6 +40,10 @@ export async function GET() {
         // null until the two stores have been compared since this process started.
         parityClean: database.parity?.clean ?? null,
         parityMismatches: database.parity?.mismatches ?? null,
+        // When the stores were last compared (every 5 minutes while PostgreSQL is kept in step).
+        parityCheckedAt: database.parity?.checkedAt ?? null,
+        // True while the data file's copy (the rollback target) missed a write PostgreSQL decided.
+        dataFileBehind: database.dataFileBehind,
         mirrorFailures: database.mirrorFailures,
         writeFailures: database.writeFailures,
         readMismatches: database.readMismatches,

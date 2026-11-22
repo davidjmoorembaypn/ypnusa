@@ -110,9 +110,14 @@ export async function runSchemaMigrations(
   client: SqlClient,
   migrations: SchemaMigration[] = SCHEMA_MIGRATIONS,
 ): Promise<string[]> {
-  await client.exec(
-    "create table if not exists schema_migrations (version text primary key, applied_at timestamptz not null default now())",
-  );
+  // Under the same lock as the migrations, so two servers starting together cannot collide
+  // creating this table ("create table if not exists" is not safe against itself in parallel).
+  await client.transaction(async (tx) => {
+    await tx.query("select pg_advisory_xact_lock($1)", [MIGRATION_LOCK_KEY]);
+    await tx.exec(
+      "create table if not exists schema_migrations (version text primary key, applied_at timestamptz not null default now())",
+    );
+  });
   const applied: string[] = [];
   for (const migration of migrations) {
     const ran = await client.transaction(async (tx) => {

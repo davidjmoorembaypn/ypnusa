@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       return jsonError("Request body must be a JSON object.", 400, "INVALID_BODY");
     }
 
-    const result = applyFulfillmentEvent(parsed.data);
+    const result = await applyFulfillmentEvent(parsed.data);
     if (!result.ok) return jsonError(result.error, result.code === "UNRECOGNIZED_STRIPE_PRICE" ? 422 : 400, result.code);
     if (!result.applied) return jsonOk({ applied: false, reason: result.reason });
 

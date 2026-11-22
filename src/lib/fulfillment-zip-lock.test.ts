@@ -35,36 +35,36 @@ describe("ZIP code locks only on the first real payment", async () => {
   );
   after(() => fs.rmSync(dataDir, { recursive: true, force: true }));
 
-  it("a trial checkout leaves the ZIP code open and remembers it as pending", () => {
-    const result = checkout("sub_trial", "cus_a", "no_payment_required");
+  it("a trial checkout leaves the ZIP code open and remembers it as pending", async () => {
+    const result = await checkout("sub_trial", "cus_a", "no_payment_required");
     assert.equal(result.ok && result.applied && result.zipClaimed, false);
     assert.deepEqual(record("sub_trial").claimedZips, []);
     assert.equal(record("sub_trial").pendingZip, "93720");
     assert.equal(record("sub_trial").status, "trialing");
   });
 
-  it("a $0 invoice does not lock; the first paid invoice does", () => {
-    checkout("sub_trial", "cus_a", "no_payment_required");
-    assert.equal(lockZipOnPaidInvoice({ stripeSubscriptionId: "sub_trial", amountPaidCents: 0, invoiceStatus: "paid" }).applied, false);
-    const lock = lockZipOnPaidInvoice({ stripeSubscriptionId: "sub_trial", amountPaidCents: 9999, invoiceStatus: "paid" });
+  it("a $0 invoice does not lock; the first paid invoice does", async () => {
+    await checkout("sub_trial", "cus_a", "no_payment_required");
+    assert.equal((await lockZipOnPaidInvoice({ stripeSubscriptionId: "sub_trial", amountPaidCents: 0, invoiceStatus: "paid" })).applied, false);
+    const lock = await lockZipOnPaidInvoice({ stripeSubscriptionId: "sub_trial", amountPaidCents: 9999, invoiceStatus: "paid" });
     assert.equal(lock.zipClaimed, true);
     assert.deepEqual(record("sub_trial").claimedZips, ["93720"]);
     assert.equal(record("sub_trial").pendingZip, undefined);
     assert.equal(record("sub_trial").status, "active");
     // Redelivery is a no-op.
-    assert.equal(lockZipOnPaidInvoice({ stripeSubscriptionId: "sub_trial", amountPaidCents: 9999, invoiceStatus: "paid" }).applied, false);
+    assert.equal((await lockZipOnPaidInvoice({ stripeSubscriptionId: "sub_trial", amountPaidCents: 9999, invoiceStatus: "paid" })).applied, false);
   });
 
-  it("pay-now checkout locks immediately", () => {
-    checkout("sub_now", "cus_b", "paid");
+  it("pay-now checkout locks immediately", async () => {
+    await checkout("sub_now", "cus_b", "paid");
     assert.deepEqual(record("sub_now").claimedZips, ["93720"]);
     assert.equal(record("sub_now").status, "active");
   });
 
-  it("whoever pays first gets the ZIP code; the trialist is flagged", () => {
-    checkout("sub_trial", "cus_a", "no_payment_required");
-    checkout("sub_now", "cus_b", "paid");
-    const lock = lockZipOnPaidInvoice({ stripeSubscriptionId: "sub_trial", amountPaidCents: 9999, invoiceStatus: "paid" });
+  it("whoever pays first gets the ZIP code; the trialist is flagged", async () => {
+    await checkout("sub_trial", "cus_a", "no_payment_required");
+    await checkout("sub_now", "cus_b", "paid");
+    const lock = await lockZipOnPaidInvoice({ stripeSubscriptionId: "sub_trial", amountPaidCents: 9999, invoiceStatus: "paid" });
     assert.equal(lock.zipConflict, true);
     assert.deepEqual(record("sub_trial").claimedZips, []);
     assert.equal(record("sub_trial").zipLockConflict?.zip, "93720");
@@ -93,7 +93,7 @@ describe("ZIP code locks only on the first real payment", async () => {
       },
     } as never;
     const payload = mapStripeEventToFulfillmentPayload(checkoutEvent)!;
-    const applied = applyFulfillmentEvent(payload);
+    const applied = await applyFulfillmentEvent(payload);
     assert.equal(applied.ok && applied.applied && applied.zipClaimed, true);
     const rec = record("prepaid_pi_123");
     assert.equal(rec.tier, "growth"); // public "Pro" = tier id growth
@@ -108,7 +108,7 @@ describe("ZIP code locks only on the first real payment", async () => {
       type: "charge.refunded",
       data: { object: { refunded: true, payment_intent: "pi_123", customer: "cus_p" } },
     } as never)!;
-    applyFulfillmentEvent(refund);
+    await applyFulfillmentEvent(refund);
     assert.equal(record("prepaid_pi_123").status, "cancelled");
   });
 });

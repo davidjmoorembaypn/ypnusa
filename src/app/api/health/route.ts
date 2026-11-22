@@ -1,6 +1,7 @@
 import { piiEncryptionStatus } from "@/lib/crypto/pii";
 import { storageMode } from "@/lib/db";
 import { jsonError, jsonOk, logApiError } from "@/lib/http";
+import { persistenceStatus } from "@/lib/repositories";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export async function GET() {
     // Public endpoint: report storage health only, never server paths or raw error text
     // (the storage layer already logs the details when the error occurs).
     const { persistent, error, unavailable, sizeBytes, headroom } = storageMode();
+    const database = persistenceStatus();
 
     return jsonOk({
       service: "ypnusa-app",
@@ -23,6 +25,22 @@ export async function GET() {
         sizeMb: Math.round((sizeBytes / (1024 * 1024)) * 10) / 10,
         headroom,
         piiEncryption: piiEncryptionStatus(),
+      },
+      // The move to PostgreSQL (see docs/POSTGRES_PHASE1.md). Modes and counts only: never a
+      // host name, a record or an error message. "json" for both means the data file alone.
+      database: {
+        configured: database.configured,
+        ready: database.ready,
+        ledger: database.ledger,
+        subscriptions: database.subscriptions,
+        // null until the two stores have been compared since this process started.
+        parityClean: database.parity?.clean ?? null,
+        parityMismatches: database.parity?.mismatches ?? null,
+        mirrorFailures: database.mirrorFailures,
+        writeFailures: database.writeFailures,
+        readMismatches: database.readMismatches,
+        ledgerMismatches: database.ledgerMismatches,
+        ledgerFallbacks: database.ledgerFallbacks,
       },
       // Whether outgoing email (Cerebro's borrower follow-ups, lead alerts) can send. On/off only.
       email: process.env.RESEND_API_KEY?.trim() ? "on" : "off",

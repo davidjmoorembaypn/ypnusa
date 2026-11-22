@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     if (event.type === "invoice.paid") {
       const invoice = event.data.object as InvoiceLike;
       // The first real payment is what locks a trial's ZIP code (never the $0 trial checkout).
-      const lock = lockZipOnPaidInvoice({
+      const lock = await lockZipOnPaidInvoice({
         stripeSubscriptionId: idOf(invoice.parent?.subscription_details?.subscription) ?? idOf(invoice.subscription),
         amountPaidCents: typeof invoice.amount_paid === "number" ? invoice.amount_paid : 0,
         invoiceStatus: invoice.status,
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       return jsonOk({ applied: false, reason: `Event type ${event.type} is not acted on.` });
     }
 
-    const result = applyFulfillmentEvent(payload);
+    const result = await applyFulfillmentEvent(payload);
     if (!result.ok) {
       // A business-logic rejection (bad payload shape, unrecognized price) is
       // logged for follow-up but still acked 200 — Stripe would otherwise

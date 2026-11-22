@@ -34,6 +34,7 @@ Local demo state persists to `data/store.json`. ZIP code availability is answere
 - The project uses **Next.js 16.3.8** with React 19 and Tailwind CSS 4. Consult `node_modules/next/dist/docs/` for API guidance rather than relying on training-data assumptions.
 - No `.env` file is required; the app runs fully without environment variables. `INTAKE_EXTERNAL_WEBHOOK_URL` is optional for Zapier-style integrations.
 - The file-based DB at `data/store.json` is auto-created on first write. It can be deleted to reset state.
+- PostgreSQL is optional and off by default. Paid subscriptions and the ZIP code ledger go through `src/lib/repositories` (`subscriptionRepository()`, `territoryLedger()`); with no `DATABASE_URL` they use `data/store.json` as before. See `docs/POSTGRES_PHASE1.md`. `npm test` needs no database (tests use an in-process PostgreSQL).
 - The `package-lock.json` is the lockfile; use `npm install` (not yarn/pnpm/bun).
 
 ## Deploying app.ypnus.com (any agent or tool)

@@ -1,8 +1,4 @@
-import {
-  findRevenueSubscriptionByStripeSubscriptionId,
-  saveRevenueSubscription,
-  saveRevenueSubscriptionWithZipClaim,
-} from "@/lib/db";
+import { subscriptionRepository } from "@/lib/repositories";
 import { generateId } from "@/lib/id";
 import { logApiError } from "@/lib/http";
 import { PAID_PRICING_TIERS, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
@@ -171,7 +167,10 @@ function reportedTier(record: RevenueSubscriptionRecord): PricingTierId | undefi
  * ledger. Returns a structured result rather than an HTTP response so both front
  * doors (internal-secret and direct-Stripe) can map it to their own response shape.
  */
-export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentResult {
+export async function applyFulfillmentEvent(payload: FulfillmentPayload): Promise<FulfillmentResult> {
+  // Every read and write of the subscription goes through the repository, so the same code runs
+  // on the data file and on PostgreSQL (see @/lib/repositories).
+  const subscriptions = subscriptionRepository();
   const stripeCustomerId = requiredText(payload.stripeCustomerId, 200);
   const stripeSubscriptionId = requiredText(payload.stripeSubscriptionId, 200);
   const eventCreatedAt =
@@ -189,7 +188,7 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
   const eventType = payload.eventType;
   const eventId = optionalText(payload.eventId, 200);
 
-  const existing = findRevenueSubscriptionByStripeSubscriptionId(stripeSubscriptionId);
+  const existing = await subscriptions.findByStripeSubscriptionId(stripeSubscriptionId);
   if (isStaleOrDuplicateEvent(existing, eventCreatedAt, eventId)) {
     return {
       ok: true,
@@ -208,7 +207,7 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
       lastStripeEventId: eventId,
       lastStripeEventCreatedAt: eventCreatedAt,
     };
-    saveRevenueSubscription(cancelled);
+    await subscriptions.save(cancelled);
     return { ok: true, applied: true, created: false, subscriptionId: cancelled.id, status: cancelled.status };
   }
 
@@ -261,7 +260,7 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
           lastStripeEventCreatedAt: eventCreatedAt,
         };
     const planned = withPlan(record, payload.plan);
-    saveRevenueSubscription(planned);
+    await subscriptions.save(planned);
     return { ok: true, applied: true, created: !existing, subscriptionId: planned.id, tier: reportedTier(planned), status: planned.status };
   }
 
@@ -344,7 +343,7 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
         lastStripeEventId: eventId,
         lastStripeEventCreatedAt: eventCreatedAt,
       };
-  const { record: saved, zipClaimed, zipConflict, zipNewlyLocked } = saveRevenueSubscriptionWithZipClaim(
+  const { record: saved, zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(
     withPlan(record, payload.plan),
     isTrialCheckout ? null : zipToClaim,
   );
@@ -356,9 +355,9 @@ export function applyFulfillmentEvent(payload: FulfillmentPayload): FulfillmentR
   if (zipConflict && zipToClaim) {
     // Paid, but another officer locked this ZIP code first. Flag it so the dashboard asks
     // the officer to pick an open one (see @/lib/zip-availability claimReplacementZip).
-    saveRevenueSubscriptionWithZipClaim({ ...saved, zipLockConflict: { zip: zipToClaim, at: now } }, null);
+    await subscriptions.saveWithZipClaim({ ...saved, zipLockConflict: { zip: zipToClaim, at: now } }, null);
   } else if (zipClaimed && saved.zipLockConflict) {
-    saveRevenueSubscriptionWithZipClaim({ ...saved, zipLockConflict: undefined }, null);
+    await subscriptions.saveWithZipClaim({ ...saved, zipLockConflict: undefined }, null);
   }
   if (zipConflict) {
     logApiError(
@@ -393,25 +392,26 @@ export interface PaidInvoiceLockResult {
  * loan officer pays for it first, they get it and this record is flagged zipLockConflict.
  * Idempotent: a repeat delivery after the lock is a no-op.
  */
-export function lockZipOnPaidInvoice(input: {
+export async function lockZipOnPaidInvoice(input: {
   stripeSubscriptionId: string | undefined;
   amountPaidCents: number;
   invoiceStatus: string | null | undefined;
-}): PaidInvoiceLockResult {
+}): Promise<PaidInvoiceLockResult> {
   if (input.invoiceStatus !== "paid") return { applied: false, reason: "Invoice is not paid." };
   if (!(input.amountPaidCents > 0)) return { applied: false, reason: "$0 invoice (trial) does not lock a ZIP code." };
   if (!input.stripeSubscriptionId) return { applied: false, reason: "Invoice has no subscription." };
-  const existing = findRevenueSubscriptionByStripeSubscriptionId(input.stripeSubscriptionId);
+  const subscriptions = subscriptionRepository();
+  const existing = await subscriptions.findByStripeSubscriptionId(input.stripeSubscriptionId);
   if (!existing) return { applied: false, reason: "No subscription found for that invoice." };
   if (existing.status === "cancelled") return { applied: false, reason: "Subscription is cancelled." };
   const zip = existing.pendingZip;
   if (!zip) return { applied: false, reason: "No pending ZIP code to lock." };
 
   const paid: RevenueSubscriptionRecord = { ...existing, status: "active", pendingZip: undefined, zipLockConflict: undefined };
-  const { zipClaimed, zipConflict, zipNewlyLocked } = saveRevenueSubscriptionWithZipClaim(paid, zip);
+  const { zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(paid, zip);
   if (zipNewlyLocked) scheduleZipLockHook(zip, existing.id, "first_payment");
   if (zipConflict) {
-    saveRevenueSubscriptionWithZipClaim({ ...paid, zipLockConflict: { zip, at: new Date().toISOString() } }, null);
+    await subscriptions.saveWithZipClaim({ ...paid, zipLockConflict: { zip, at: new Date().toISOString() } }, null);
     logApiError(
       "fulfillment",
       new Error(`First payment for subscription ${existing.id} arrived, but ZIP code ${zip} was already locked by another paid subscription.`),

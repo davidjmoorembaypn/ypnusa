@@ -38,27 +38,27 @@ describe("Pro yearly and the extra ZIP code add-on", async () => {
   );
   after(() => fs.rmSync(dataDir, { recursive: true, force: true }));
 
-  it("prices match what David approved", () => {
+  it("prices match what David approved", async () => {
     assert.equal(STRIPE_PLANS.pro_yearly.priceCents, 99000);
     assert.equal(STRIPE_PLANS.extra_zip_monthly.priceCents, 7900);
     assert.equal(STRIPE_PLANS.extra_zip_yearly.priceCents, 79000);
   });
 
-  it("recognises a plan from metadata only when it's a known key", () => {
+  it("recognises a plan from metadata only when it's a known key", async () => {
     assert.equal(stripePlanFrom({ metadataPlan: " Pro_Yearly " }), "pro_yearly");
     assert.equal(stripePlanFrom({ metadataPlan: "free_forever" }), undefined);
     assert.equal(stripePlanFrom({ metadataPlan: "__proto__" }), undefined);
     assert.equal(stripePlanFrom({}), undefined);
   });
 
-  it("recognises the live Payment Links and prices without metadata", () => {
+  it("recognises the live Payment Links and prices without metadata", async () => {
     assert.equal(stripePlanFrom({ paymentLinkId: "plink_1UdvSbBuaeDJIFLw5iau4wWt" }), "pro_yearly");
     assert.equal(stripePlanFrom({ priceId: "price_1UdvSNBuaeDJIFLwZbYJRkMf" }), "extra_zip_monthly");
     assert.equal(stripePlanFrom({ priceId: "price_1UdvSOBuaeDJIFLwbMqTrrlh" }), "extra_zip_yearly");
     assert.equal(stripePlanFrom({ paymentLinkId: "plink_somethingelse" }), undefined);
   });
 
-  it("the webhook passes ypnus_plan through from a checkout and a subscription", () => {
+  it("the webhook passes ypnus_plan through from a checkout and a subscription", async () => {
     const session = mapStripeEventToFulfillmentPayload({
       id: "evt_1",
       created: 1,
@@ -86,8 +86,8 @@ describe("Pro yearly and the extra ZIP code add-on", async () => {
     assert.equal(sub?.plan, "pro_yearly");
   });
 
-  it("Pro yearly grants Pro and locks the ZIP code at checkout", () => {
-    const result = checkout("sub_year", "cus_year", "year@example.com", "93291", { plan: "pro_yearly" });
+  it("Pro yearly grants Pro and locks the ZIP code at checkout", async () => {
+    const result = await checkout("sub_year", "cus_year", "year@example.com", "93291", { plan: "pro_yearly" });
     assert.equal(result.ok && result.applied && result.tier, "growth");
     assert.deepEqual(record("sub_year").claimedZips, ["93291"]);
     assert.equal(record("sub_year").monthlyPriceCents, 8250);
@@ -95,9 +95,9 @@ describe("Pro yearly and the extra ZIP code add-on", async () => {
     assert.equal(entitlementForEmail("year@example.com").tier, "growth");
   });
 
-  it("an extra ZIP code holds its ZIP code but never grants a plan, and never lowers one", () => {
-    checkout("sub_base", "cus_base", "lo@example.com", "93291", { tier: "elite" });
-    const addon = checkout("sub_add", "cus_add", "lo@example.com", "93292", { plan: "extra_zip_monthly" });
+  it("an extra ZIP code holds its ZIP code but never grants a plan, and never lowers one", async () => {
+    await checkout("sub_base", "cus_base", "lo@example.com", "93291", { tier: "elite" });
+    const addon = await checkout("sub_add", "cus_add", "lo@example.com", "93292", { plan: "extra_zip_monthly" });
     assert.equal(addon.ok && addon.applied && addon.tier, undefined);
     assert.equal(record("sub_add").addon, "extra_zip");
     assert.deepEqual(record("sub_add").claimedZips, ["93292"]);
@@ -105,14 +105,14 @@ describe("Pro yearly and the extra ZIP code add-on", async () => {
     assert.equal(entitlementForEmail("lo@example.com").tier, "elite");
 
     // Bought alone, it gives no plan access.
-    checkout("sub_alone", "cus_alone", "alone@example.com", "93611", { plan: "extra_zip_yearly" });
+    await checkout("sub_alone", "cus_alone", "alone@example.com", "93611", { plan: "extra_zip_yearly" });
     assert.deepEqual(record("sub_alone").claimedZips, ["93611"]);
     assert.deepEqual(entitlementForEmail("alone@example.com"), { tier: "free", subscriptionStatus: "none" });
   });
 
-  it("an add-on for a ZIP code someone else holds is flagged like any other paid checkout", () => {
-    checkout("sub_a", "cus_a", "a@example.com", "93277", { tier: "growth" });
-    checkout("sub_b", "cus_b", "b@example.com", "93277", { plan: "extra_zip_monthly" });
+  it("an add-on for a ZIP code someone else holds is flagged like any other paid checkout", async () => {
+    await checkout("sub_a", "cus_a", "a@example.com", "93277", { tier: "growth" });
+    await checkout("sub_b", "cus_b", "b@example.com", "93277", { plan: "extra_zip_monthly" });
     assert.deepEqual(record("sub_b").claimedZips, []);
     assert.equal(record("sub_b").zipLockConflict?.zip, "93277");
   });

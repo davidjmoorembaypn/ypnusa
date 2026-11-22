@@ -1,5 +1,5 @@
 import fs from "fs";
-import { isLiveSubscription } from "@/lib/subscription-live";
+import { claimHolderKey, isLiveSubscription } from "@/lib/subscription-live";
 import { openSnapshot, sealSnapshot } from "@/lib/crypto/pii-snapshot";
 import type { Stats } from "fs";
 import path from "path";
@@ -793,7 +793,9 @@ export function saveRevenueSubscriptionWithZipClaim(
       db.revenueSubscriptions.some(
         (s) =>
           s.id !== subscription.id &&
-          s.stripeCustomerId !== subscription.stripeCustomerId &&
+          // Not a bare stripeCustomerId comparison: two plans with no Stripe customer
+          // (admin adjustments) would compare equal and could both lock one ZIP code.
+          claimHolderKey(s) !== claimHolderKey(subscription) &&
           isLiveSubscription(s) &&
           s.claimedZips.includes(zip),
       );

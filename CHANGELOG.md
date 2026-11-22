@@ -12,6 +12,19 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 21, 2026 — next build (groundwork for moving to a database)
+
+Nothing changes on the live site with this build: it stays on the data file until a server setting is switched.
+
+- **Ready to move paid plans and ZIP code locks to a PostgreSQL database**, in steps, with no downtime and with the
+  data file kept as the fallback at every step. The steps and the rollback are in
+  [docs/POSTGRES_PHASE1.md](docs/POSTGRES_PHASE1.md).
+- **In the database, a ZIP code cannot be sold twice even if two payments arrive at the same instant:** the
+  database itself refuses a second holder.
+- **Fix: two plans created by an administrator could both lock the same ZIP code.** Plans with no Stripe customer
+  were treated as the same owner. Each is now its own owner.
+- **Health check:** shows whether a database is connected, which store is in use, and whether the two stores match.
+
 ## Nov 21, 2026 — next build (data safety and paid plans without a ZIP code)
 
 - **Customer data is safer:** if the server ever fails to read the data file, the site now stops and shows an error

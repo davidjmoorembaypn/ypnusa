@@ -70,23 +70,26 @@ describe("scheduled parity check", async () => {
     fs.rmSync(dataDir, { recursive: true, force: true });
   });
 
-  it("a difference made after start-up shows in the status on the next scheduled check", async () => {
+  it("a difference made after start-up is found by the next scheduled check, counted, and repaired", async () => {
     const persistence = start("shadow", "shadow", 25);
     assert.equal(await persistence.start(), true);
     await persistence.subscriptions.saveWithZipClaim(subscription(), "93618");
     await persistence.periodicParity();
     assert.equal(persistence.status().parity?.clean, true);
-    const firstCheck = persistence.status().parity?.checkedAt;
+    assert.equal(persistence.status().driftDetected, 0);
 
     // A plan reaches the data file without going through the repositories (drift).
+    const stray = subscription();
     writeDb((db) => {
-      db.revenueSubscriptions.push(subscription());
+      db.revenueSubscriptions.push(stray);
     });
-    await waitFor(() => persistence.status().parity?.clean === false);
-    const status = persistence.status();
-    assert.equal(status.parity?.mismatches, 1);
-    assert.notEqual(status.parity?.checkedAt, firstCheck);
+    // The schedule finds it without a restart, counts it, and copies it to PostgreSQL.
+    await waitFor(() => persistence.status().driftDetected === 1);
     assert.ok(logs.some((line) => line.includes("parity check found differences")));
+    await waitFor(() => persistence.status().parity?.clean === true);
+    const { rows } = await database.query<{ id: string }>("select id from revenue_subscriptions where id = $1", [stray.id]);
+    assert.equal(rows.length, 1);
+    assert.equal(persistence.status().driftDetected, 1, "counted once, not on every later check");
   });
 
   it("does not run at all in json mode, or when turned off", async () => {

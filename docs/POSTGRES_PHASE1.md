@@ -33,7 +33,10 @@ Every line must be true. None of them is done by the code.
    ([OPERATIONS.md](OPERATIONS.md) section 4).
 6. **A fresh before-change backup is taken** just before the first restart with the setting:
    `sudo /usr/local/sbin/ypnusa-backup pre-deploy`.
-7. **The site is on a build that includes PRs #217 and #220** (`build.commit` in `/api/health`).
+7. **The site is on a build that includes PRs #217 and #220** (`build.commit` in `/api/health`) and the hand-over
+   guard: the `database` part of `/api/health` lists `handoverBlocked`.
+8. **Something will tell you when it goes wrong**: one of the alerts in section 4 is set up and has been seen to
+   fire once (point it at a wrong keyword to try it).
 
 ---
 
@@ -75,9 +78,9 @@ After each step, wait for the check to pass before taking the next one. Do not s
 | Step | `YPN_LEDGER_STORE` | `YPN_SUBSCRIPTION_STORE` | Stay here | Check before moving on |
 | --- | --- | --- | --- | --- |
 | 1. Connect | `json` | `json` | 1 day | `database.configured` and `database.ready` are `true` |
-| 2. Shadow | `shadow` | `shadow` | 7 days, including at least one real payment | `parityClean` is `true`; `mirrorFailures`, `readMismatches`, `ledgerMismatches` are `0` |
+| 2. Shadow | `shadow` | `shadow` | 7 days, including at least one real payment | `parityClean` is `true`; `mirrorFailures`, `readMismatches`, `ledgerMismatches`, `driftDetected` are `0`; `unstorableRecords`, `refusedClaims` and `duplicateStripeSubscriptions` are `0` (fix the data until they are: step 4 will not start otherwise) |
 | 3. Ledger first | `postgres` | `shadow` | 3 to 5 days | same as step 2, and `ledgerFallbacks` is not climbing |
-| 4. Subscriptions second | `postgres` | `postgres` | from here on | `parityClean` is `true`; `writeFailures` is `0` |
+| 4. Subscriptions second | `postgres` | `postgres` | from here on | `ready` is `true` and `handoverBlocked` is `false`; `parityClean` is `true`; `writeFailures` is `0` |
 
 To take a step:
 
@@ -102,13 +105,19 @@ The `database` part of the answer:
 | `ready` | `true` | Connected, tables in place, and the two stores brought in line since the last restart. `false` for more than a minute means the database cannot be reached. |
 | `ledger`, `subscriptions` | the step you are on | The values in use. If they differ from what you set, the server log says why. |
 | `parityClean` | `true` | Both stores hold the same plans and the same locked ZIP codes. `null` in step 1. |
-| `parityMismatches` | `0` | How many records or ZIP codes differ. The server log lists them. |
+| `parityMismatches` | `0` | How many records or ZIP codes differ. The server log lists them. A difference found by the 5-minute comparison is repaired by copying again from the store in charge, so a number that stays above `0` is something a copy cannot fix (a plan only the other store holds, or one it cannot store) and needs a person. |
+| `driftDetected` | `0` | Differences the 5-minute comparison found after start-up, counted before they were repaired. Above `0` means something changed one store without going through the site (a hand edit, a restored backup, a bug). Find out what before taking the next step. |
 | `parityCheckedAt` | within the last 5 minutes | When the two stores were last compared. They are compared at every start and every 5 minutes while PostgreSQL is kept in step (steps 2 to 4). |
 | `mirrorFailures` | `0` | Copies to the other store that failed since the last restart. They are re-copied automatically; a number that keeps climbing means the database is unstable. |
 | `writeFailures` | `0` | Payment events refused because PostgreSQL was in charge (or, after a rollback, still owed its hand-over) and unreachable. Stripe sends each one again. |
 | `dataFileBehind` | `false` | On step 4 only: the data file's copy of a payment could not be written to disk. It is re-copied on the next payment; `true` that stays means the server's disk needs attention. |
 | `readMismatches`, `ledgerMismatches` | `0` | Times the two stores gave different answers to the same question in shadow mode. |
 | `ledgerFallbacks` | `0`, or not climbing | Times a ZIP code check was answered from the data file because PostgreSQL had no fresh answer. |
+| `handoverBlocked` | `false` | `true` on step 4 means PostgreSQL was told to take charge and refused: the copy from the data file left plans it could not store, or ZIP code claims it refused. `ready` stays `false` and payment events wait (Stripe sends them again). See section 3. |
+| `unstorableRecords` | `0` | Plans the last full copy could not store in the other store (for example an unreadable date). The server log names them. |
+| `refusedClaims` | `0` | ZIP code claims the last full copy to PostgreSQL refused because another officer already holds that ZIP code there. In the data file two plans list the same ZIP code. The first keeps it; a person decides what the second gets. |
+| `duplicateStripeSubscriptions` | `0` | Stripe subscriptions with more than one plan record. Cancel the extra record before step 4. |
+| `latencyMs` | see section 4 | How long PostgreSQL writes, reads and copies have taken since the last restart: `count`, `avgMs`, `maxMs`, `lastMs` for each. |
 
 Server log lines from this work start with `[persistence]`:
 
@@ -125,9 +134,9 @@ the store that was in charge is copied in full to the other one before the newly
 
 | You are on | Go back to | When |
 | --- | --- | --- |
-| Step 4 | Step 3 (`postgres` / `shadow`) | Payments are being refused, or `writeFailures` keeps climbing. |
-| Step 3 | Step 2 (`shadow` / `shadow`) | ZIP code answers look wrong, or `ledgerFallbacks` keeps climbing. |
-| Step 2 | Step 1 (`json` / `json`) | `mirrorFailures` keeps climbing. Nothing a visitor sees depends on step 2. |
+| Step 4 | Step 3 (`postgres` / `shadow`) | `handoverBlocked` is `true`; or `writeFailures` climbs for 15 minutes while `ready` is `true`; or `latencyMs.postgresWrite.avgMs` stays over 2000 for 15 minutes; or a payment locked the wrong ZIP code or none. |
+| Step 3 | Step 2 (`shadow` / `shadow`) | A ZIP code check gives a wrong answer you can reproduce; or `ledgerFallbacks` climbs for 30 minutes while `ready` is `true`; or `driftDetected` keeps rising. |
+| Step 2 | Step 1 (`json` / `json`) | `mirrorFailures` climbs for a day; or `unstorableRecords` or `refusedClaims` cannot be fixed yet. Nothing a visitor sees depends on step 2. |
 | Any step, database gone for good | remove `DATABASE_URL` | The data file has a copy of every write and takes over alone. |
 
 After a rollback, run the health check and confirm `parityClean` is `true` (or `null` on `json`).
@@ -138,12 +147,51 @@ an event the data file accepted before the hand-over would be overwritten by the
 The data file keeps its own note of this in `persistence-authority.json` beside `store.json`. Removing
 `DATABASE_URL` entirely skips the wait, and the data file then decides from the copy it has.
 
+**If step 4 will not start (`handoverBlocked` is `true`).** PostgreSQL would have been missing a plan or a ZIP
+code lock that the data file has, and could have sold a held ZIP code again, so it did not take charge. The data
+file is still the truth and nothing was lost, but payment events wait while the setting says `postgres`.
+
+1. Go back to step 3 and restart. Payments flow again at once: the data file was in charge all along.
+2. Read what was refused:
+
+```bash
+sudo journalctl -u ypnusa --since "1 hour ago" | grep "left work for a person"
+```
+
+3. Fix each one in the admin dashboard (a plan with an unreadable date, two plans holding the same ZIP code).
+4. Wait for `unstorableRecords` and `refusedClaims` to read `0`, then take step 4 again.
+
 The hourly, daily and before-install backups of the data file continue unchanged through every step
 ([OPERATIONS.md](OPERATIONS.md) section 5), and they still contain the plans and ZIP code locks.
 
 ---
 
-## 4. What Phase 1 does not do
+## 4. Monitoring
+
+Nothing alerts by itself: set up one of these before step 2.
+
+- **Simplest:** an uptime monitor with a keyword check on `https://ypnus.com/api/health`, every 5 minutes, alerting
+  when the page does not contain `"parityClean":true` (steps 2 to 4) or contains `"handoverBlocked":true`.
+- **On AWS:** the database's own alarms for CPU, free storage, connections and "instance not available".
+
+| What to watch | Where | Alert when | First action |
+| --- | --- | --- | --- |
+| Dual-write failures | `mirrorFailures`, `dataFileBehind` | `mirrorFailures` above 0 and climbing; `dataFileBehind` `true` for 2 checks | Check the database's status, or on step 4 the server's disk. Nothing a visitor sees depends on it in steps 2 and 3. |
+| Write latency | `latencyMs.postgresWrite` | `avgMs` over 500, or `maxMs` over 3000 | Check database CPU and connections. Stripe expects a quick answer to every webhook. |
+| Read latency | `latencyMs.postgresRead` | `avgMs` over 250 | Same. |
+| Copy latency | `latencyMs.mirror` | `avgMs` over 3000 on step 4 | The data file is getting large: see `storage.sizeMb`. |
+| Drift | `driftDetected`, `parityClean` | `driftDetected` above 0, or `parityClean` `false` twice in a row | Read the log line that lists the differences. Do not take the next step. |
+| Failed comparisons | `readMismatches`, `ledgerMismatches`, `parityCheckedAt` | either count above 0, or `parityCheckedAt` older than 15 minutes | The second means comparisons are not running: check `ready`. |
+| PostgreSQL availability | `ready`, `writeFailures`, `ledgerFallbacks` | `ready` `false` for 2 checks; `writeFailures` above 0 | Section 3. |
+| Refused hand-over | `handoverBlocked` | `true` | Section 3. Payments are waiting. |
+| Stripe | Stripe dashboard, webhook deliveries | any delivery failing for over 1 hour | The site is refusing events: find out which of the above is the cause. |
+
+`latencyMs` counts from the last restart. The thresholds are starting points from a rehearsal on one machine, not
+measurements from the live database: adjust them after the first week on step 2.
+
+---
+
+## 5. What Phase 1 does not do
 
 - Borrower leads, accounts, loan officers and chats stay in the data file. They move in Phase 2.
 - Dashboards and reports that list plans still read the data file's copy. That copy is updated on every write,
@@ -153,7 +201,7 @@ The hourly, daily and before-install backups of the data file continue unchanged
 
 ---
 
-## 5. For developers
+## 6. For developers
 
 - Callers use the interfaces in `src/lib/repositories/types.ts` (`SubscriptionRepository`,
   `TerritoryLedgerRepository`) through `subscriptionRepository()` and `territoryLedger()`. The payment path

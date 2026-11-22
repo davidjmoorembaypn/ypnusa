@@ -25,6 +25,41 @@ export class DatabaseUnavailableError extends Error {
   }
 }
 
+const CONNECTION_ERROR_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "EPIPE",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  // PostgreSQL: the server is shutting down, starting up, or out of connections.
+  "57P01",
+  "57P02",
+  "57P03",
+  "53300",
+]);
+
+/**
+ * True when the error means the database could not be reached or dropped the connection, as
+ * opposed to rejecting one statement. Only this kind of error means "the database is down".
+ */
+export function isConnectionError(error: unknown): boolean {
+  if (error instanceof DatabaseUnavailableError) return true;
+  if (!error || typeof error !== "object") return false;
+  const { code, message } = error as { code?: unknown; message?: unknown };
+  if (typeof code === "string" && (CONNECTION_ERROR_CODES.has(code) || code.startsWith("08"))) return true;
+  return typeof message === "string" && /timeout exceeded when trying to connect|Connection terminated|connection timeout|Query read timeout|ECONNREFUSED/i.test(message);
+}
+
+/** True when PostgreSQL rejected the values of one record (a bad value or a broken rule), not the connection. */
+export function isDataError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const { code } = error as { code?: unknown };
+  return typeof code === "string" && (code.startsWith("22") || code.startsWith("23"));
+}
+
 export interface DatabaseSettings {
   connectionString: string;
   /** PEM bundle for a private certificate authority (Amazon RDS). Optional for hosts with public certificates. */

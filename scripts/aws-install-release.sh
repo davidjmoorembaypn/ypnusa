@@ -63,7 +63,15 @@ else
   url="https://github.com/$REPO/releases/latest/download"
 fi
 
-mkdir -p /var/tmp && work="$(mktemp -d /var/tmp/ypnusa-deploy-XXXXXX)"
+# Amazon Linux uses a small tmpfs for /tmp. Release bundles include the Next.js
+# runtime and dependencies, so unpack them on disk-backed /var/tmp instead.
+WORK_ROOT="${YPNUSA_INSTALL_WORK_ROOT:-/var/tmp}"
+mkdir -p "$WORK_ROOT"
+if [ ! -d "$WORK_ROOT" ] || [ ! -w "$WORK_ROOT" ]; then
+  echo "ERROR: install workspace is not writable: $WORK_ROOT" >&2
+  exit 1
+fi
+work="$(mktemp -d "$WORK_ROOT/ypnusa-deploy-XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 cd "$work"
 

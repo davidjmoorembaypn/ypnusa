@@ -54,6 +54,9 @@ jobs:
           mkdir -p "$out/scripts" && cp scripts/copy-wordpress-media.mjs "$out/scripts/"
           # The server's auto-updater refreshes itself from the installed bundle (docs/OPERATIONS.md section 2).
           cp scripts/aws-auto-update.sh scripts/aws-install-release.sh scripts/ping-indexnow.mjs "$out/scripts/"
+          # The EC2 cutover command refreshes these idempotent root-only operational scripts
+          # from the verified release before proving backup health.
+          cp -a aws/ops "$out/scripts/ops"
           # Never ship local data or env files; the server supplies both.
           rm -rf "$out/data" "$out"/.env*
           # Persistent data dir + app/.env loader, so the bundle runs without a prior build to copy them from.

@@ -39,4 +39,10 @@ export interface TerritoryLedgerRepository {
   /** Every ZIP code held by a live paid plan (Stripe or admin adjustment) at `now`. */
   paidClaimedZips(now?: number): Promise<Set<string>>;
   isPaidClaimed(zip: string, now?: number): Promise<boolean>;
+  /**
+   * Who holds each paid ZIP code at `now`: ZIP code to holder keys (see claimHolderKey), sorted.
+   * More than one holder for a ZIP code is data that breaks the rule; the comparison between
+   * stores uses this to notice it.
+   */
+  paidHolders(now?: number): Promise<Map<string, string[]>>;
 }

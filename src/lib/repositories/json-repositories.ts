@@ -4,8 +4,10 @@ import {
   saveRevenueSubscription,
   saveRevenueSubscriptionWithZipClaim,
 } from "@/lib/db";
+import { claimHolderKey, isLiveSubscription } from "@/lib/subscription-live";
 import { paidLedgerClaimedZipsFromDataFile } from "@/lib/territory";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
+import { ledgerZips } from "./subscription-record";
 import type { SubscriptionRepository, TerritoryLedgerRepository, ZipClaimOutcome } from "./types";
 
 /**
@@ -45,5 +47,18 @@ export class JsonTerritoryLedgerRepository implements TerritoryLedgerRepository 
 
   async isPaidClaimed(zip: string, now: number = Date.now()): Promise<boolean> {
     return paidLedgerClaimedZipsFromDataFile(now).has(zip);
+  }
+
+  async paidHolders(now: number = Date.now()): Promise<Map<string, string[]>> {
+    const holders = new Map<string, Set<string>>();
+    for (const subscription of readDb().revenueSubscriptions) {
+      if (!isLiveSubscription(subscription, now)) continue;
+      if (subscription.source !== "stripe_webhook" && subscription.source !== "admin_adjustment") continue;
+      for (const zip of ledgerZips(subscription)) {
+        if (!holders.has(zip)) holders.set(zip, new Set());
+        (holders.get(zip) as Set<string>).add(claimHolderKey(subscription));
+      }
+    }
+    return new Map([...holders].map(([zip, keys]) => [zip, [...keys].sort()]));
   }
 }

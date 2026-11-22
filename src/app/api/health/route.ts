@@ -33,14 +33,28 @@ export async function GET() {
         ready: database.ready,
         ledger: database.ledger,
         subscriptions: database.subscriptions,
-        // null until the two stores have been compared since this process started.
+        // True while PostgreSQL's copy has not been brought back after it was in charge: payment
+        // events are refused (Stripe sends them again) until it is.
+        handoverPending: database.handoverPending,
+        // True when a switch to PostgreSQL was refused because some records could not be copied.
+        handoverBlocked: database.handoverBlocked,
+        // The two stores are compared at start and every few minutes. null until the first time.
         parityClean: database.parity?.clean ?? null,
         parityMismatches: database.parity?.mismatches ?? null,
+        parityCheckedAt: database.parity?.checkedAt ?? null,
+        // Differences found by a comparison (before it repaired them), since this process started.
+        driftDetected: database.driftDetected,
         mirrorFailures: database.mirrorFailures,
         writeFailures: database.writeFailures,
         readMismatches: database.readMismatches,
         ledgerMismatches: database.ledgerMismatches,
         ledgerFallbacks: database.ledgerFallbacks,
+        unstorableRecords: database.unstorableRecords,
+        refusedClaims: database.refusedClaims,
+        duplicateStripeSubscriptions: database.duplicateStripeSubscriptions,
+        // Milliseconds, since this process started: PostgreSQL writes and reads in the payment
+        // path, and copies to the other store.
+        latencyMs: database.latency,
       },
       // Whether outgoing email (Cerebro's borrower follow-ups, lead alerts) can send. On/off only.
       email: process.env.RESEND_API_KEY?.trim() ? "on" : "off",

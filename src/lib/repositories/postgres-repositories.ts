@@ -199,4 +199,18 @@ export class PostgresTerritoryLedgerRepository implements TerritoryLedgerReposit
     );
     return rows.length > 0;
   }
+
+  async paidHolders(now: number = Date.now()): Promise<Map<string, string[]>> {
+    const { rows } = await this.client.query<{ zip: string; holder_key: string }>(
+      `select distinct zip, holder_key from zip_claims
+        where released_at is null
+          and (expires_at is null or expires_at > $1)
+          and source in ('stripe_webhook', 'admin_adjustment')
+        order by zip, holder_key`,
+      [new Date(now)],
+    );
+    const holders = new Map<string, string[]>();
+    for (const row of rows) holders.set(row.zip, [...(holders.get(row.zip) ?? []), row.holder_key]);
+    return holders;
+  }
 }

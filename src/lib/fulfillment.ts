@@ -1,4 +1,5 @@
 import { subscriptionRepository } from "@/lib/repositories";
+import { subscriptionLockKey, withKeyedLock } from "@/lib/repositories/keyed-lock";
 import { generateId } from "@/lib/id";
 import { logApiError } from "@/lib/http";
 import { PAID_PRICING_TIERS, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
@@ -168,6 +169,13 @@ function reportedTier(record: RevenueSubscriptionRecord): PricingTierId | undefi
  * doors (internal-secret and direct-Stripe) can map it to their own response shape.
  */
 export async function applyFulfillmentEvent(payload: FulfillmentPayload): Promise<FulfillmentResult> {
+  // One event at a time per Stripe subscription: this function reads the subscription, decides,
+  // then writes it, and two events for the same subscription often arrive in the same second.
+  const key = requiredText(payload.stripeSubscriptionId, 200);
+  return key ? withKeyedLock(subscriptionLockKey(key), () => applyFulfillmentEventLocked(payload)) : applyFulfillmentEventLocked(payload);
+}
+
+async function applyFulfillmentEventLocked(payload: FulfillmentPayload): Promise<FulfillmentResult> {
   // Every read and write of the subscription goes through the repository, so the same code runs
   // on the data file and on PostgreSQL (see @/lib/repositories).
   const subscriptions = subscriptionRepository();
@@ -400,8 +408,15 @@ export async function lockZipOnPaidInvoice(input: {
   if (input.invoiceStatus !== "paid") return { applied: false, reason: "Invoice is not paid." };
   if (!(input.amountPaidCents > 0)) return { applied: false, reason: "$0 invoice (trial) does not lock a ZIP code." };
   if (!input.stripeSubscriptionId) return { applied: false, reason: "Invoice has no subscription." };
+  // The same lock as applyFulfillmentEvent: an invoice and a subscription update for one
+  // subscription must not read it at the same moment and overwrite each other.
+  const stripeSubscriptionId = input.stripeSubscriptionId;
+  return withKeyedLock(subscriptionLockKey(stripeSubscriptionId), () => lockZipOnPaidInvoiceLocked(stripeSubscriptionId));
+}
+
+async function lockZipOnPaidInvoiceLocked(stripeSubscriptionId: string): Promise<PaidInvoiceLockResult> {
   const subscriptions = subscriptionRepository();
-  const existing = await subscriptions.findByStripeSubscriptionId(input.stripeSubscriptionId);
+  const existing = await subscriptions.findByStripeSubscriptionId(stripeSubscriptionId);
   if (!existing) return { applied: false, reason: "No subscription found for that invoice." };
   if (existing.status === "cancelled") return { applied: false, reason: "Subscription is cancelled." };
   const zip = existing.pendingZip;

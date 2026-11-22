@@ -28,7 +28,7 @@ export interface LedgerReadModelSource {
 interface ReadModelState {
   source: LedgerReadModelSource | null;
   snapshot: { zips: Set<string>; loadedAt: number } | null;
-  refreshing: Promise<void> | null;
+  refreshing: Promise<boolean> | null;
   lastCompareAt: number;
   fallbacks: number;
   refreshFailures: number;
@@ -55,24 +55,40 @@ export function configureLedgerReadModel(source: LedgerReadModelSource | null): 
   state.refreshFailures = 0;
 }
 
-/** Loads PostgreSQL's ledger now. Resolves false (and keeps the previous copy) when it cannot. */
-export function refreshLedgerReadModel(): Promise<boolean> {
+/** Puts a freshly loaded ledger in place directly (start-up does this with the answer it already has). */
+export function setLedgerSnapshot(zips: Set<string>): void {
+  const source = state.source;
+  if (!source || source.mode !== "postgres") return;
+  state.snapshot = { zips, loadedAt: (source.now ?? Date.now)() };
+}
+
+/**
+ * Loads PostgreSQL's ledger. Resolves false (and keeps the previous copy) when it cannot.
+ * One load runs at a time. `fresh` is for after a write: a load already under way may have read
+ * the ledger before that write, so a new one is started after it.
+ */
+export function refreshLedgerReadModel(options: { fresh?: boolean } = {}): Promise<boolean> {
   const source = state.source;
   if (!source || source.mode !== "postgres") return Promise.resolve(false);
+  if (state.refreshing && !options.fresh) return state.refreshing;
   const now = source.now ?? Date.now;
-  state.refreshing ??= source
-    .load()
-    .then((zips) => {
-      if (state.source === source) state.snapshot = { zips, loadedAt: now() };
-    })
-    .catch(() => {
-      state.refreshFailures += 1;
-    })
-    .finally(() => {
-      state.refreshing = null;
-    });
-  const before = state.snapshot;
-  return state.refreshing.then(() => state.snapshot !== before && state.snapshot !== null);
+  const load = () =>
+    source.load().then(
+      (zips) => {
+        if (state.source === source) state.snapshot = { zips, loadedAt: now() };
+        return true;
+      },
+      () => {
+        state.refreshFailures += 1;
+        return false;
+      },
+    );
+  const run: Promise<boolean> = (state.refreshing ?? Promise.resolve(true)).then(load);
+  state.refreshing = run;
+  void run.finally(() => {
+    if (state.refreshing === run) state.refreshing = null;
+  });
+  return run;
 }
 
 export function paidLedgerSnapshot(fromDataFile: () => Set<string>): Set<string> {

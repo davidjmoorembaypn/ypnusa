@@ -2,6 +2,7 @@ import { normalizeEmail } from "@/lib/accounts";
 import { MLO_MARKETS } from "@/content/mlo-markets";
 import { readDb } from "@/lib/db";
 import { subscriptionRepository } from "@/lib/repositories";
+import { subscriptionLockKey, withKeyedLock } from "@/lib/repositories/keyed-lock";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import { scheduleZipLockHook } from "@/lib/zip-scarcity";
@@ -142,18 +143,29 @@ export async function claimReplacementZip(
   rawZip: unknown,
   now: number = Date.now(),
 ): Promise<ReplacementResult> {
-  const sub = viewerPlanNeedingZip(viewer, now);
-  if (!sub) return { ok: false, reason: "no_conflict" };
+  const candidate = viewerPlanNeedingZip(viewer, now);
+  if (!candidate) return { ok: false, reason: "no_conflict" };
   const zip = normalizeZip(rawZip);
   if (!isValidZip(zip)) return { ok: false, reason: "invalid_zip" };
-  // The claim itself re-checks inside one write, so two officers can't both get it.
-  const subscriptions = subscriptionRepository();
-  const { record, zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(sub, zip);
-  if (zipConflict || !zipClaimed) {
-    // A conflicted claim saves the record as given, so the zipLockConflict flag stays on it.
-    return { ok: false, reason: "taken", nearby: nearbyOpenZips(zip, now) };
-  }
-  await subscriptions.save({ ...record, zipLockConflict: undefined });
-  if (zipNewlyLocked) scheduleZipLockHook(zip, sub.id, "replacement");
-  return { ok: true, zip };
+
+  // The same lock the payment webhook takes for this subscription, so a Stripe event arriving
+  // while the officer picks a ZIP code cannot be overwritten, or overwrite the pick.
+  return withKeyedLock(subscriptionLockKey(candidate.stripeSubscriptionId ?? candidate.id), async () => {
+    const subscriptions = subscriptionRepository();
+    // Look again now that the lock is held, and write the copy the store in charge has.
+    const stillNeeded = viewerPlanNeedingZip(viewer, now);
+    if (!stillNeeded || stillNeeded.id !== candidate.id) return { ok: false, reason: "no_conflict" } as const;
+    const sub = (await subscriptions.findById(candidate.id)) ?? stillNeeded;
+    if (sub.status === "cancelled" || (sub.claimedZips.length > 0 && !sub.zipLockConflict)) return { ok: false, reason: "no_conflict" } as const;
+
+    // The claim itself re-checks inside one write, so two officers can't both get it.
+    const { record, zipClaimed, zipConflict, zipNewlyLocked } = await subscriptions.saveWithZipClaim(sub, zip);
+    if (zipConflict || !zipClaimed) {
+      // A conflicted claim saves the record as given, so the zipLockConflict flag stays on it.
+      return { ok: false, reason: "taken", nearby: nearbyOpenZips(zip, now) } as const;
+    }
+    await subscriptions.save({ ...record, zipLockConflict: undefined });
+    if (zipNewlyLocked) scheduleZipLockHook(zip, sub.id, "replacement");
+    return { ok: true, zip } as const;
+  });
 }

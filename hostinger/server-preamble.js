@@ -5,8 +5,11 @@ process.env.LOANPILOT_DATA_DIR =
   process.env.LOANPILOT_DATA_DIR ||
   "/home/u853154979/domains/ypnus.com/app/persistent-data"
 
-// YPN-ENV-LOADER: fill in any variable not already set from app/.env
-// (Hostinger exposes no env-var screen for this app; the deployed build has no .env loader).
+// YPN-ENV-LOADER: Hostinger has no environment-variable screen, so load app/.env
+// only when systemd has not already injected the required server settings. On AWS,
+// /etc/ypnusa/app.env is root-only and EnvironmentFile= supplies SESSION_SECRET.
+// Skipping the Hostinger path prevents an EACCES warning on every AWS start.
+if (!process.env.SESSION_SECRET) {
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- spliced into Next's CommonJS standalone server.js
   require("fs").readFileSync("/home/u853154979/domains/ypnus.com/app/.env", "utf8").split(/\r?\n/).forEach(function (l) {
@@ -16,4 +19,5 @@ try {
     if (process.env[m[1]] === undefined || process.env[m[1]] === "") process.env[m[1]] = v;
   });
 } catch (e) { console.error("env loader:", e.code || e.message); }
+}
 

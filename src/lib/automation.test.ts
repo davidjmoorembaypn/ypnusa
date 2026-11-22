@@ -74,6 +74,8 @@ describe("automation.ts outreach personalization connector", async () => {
       officer.entitlementStatus = "active";
       // Every borrower message must show the officer's NMLS ID, so the test officer has one.
       officer.nmlsId = "123456";
+      // The ZIP code test below is a California borrower: the officer must list that license.
+      officer.licenses = [{ state: "CA", type: "mlo" }];
     });
     server = http.createServer((req, res) => {
       let raw = "";

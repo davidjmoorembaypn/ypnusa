@@ -21,10 +21,13 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
   unsubscribe button. Unsubscribing also cancels what was queued.
 - **Every follow-up message shows the loan officer's NMLS ID** and the other required lines. A message is not sent
   if the officer has no NMLS ID on their profile, or the borrower is in a state the officer has not listed a
-  license for. **Officers: check your NMLS ID is on your profile.**
+  license for (an officer who has listed none sends nothing to a borrower whose ZIP code is known).
+  **Officers: check your NMLS ID and your state licenses are on your profile.**
 - **A record of consent is kept:** when a borrower agrees to be contacted, the site now stores when, where and the
   exact question they answered.
-- **No more "book a call" nudges after a borrower books one.**
+- **No more "book a call" nudges after a borrower books one.** This also covers calls booked before this build.
+- **An opt-out always wins.** Consent and bookings are checked again at the last moment before a message is
+  sent, and a STOP or unsubscribe is recorded so that no earlier "yes" can outlast it.
 - **Fix:** a follow-up is no longer sent to a placeholder address when a borrower left out their phone or email.
 
 ## Nov 21, 2026 — next build (groundwork for moving to a database)

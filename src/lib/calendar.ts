@@ -488,7 +488,7 @@ export async function bookAppointment(input: {
   appendAppointment(record);
   // The borrower has a call booked, so the "would you like to book a call?" follow-ups that
   // are still queued for them must not go out.
-  cancelPendingFollowUps(input.borrowerLeadId);
+  cancelPendingFollowUps(input.borrowerLeadId, "Cancelled: the borrower booked a call.");
   // Emails go out in the background so the chat answers right away.
   void sendBookingConfirmation(record.id);
   return record;

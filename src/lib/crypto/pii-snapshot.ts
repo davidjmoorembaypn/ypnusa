@@ -8,7 +8,7 @@ import { decryptValue, encryptValue, isEncryptedValue } from "./pii";
  * Keep in step with src/lib/types.ts when a record gains a personal field.
  */
 export const PII_FIELDS: Readonly<Record<string, readonly string[]>> = {
-  sessions: ["answers"],
+  sessions: ["answers", "consentCapture"],
   borrowerLeads: ["answers", "prequalRequest"],
   crmLeads: ["notes"],
   loAlerts: ["summary"],

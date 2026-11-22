@@ -35,7 +35,8 @@ describe("borrower messaging compliance", async () => {
   const { processDueFollowUps, scheduleBorrowerJourney } = await import("./automation");
   const { bookAppointment, listAvailableSlots } = await import("./calendar");
   const { dispatchCerebroMessages, emailHtml } = await import("./cerebro-dispatch");
-  const { canContact, latestConsent } = await import("./consent");
+  const { canContact, latestConsent, recordOptOutAllChannels } = await import("./consent");
+  const { PII_FIELDS } = await import("./crypto/pii-snapshot");
   const { logCrmActivity } = await import("./crm");
   const { appendAppointment, appendBorrowerLead, persistFollowUpsBatch, readDb, saveCerebroAction, writeDb } = await import("./db");
   const { generateId } = await import("./id");
@@ -175,6 +176,56 @@ describe("borrower messaging compliance", async () => {
       assert.equal(entries[0].at, "2026-11-21T02:30:00.000Z");
     });
 
+    it("a partner whose clock runs fast cannot date consent after the borrower's later opt-out", () => {
+      const officer = addOfficer();
+      const ahead = new Date(Date.now() + 10 * 60_000).toISOString();
+      const result = logCrmActivity(
+        { loanProgram: "VA", name: "Fast Clock", email: "fast@borrowermail.com", phone: "+15595550133", contactConsent: true },
+        qualification,
+        officer.id,
+        "lead_webhook",
+        undefined,
+        { source: "lead_webhook:fast-clock", at: ahead, channels: ["email", "sms"] },
+      );
+      const leadId = result.borrowerLeadId;
+      assert.equal(consentsOf(leadId).length, 2);
+      assert.equal(consentsOf(leadId).every((entry) => Date.parse(entry.at) <= Date.now()), true, "filed no later than now");
+
+      assert.equal(handleInboundSms({ from: "+15595550133", body: "STOP", messageSid: "SM_fast_clock" }).action, "opted_out");
+      const noon = new Date("2026-11-20T20:00:00Z");
+      for (const channel of ["email", "sms"] as const) {
+        assert.equal(canContact({ db: readDb(), borrowerLeadId: leadId, channel, legacyConsent: true, now: noon }).allowed, false, channel);
+      }
+    });
+
+    it("an opt-out wins over an entry already in the ledger with a later time, and START still works after it", () => {
+      const officer = addOfficer();
+      const lead = addLead(officer.id, { phone: "+15595550134", email: "skew@borrowermail.com" });
+      const ahead = new Date(Date.now() + 3 * 86400_000).toISOString();
+      writeDb((db) => {
+        for (const channel of ["email", "sms"] as const) {
+          db.consents.push({ id: generateId("consent"), borrowerLeadId: lead.id, channel, granted: true, source: "restored_backup", at: ahead });
+        }
+      });
+      const noon = new Date("2026-11-20T20:00:00Z");
+      const allowed = (channel: "email" | "sms") => canContact({ db: readDb(), borrowerLeadId: lead.id, channel, legacyConsent: true, now: noon }).allowed;
+
+      assert.equal(unsubscribeBorrower(lead.id, unsubscribeToken(lead.id), "email_one_click_unsubscribe"), true);
+      assert.equal(allowed("email"), false);
+      assert.equal(allowed("sms"), false);
+
+      assert.equal(handleInboundSms({ from: "+15595550134", body: "START", messageSid: "SM_skew_start" }).action, "opted_in");
+      assert.equal(allowed("sms"), true);
+      assert.equal(allowed("email"), false);
+      assert.equal(handleInboundSms({ from: "+15595550134", body: "STOP", messageSid: "SM_skew_stop" }).action, "opted_out");
+      assert.equal(allowed("sms"), false);
+    });
+
+    it("the session's copy of the consent wording is encrypted at rest like the ledger's", () => {
+      assert.ok(PII_FIELDS.sessions.includes("consentCapture"));
+      assert.ok(PII_FIELDS.consents.includes("textShown"));
+    });
+
     it("only channels the borrower gave an address for are recorded, and a lead created with no details still gets an entry", () => {
       const officer = addOfficer();
       const emailOnly = logCrmActivity({ loanProgram: "FHA", name: "Email Only", email: "only@borrowermail.com", contactConsent: true }, qualification, officer.id, "chat");
@@ -248,6 +299,19 @@ describe("borrower messaging compliance", async () => {
         assert.match(error.reason, /license in TX/);
         return true;
       });
+
+      // An officer who has listed no licenses is not assumed to be licensed in the borrower's state.
+      for (const licenses of [[], undefined]) {
+        const noneListed = addOfficer({ licenses });
+        assert.throws(() => prepareOutreach(job(lead, "day_1_educational_email"), { lead, officer: noneListed }), (error: unknown) => {
+          assert.ok(error instanceof OutreachBlockedError);
+          assert.match(error.reason, /license in CA/);
+          return true;
+        });
+        // With no ZIP code the state is unknown, and the message still goes.
+        const noZip = addLead(noneListed.id, { zip: undefined });
+        assert.match(prepareOutreach(job(noZip, "day_1_educational_email"), { lead: noZip, officer: noneListed }).text, /NMLS #123456/);
+      }
 
       const personalization = {
         zipDemandSummary: "",
@@ -337,6 +401,68 @@ describe("borrower messaging compliance", async () => {
       const entries = readDb().consents.length;
       assert.deepEqual(handleInboundSms({ from: "+15595550147", body: "STOP", messageSid: "SM_stop_1" }), { action: "duplicate", leads: 2 });
       assert.equal(readDb().consents.length, entries);
+    });
+
+    it("a STOP that fails part-way is done in full when the carrier sends it again", () => {
+      const officer = addOfficer();
+      const lead = addLead(officer.id, { phone: "+15595550148", email: "retry@borrowermail.com" });
+      persistFollowUpsBatch([job(lead, "day_3_book_call_email")]);
+
+      // The store refuses the ledger entries once (as a full disk or a crash would).
+      writeDb((db) => {
+        Object.freeze(db.consents);
+      });
+      assert.throws(() => handleInboundSms({ from: "+15595550148", body: "STOP", messageSid: "SM_retry_1" }));
+      writeDb((db) => {
+        db.consents = [...db.consents];
+      });
+      assert.equal(latestConsent(readDb(), lead.id, "sms"), undefined);
+
+      // The retry is not waved through as a duplicate: the opt-out and the cancellation happen.
+      assert.deepEqual(handleInboundSms({ from: "+15595550148", body: "STOP", messageSid: "SM_retry_1" }), { action: "opted_out", leads: 1 });
+      assert.equal(latestConsent(readDb(), lead.id, "sms")?.granted, false);
+      assert.equal(followUpsOf(lead.id)[0].status, "cancelled");
+      assert.equal(handleInboundSms({ from: "+15595550148", body: "STOP", messageSid: "SM_retry_1" }).action, "duplicate");
+    });
+
+    it("a number from another country that ends in the same ten digits is not the same borrower", () => {
+      const officer = addOfficer();
+      const american = addLead(officer.id, { phone: "(207) 946-0958", email: "maine@borrowermail.com" });
+      assert.equal(phoneKey("(207) 946-0958"), "2079460958");
+      assert.equal(phoneKey("+1 207 946 0958"), "2079460958");
+      assert.equal(phoneKey("+44 20 7946 0958"), "442079460958");
+
+      assert.deepEqual(handleInboundSms({ from: "+442079460958", body: "STOP", messageSid: "SM_uk_stop" }), { action: "opted_out", leads: 0 });
+      assert.equal(latestConsent(readDb(), american.id, "sms"), undefined);
+
+      // And it cannot switch texts back on for a borrower who opted out.
+      handleInboundSms({ from: "+12079460958", body: "STOP", messageSid: "SM_us_stop" });
+      assert.deepEqual(handleInboundSms({ from: "+442079460958", body: "START", messageSid: "SM_uk_start" }), { action: "opted_in", leads: 0 });
+      assert.equal(latestConsent(readDb(), american.id, "sms")?.granted, false);
+    });
+
+    it("a STOP that arrives while a message is being prepared stops that message", async () => {
+      const officer = addOfficer();
+      // No ZIP code, so preparing the message makes no outside lookup: the wait is still there.
+      const lead = addLead(officer.id, { phone: "+15595550149", email: "midflight@borrowermail.com", zip: undefined });
+      persistFollowUpsBatch([job(lead, "day_1_educational_email")]);
+
+      const run = processDueFollowUps({ borrowerLeadId: lead.id });
+      // The worker has picked the message up and checked consent; the STOP lands before it sends.
+      assert.equal(followUpsOf(lead.id)[0].status, "sending");
+      assert.equal(handleInboundSms({ from: "+15595550149", body: "STOP", messageSid: "SM_midflight" }).action, "opted_out");
+      const summary = await run;
+      assert.equal(summary.processed, 0);
+      assert.equal(followUpsOf(lead.id)[0].status, "cancelled");
+      assert.equal(followUpsOf(lead.id)[0].sentAt, undefined);
+
+      // The same when only the ledger changed and nothing cancelled the message.
+      const second = addLead(officer.id, { phone: "+15595550150", email: "midflight2@borrowermail.com", zip: undefined });
+      persistFollowUpsBatch([job(second, "day_1_educational_email")]);
+      const again = processDueFollowUps({ borrowerLeadId: second.id });
+      recordOptOutAllChannels(second.id, "test");
+      assert.deepEqual((await again).events, ["day_1_educational_email:email:opted_out"]);
+      assert.equal(followUpsOf(second.id)[0].status, "cancelled");
     });
 
     it("every carrier opt-out word counts, and ordinary replies do not", () => {
@@ -429,6 +555,68 @@ describe("borrower messaging compliance", async () => {
 
       assert.deepEqual(followUpsOf(lead.id).map((item) => item.status).sort(), ["cancelled", "cancelled", "sent"]);
       assert.equal(followUpsOf(other.id)[0].status, "pending");
+    });
+
+    it("a call already on the books stops a queued message when it comes due, and a cancelled call does not", async () => {
+      const officer = addOfficer();
+      const lead = addLead(officer.id, { email: "earlier@borrowermail.com", phone: "+15595556001" });
+      const cancelledCall = addLead(officer.id, { email: "calledoff@borrowermail.com", phone: "+15595556002" });
+      const queued = new Date(Date.now() - 3 * 86400_000).toISOString();
+      const booked = new Date(Date.now() - 2 * 86400_000).toISOString();
+      // Queued and booked before this rule existed: nothing cancelled the message at the time.
+      persistFollowUpsBatch([
+        job(lead, "day_3_book_call_email", { createdAt: queued }),
+        job(cancelledCall, "day_3_book_call_email", { createdAt: queued }),
+      ]);
+      for (const [target, status] of [[lead, "booked"], [cancelledCall, "cancelled"]] as const) {
+        appendAppointment({
+          id: generateId("appt"),
+          borrowerLeadId: target.id,
+          loId: officer.id,
+          createdAt: booked,
+          start: new Date(Date.now() + 86400_000).toISOString(),
+          end: new Date(Date.now() + 86400_000 + 1_800_000).toISOString(),
+          status,
+        });
+      }
+      const summary = await processDueFollowUps({ borrowerLeadId: lead.id });
+      assert.deepEqual(summary.events, ["day_3_book_call_email:email:booked"]);
+      assert.equal(followUpsOf(lead.id)[0].status, "cancelled");
+      assert.match(followUpsOf(lead.id)[0].lastError ?? "", /booked a call/);
+
+      assert.equal((await processDueFollowUps({ borrowerLeadId: cancelledCall.id })).processed, 1);
+    });
+
+    it("Cerebro looks at the ledger again after each send, so an opt-out during one send holds the next", async () => {
+      const noon = new Date("2026-11-18T20:00:00Z");
+      const officer = addOfficer();
+      const first = addLead(officer.id, { zip: "93291", email: "one@borrowermail.com", phone: "+15595556003" });
+      const second = addLead(officer.id, { zip: "93291", email: "two@borrowermail.com", phone: "+15595556004" });
+      const base = {
+        createdAt: noon.toISOString(),
+        updatedAt: noon.toISOString(),
+        loId: officer.id,
+        status: "awaiting_approval" as const,
+        channel: "email" as const,
+        kind: "rate_alert_draft" as const,
+        body: "Hi Sam,\n\nA quick update on your request.\n\nDana",
+        source: "public_chat" as const,
+      };
+      const one = { ...base, id: generateId("act"), borrowerLeadId: first.id, subject: "Update one" };
+      const two = { ...base, id: generateId("act"), borrowerLeadId: second.id, subject: "Update two" };
+      saveCerebroAction(one);
+      saveCerebroAction(two);
+
+      const sent: string[] = [];
+      await dispatchCerebroMessages(new Date(noon.getTime() + 120_000), async (input) => {
+        sent.push(input.subject);
+        // While the first email is on its way out, the second borrower unsubscribes.
+        if (input.subject === "Update one") recordOptOutAllChannels(second.id, "test");
+        return { sent: true };
+      });
+      assert.equal(sent.includes("Update one"), true);
+      assert.equal(sent.includes("Update two"), false);
+      assert.match(readDb().cerebroActions.find((item) => item.id === two.id)?.holdReason ?? "", /opted out/);
     });
 
     it("Cerebro does not send a nudge written before the booking, but still sends a rate alert", async () => {

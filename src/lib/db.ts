@@ -714,18 +714,40 @@ export function appendCrmNote(borrowerLeadId: string, note: string): boolean {
   return found;
 }
 
-/** Marks every still-pending follow-up for a lead as cancelled. Returns the number cancelled. */
-export function cancelPendingFollowUps(borrowerLeadId: string): number {
+/**
+ * Cancels a lead's follow-ups that have not gone out, inside a writeDb() the caller already
+ * holds, so the cancellation commits together with whatever caused it (an opt-out, a booking).
+ * A message the worker has already picked up ("sending") is cancelled too: the worker looks
+ * again just before it hands the message to the provider and drops it. Returns the number cancelled.
+ */
+export function cancelPendingFollowUpsIn(db: Pick<DbShape, "followUps">, borrowerLeadId: string, reason?: string): number {
+  let cancelled = 0;
+  for (const job of db.followUps) {
+    if (job.borrowerLeadId !== borrowerLeadId || (job.status !== "pending" && job.status !== "sending")) continue;
+    job.status = "cancelled";
+    if (reason) job.lastError = reason;
+    cancelled += 1;
+  }
+  return cancelled;
+}
+
+/** Cancels every follow-up for a lead that has not gone out yet. Returns the number cancelled. */
+export function cancelPendingFollowUps(borrowerLeadId: string, reason?: string): number {
   let cancelled = 0;
   writeDb((db) => {
-    db.followUps.forEach((job) => {
-      if (job.borrowerLeadId === borrowerLeadId && job.status === "pending") {
-        job.status = "cancelled";
-        cancelled += 1;
-      }
-    });
+    cancelled = cancelPendingFollowUpsIn(db, borrowerLeadId, reason);
   });
   return cancelled;
+}
+
+/**
+ * True when the borrower has a call on the books that was booked at or after `since` and has not
+ * been cancelled. A journey message queued before that booking must not go out.
+ */
+export function hasBookingSince(db: Pick<DbShape, "appointments">, borrowerLeadId: string, since: string): boolean {
+  return db.appointments.some(
+    (item) => item.borrowerLeadId === borrowerLeadId && item.status !== "cancelled" && item.createdAt >= since,
+  );
 }
 
 export function readChatSession(id: string): ChatSessionRecord | null {

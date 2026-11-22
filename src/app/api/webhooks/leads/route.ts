@@ -113,7 +113,9 @@ export async function POST(request: Request) {
           consentCapture: {
             source: consentSource ? `lead_webhook:${consentSource}` : "lead_webhook",
             textShown: optionalText(parsed.data.consentText, 2000),
-            at: consentCapturedAt && !Number.isNaN(Date.parse(consentCapturedAt)) ? new Date(consentCapturedAt).toISOString() : new Date().toISOString(),
+            // The sender's time when it is usable, but never later than now: a sender whose
+            // clock runs fast must not date consent after an opt-out the borrower makes later.
+            at: new Date(Math.min(Date.now(), Date.parse(consentCapturedAt ?? "") || Date.now())).toISOString(),
             channels: ["email", "sms"] as ConsentChannel[],
           },
         }

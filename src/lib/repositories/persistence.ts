@@ -97,6 +97,12 @@ export interface PersistenceOptions {
   retryAfterMs?: number;
   /** How long to wait before re-checking a difference, so a write in flight is not reported. */
   recheckAfterMs?: number;
+  /**
+   * While PostgreSQL is being kept in step (shadow or postgres), compare the two stores this
+   * often, so drift during a days-long shadow run shows in /api/health instead of only at the
+   * next restart. 0 turns it off. Default 5 minutes.
+   */
+  parityEveryMs?: number;
   log?: (message: string) => void;
   /** See AuthorityMarker. Without one, nothing is refused on a switch back (tests that do not need it). */
   authorityMarker?: AuthorityMarker | null;
@@ -117,6 +123,9 @@ export class Persistence {
   private readonly recheckAfterMs: number;
   private readonly log: (message: string) => void;
   private readonly marker: AuthorityMarker | null;
+  private readonly parityEveryMs: number;
+  private parityTimer: ReturnType<typeof setInterval> | null = null;
+  private parityRunning = false;
   private warnedNoDatabaseForHandover = false;
 
   private pg: { client: SqlClient; subscriptions: PostgresSubscriptionRepository; ledger: PostgresTerritoryLedgerRepository } | null = null;
@@ -138,6 +147,7 @@ export class Persistence {
     this.recheckAfterMs = options.recheckAfterMs ?? 250;
     this.log = options.log ?? ((message) => console.log(`[persistence] ${message}`));
     this.marker = options.authorityMarker ?? null;
+    this.parityEveryMs = options.parityEveryMs ?? 5 * 60_000;
 
     this.subscriptions = {
       findById: (id) => this.read((repository) => repository.findById(id), (record) => (record ? [record] : [])),
@@ -189,7 +199,30 @@ export class Persistence {
     // After start-up has finished, never inside it: a ZIP code check made while it ran may
     // already be loading the ledger, and that load waits for start-up to finish.
     if (ready && this.modes.ledger === "postgres") await refreshLedgerReadModel();
+    if (!this.parityTimer && this.connect && this.modes.subscriptions !== "json" && this.parityEveryMs > 0) {
+      this.parityTimer = setInterval(() => void this.periodicParity(), this.parityEveryMs);
+      this.parityTimer.unref?.();
+    }
     return ready;
+  }
+
+  /**
+   * One scheduled comparison. Waits for copies already in flight first, so a write caught
+   * between the two stores is not reported as drift. Never throws and never overlaps itself.
+   * Detection only: a difference is logged and shown in /api/health for a person to look at.
+   */
+  async periodicParity(): Promise<ParityReport | null> {
+    if (this.parityRunning) return null;
+    this.parityRunning = true;
+    try {
+      await this.settle();
+      return await this.checkParity();
+    } catch (error) {
+      this.log(`scheduled parity check failed: ${error instanceof Error ? error.name : "error"}`);
+      return null;
+    } finally {
+      this.parityRunning = false;
+    }
   }
 
   /** Waits for background comparisons. For tests and for a clean shutdown. */
@@ -198,6 +231,8 @@ export class Persistence {
   }
 
   async close(): Promise<void> {
+    if (this.parityTimer) clearInterval(this.parityTimer);
+    this.parityTimer = null;
     await this.settle();
     await this.pg?.client.close().catch(() => undefined);
     this.pg = null;

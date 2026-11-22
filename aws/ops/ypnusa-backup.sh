@@ -13,6 +13,32 @@ set -euo pipefail
 LABEL="${1:-scheduled}"
 ENV_FILE="${YPNUSA_ENV_FILE:-/etc/ypnusa/app.env}"
 BACKUP_DIR="${YPNUSA_BACKUP_DIR:-/var/backups/ypnusa}"
+# A small status file the app reads for /api/health (times, size, on/off words only).
+# Its own directory, because BACKUP_DIR is readable by root only.
+STATUS_FILE="${YPNUSA_BACKUP_STATUS_FILE:-/var/backups/ypnusa-status/status.json}"
+
+# Record one run's outcome in STATUS_FILE, keeping the other fields. Never fails the backup.
+record_status() { # outcome=success|failure [bytes] [offhost]
+  ( umask 022; mkdir -p "$(dirname "$STATUS_FILE")" ) 2>/dev/null || return 0
+  node -e '
+const fs = require("fs");
+const [file, outcome, label, bytes, offHost] = process.argv.slice(1);
+let s = {};
+try { s = JSON.parse(fs.readFileSync(file, "utf8")) || {}; } catch {}
+const now = new Date().toISOString();
+if (outcome === "success") {
+  s.lastSuccessAt = now; s.lastLabel = label; s.lastBytes = Number(bytes) || 0;
+  if (offHost) s.offHost = offHost;
+} else {
+  s.lastFailureAt = now;
+}
+const tmp = file + ".tmp";
+fs.writeFileSync(tmp, JSON.stringify(s) + "\n");
+fs.chmodSync(tmp, 0o644); // the backups stay root-only (umask 077); this file is read by the app
+fs.renameSync(tmp, file);
+' "$STATUS_FILE" "$1" "$LABEL" "${2:-0}" "${3:-}" 2>/dev/null || true
+}
+trap 'record_status failure' ERR
 
 # Read only the two settings we need from the env file, without sourcing it.
 env_value() { sed -n "s/^$1=//p" "$ENV_FILE" 2>/dev/null | tail -n1 | tr -d "\"'" ; }
@@ -23,6 +49,7 @@ STORE="$DATA_DIR/store.json"
 
 if [ ! -f "$STORE" ]; then
   echo "ERROR: $STORE does not exist; nothing to back up." >&2
+  record_status failure
   exit 1
 fi
 
@@ -68,10 +95,13 @@ find "$BACKUP_DIR/pre-deploy" -type f -mtime +30 -delete
 find "$BACKUP_DIR/daily"      -type f -mtime +90 -delete
 
 # Optional off-host copy: only when YPNUSA_BACKUP_S3_URI is set in the env file.
+offhost=off
 if [ -n "$S3_URI" ]; then
+  offhost=failed
   if command -v aws >/dev/null 2>&1; then
     if aws s3 cp "$out" "${S3_URI%/}/$(basename "$out")" --sse AES256 --only-show-errors; then
       echo "off-host copy: ${S3_URI%/}/$(basename "$out")"
+      offhost=ok
     else
       echo "WARNING: off-host copy to S3 failed (local backup is intact)." >&2
     fi
@@ -79,3 +109,5 @@ if [ -n "$S3_URI" ]; then
     echo "WARNING: YPNUSA_BACKUP_S3_URI is set but the aws CLI is not installed." >&2
   fi
 fi
+
+record_status success "$(stat -c %s "$out")" "$offhost"

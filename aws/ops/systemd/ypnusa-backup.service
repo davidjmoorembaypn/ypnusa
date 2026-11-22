@@ -9,5 +9,5 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/var/backups/ypnusa
+ReadWritePaths=/var/backups/ypnusa /var/backups/ypnusa-status
 ReadOnlyPaths=/var/lib/ypnusa /etc/ypnusa

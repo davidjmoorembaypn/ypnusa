@@ -16,6 +16,8 @@ install -m 755 "$SRC/ypnusa-restore.sh"   /usr/local/sbin/ypnusa-restore
 install -m 755 "$SRC/ypnusa-followups.sh" /usr/local/sbin/ypnusa-followups
 install -m 755 "$SRC/ypnusa-load-secrets.sh" /usr/local/sbin/ypnusa-load-secrets
 install -d -m 700 /var/backups/ypnusa
+# Readable by the app, so /api/health can report whether backups run (no backup data in it).
+install -d -m 755 /var/backups/ypnusa-status
 
 # The backup unit must be allowed to read wherever the data really lives.
 sed "s#^ReadOnlyPaths=.*#ReadOnlyPaths=$DATA_DIR /etc/ypnusa#" \

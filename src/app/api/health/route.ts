@@ -1,3 +1,4 @@
+import { backupHealth } from "@/lib/backup-status";
 import { piiEncryptionStatus } from "@/lib/crypto/pii";
 import { storageMode } from "@/lib/db";
 import { jsonError, jsonOk, logApiError } from "@/lib/http";
@@ -26,6 +27,9 @@ export async function GET() {
         headroom,
         piiEncryption: piiEncryptionStatus(),
       },
+      // Whether the hourly data backup is running (aws/ops/ypnusa-backup.sh). "unknown" means the
+      // backup tool is not installed on this server or has never run. Times and on/off only.
+      backup: backupHealth(),
       // The move to PostgreSQL (see docs/POSTGRES_PHASE1.md). Modes and counts only: never a
       // host name, a record or an error message. "json" for both means the data file alone.
       database: {

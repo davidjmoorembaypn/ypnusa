@@ -18,6 +18,7 @@ what currently serves traffic.
 | Process manager | systemd unit `ypnusa.service` (`/etc/systemd/system/ypnusa.service`), `User=ypnusa Group=ypnusa` (uid/gid 992) |
 | Releases | `/opt/ypnusa/releases/<sha7>/`, with `/opt/ypnusa/current` symlinked to the live one |
 | Secrets | `/etc/ypnusa/app.env` (root-only, 600), loaded by systemd's `EnvironmentFile=` — **never shipped in the release bundle, never edited by the install script** |
+| Settings file and the app | The app never opens `/etc/ypnusa/app.env` itself, and must not be given permission to: systemd reads it as root and passes the values to the process. The bundle's Hostinger `.env` loader (`hostinger/server-preamble.js`) does not run here. Do not loosen the file's permissions to quiet a log line. |
 | Health check | `GET /api/health` → `{"ok":true,"build":{"commit":"<sha7>"},...}` |
 
 No SSH key is set up for this box day-to-day; it's reached through **AWS SSM

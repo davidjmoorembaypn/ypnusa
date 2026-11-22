@@ -165,13 +165,23 @@ export interface DispatchResult {
 
 /** One pass over the queue. Never throws for a single item; each item records why it waited. */
 export async function dispatchCerebroMessages(now = new Date(), send: typeof sendEmail = sendEmail): Promise<DispatchResult> {
-  const db = readDb();
-  const leads = new Map(db.borrowerLeads.map((lead) => [lead.id, lead]));
+  let db = readDb();
+  let leads = new Map(db.borrowerLeads.map((lead) => [lead.id, lead]));
+  let current = new Map(db.cerebroActions.map((item) => [item.id, item]));
+  // After waiting on a send, the store may have changed: a borrower opted out or booked, or an
+  // officer dismissed an item.
+  const refresh = () => {
+    db = readDb();
+    leads = new Map(db.borrowerLeads.map((lead) => [lead.id, lead]));
+    current = new Map(db.cerebroActions.map((item) => [item.id, item]));
+  };
   const result: DispatchResult = { sent: 0, held: 0, toOfficer: 0 };
   const stamp = now.toISOString();
 
-  for (const action of db.cerebroActions) {
+  for (const { id } of db.cerebroActions) {
     if (result.sent >= MAX_SENDS_PER_PASS) break;
+    const action = current.get(id);
+    if (!action) continue;
     const officer = officerFor(action.loId);
     const decision = decideDispatch(action, leads.get(action.borrowerLeadId), officer, db, now);
     if (decision.action === "skip") continue;
@@ -195,6 +205,8 @@ export async function dispatchCerebroMessages(now = new Date(), send: typeof sen
       fromName: `${officer.name} via YPN USA`,
       headers: unsubscribeHeaders(action.borrowerLeadId),
     });
+    // The next item is decided on the store as it is now, not as it was before this send.
+    refresh();
     if (!outcome.sent) {
       saveCerebroAction({ ...action, status: "held", holdReason: `Email didn't send: ${outcome.reason ?? "unknown error"}`, updatedAt: stamp });
       result.held++;

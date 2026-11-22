@@ -96,13 +96,35 @@ export function canContact(input: {
   return { allowed: true };
 }
 
-/** Appends a consent grant or opt-out. The exact wording shown is stored encrypted at rest. */
-export function recordConsent(input: Omit<ConsentRecord, "id" | "at"> & { at?: string }): ConsentRecord {
-  const record: ConsentRecord = { id: generateId("consent"), at: input.at ?? new Date().toISOString(), ...input };
-  writeDb((db) => {
-    db.consents.push(record);
-  });
+/**
+ * The time a new ledger entry is filed under. The ledger is read "newest entry wins", so a new
+ * entry must sort after everything already recorded for that lead and channel, even when an
+ * older entry carries a time that is ahead of this server's clock (a partner's clock running
+ * fast, a restored backup). Otherwise a borrower's STOP could lose to a grant dated later.
+ */
+export function ledgerTime(db: Pick<DbShape, "consents">, borrowerLeadId: string, channel: ConsentChannel, now: Date = new Date()): string {
+  const latest = latestConsent(db, borrowerLeadId, channel);
+  const floor = latest ? Date.parse(latest.at) + 1 : 0;
+  return new Date(Math.max(now.getTime(), Number.isNaN(floor) ? 0 : floor)).toISOString();
+}
+
+/**
+ * Appends a consent grant or opt-out inside a writeDb() the caller already holds, filed after
+ * every earlier entry for that lead and channel.
+ */
+export function recordConsentIn(db: Pick<DbShape, "consents">, input: Omit<ConsentRecord, "id" | "at">, now: Date = new Date()): ConsentRecord {
+  const record: ConsentRecord = { ...input, id: generateId("consent"), at: ledgerTime(db, input.borrowerLeadId, input.channel, now) };
+  db.consents.push(record);
   return record;
+}
+
+/** Appends a consent grant or opt-out. The exact wording shown is stored encrypted at rest. */
+export function recordConsent(input: Omit<ConsentRecord, "id" | "at">): ConsentRecord {
+  let record: ConsentRecord | undefined;
+  writeDb((db) => {
+    record = recordConsentIn(db, input);
+  });
+  return record as ConsentRecord;
 }
 
 /**
@@ -139,7 +161,9 @@ export function consentRecordsForCapture(input: {
   capture: ConsentCapture;
 }): ConsentRecord[] {
   if (!input.consented) return [];
-  const at = input.capture.at && !Number.isNaN(Date.parse(input.capture.at)) ? new Date(input.capture.at).toISOString() : new Date().toISOString();
+  // When they agreed, as the capture says, but never in the future: a sender's fast clock must
+  // not date a grant after an opt-out the borrower makes later.
+  const at = partnerConsentTime(input.capture.at, new Date());
   const channels = (input.capture.channels ?? DEFAULT_CAPTURE_CHANNELS).filter((channel) => {
     if (channel === "ai_voice") return false;
     return channel === "email" ? Boolean(input.email?.trim()) : Boolean(input.phone?.trim());
@@ -165,13 +189,20 @@ export function recordCaptureConsent(input: Parameters<typeof consentRecordsForC
   return records;
 }
 
+const ALL_CHANNELS = ["sms", "call", "email", "ai_voice"] as const;
+
+/**
+ * Records an opt-out on every channel for a lead inside a writeDb() the caller already holds.
+ * Each entry is filed after everything already recorded, so the opt-out is what decides.
+ */
+export function recordOptOutAllChannelsIn(db: Pick<DbShape, "consents">, borrowerLeadId: string, source: string, now: Date = new Date()): void {
+  for (const channel of ALL_CHANNELS) recordConsentIn(db, { borrowerLeadId, channel, granted: false, source }, now);
+}
+
 /** Records an opt-out on every channel for a lead (e.g. after a STOP reply). */
 export function recordOptOutAllChannels(borrowerLeadId: string, source: string): void {
-  const at = new Date().toISOString();
   writeDb((db) => {
-    for (const channel of ["sms", "call", "email", "ai_voice"] as const) {
-      db.consents.push({ id: generateId("consent"), borrowerLeadId, channel, granted: false, source, at });
-    }
+    recordOptOutAllChannelsIn(db, borrowerLeadId, source);
   });
 }
 

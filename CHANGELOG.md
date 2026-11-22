@@ -12,6 +12,21 @@ What changed on ypnus.com for loan officers and borrowers, one entry per release
 
 ---
 
+## Nov 22, 2026 — next build (borrower messaging: fixes from review)
+
+Follows the messaging rules below. Each item closes a gap an independent review found in them.
+
+- **An opt-out always wins.** A STOP or unsubscribe is now recorded so that no earlier "yes" can outlast it, even
+  one a partner sent with a clock running fast. Consent and bookings are checked again at the last moment before
+  a message is sent, so an opt-out that arrives while a message is being prepared stops that message.
+- **A STOP that fails part-way is finished when the carrier sends it again**, where before the retry was skipped.
+- **Calls booked before these rules existed now stop the "book a call" follow-ups too.**
+- **A follow-up to a borrower whose ZIP code is known needs a state license the officer has listed for that
+  state.** An officer who has listed no licenses was being treated as licensed everywhere.
+  **Officers: check your state licenses are on your profile**, or borrowers whose ZIP code is known get no
+  follow-ups from you.
+- **The saved copy of the consent wording on a lead's intake record is now encrypted** like the rest.
+
 ## Nov 22, 2026 — next build (borrower messaging rules)
 
 - **STOP now stops messages.** A borrower who replies STOP to a text is opted out of texts, calls and email, and

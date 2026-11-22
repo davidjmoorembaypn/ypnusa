@@ -1,7 +1,7 @@
 import { BUSINESS_EMAIL, BUSINESS_PHONE_DISPLAY } from "@/lib/author";
-import { isStopKeyword, recordConsent, recordOptOutAllChannels } from "@/lib/consent";
-import { cancelPendingFollowUps, readDb } from "@/lib/db";
-import { claimKey } from "@/lib/idempotency";
+import { isStopKeyword, recordConsentIn, recordOptOutAllChannelsIn } from "@/lib/consent";
+import { cancelPendingFollowUpsIn, readDb, writeDb } from "@/lib/db";
+import { claimKeyIn, isKeyClaimedIn } from "@/lib/idempotency";
 
 /**
  * What to do with a text message a borrower sends to our number.
@@ -31,17 +31,17 @@ export interface InboundSmsResult {
 }
 
 /**
- * One phone number however it was typed: a 10-digit US number and the same number with a
- * leading 1 give the same key; any other number keeps all its digits (country code included),
- * so two international numbers that only share their last ten digits never match. Empty when
- * there are fewer than ten digits.
+ * One comparable form of a phone number, however it was typed. A US number (ten digits, or
+ * eleven starting with the country code 1) becomes its ten digits. Anything else keeps every
+ * digit, country code included, so a number from another country that happens to end in the same
+ * ten digits as a borrower's US number is never treated as that borrower. Empty when it is too
+ * short to be a phone number.
  */
 export function phoneKey(raw: string | undefined): string {
   const digits = (raw ?? "").replace(/\D/g, "");
-  if (digits.length < 10) return "";
   if (digits.length === 10) return digits;
   if (digits.length === 11 && digits.startsWith("1")) return digits.slice(1);
-  return digits;
+  return digits.length > 10 ? digits : "";
 }
 
 function keyword(body: string): string {
@@ -50,33 +50,38 @@ function keyword(body: string): string {
 
 export function handleInboundSms(input: { from: string; body: string; messageSid?: string }): InboundSmsResult {
   const key = phoneKey(input.from);
-  const leadIds = key
-    ? readDb()
-        .borrowerLeads.filter((lead) => phoneKey(lead.answers.phone) === key)
-        .map((lead) => lead.id)
-    : [];
+  const matches = (phone: string | undefined) => Boolean(key) && phoneKey(phone) === key;
   const word = keyword(input.body);
   const stop = isStopKeyword(input.body);
   const start = START_WORDS.has(word);
 
-  if (HELP_WORDS.has(word)) return { action: "help", leads: leadIds.length, reply: SMS_HELP_REPLY };
-  if (!stop && !start) return { action: "none", leads: leadIds.length };
-
-  // A redelivered message must not add a second set of ledger entries.
-  if (input.messageSid && !claimKey(IDEMPOTENCY_SCOPE, input.messageSid).claimed) {
-    return { action: "duplicate", leads: leadIds.length };
+  if (!stop && !start) {
+    const leads = readDb().borrowerLeads.filter((lead) => matches(lead.answers.phone)).length;
+    return HELP_WORDS.has(word) ? { action: "help", leads, reply: SMS_HELP_REPLY } : { action: "none", leads };
   }
 
-  if (stop) {
-    for (const leadId of leadIds) {
-      recordOptOutAllChannels(leadId, "sms_stop");
-      cancelPendingFollowUps(leadId);
+  // One save for all of it: every lead's ledger entries, the cancelled messages and the "already
+  // handled" mark, with the mark last. If the mark were saved on its own and the server stopped
+  // before the rest, the carrier's retry would be skipped as a duplicate and the borrower would
+  // stay subscribed.
+  let result: InboundSmsResult = { action: "none", leads: 0 };
+  writeDb((db) => {
+    const leadIds = db.borrowerLeads.filter((lead) => matches(lead.answers.phone)).map((lead) => lead.id);
+    // A redelivered message must not add a second set of ledger entries.
+    if (input.messageSid && isKeyClaimedIn(db, IDEMPOTENCY_SCOPE, input.messageSid)) {
+      result = { action: "duplicate", leads: leadIds.length };
+      return;
     }
-    return { action: "opted_out", leads: leadIds.length };
-  }
-
-  for (const leadId of leadIds) {
-    recordConsent({ borrowerLeadId: leadId, channel: "sms", granted: true, source: "sms_start", textShown: input.body.trim().slice(0, 80) });
-  }
-  return { action: "opted_in", leads: leadIds.length };
+    for (const leadId of leadIds) {
+      if (stop) {
+        recordOptOutAllChannelsIn(db, leadId, "sms_stop");
+        cancelPendingFollowUpsIn(db, leadId, "Cancelled: borrower opted out.");
+      } else {
+        recordConsentIn(db, { borrowerLeadId: leadId, channel: "sms", granted: true, source: "sms_start", textShown: input.body.trim().slice(0, 80) });
+      }
+    }
+    if (input.messageSid) claimKeyIn(db, IDEMPOTENCY_SCOPE, input.messageSid);
+    result = { action: stop ? "opted_out" : "opted_in", leads: leadIds.length };
+  });
+  return result;
 }

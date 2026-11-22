@@ -1,4 +1,4 @@
-import { appendAnalytics, persistFollowUpsBatch, readDb, writeDb } from "./db";
+import { appendAnalytics, hasBookingSince, persistFollowUpsBatch, readDb, writeDb } from "./db";
 import { canContact } from "./consent";
 import { automationDailyLimitFor, resolveOfficerEntitlement } from "./entitlements";
 import { generateId } from "./id";
@@ -164,6 +164,31 @@ export function scheduleBorrowerJourney(
   return created;
 }
 
+const BOOKED_MESSAGE = "Cancelled: the borrower booked a call.";
+
+/**
+ * The last look before a message is handed to the provider, on the store as it is now and not as
+ * it was when the worker picked the message up. Returns why it must not go, or null to send.
+ */
+function stopReasonBeforeSend(jobId: string, now: Date): { event: string; message: string } | null {
+  const db = readDb();
+  const job = db.followUps.find((item) => item.id === jobId);
+  // Cancelled since it was picked up (an opt-out or a booking cancels messages in flight too).
+  if (!job || job.status === "cancelled") return { event: "cancelled", message: job?.lastError ?? "Cancelled before it was sent." };
+  const lead = db.borrowerLeads.find((item) => item.id === job.borrowerLeadId);
+  if (!lead) return { event: "cancelled", message: "Cancelled: the lead no longer exists." };
+  const decision = canContact({ db, borrowerLeadId: lead.id, channel: job.channel, legacyConsent: lead.answers.contactConsent === true, now });
+  // Quiet hours were settled when the message came due; only a withdrawn consent stops it here.
+  if (!decision.allowed && decision.reason !== "quiet_hours") {
+    return {
+      event: decision.reason,
+      message: decision.reason === "opted_out" ? "Cancelled: borrower opted out." : "Cancelled: no contact consent.",
+    };
+  }
+  if (hasBookingSince(db, lead.id, job.createdAt)) return { event: "booked", message: BOOKED_MESSAGE };
+  return null;
+}
+
 /** How long after a lead arrives its instant acknowledgment may still go out during quiet hours. */
 const IMMEDIATE_REPLY_WINDOW_MS = 10 * 60_000;
 
@@ -250,6 +275,19 @@ export async function processDueFollowUps(options?: {
       continue;
     }
 
+    // A call booked after this message was queued: the journey stops. Checked here, when the
+    // message comes due, so it also covers calls booked before this rule existed.
+    if (hasBookingSince(snapshot, lead.id, job.createdAt)) {
+      writeDb((db) => {
+        const current = db.followUps.find((item) => item.id === jobId);
+        if (!current) return;
+        current.status = "cancelled";
+        current.lastError = BOOKED_MESSAGE;
+      });
+      events.push(`${job.plan}:${job.channel}:booked`);
+      continue;
+    }
+
     // Tier-scaled automation cap (see entitlements.ts). A no-op for every
     // officer today, since entitlementTier is never populated yet — see
     // resolveOfficerEntitlement's doc comment — but real and enforced the
@@ -270,6 +308,19 @@ export async function processDueFollowUps(options?: {
 
     try {
       const personalization = await resolveOutreachPersonalization(lead);
+      // Looked up again now that the wait is over, right before the message is handed to the
+      // provider: the borrower may have opted out or booked a call in the meantime.
+      const stopped = stopReasonBeforeSend(jobId, clock);
+      if (stopped) {
+        writeDb((db) => {
+          const current = db.followUps.find((item) => item.id === jobId);
+          if (!current) return;
+          current.status = "cancelled";
+          current.lastError = stopped.message;
+        });
+        events.push(`${job.plan}:${job.channel}:${stopped.event}`);
+        continue;
+      }
       const delivery = await deliverOutreach(job, { lead, officer, personalization });
       writeDb((db) => {
         const current = db.followUps.find((item) => item.id === jobId);
@@ -287,7 +338,8 @@ export async function processDueFollowUps(options?: {
         // Not the lead's fault and not a failed attempt: hold the job until a provider exists.
         writeDb((db) => {
           const current = db.followUps.find((item) => item.id === jobId);
-          if (!current) return;
+          // Cancelled while it was being prepared (an opt-out or a booking): it stays cancelled.
+          if (!current || current.status === "cancelled") return;
           current.status = "pending";
           current.attemptCount = Math.max(0, (current.attemptCount ?? 1) - 1);
           current.scheduledAt = new Date(Date.now() + 60 * 60_000).toISOString();
@@ -311,7 +363,8 @@ export async function processDueFollowUps(options?: {
       const message = error instanceof Error ? error.message : "Unknown outreach delivery failure.";
       writeDb((db) => {
         const current = db.followUps.find((item) => item.id === jobId);
-        if (!current) return;
+        // Cancelled while it was being sent: a failed attempt must not put it back in the queue.
+        if (!current || current.status === "cancelled") return;
         const attempts = current.attemptCount ?? 1;
         current.status = attempts >= 3 ? "failed" : "pending";
         current.scheduledAt = new Date(Date.now() + attempts * 60_000).toISOString();

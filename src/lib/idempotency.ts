@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { writeDb } from "./db";
+import type { DbShape } from "./types";
 
 /**
  * "Process this once" for webhooks and jobs. Senders retry on timeouts, so the same
@@ -20,18 +21,31 @@ function hashKey(scope: string, key: string): string {
 
 export type ClaimResult = { claimed: true } | { claimed: false; ref?: string };
 
-export function claimKey(scope: string, key: string, now: Date = new Date()): ClaimResult {
+/** Whether a key was already handled, without claiming it. For use inside a writeDb(). */
+export function isKeyClaimedIn(db: Pick<DbShape, "processedKeys">, scope: string, key: string): boolean {
+  const hashed = hashKey(scope, key);
+  return db.processedKeys.some((record) => record.scope === scope && record.key === hashed);
+}
+
+/**
+ * The claim itself, inside a writeDb() the caller already holds. Use it when the claim and the
+ * work it guards must be saved together: a claim saved on its own, followed by a crash, would
+ * make the sender's retry a no-op and the work would never happen.
+ */
+export function claimKeyIn(db: Pick<DbShape, "processedKeys">, scope: string, key: string, now: Date = new Date()): ClaimResult {
   const hashed = hashKey(scope, key);
   const cutoff = new Date(now.getTime() - KEY_TTL_DAYS * 24 * 60 * 60_000).toISOString();
+  db.processedKeys = db.processedKeys.filter((record) => record.at >= cutoff).slice(-MAX_KEYS);
+  const existing = db.processedKeys.find((record) => record.scope === scope && record.key === hashed);
+  if (existing) return { claimed: false, ref: existing.ref };
+  db.processedKeys.push({ key: hashed, scope, at: now.toISOString() });
+  return { claimed: true };
+}
+
+export function claimKey(scope: string, key: string, now: Date = new Date()): ClaimResult {
   let result: ClaimResult = { claimed: true };
   writeDb((db) => {
-    db.processedKeys = db.processedKeys.filter((record) => record.at >= cutoff).slice(-MAX_KEYS);
-    const existing = db.processedKeys.find((record) => record.scope === scope && record.key === hashed);
-    if (existing) {
-      result = { claimed: false, ref: existing.ref };
-      return;
-    }
-    db.processedKeys.push({ key: hashed, scope, at: now.toISOString() });
+    result = claimKeyIn(db, scope, key, now);
   });
   return result;
 }

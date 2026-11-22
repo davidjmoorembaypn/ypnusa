@@ -116,8 +116,9 @@ const STOP_LINE = /Reply STOP to opt out/i;
  *
  * 1. The advertising check: no rates, payments, guarantees or invented track record.
  * 2. The compliance engine (src/lib/compliance): the officer's NMLS ID, the company's NMLS ID,
- *    state lines and Equal Housing are added; a missing NMLS ID or a borrower in a state the
- *    officer is not licensed in blocks the message.
+ *    state lines and Equal Housing are added; a missing NMLS ID blocks the message, and so does a
+ *    borrower in a state the officer has not listed a license for (including an officer who has
+ *    listed none).
  * 3. Email gets an unsubscribe link (in the body and as one-click headers), the sender's postal
  *    address, and the officer as reply-to. A text always ends with the STOP line.
  *
@@ -145,6 +146,13 @@ export function prepareOutreach(job: ScheduledFollowUpRecord, context: OutreachC
     zip: context.lead.answers.zip,
   });
   if (guarded.blocked) throw new OutreachBlockedError(describeBlock(guarded.reasons[0], guarded.state));
+  // Nobody reviews a journey message before it goes, so when the borrower's state is known the
+  // officer must have listed a license for it, as for the emails Cerebro sends on its own. An
+  // officer with no licenses listed is not assumed to be licensed there. A lead with no ZIP code
+  // (state unknown) still goes out.
+  if (guarded.state && !(officer.licenses ?? []).some((license) => license.state.toUpperCase() === guarded.state)) {
+    throw new OutreachBlockedError(describeBlock("not_licensed_in_state", guarded.state));
+  }
 
   if (isSms) {
     const text = STOP_LINE.test(guarded.text) ? guarded.text : `${guarded.text.trimEnd()} Reply STOP to opt out.`;

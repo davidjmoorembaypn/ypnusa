@@ -12,7 +12,7 @@ const STEPS: ReadonlyArray<{ title: string; body: string }> = [
   },
   {
     title: "Convert borrowers faster",
-    body: "Cerebro drafts SMS and email follow-up for your approval, so every inquiry gets a prompt, consistent reply and you handle the conversations that need a licensed loan officer.",
+    body: "Cerebro emails routine follow-ups to borrowers who agreed to be contacted, on its own after its compliance checks or after your OK if you prefer, and drafts texts for you to send, so you handle the conversations that need a licensed loan officer.",
   },
 ];
 

@@ -282,19 +282,13 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const activeNudges = activeCta ? nudgesWithoutDemand(activeCta).slice(0, 2) : [];
   const showForm = check.status === "result";
   const claimed = check.status === "result" && !check.available;
-  const place =
-    check.status === "result" && check.city && check.state
-      ? `${check.city}, ${check.state}`
-      : check.status === "result"
-        ? `ZIP code ${check.zip}`
-        : "";
   // A free account doesn't lock a ZIP (only a paid plan does), so no ZIP rides along.
   const signupHref = FREE_SIGNUP_HREF;
   const resultTitle =
     check.status === "result"
       ? check.available
-        ? `ZIP ${check.zip} is AVAILABLE — Lock out all competing YPN USA MLOs in this ZIP code (${LOCK_PLAN_PRICES}).`
-        : `ZIP ${check.zip} is LOCKED by another MLO — Join the priority waitlist or check adjacent ZIP codes.`
+        ? `ZIP code ${check.zip} is AVAILABLE — Lock out all competing YPN USA MLOs in this ZIP code (${LOCK_PLAN_PRICES}).`
+        : `ZIP code ${check.zip} is LOCKED by another MLO — Join the priority waitlist or check adjacent ZIP codes.`
       : "";
 
   const ready = isCompleteZip(zip);
@@ -372,8 +366,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               />
               <span className={`font-semibold ${check.available ? "text-emerald-950" : "text-amber-950"}`}>{resultTitle}</span>
             </p>
-            {check.city && check.state ? <p className="mt-1 text-[12px] text-slate-700">{place}</p> : null}
-            <p className="mt-1 text-[13px] text-slate-800">{check.message}</p>
+            {check.city && check.state ? <p className="mt-1 text-[13px] text-slate-800">{check.message}</p> : null}
+
             {check.demandTotal ? (
               <p className="mt-2 text-[12px] text-slate-700">
                 About {check.demandTotal} households buy, sell or move in over a typical 60 days (Census-based estimate, not a lead count)

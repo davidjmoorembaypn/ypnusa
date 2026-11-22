@@ -2,6 +2,7 @@ import { subscriptionRepository } from "@/lib/repositories";
 import { generateId } from "@/lib/id";
 import { logApiError } from "@/lib/http";
 import { PAID_PRICING_TIERS, resolveTierFromStripeIdentifier, type PricingTierId } from "@/lib/pricing";
+import { isKnownZip } from "@/lib/geo/zip-geo";
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import { stripePlan } from "@/lib/stripe-plans";
 import { scheduleZipLockHook } from "@/lib/zip-scarcity";
@@ -297,7 +298,9 @@ export async function applyFulfillmentEvent(payload: FulfillmentPayload): Promis
   const userId = optionalText(payload.userId, 200);
   const now = new Date().toISOString();
   const requestedZip = normalizeZip(payload.zip);
-  const zipToClaim = isValidZip(requestedZip) ? requestedZip : null;
+  // Only a real U.S. ZIP code is ever locked; a checkout carrying anything else (00000, a typo) is
+  // fulfilled as a paid plan without a ZIP code, which can lock one later.
+  const zipToClaim = isValidZip(requestedZip) && isKnownZip(requestedZip) ? requestedZip : null;
 
   // A trial checkout ($0 today, payment_status "no_payment_required") never locks a ZIP code:
   // valuable territories must not be held for free. The chosen ZIP code is remembered as

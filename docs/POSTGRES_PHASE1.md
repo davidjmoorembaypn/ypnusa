@@ -27,7 +27,9 @@ They live in the server settings file (`/etc/ypnusa/app.env`, see [OPERATIONS.md
 | `YPN_SUBSCRIPTION_STORE` | `json` (default), `shadow`, `postgres` | Which store decides and records payments and ZIP code locks. |
 
 Optional: `DATABASE_CA_FILE` (path to the certificate bundle, needed for Amazon RDS), `DATABASE_POOL_SIZE`
-(default 5), `DATABASE_STATEMENT_TIMEOUT_MS` (default 5000).
+(default 5), `DATABASE_STATEMENT_TIMEOUT_MS` (default 5000). With `DATABASE_CA_FILE` set, any `sslmode` in
+`DATABASE_URL` is ignored and the server's certificate is always checked against that file (the driver would
+otherwise drop the file when the address names an `sslmode`, and the first connection to RDS would fail).
 
 What the values mean:
 

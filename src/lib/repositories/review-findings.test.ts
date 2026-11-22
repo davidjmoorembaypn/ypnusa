@@ -121,7 +121,10 @@ describe("PR #212 review findings", async () => {
     const starting = persistence.start();
     // A visitor checks a ZIP code before start-up has finished.
     paidLedgerClaimedZips();
-    assert.equal(await within(starting, 3_000, "start-up"), true);
+    // The deadlock this guards against never settles; a working start-up here also creates the
+    // tables on a cold in-process database, which took 2.99 s of a 3 s budget on CI. 10 s keeps
+    // the deadlock caught without failing on a slow runner.
+    assert.equal(await within(starting, 10_000, "start-up"), true);
     const saved = await within(persistence.subscriptions.saveWithZipClaim(subscription(), "93618"), 3_000, "a payment after start-up");
     assert.equal(saved.zipClaimed, true);
     assert.deepEqual([...paidLedgerClaimedZips()], ["93618"]);

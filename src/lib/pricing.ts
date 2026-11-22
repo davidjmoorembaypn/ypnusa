@@ -83,7 +83,7 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     features: [
       "1 included exclusive ZIP code",
       "Higher automation run limits",
-      "Cerebro drafts your SMS + email follow-ups for your OK",
+      "Cerebro emails opted-in borrowers for you and drafts your texts",
       "Calendar booking + CRM mirroring",
       "15-day free trial to try the tools",
     ],
@@ -212,7 +212,7 @@ export const PLAN_ENTITLEMENTS: readonly PlanEntitlementRow[] = [
   { label: "AI borrower intake assistant", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
   { label: "Exclusive ZIP code (locks at first payment)", free: "—", growth: "1 included", pro: "1 included", elite: "1 included" },
   { label: "Live lead delivery", free: "—", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "Cerebro drafts your SMS + email follow-ups for your OK", free: "—", growth: "✓", pro: "✓", elite: "✓" },
+  { label: "Cerebro emails opted-in borrowers for you and drafts your texts", free: "—", growth: "✓", pro: "✓", elite: "✓" },
   { label: "Calendar booking + CRM mirroring", free: "—", growth: "✓", pro: "✓", elite: "✓" },
   { label: "Local page for your ZIP code", free: "—", growth: "✓", pro: "✓", elite: "✓" },
   { label: "Portable MLO website", free: "—", growth: "—", pro: "✓", elite: "✓" },

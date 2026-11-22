@@ -1,4 +1,5 @@
 import { zipPlace } from "@/lib/geo/zip-geo";
+import { isKnownZip } from "@/lib/zip-known";
 import { checkPaidLedgerTerritory, type TerritoryCheckResult } from "@/lib/territory";
 
 /**
@@ -10,7 +11,7 @@ import { checkPaidLedgerTerritory, type TerritoryCheckResult } from "@/lib/terri
  */
 
 export interface LedgerTerritoryResult extends TerritoryCheckResult {
-  /** null when the ZIP code is not in the bundled ZIP data (the availability answer still stands). */
+  /** null when the check is not valid; a ZIP code missing from the bundled ZIP data is not valid. */
   city: string | null;
   state: string | null;
 }
@@ -18,6 +19,17 @@ export interface LedgerTerritoryResult extends TerritoryCheckResult {
 export function checkLedgerTerritory(rawZip: unknown): LedgerTerritoryResult {
   const result = checkPaidLedgerTerritory(rawZip);
   if (!result.valid) return { ...result, city: null, state: null };
+  // Five digits but not a U.S. ZIP code (00000, a typo): never shown as open, so it can't be paid for.
+  if (!isKnownZip(result.zip)) {
+    return {
+      ...result,
+      valid: false,
+      available: false,
+      city: null,
+      state: null,
+      message: `${result.zip} isn't a U.S. ZIP code we recognize. Check the five digits and try again.`,
+    };
+  }
   const place = zipPlace(result.zip);
   const city = place?.city || null;
   const state = place?.state || null;

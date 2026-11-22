@@ -81,6 +81,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const [consent, setConsent] = useState(false);
   // Open ZIP codes near a locked one, keyed by the ZIP code they were looked up for.
   const [neighbors, setNeighbors] = useState<{ forZip: string; list: OpenNeighbor[] } | null>(null);
+  const neighborRequest = useRef<AbortController | null>(null);
   const personalization = usePersonalization();
   const cta = useCTAEngine();
 
@@ -115,7 +116,10 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => () => neighborRequest.current?.abort(), []);
+
   function tryAnotherZip() {
+    clearNeighbors();
     cta.reset();
     syncZipToPageUrl(null);
     publishZipStatus(null);
@@ -128,6 +132,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
 
   async function runCheck(override?: string) {
     if (check.status === "checking") return;
+    clearNeighbors();
     const clean = sanitizeZip(override ?? zip);
     // A new lookup: drop the previous ZIP code's nudges now, not when (or if) new ones arrive.
     cta.reset();
@@ -188,17 +193,31 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
     }
   }
 
+  function clearNeighbors() {
+    neighborRequest.current?.abort();
+    setNeighbors(null);
+  }
+
   /** Best effort: a locked ZIP code still gets a result if this lookup fails or finds nothing. */
   async function loadNeighbors(lockedZip: string) {
+    const request = new AbortController();
+    neighborRequest.current?.abort();
+    neighborRequest.current = request;
+    const timeout = window.setTimeout(() => request.abort(), 15_000);
     try {
-      const res = await fetch(`/api/territory/neighbors?zip=${encodeURIComponent(lockedZip)}`, { signal: AbortSignal.timeout(15_000) });
+      const { signal } = request;
+      const res = await fetch(`/api/territory/neighbors?zip=${encodeURIComponent(lockedZip)}`, { signal });
       if (!res.ok) return;
       const data = (await res.json()) as { neighbors?: OpenNeighbor[] };
+      if (signal.aborted) return;
       const list = (data.neighbors ?? []).filter((n) => isCompleteZip(n.zip)).slice(0, 3);
       setNeighbors({ forZip: lockedZip, list });
       if (list.length) track("zip_neighbors_shown", { zip: lockedZip, count: list.length, source });
     } catch {
       /** noop */
+    } finally {
+      window.clearTimeout(timeout);
+      if (neighborRequest.current === request) neighborRequest.current = null;
     }
   }
 
@@ -282,19 +301,13 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const activeNudges = activeCta ? nudgesWithoutDemand(activeCta).slice(0, 2) : [];
   const showForm = check.status === "result";
   const claimed = check.status === "result" && !check.available;
-  const place =
-    check.status === "result" && check.city && check.state
-      ? `${check.city}, ${check.state}`
-      : check.status === "result"
-        ? `ZIP code ${check.zip}`
-        : "";
   // A free account doesn't lock a ZIP (only a paid plan does), so no ZIP rides along.
   const signupHref = FREE_SIGNUP_HREF;
   const resultTitle =
     check.status === "result"
       ? check.available
-        ? `ZIP ${check.zip} is AVAILABLE — Lock out all competing YPN USA MLOs in this ZIP code (${LOCK_PLAN_PRICES}).`
-        : `ZIP ${check.zip} is LOCKED by another MLO — Join the priority waitlist or check adjacent ZIP codes.`
+        ? `ZIP code ${check.zip} is AVAILABLE — Lock out all competing YPN USA MLOs in this ZIP code (${LOCK_PLAN_PRICES}).`
+        : `ZIP code ${check.zip} is LOCKED by another MLO — Join the priority waitlist or check adjacent ZIP codes.`
       : "";
 
   const ready = isCompleteZip(zip);
@@ -372,8 +385,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               />
               <span className={`font-semibold ${check.available ? "text-emerald-950" : "text-amber-950"}`}>{resultTitle}</span>
             </p>
-            {check.city && check.state ? <p className="mt-1 text-[12px] text-slate-700">{place}</p> : null}
-            <p className="mt-1 text-[13px] text-slate-800">{check.message}</p>
+            {check.city && check.state ? <p className="mt-1 text-[13px] text-slate-800">{check.message}</p> : null}
+
             {check.demandTotal ? (
               <p className="mt-2 text-[12px] text-slate-700">
                 About {check.demandTotal} households buy, sell or move in over a typical 60 days (Census-based estimate, not a lead count)

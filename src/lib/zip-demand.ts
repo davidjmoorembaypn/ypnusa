@@ -123,6 +123,11 @@ export function estimateZipDemand(zip: string): ZipDemand | null {
   return demandFromRow(load().get(zip));
 }
 
+/** True when the Census data lists this ZIP code at all (even with no mobility figures). */
+export function hasZipDemandRow(zip: string): boolean {
+  return /^\d{5}$/.test(zip) && load().has(zip);
+}
+
 export interface ZipDemandRow extends ZipDemand {
   zip: string;
   households: number;

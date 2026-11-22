@@ -206,6 +206,7 @@ The settings that matter most, by name only:
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Phone alerts. | The server makes and saves its own pair, so alerts still work. |
 | `GA_MEASUREMENT_API_SECRET` | Sends "first payment" events to Google Analytics. | Payments are logged on the server only. |
 | `YPNUSA_BACKUP_S3_URI` | Off-server backup copies. | Backups stay on the server only. |
+| `TWILIO_AUTH_TOKEN` | Confirms that calls and texts really come from Twilio, including a borrower's STOP reply. | The voice line and STOP handling refuse every request. See [COMPLIANCE_MESSAGING.md](COMPLIANCE_MESSAGING.md). |
 | `DATABASE_URL`, `YPN_LEDGER_STORE`, `YPN_SUBSCRIPTION_STORE` | The move of paid plans and ZIP code locks to a PostgreSQL database, step by step. See [POSTGRES_PHASE1.md](POSTGRES_PHASE1.md). | The site uses the data file only, as it always has. |
 
 Never paste any of these values into GitHub, a chat, an email or a document.

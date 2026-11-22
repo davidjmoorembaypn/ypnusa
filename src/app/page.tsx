@@ -64,12 +64,12 @@ const NEVER = [
 
 const PROGRAMS = ["FHA", "VA", "Conventional", "DSCR", "HELOC", "Refinance", "Jumbo"];
 
-/** YPN USA vs. shared lead vendors. Vendor figures are typical ranges, labelled as such under the table. */
+/** YPN USA vs. shared lead vendors. No vendor prices or resale counts: we have no source for a figure. */
 const COMPARISON: ReadonlyArray<{ feature: string; ypn: string; shared: string }> = [
   {
     feature: "Territory Exclusivity",
     ypn: "1 MLO per ZIP code within YPN USA",
-    shared: "The same lead is commonly resold 4–6x",
+    shared: "The same lead is often sold to several lenders",
   },
   {
     feature: "24/7 AI Borrower Qualification",
@@ -387,7 +387,7 @@ export default function Home() {
                     </th>
                     <th scope="col" className="px-3 py-3 font-bold text-slate-900 sm:px-4">
                       Shared Lead Vendors
-                      <span className="block text-xs font-semibold text-slate-700">$500&ndash;$2,500+/mo</span>
+                      <span className="block text-xs font-semibold text-slate-700">Usually priced per lead</span>
                     </th>
                   </tr>
                 </thead>
@@ -411,8 +411,8 @@ export default function Home() {
               </table>
             </div>
             <p className="mt-3 text-xs text-slate-600">
-              Shared lead vendor pricing and resale practices are typical ranges and vary by vendor. Exclusivity applies within
-              YPN USA; other lenders can still market in your area.
+              Shared lead vendor pricing and practices vary by vendor. Exclusivity applies within YPN USA; other lenders can still
+              market in your area.
             </p>
           </div>
         </div>

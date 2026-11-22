@@ -278,7 +278,9 @@ export function CerebroSandbox() {
                   </div>
                   <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-950">
                     <span aria-hidden className="h-2 w-2 rounded-full bg-amber-600" />
-                    Approve-first mode: this draft waits for your OK.
+                    {draft === "sms"
+                      ? "Texts always wait for you: Cerebro drafts, you send."
+                      : "Sent by Cerebro to opted-in borrowers after its compliance checks, or held for your OK in approve-first mode."}
                   </p>
                 </div>
               </section>

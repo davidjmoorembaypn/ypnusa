@@ -244,6 +244,11 @@ export interface IntakeSessionRecord {
   prefillZip?: string;
   /** Officer page slug passed as ?lo= (from /lo/[slug]); a live officer it names receives the lead. */
   officerSlug?: string;
+  /**
+   * How and when the borrower agreed to be contacted, with the exact wording shown. Copied into
+   * the consent ledger when the lead is created (src/lib/consent.ts).
+   */
+  consentCapture?: { source: string; textShown?: string; at: string; channels?: ConsentChannel[] };
 }
 
 export interface AnalyticsEventRecord {

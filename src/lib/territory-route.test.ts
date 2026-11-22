@@ -92,15 +92,20 @@ describe("territory availability comes from this app's paid ledger", async () =>
     for (const zip of ["93618", "93616", "93646", "93647"]) assert.equal((await check(zip)).body.available, true, zip);
   });
 
-  it("rejects a malformed ZIP code and still answers for one missing from the ZIP data", async () => {
+  it("rejects a malformed ZIP code and one that isn't a U.S. ZIP code", async () => {
     const bad = await check("12");
     assert.equal(bad.body.valid, false);
     assert.equal(bad.body.demand, null);
     assert.equal(bad.body.available, false);
     const unknownPlace = checkLedgerTerritory("00000");
-    assert.equal(unknownPlace.valid, true);
+    assert.equal(unknownPlace.valid, false);
+    assert.equal(unknownPlace.available, false);
     assert.equal(unknownPlace.city, null);
-    assert.match(unknownPlace.message, /ZIP code 00000 is open/);
+    assert.match(unknownPlace.message, /00000 isn't a U\.S\. ZIP code/);
+    const viaRoute = await check("00000");
+    assert.equal(viaRoute.body.valid, false);
+    assert.equal(viaRoute.body.available, false);
+    assert.equal(viaRoute.body.demand, null);
   });
 
   it("the shared status resolver agrees with the ledger", async () => {

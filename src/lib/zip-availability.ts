@@ -5,6 +5,7 @@ import { subscriptionRepository } from "@/lib/repositories";
 import { subscriptionLockKey, withKeyedLock } from "@/lib/repositories/keyed-lock";
 import { isLiveSubscription } from "@/lib/subscription-live";
 import { isValidZip, normalizeZip } from "@/lib/territory";
+import { isKnownZip } from "@/lib/zip-known";
 import { scheduleZipLockHook } from "@/lib/zip-scarcity";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 
@@ -82,7 +83,8 @@ export function nearbyOpenZips(rawZip: unknown, now: number = Date.now()): strin
 
 export function checkZipForViewer(viewer: { email: string }, rawZip: unknown, now: number = Date.now()): ZipAvailability {
   const zip = normalizeZip(rawZip);
-  if (!isValidZip(zip)) return { zip, valid: false, available: false, yours: false, nearby: [] };
+  // A code that isn't a real U.S. ZIP code is never offered for sale (fulfillment would not lock it).
+  if (!isValidZip(zip) || !isKnownZip(zip)) return { zip, valid: false, available: false, yours: false, nearby: [] };
   const holder = heldZips(now).get(zip);
   const email = normalizeEmail(viewer.email);
   const yours = Boolean(holder && email && normalizeEmail(holder.ownerEmail) === email);

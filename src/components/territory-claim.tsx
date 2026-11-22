@@ -367,11 +367,7 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               <span className={`font-semibold ${check.available ? "text-emerald-950" : "text-amber-950"}`}>{resultTitle}</span>
             </p>
             {check.city && check.state ? <p className="mt-1 text-[13px] text-slate-800">{check.message}</p> : null}
-            {check.available && !check.city ? (
-              <p className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-950">
-                We can&apos;t find ZIP code {check.zip} in the U.S. ZIP code list. Check the five digits before you pay to lock it.
-              </p>
-            ) : null}
+
             {check.demandTotal ? (
               <p className="mt-2 text-[12px] text-slate-700">
                 About {check.demandTotal} households buy, sell or move in over a typical 60 days (Census-based estimate, not a lead count)

@@ -214,8 +214,9 @@ export default function TermsOfServicePage() {
       <ul>
         <li>
           <strong>Program.</strong> YPN USA, operated by YPN Inc., sends text messages to people
-          who ask for mortgage help on ypnus.com and agree to receive texts. Texts are about your
-          own request: confirming we received it, scheduling and reminding you of calls with your
+          who ask for mortgage help on ypnus.com and agree to receive texts, and to loan officers
+          who opt in (see &ldquo;Loan officer texts&rdquo; below). Borrower texts are about your own
+          request: confirming we received it, scheduling and reminding you of calls with your
           assigned loan officer, and follow-ups on that request.
         </li>
         <li>
@@ -225,7 +226,15 @@ export default function TermsOfServicePage() {
           or book a call. We send a confirmation text when you opt in.
         </li>
         <li>
-          <strong>Frequency and cost.</strong> Message frequency varies with your request. Message
+          <strong>Loan officer texts.</strong> Licensed loan officers and loan originators can also
+          opt in to texts from YPN USA about their own YPN USA account: account notifications,
+          borrower lead alerts, ZIP code territory lock updates, subscription alerts, and Cerebro AI
+          assistant messages. They opt in only by checking the unchecked consent box on{" "}
+          <Link href="/sms-opt-in">ypnus.com/sms-opt-in</Link> and submitting the form. Consent is
+          not a condition of purchase or registration.
+        </li>
+        <li>
+          <strong>Frequency and cost.</strong> Message frequency varies with your request or account activity. Message
           and data rates may apply, according to your mobile plan.
         </li>
         <li>

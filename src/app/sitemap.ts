@@ -70,6 +70,8 @@ const SEO_PLAN_LAST_MODIFIED = new Date("2026-11-08T00:00:00.000Z");
 /** Loan Officer Market Report (HMDA county data), first published Nov 2026. */
 const MARKET_REPORT_LAST_MODIFIED = new Date("2026-11-16T00:00:00.000Z");
 const LEGAL_PAGES_LAST_MODIFIED = new Date("2026-09-13T00:00:00.000Z");
+/** Loan officer text opt-in page, added Nov 23 2026. */
+const SMS_OPT_IN_LAST_MODIFIED = new Date("2026-11-23T00:00:00.000Z");
 
 function wpPageEntries(origin: string, sectionPath: string, pages: readonly WpImportedPage[]) {
   return pages.map((page) => ({
@@ -195,5 +197,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${origin}/terms-of-service`, lastModified: LEGAL_PAGES_LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },
     { url: `${origin}/licensing-disclosures`, lastModified: LEGAL_PAGES_LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },
     { url: `${origin}/accessibility-statement`, lastModified: LEGAL_PAGES_LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${origin}/sms-opt-in`, lastModified: SMS_OPT_IN_LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },
   ];
 }

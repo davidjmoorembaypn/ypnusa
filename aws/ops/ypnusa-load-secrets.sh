@@ -13,6 +13,10 @@ for name in ANTHROPIC_API_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY TWILIO_ACCOUN
   if [ "$name" = RESEND_API_KEY ] && ! aws ssm get-parameter --region "$REGION" --name /ypnusa/RESEND_API_KEY >/dev/null 2>&1; then
     src=RESEND_API_Key
   fi
+  # The Twilio token was first saved as /ypnusa/twilio_AUTH_TOKEN; accept either name.
+  if [ "$name" = TWILIO_AUTH_TOKEN ] && ! aws ssm get-parameter --region "$REGION" --name /ypnusa/TWILIO_AUTH_TOKEN >/dev/null 2>&1; then
+    src=twilio_AUTH_TOKEN
+  fi
   if val="$(aws ssm get-parameter --region "$REGION" --with-decryption --name "/ypnusa/$src" --query Parameter.Value --output text 2>/dev/null)"; then
     [ -n "$val" ] && [ "$val" != "None" ] || continue
     cur="$(grep -E "^$name=" "$ENV" | head -1 | cut -d= -f2- || true)"

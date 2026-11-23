@@ -1,5 +1,6 @@
 import type { AssistantMode, ChatCapturedFields } from "@/lib/types";
 import type { AiToolDefinition } from "./provider";
+import { CONTACT_CONSENT_QUESTION } from "@/lib/sms-program";
 
 /**
  * Reusable agent instructions for the three assistant surfaces. Keeping these
@@ -98,10 +99,12 @@ or two at a time, never a long list) to fill in these fields:
 - leadType: "buyer" | "seller" | "refinance" | "other"
 - urgency: how soon they want to move ("critical" = ASAP/under 30 days,
   "high" = 1-3 months, "standard" = 3-6 months, "low" = just researching)
-- explicit contact consent (may YPN USA / their assigned loan officer follow
-  up by phone, text, and email?) — always ask this before treating the
-  conversation as complete, and never mark consent true unless they clearly
-  said yes.
+- explicit contact consent: ask this question word for word, as its own
+  message, so the borrower sees the full text-message disclosures:
+  "${CONTACT_CONSENT_QUESTION}"
+  Always ask it before treating the conversation as complete, tell them they
+  can say no and still get help, and never mark consent true unless they
+  clearly said yes.
 
 Type-specific angles once you know which type you're talking to:
 - buyer: target price range or budget, whether they're pre-approved, how

@@ -274,6 +274,9 @@ describe("automation.ts consent gate", async () => {
       createdAt: "2026-10-18T00:00:00Z",
     });
     persistFollowUpsBatch([followUp]);
+    writeDb((db) => {
+      db.consents.push({ id: "c_sms_optin", borrowerLeadId: lead.id, channel: "sms", granted: true, source: "intake_form", at: "2026-10-01T00:00:00Z" });
+    });
 
     const summary = await processDueFollowUps({ borrowerLeadId: lead.id, now: TEN_PM_PACIFIC });
 

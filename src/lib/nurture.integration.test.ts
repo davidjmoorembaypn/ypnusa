@@ -53,6 +53,8 @@ describe("borrower nurture and booking integration", async () => {
       // Every borrower message must show the officer's NMLS ID, so the test officer has one.
       officer.nmlsId = "123456";
       db.borrowerLeads = [lead];
+      // Texts need the ypnus.com opt-in on the consent ledger (src/lib/consent.ts).
+      db.consents.push({ id: "c_sms_optin", borrowerLeadId: lead.id, channel: "sms", granted: true, source: "intake_form", at: "2026-10-01T00:00:00Z" });
       db.followUps = [];
       db.appointments = [];
     });

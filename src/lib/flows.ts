@@ -1,4 +1,5 @@
 import type { BorrowerAnswers, LoanProgram } from "./types";
+import { CONTACT_CONSENT_QUESTION } from "./sms-program";
 
 export type InputKind =
   | "text"
@@ -117,8 +118,7 @@ const baseFlow: FlowStepDescriptor[] = [
   },
   {
     id: "contact_consent",
-    prompt:
-      "May YPN USA and your assigned loan officer contact you by text and email about this request? Message and data rates may apply; reply STOP to opt out.",
+    prompt: CONTACT_CONSENT_QUESTION,
     fieldPath: "contactConsent",
     kind: "boolean",
     chips: [

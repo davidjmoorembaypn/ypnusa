@@ -520,8 +520,8 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
               required
               className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-700"
             />
-            YPN USA and an assigned loan officer may contact me by email and, if provided, text or
-            phone about this request. Message and data rates may apply; reply STOP to opt out.
+            YPN USA may contact me by email and, if provided, phone about this request. We do not
+            send text messages from this form.
           </label>
 
           {submit.status === "error" ? (

@@ -297,8 +297,7 @@ export function EquitySnapshot() {
                     className="mt-1 accent-violet-500"
                   />
                   YPN USA and an assigned loan officer may contact me by email and, if provided,
-                  text or phone about this request. Message and data rates may apply; reply STOP
-                  to opt out.
+                  phone about this request. We do not send text messages from this form.
                 </label>
                 {reviewError ? (
                   <p className="mt-3 text-sm text-rose-200" role="alert">

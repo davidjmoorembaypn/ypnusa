@@ -7,11 +7,15 @@ set -euo pipefail
 ENV=/etc/ypnusa/app.env
 REGION=us-east-2
 changed=0
-for name in ANTHROPIC_API_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY; do
+for name in ANTHROPIC_API_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER; do
   src="$name"
   # The Resend key was first saved as /ypnusa/RESEND_API_Key; accept either name.
   if [ "$name" = RESEND_API_KEY ] && ! aws ssm get-parameter --region "$REGION" --name /ypnusa/RESEND_API_KEY >/dev/null 2>&1; then
     src=RESEND_API_Key
+  fi
+  # The Twilio token was first saved as /ypnusa/twilio_AUTH_TOKEN; accept either name.
+  if [ "$name" = TWILIO_AUTH_TOKEN ] && ! aws ssm get-parameter --region "$REGION" --name /ypnusa/TWILIO_AUTH_TOKEN >/dev/null 2>&1; then
+    src=twilio_AUTH_TOKEN
   fi
   if val="$(aws ssm get-parameter --region "$REGION" --with-decryption --name "/ypnusa/$src" --query Parameter.Value --output text 2>/dev/null)"; then
     [ -n "$val" ] && [ "$val" != "None" ] || continue

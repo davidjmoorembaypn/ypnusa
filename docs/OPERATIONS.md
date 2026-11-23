@@ -209,6 +209,11 @@ The settings that matter most, by name only:
 | `GA_MEASUREMENT_API_SECRET` | Sends "first payment" events to Google Analytics. | Payments are logged on the server only. |
 | `YPNUSA_BACKUP_S3_URI` | Off-server backup copies. | Backups stay on the server only. |
 | `TWILIO_AUTH_TOKEN` | Confirms that calls and texts really come from Twilio, including a borrower's STOP reply. | The voice line and STOP handling refuse every request. See [COMPLIANCE_MESSAGING.md](COMPLIANCE_MESSAGING.md). |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_FROM_NUMBER` | Send borrower follow-up texts from the site's Twilio number. | No texts are sent. |
 | `DATABASE_URL`, `YPN_LEDGER_STORE`, `YPN_SUBSCRIPTION_STORE` | The move of paid plans and ZIP code locks to a PostgreSQL database, step by step. See [POSTGRES_PHASE1.md](POSTGRES_PHASE1.md). | The site uses the data file only, as it always has. |
+
+`ANTHROPIC_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY` and the three `TWILIO_` settings can instead be saved in
+AWS Systems Manager Parameter Store (us-east-2) as SecureString parameters named `/ypnusa/<SETTING>`;
+`sudo ypnusa-load-secrets` copies them into `app.env` and restarts the site only when something changed.
 
 Never paste any of these values into GitHub, a chat, an email or a document.

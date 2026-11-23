@@ -12,6 +12,10 @@ import type { ConsentChannel, ConsentRecord, DbShape } from "./types";
  * - With no ledger record, the lead's original form consent (`legacyConsent`) decides,
  *   so leads captured before this ledger existed keep working. AI voice is the exception:
  *   it always needs its own explicit ledger grant (prior express written consent).
+ * - Texts need a ledger grant captured on ypnus.com itself (the intake chat's consent question,
+ *   the AI assistant, or a START reply). That is the opt-in registered with US carriers for
+ *   our A2P 10DLC campaign, so a lead sent in by a partner (lead_webhook) or a bare legacy yes
+ *   is never texted. Email and calls are unchanged.
  * - Texts and calls are held outside 8am to 9pm in the borrower's local time. When the
  *   time zone is unknown, both US Eastern and US Pacific must be inside that window.
  *   Email has no quiet hours.
@@ -75,6 +79,14 @@ export type ContactDecision =
   | { allowed: false; reason: "opted_out" | "no_consent" }
   | { allowed: false; reason: "quiet_hours"; retryAt: string };
 
+/** Consent sources that are the ypnus.com text opt-in registered with carriers. */
+const SMS_OPT_IN_SOURCES = ["intake_form", "chat_assistant", "sms_start"];
+
+function isRegisteredSmsOptIn(record: ConsentRecord): boolean {
+  const source = record.source ?? "";
+  return SMS_OPT_IN_SOURCES.some((prefix) => source === prefix || source.startsWith(`${prefix}:`));
+}
+
 export function canContact(input: {
   db: Pick<DbShape, "consents">;
   borrowerLeadId: string;
@@ -86,7 +98,12 @@ export function canContact(input: {
 }): ContactDecision {
   const record = latestConsent(input.db, input.borrowerLeadId, input.channel);
   if (record && !record.granted) return { allowed: false, reason: "opted_out" };
-  const consented = record ? record.granted : input.channel !== "ai_voice" && input.legacyConsent === true;
+  const consented =
+    input.channel === "sms"
+      ? Boolean(record?.granted && isRegisteredSmsOptIn(record))
+      : record
+        ? record.granted
+        : input.channel !== "ai_voice" && input.legacyConsent === true;
   if (!consented) return { allowed: false, reason: "no_consent" };
 
   const now = input.now ?? new Date();

@@ -8,8 +8,8 @@ const NOON_PACIFIC = new Date("2026-11-16T20:00:00Z");
 const TEN_PM_PACIFIC = new Date("2026-11-17T06:00:00Z");
 const SEVEN_AM_PACIFIC = new Date("2026-11-16T15:00:00Z"); // 10am Eastern
 
-function consent(channel: ConsentRecord["channel"], granted: boolean, at: string): ConsentRecord {
-  return { id: `c_${channel}_${at}`, borrowerLeadId: "lead_1", channel, granted, source: "test", at };
+function consent(channel: ConsentRecord["channel"], granted: boolean, at: string, source = "test"): ConsentRecord {
+  return { id: `c_${channel}_${at}`, borrowerLeadId: "lead_1", channel, granted, source, at };
 }
 
 describe("quiet hours", () => {
@@ -35,11 +35,24 @@ describe("quiet hours", () => {
 describe("canContact", () => {
   it("uses the intake form's consent when the ledger is empty", () => {
     const db = { consents: [] };
-    assert.deepEqual(canContact({ db, borrowerLeadId: "lead_1", channel: "sms", legacyConsent: true, now: NOON_PACIFIC }), { allowed: true });
-    assert.deepEqual(canContact({ db, borrowerLeadId: "lead_1", channel: "sms", legacyConsent: false, now: NOON_PACIFIC }), {
+    assert.deepEqual(canContact({ db, borrowerLeadId: "lead_1", channel: "email", legacyConsent: true, now: NOON_PACIFIC }), { allowed: true });
+    assert.deepEqual(canContact({ db, borrowerLeadId: "lead_1", channel: "email", legacyConsent: false, now: NOON_PACIFIC }), {
       allowed: false,
       reason: "no_consent",
     });
+  });
+
+  it("texts only borrowers who opted in on ypnus.com (the carrier-registered opt-in)", () => {
+    const at = "2026-11-01T00:00:00Z";
+    const text = (consents: ConsentRecord[], legacyConsent = true) =>
+      canContact({ db: { consents }, borrowerLeadId: "lead_1", channel: "sms", legacyConsent, now: NOON_PACIFIC }).allowed;
+    assert.equal(text([]), false, "a bare legacy yes is not a text opt-in");
+    assert.equal(text([consent("sms", true, at, "lead_webhook:partner")]), false, "a partner's lead is never texted");
+    assert.equal(text([consent("sms", true, at, "officer_marked")]), false);
+    assert.equal(text([consent("sms", true, at, "intake_form")]), true);
+    assert.equal(text([consent("sms", true, at, "chat_assistant:sess_1")]), true);
+    assert.equal(text([consent("sms", true, at, "sms_start")]), true);
+    assert.equal(text([consent("sms", true, at, "intake_formX")]), false);
   });
 
   it("an opt-out always wins, even over the original form consent", () => {
@@ -58,7 +71,7 @@ describe("canContact", () => {
   });
 
   it("holds texts during quiet hours with a retry time, but not email", () => {
-    const db = { consents: [] };
+    const db = { consents: [consent("sms", true, "2026-11-01T00:00:00Z", "intake_form")] };
     const text = canContact({ db, borrowerLeadId: "lead_1", channel: "sms", legacyConsent: true, now: TEN_PM_PACIFIC, timeZone: "America/Los_Angeles" });
     assert.deepEqual(text, { allowed: false, reason: "quiet_hours", retryAt: "2026-11-17T16:00:00.000Z" });
     assert.deepEqual(canContact({ db, borrowerLeadId: "lead_1", channel: "email", legacyConsent: true, now: TEN_PM_PACIFIC }), { allowed: true });

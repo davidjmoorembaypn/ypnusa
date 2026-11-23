@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 import type { BorrowerAnswers, BorrowerLeadRecord, FollowUpPlan, LoanOfficerRecord, ScheduledFollowUpRecord } from "./types";
+import { CONTACT_CONSENT_QUESTION } from "./sms-program";
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-compliance-messaging-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
@@ -129,8 +130,8 @@ describe("borrower messaging compliance", async () => {
       for (const entry of entries) {
         assert.equal(entry.granted, true);
         assert.equal(entry.source, "intake_form");
-        assert.match(entry.textShown ?? "", /^May YPN USA and your assigned loan officer contact you by text and email about this request\?/);
-        assert.match(entry.textShown ?? "", /reply STOP to opt out/);
+        assert.equal(entry.textShown, CONTACT_CONSENT_QUESTION);
+        assert.match(entry.textShown ?? "", /Reply HELP for help, STOP to opt out/);
         assert.ok(Date.parse(entry.at) >= before - 1000 && Date.parse(entry.at) <= Date.now());
       }
       // The question names text and email only, so a "yes" to it is not consent to a phone call.

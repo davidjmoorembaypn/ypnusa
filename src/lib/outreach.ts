@@ -53,7 +53,7 @@ const outreachCopy: Record<FollowUpPlan, (firstName: string, officerName: string
   immediate_confirmation_email: (firstName, officerName) =>
     `Hi ${firstName}, I’m the YPN USA virtual assistant for ${officerName}. I received your mortgage request and can help you choose a time for a quick call.`,
   immediate_sms_ack: (firstName, officerName) =>
-    `Hi ${firstName} — I’m the YPN USA virtual assistant for ${officerName}. I received your mortgage request and can help schedule a call. Reply STOP to opt out.`,
+    `YPN USA: Hi ${firstName}, thanks for your mortgage request. You're signed up for texts about it from ${officerName}'s team (call scheduling, reminders, follow-ups). Msg frequency varies. Msg & data rates may apply. Reply HELP for help. Reply STOP to opt out.`,
   day_1_educational_email: (firstName, officerName) =>
     `Hi ${firstName}, ${officerName} is ready to help. Reply with any mortgage questions or choose an available consultation time in your YPN USA conversation.`,
   day_3_book_call_email: (firstName, officerName) =>

@@ -147,6 +147,9 @@ describe("Cerebro dispatch", () => {
   it("holds texts, refuses drafts with rates or a missing NMLS, and never sends prequal letters", async () => {
     const officer = addOfficer();
     const lead = addLead(officer.id);
+    writeDb((db) => {
+      db.consents.push({ id: "c_sms_optin", borrowerLeadId: lead, channel: "sms", granted: true, source: "intake_form", at: "2026-10-01T00:00:00Z" });
+    });
     const text = queue(officer.id, lead, { channel: "text", body: "Hi Sam, quick check-in. Reply STOP to opt out." });
     const rate = queue(officer.id, lead, { body: "Rates just hit 5.9% APR!" });
     const placeholder = queue(officer.id, lead, { body: "Hi Sam. NMLS #[add your NMLS ID]" });

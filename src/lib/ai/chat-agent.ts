@@ -57,6 +57,7 @@ import {
 import { generateWebsiteAutopilotPlan, runWebsiteAutopilot, type WebsiteAutopilotPlan } from "./website-autopilot";
 import { alertOfficerOfNewChat } from "@/lib/push-alerts";
 import { queueLeadForOfficer } from "@/lib/integrations/crm/link";
+import { CONTACT_CONSENT_QUESTION } from "@/lib/sms-program";
 import {
   appendBorrowerMessageIfTakenOver,
   chatHandlerFirstName,
@@ -807,11 +808,12 @@ export function linkQualifiedLead(session: ChatSessionRecord): void {
   const officerSlug =
     pageOfficer && officerLicensedFor(pageOfficer, { zip: f.zip, state: f.state }) ? pageOfficer.slug : undefined;
   const route = routeLead({ program: answers.loanProgram, zip: answers.zip, officerSlug });
-  // The assistant asks for consent to follow up by phone, text and email (see prompts.ts). There
-  // is no fixed wording to store, so the entry names the chat session: its transcript is the
-  // record of exactly what was asked and answered.
+  // The assistant asks the fixed consent question word for word (see prompts.ts and
+  // src/lib/sms-program.ts). The entry stores that wording and names the chat session, whose
+  // transcript is the record of exactly what was asked and answered.
   const result = logCrmActivity(answers, qualification, route.officer.id, session.funnelSource, session.id, {
     source: `chat_assistant:${session.id}`,
+    textShown: CONTACT_CONSENT_QUESTION,
     channels: ["email", "sms", "call"],
   });
 

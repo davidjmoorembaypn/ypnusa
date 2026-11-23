@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LegalPageLayout } from "@/components/legal-page-layout";
 
 export const metadata: Metadata = {
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy-policy" },
 };
 
-const LAST_UPDATED = "September 24, 2026";
+const LAST_UPDATED = "November 23, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -111,8 +112,9 @@ export default function PrivacyPolicyPage() {
           payment card numbers.
         </li>
         <li>
-          <strong>Twilio</strong> &mdash; provides the telephony infrastructure for the AI
-          phone-intake feature.
+          <strong>Twilio</strong> &mdash; provides the telephony and text-message delivery
+          infrastructure for the phone-intake feature and our text message program. Twilio
+          processes your number only to deliver our messages.
         </li>
         <li>
           <strong>ypnus.com (WordPress)</strong> &mdash; our coordinated marketing site, used for
@@ -199,15 +201,31 @@ export default function PrivacyPolicyPage() {
         </li>
       </ul>
 
-      <h2>8. Communications preferences</h2>
+      <h2 id="text-messages">8. Communications preferences and text messages</h2>
       <p>
-        By submitting your phone number or email through an intake form, chat, or call, you
-        consent to be contacted by or on behalf of the relevant Subscriber about your inquiry,
-        including by phone, text message, and email, which may use automated dialing or messaging
-        technology. Message and data rates may apply. Reply <strong>STOP</strong> to opt out of
-        text messages, or tell us directly using the contact details in Section 12 to opt out of
-        any channel. Consent to be contacted is not a condition of obtaining any product or
-        service.
+        If you give us your email or phone number through an intake form, chat, or call and agree
+        to be contacted, YPN USA and the loan officer assigned to your request may contact you
+        about that request by email or phone. Consent to be contacted is not a condition of
+        obtaining any product or service.
+      </p>
+      <p>
+        <strong>Text messages.</strong> We text you only if you opt in, by answering yes to the
+        text consent question in the ypnus.com intake chat. Texts are about your own mortgage
+        request (confirmation, call scheduling, reminders, and follow-ups). Message frequency
+        varies. Message and data rates may apply. Reply <strong>HELP</strong> for help or{" "}
+        <strong>STOP</strong> to opt out at any time; you can also opt out of any channel using
+        the contact details in Section 12. See the text message terms in our{" "}
+        <Link href="/terms-of-service#text-messages">Terms of Service</Link>.
+      </p>
+      <p>
+        <strong>
+          No mobile information will be shared with third parties or affiliates for marketing or
+          promotional purposes.
+        </strong>{" "}
+        Your mobile phone number, text opt-in data, and consent are not sold, rented, or shared
+        with any third party or lead generator. We share them only with service providers that
+        help us deliver the messages you asked for (such as our text-message carrier, Twilio) and
+        with the loan officer assigned to your own request so they can respond to it.
       </p>
 
       <h2>9. Data retention and security</h2>

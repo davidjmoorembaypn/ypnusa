@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/terms-of-service" },
 };
 
-const LAST_UPDATED = "November 7, 2026";
+const LAST_UPDATED = "November 23, 2026";
 
 const PAID_PLAN_PRICES = PUBLIC_PRICING_TIERS.filter((tier) => tier.priceMonthlyCents > 0)
   .map((tier) => `${tier.name} ${tier.price}/month`)
@@ -209,6 +209,46 @@ export default function TermsOfServicePage() {
         <br />
         Phone: <a href="tel:+15595120372">(559) 512-0372</a>
       </p>
+
+      <h2 id="text-messages">15. Text message program (SMS terms)</h2>
+      <ul>
+        <li>
+          <strong>Program.</strong> YPN USA, operated by YPN Inc., sends text messages to people
+          who ask for mortgage help on ypnus.com and agree to receive texts. Texts are about your
+          own request: confirming we received it, scheduling and reminding you of calls with your
+          assigned loan officer, and follow-ups on that request.
+        </li>
+        <li>
+          <strong>How you opt in.</strong> In the ypnus.com intake chat we ask whether YPN USA and
+          your assigned loan officer&rsquo;s team may text and email you about your request. You
+          opt in only by answering yes. Texting is optional: you can answer no and still get help
+          or book a call. We send a confirmation text when you opt in.
+        </li>
+        <li>
+          <strong>Frequency and cost.</strong> Message frequency varies with your request. Message
+          and data rates may apply, according to your mobile plan.
+        </li>
+        <li>
+          <strong>Opting out.</strong> Reply <strong>STOP</strong> (or END, CANCEL, QUIT,
+          UNSUBSCRIBE) at any time to stop texts. You will get one message confirming you have
+          been unsubscribed, and no more texts after that. Reply <strong>START</strong> to opt back
+          in.
+        </li>
+        <li>
+          <strong>Help.</strong> Reply <strong>HELP</strong> for help, or contact{" "}
+          <a href="mailto:support@ypnus.com">support@ypnus.com</a> or{" "}
+          <a href="tel:+15595120372">(559) 512-0372</a>.
+        </li>
+        <li>
+          <strong>Carriers.</strong> Mobile carriers are not liable for delayed or undelivered
+          messages.
+        </li>
+        <li>
+          <strong>Privacy.</strong> Your mobile number and text consent are handled as described
+          in our <Link href="/privacy-policy#text-messages">Privacy Policy</Link>. We do not sell
+          or share them with third parties or affiliates for marketing or promotional purposes.
+        </li>
+      </ul>
     </LegalPageLayout>
   );
 }

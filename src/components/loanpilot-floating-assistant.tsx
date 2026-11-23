@@ -956,8 +956,8 @@ function InnerChrome(props: {
                 required
                 className="mt-0.5 accent-violet-600"
               />
-              YPN USA and an assigned loan officer may contact me by email, text, or phone about
-              this request. Message and data rates may apply; reply STOP to opt out.
+              YPN USA and an assigned loan officer may contact me by email or phone about this
+              request. Texts are asked about separately on the next step.
             </label>
             {contactGroupError ? (
               <p className="text-xs font-medium text-amber-700">{contactGroupError}</p>

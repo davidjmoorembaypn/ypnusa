@@ -20,7 +20,7 @@ const START_WORDS = new Set(["start", "unstop"]);
 const HELP_WORDS = new Set(["help", "info"]);
 const IDEMPOTENCY_SCOPE = "sms_inbound";
 
-export const SMS_HELP_REPLY = `YPN USA: follow-up about your mortgage request. Help: ${BUSINESS_PHONE_DISPLAY} or ${BUSINESS_EMAIL}. Msg & data rates may apply. Reply STOP to opt out.`;
+export const SMS_HELP_REPLY = `YPN USA: texts about your mortgage request. Help: ${BUSINESS_PHONE_DISPLAY} or ${BUSINESS_EMAIL}. Msg frequency varies. Msg & data rates may apply. Reply STOP to opt out.`;
 
 export interface InboundSmsResult {
   action: "opted_out" | "opted_in" | "help" | "none" | "duplicate";

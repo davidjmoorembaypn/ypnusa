@@ -149,11 +149,13 @@ export const DRAFT_MARKETING_CONTENT_TOOL: AiToolDefinition = {
 export const DRAFT_LANDING_PAGE_TOOL: AiToolDefinition = {
   name: "draft_landing_page",
   description:
-    "Draft the section-by-section copy of a landing page (hero, offer, proof, CTA) for a stated goal and offer. Returns a draft only - it does not publish anything.",
+    "Draft the section-by-section copy of a landing page (hero, offer, proof, CTA) for a stated goal and offer, or a website page with a specified audience and sections. Returns a draft only - it does not publish anything.",
   inputSchema: {
     type: "object",
     properties: {
       goal: { type: "string", description: "e.g. get first-time buyers to book a consultation" },
+      audience: { type: "string", description: "Who the website page serves." },
+      sections: { type: "array", items: { type: "string" }, maxItems: 10, description: "Requested sections in reading order, such as hero, process, closing checklist and FAQ." },
       offer: { type: "string", description: "e.g. free home-buying game plan session" },
     },
     required: ["goal", "offer"],
@@ -502,9 +504,13 @@ async function draftLandingPage(call: AiToolCall): Promise<string> {
   const goal = str(call.input.goal, 300);
   const offer = str(call.input.offer, 300);
   if (!goal || !offer) return JSON.stringify({ error: "goal and offer are required." });
-  const result = await runAgent({ type: "website-landing-page", goal, offer });
+  const sections = strList(call.input.sections);
+  const audience = str(call.input.audience, 200);
+  const result = sections.length
+    ? await runAgent({ type: "website-page-spec", goal, audience: audience ?? "prospective borrowers", sections })
+    : await runAgent({ type: "website-landing-page", goal, offer });
   if (!result.ok) return JSON.stringify({ error: result.error ?? "Draft failed." });
-  return JSON.stringify({ draftOnly: true, note: "Draft only - not published.", page: result.data });
+  return JSON.stringify({ draftOnly: true, note: "Draft only - not published.", offer, page: result.data });
 }
 
 function listQueued(ctx: MloToolContext): string {

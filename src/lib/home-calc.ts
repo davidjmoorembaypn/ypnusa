@@ -52,8 +52,7 @@ export function monthlyPrincipalAndInterest(loanAmount: number, annualRatePct: n
   if (principal === 0 || n <= 0) return 0;
   const r = Math.max(0, finite(annualRatePct)) / 100 / 12;
   if (r === 0) return principal / n;
-  const growth = Math.pow(1 + r, n);
-  return (principal * r * growth) / (growth - 1);
+  return principal * r / -Math.expm1(-n * Math.log1p(r));
 }
 
 /** Share of the price that is paid down, as a percentage clamped to 0-100. */

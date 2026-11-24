@@ -9,7 +9,7 @@ import type { ChatSessionRecord } from "../types";
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-chat-agent-tools-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
-import { OPEN_ZIP_REPLY_HINT, runWithTools, toolsForMode, wrapToolData, ZIP_LOCK_NOTE } from "./chat-agent";
+import { fallbackReply, OPEN_ZIP_REPLY_HINT, runWithTools, toolsForMode, wrapToolData, ZIP_LOCK_NOTE } from "./chat-agent";
 import { findExplainerVideo, type ExplainerVideo } from "./explainer-videos";
 import * as explainerVideos from "./explainer-videos";
 import {
@@ -122,6 +122,10 @@ describe("toolsForMode", () => {
         "subscribe_rate_alerts",
         "platform_help",
         "mortgage_guide",
+        "housing_market_trend",
+        "mortgage_origination_trend",
+        "calculate_mortgage_scenario",
+        "calculate_income_property",
       ]),
     );
   });
@@ -140,6 +144,10 @@ describe("toolsForMode", () => {
         "save_prequal_details",
         "subscribe_rate_alerts",
         "mortgage_guide",
+        "housing_market_trend",
+        "mortgage_origination_trend",
+        "calculate_mortgage_scenario",
+        "calculate_income_property",
       ]),
     );
   });
@@ -162,6 +170,11 @@ describe("toolsForMode", () => {
         "get_my_account",
         "list_appointments",
         "cancel_appointment",
+        "mortgage_guide",
+        "housing_market_trend",
+        "mortgage_origination_trend",
+        "calculate_mortgage_scenario",
+        "calculate_income_property",
         "platform_help",
         "run_follow_ups",
         "draft_rate_alerts",
@@ -519,4 +532,41 @@ describe("ZIP code lock messaging", () => {
     assert.equal(json.lockCheckoutUrl, "https://buy.stripe.com/14A00idwm3xf9qhe983AY0O?client_reference_id=93720");
     assert.match(json.trialCheckoutUrl, /bJe5kC4ZQffXdGxghg3AY0L/);
   });
+});
+
+describe("borrower actions after intake capture", () => {
+  it("can consult the guide after recording a ZIP code in the same turn", async () => {
+    let round = 0;
+    const provider: AiProvider = {
+      name: "fake",
+      async generate(request) {
+        round++;
+        if (round === 1) {
+          return { text: "", toolCalls: [{ toolName: "capture_lead_qualification", input: { zip: "93618" } }], stopReason: "tool_use" };
+        }
+        if (round === 2) {
+          assert.ok(request.tools?.some((tool) => tool.name === "mortgage_guide"));
+          assert.ok(!request.tools?.some((tool) => tool.name === "capture_lead_qualification"));
+          assert.notEqual(request.toolChoice, "none");
+          return { text: "", toolCalls: [{ toolName: "mortgage_guide", input: { question: "What documents should I gather?" } }], stopReason: "tool_use" };
+        }
+        assert.match(request.messages.at(-1)!.content, /photo ID/);
+        return { text: "Have your photo ID ready.", toolCalls: [], stopReason: "end_turn" };
+      },
+    };
+    const result = await runWithTools(provider, "sys", [{ role: "user", content: "93618. What documents should I gather?" }], toolsForMode("lead_qualification"), fakeSession(), noopMerge);
+    assert.equal(result.text, "Have your photo ID ready.");
+    assert.equal(result.captureCalls.length, 1);
+    assert.equal(result.actionCalls.length, 1);
+  });
+
+  for (const content of [
+    "I am a first-time homebuyer. What should I have ready for my first conversation with a loan officer?",
+    "93618. What documents should I gather for that first conversation?",
+  ]) {
+    it("answers an unanswered preparation question: " + content, () => {
+      const reply = fallbackReply(fakeSession({ messages: [{ id: "question", role: "user", content, createdAt: new Date().toISOString() }] }));
+      assert.match(reply, /photo ID/);
+    });
+  }
 });

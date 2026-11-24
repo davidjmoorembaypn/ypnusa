@@ -7,6 +7,8 @@ import { MLO_MARKETS } from "@/content/mlo-markets";
 import { REPORT_COUNTIES } from "@/content/market-report";
 import { METRO_MARKETS, metroPath } from "@/content/metro-markets";
 import { METRO_DATA_FETCHED_ON } from "@/content/metro-markets-data";
+import { METRO_AREAS, METRO_AREA_HUB_PATH, isMetroAreaIndexable, metroAreaPath } from "@/content/metro-areas";
+import { METRO_AREA_DATA_FETCHED_ON } from "@/content/metro-areas-data";
 import { RATE_SHEET_LINKS_CHECKED_ON } from "@/content/rate-sheet-directory";
 import { indexableZips, zipCanonicalUrl } from "@/lib/zip-index";
 import { COMPARE_PAGES } from "@/content/compare-pages";
@@ -185,6 +187,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(METRO_DATA_FETCHED_ON),
       changeFrequency: "monthly" as const,
       priority: 0.7,
+    })),
+    // Top 100 metro mortgage markets (HMDA 2024), Nov 2026. Only pages that pass the uniqueness
+    // check in src/content/metro-areas.ts are listed; the rest render with noindex.
+    { url: `${origin}${METRO_AREA_HUB_PATH}`, lastModified: new Date(METRO_AREA_DATA_FETCHED_ON), changeFrequency: "monthly", priority: 0.7 },
+    ...METRO_AREAS.filter(isMetroAreaIndexable).map((m) => ({
+      url: `${origin}${metroAreaPath(m)}`,
+      lastModified: new Date(METRO_AREA_DATA_FETCHED_ON),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
     })),
     ...wpPageEntries(origin, "/markets", WP_MARKET_PAGES),
     ...wpPageEntries(origin, "/loan-types", WP_LOAN_TYPE_PAGES),

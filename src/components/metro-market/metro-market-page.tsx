@@ -23,6 +23,7 @@ import {
   relatedMetros,
   type MetroMarket,
 } from "@/content/metro-markets";
+import { METRO_AREA_HUB_PATH, metroAreaForCountyPage, metroAreaPath } from "@/content/metro-areas";
 
 const TYPE_ROWS: Array<[keyof MetroYear["loanTypes"], string]> = [
   ["conventional", "Conventional"],
@@ -91,6 +92,7 @@ export function MetroMarketPage({ market, origin = MARKETING_SITE_URL }: { marke
   const faq = metroFaq(market);
   const takeaways = metroTakeaways(market);
   const related = relatedMetros(market);
+  const metroArea = metroAreaForCountyPage(metroPath(market));
   const crumbs: BreadcrumbItem[] = homeTrail({ name: "Markets", href: METRO_HUB_PATH }, { name: label, href: path });
 
   const webPage = {
@@ -274,9 +276,21 @@ export function MetroMarketPage({ market, origin = MARKETING_SITE_URL }: { marke
                   </Link>
                 </li>
               ))}
+              {metroArea ? (
+                <li>
+                  <Link href={metroAreaPath(metroArea)} className="inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-[#13254a] hover:bg-slate-50">
+                    {metroArea.short} metro-wide data
+                  </Link>
+                </li>
+              ) : null}
               <li>
                 <Link href={METRO_HUB_PATH} className="inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-[#13254a] hover:bg-slate-50">
                   All markets
+                </Link>
+              </li>
+              <li>
+                <Link href={METRO_AREA_HUB_PATH} className="inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-[#13254a] hover:bg-slate-50">
+                  Top 100 metro markets
                 </Link>
               </li>
               <li>

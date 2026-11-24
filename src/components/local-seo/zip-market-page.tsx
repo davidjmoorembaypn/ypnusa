@@ -9,6 +9,8 @@ import { CA_DRE_ID, NMLS_ID } from "@/lib/author";
 import type { ZipDistance } from "@/lib/geo/zip-geo";
 import { localIntakeHref, serializeJsonLd } from "@/lib/local-seo";
 import { zipCanonicalUrl } from "@/lib/zip-index";
+import { metroAreaForZip } from "@/lib/metro-area-zips";
+import { metroAreaPath } from "@/content/metro-areas";
 
 /**
  * ZIP code page for a ZIP code without a hand-written profile.
@@ -21,6 +23,7 @@ export function ZipMarketPage({ intel, indexable, neighbors }: { intel: ZipLocal
   const { zip, city, state } = intel;
   const place = city && state ? `${city}, ${state}` : `ZIP code ${zip}`;
   const canonical = zipCanonicalUrl(zip);
+  const metro = city && state ? metroAreaForZip({ city, state }) : undefined;
   const webPage = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -75,6 +78,18 @@ export function ZipMarketPage({ intel, indexable, neighbors }: { intel: ZipLocal
             </p>
           </section>
         )}
+
+        {metro ? (
+          <section className="mx-auto max-w-3xl px-6 pb-10">
+            <p className="leading-7 text-slate-700">
+              Loan officers: see the{" "}
+              <Link href={metroAreaPath(metro)} className="font-semibold text-violet-700 underline">
+                {metro.short} metro mortgage market data
+              </Link>{" "}
+              for loan counts, loan types and approval rates across the {metro.name} area.
+            </p>
+          </section>
+        ) : null}
 
         <section className="mx-auto max-w-4xl px-6 pb-14">
           <p className="rounded-2xl bg-slate-50 p-5 text-xs leading-6 text-slate-600 ring-1 ring-slate-200">

@@ -145,6 +145,17 @@ export function prepareOutreach(job: ScheduledFollowUpRecord, context: OutreachC
     zip: context.lead.answers.zip,
   });
   if (guarded.blocked) throw new OutreachBlockedError(describeBlock(guarded.reasons[0], guarded.state));
+  // The journey's later emails and texts go out with nobody reviewing them, so when the
+  // borrower's state is known the officer must have listed a license there. An empty license
+  // list is only a warning in the guardrails; here it blocks. The instant "we got your
+  // request" reply is an answer to the borrower, so it still goes out.
+  if (
+    !job.plan.startsWith("immediate_") &&
+    guarded.state &&
+    !(officer.licenses ?? []).some((license) => license.state.toUpperCase() === guarded.state)
+  ) {
+    throw new OutreachBlockedError(describeBlock("not_licensed_in_state", guarded.state));
+  }
 
   if (isSms) {
     const text = STOP_LINE.test(guarded.text) ? guarded.text : `${guarded.text.trimEnd()} Reply STOP to opt out.`;

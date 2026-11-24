@@ -1,7 +1,7 @@
 import { BUSINESS_EMAIL, BUSINESS_PHONE_DISPLAY } from "@/lib/author";
-import { isStopKeyword, recordConsent, recordOptOutAllChannels } from "@/lib/consent";
+import { isStopKeyword, latestConsent, recordConsent, recordOptOutAllChannels } from "@/lib/consent";
 import { cancelPendingFollowUps, readDb } from "@/lib/db";
-import { claimKey } from "@/lib/idempotency";
+import { claimKey, isKeyClaimed } from "@/lib/idempotency";
 import { applyLoanOfficerSmsKeyword } from "@/lib/sms-opt-in-store";
 
 /**
@@ -45,6 +45,13 @@ export function phoneKey(raw: string | undefined): string {
   return digits;
 }
 
+const OPT_OUT_CHANNELS = ["sms", "call", "email", "ai_voice"] as const;
+
+function optedOutEverywhere(leadId: string): boolean {
+  const db = readDb();
+  return OPT_OUT_CHANNELS.every((channel) => latestConsent(db, leadId, channel)?.granted === false);
+}
+
 function keyword(body: string): string {
   return body.trim().toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ");
 }
@@ -63,18 +70,25 @@ export function handleInboundSms(input: { from: string; body: string; messageSid
   if (HELP_WORDS.has(word)) return { action: "help", leads: leadIds.length, reply: SMS_HELP_REPLY };
   if (!stop && !start) return { action: "none", leads: leadIds.length };
 
-  // A redelivered message must not add a second set of ledger entries.
-  if (input.messageSid && !claimKey(IDEMPOTENCY_SCOPE, input.messageSid).claimed) {
-    return { action: "duplicate", leads: leadIds.length };
-  }
-
   if (stop) {
+    // STOP claims its message ID only after every write, and skips leads that are already
+    // opted out everywhere. If the server stops part way through, Twilio's redelivery finishes
+    // the leads that were missed instead of being dropped as a duplicate.
+    if (input.messageSid && isKeyClaimed(IDEMPOTENCY_SCOPE, input.messageSid)) {
+      return { action: "duplicate", leads: leadIds.length };
+    }
     applyLoanOfficerSmsKeyword(key, "stop");
     for (const leadId of leadIds) {
-      recordOptOutAllChannels(leadId, "sms_stop");
+      if (!optedOutEverywhere(leadId)) recordOptOutAllChannels(leadId, "sms_stop");
       cancelPendingFollowUps(leadId);
     }
+    if (input.messageSid) claimKey(IDEMPOTENCY_SCOPE, input.messageSid);
     return { action: "opted_out", leads: leadIds.length };
+  }
+
+  // A redelivered START must not add a second set of ledger entries.
+  if (input.messageSid && !claimKey(IDEMPOTENCY_SCOPE, input.messageSid).claimed) {
+    return { action: "duplicate", leads: leadIds.length };
   }
 
   applyLoanOfficerSmsKeyword(key, "start");

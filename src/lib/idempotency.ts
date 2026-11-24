@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { writeDb } from "./db";
+import { readDb, writeDb } from "./db";
 
 /**
  * "Process this once" for webhooks and jobs. Senders retry on timeouts, so the same
@@ -34,6 +34,16 @@ export function claimKey(scope: string, key: string, now: Date = new Date()): Cl
     db.processedKeys.push({ key: hashed, scope, at: now.toISOString() });
   });
   return result;
+}
+
+/**
+ * True when the key was already claimed (and has not expired). Reads only: for handlers that
+ * must finish their writes before they claim, so a crash part way through is redone on retry.
+ */
+export function isKeyClaimed(scope: string, key: string, now: Date = new Date()): boolean {
+  const hashed = hashKey(scope, key);
+  const cutoff = new Date(now.getTime() - KEY_TTL_DAYS * 24 * 60 * 60_000).toISOString();
+  return readDb().processedKeys.some((record) => record.scope === scope && record.key === hashed && record.at >= cutoff);
 }
 
 /** Saves what the first delivery created, so duplicates can point to it. */

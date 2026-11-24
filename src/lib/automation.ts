@@ -167,6 +167,46 @@ export function scheduleBorrowerJourney(
 /** How long after a lead arrives its instant acknowledgment may still go out during quiet hours. */
 const IMMEDIATE_REPLY_WINDOW_MS = 10 * 60_000;
 
+
+/**
+ * The last check before a claimed follow-up goes out, on a fresh read of the store:
+ * - the job must still be the one this run claimed (nothing cancelled it meanwhile);
+ * - the borrower must not have opted out of this channel since the first check;
+ * - a drip job created before the borrower booked a call is dropped, because booking is what
+ *   it asks for. Booking cancels pending jobs itself; this covers calls booked before that
+ *   code existed and a job already claimed when the booking landed.
+ * Returns why it must not go out, or null.
+ */
+function sendTimeStop(jobId: string, now: Date): { message: string; event: string } | null {
+  const db = readDb();
+  const job = db.followUps.find((item) => item.id === jobId);
+  if (!job || job.status !== "sending") return { message: "Cancelled before sending.", event: "cancelled_before_send" };
+  const lead = db.borrowerLeads.find((item) => item.id === job.borrowerLeadId);
+  const decision = canContact({
+    db,
+    borrowerLeadId: job.borrowerLeadId,
+    channel: job.channel,
+    legacyConsent: lead?.answers.contactConsent === true,
+    now,
+  });
+  if (!decision.allowed && decision.reason !== "quiet_hours") {
+    return {
+      message: decision.reason === "opted_out" ? "Cancelled: borrower opted out." : "Cancelled: no contact consent.",
+      event: decision.reason,
+    };
+  }
+  if (!job.plan.startsWith("immediate_")) {
+    const booked = db.appointments.some(
+      (appointment) =>
+        appointment.borrowerLeadId === job.borrowerLeadId &&
+        appointment.status !== "cancelled" &&
+        appointment.createdAt >= job.createdAt,
+    );
+    if (booked) return { message: "Cancelled: the borrower already booked a call.", event: "already_booked" };
+  }
+  return null;
+}
+
 export async function processDueFollowUps(options?: {
   borrowerLeadId?: string;
   limit?: number;
@@ -270,6 +310,19 @@ export async function processDueFollowUps(options?: {
 
     try {
       const personalization = await resolveOutreachPersonalization(lead);
+      // Personalization awaits network lookups, so a STOP, an unsubscribe or a booking can land
+      // in between. Look again right before the send and drop the job if any of them did.
+      const lateStop = sendTimeStop(jobId, clock);
+      if (lateStop) {
+        writeDb((db) => {
+          const current = db.followUps.find((item) => item.id === jobId);
+          if (!current) return;
+          current.status = "cancelled";
+          current.lastError = lateStop.message;
+        });
+        events.push(`${job.plan}:${job.channel}:${lateStop.event}`);
+        continue;
+      }
       const delivery = await deliverOutreach(job, { lead, officer, personalization });
       writeDb((db) => {
         const current = db.followUps.find((item) => item.id === jobId);

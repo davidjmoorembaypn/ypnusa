@@ -74,6 +74,8 @@ describe("automation.ts outreach personalization connector", async () => {
       officer.entitlementStatus = "active";
       // Every borrower message must show the officer's NMLS ID, so the test officer has one.
       officer.nmlsId = "123456";
+      // Unreviewed journey messages only go to borrowers in a state the officer lists.
+      officer.licenses = [{ state: "CA", type: "ca_dre", number: "01234567" }];
     });
     server = http.createServer((req, res) => {
       let raw = "";

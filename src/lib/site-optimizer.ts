@@ -47,7 +47,10 @@ const PROTECTED_PATHS = [
   /^\/(login|logout|admin|dashboard|portal|account|billing|onboarding|analytics|api|starter-kit|embed)\b/,
 ];
 
-export const LIMITS = { title: { min: 25, max: 62 }, description: { min: 70, max: 160 } } as const;
+export const LIMITS = { title: { min: 25, max: 62 }, description: { min: 70, max: 160 }, headline: { min: 20, max: 90 } } as const;
+
+/** Pages whose visible headline an admin can change from /admin. Cerebro never proposes headlines. */
+export const HEADLINE_PATHS = ["/"] as const;
 
 /** Sign-in, app and admin pages: never worth a search snippet, not even as a proposal. */
 function isAlwaysSkipped(pathname: string): boolean {
@@ -364,14 +367,26 @@ function decodeEntities(text: string): string {
     .replace(/&#x27;|&#39;/g, "'");
 }
 
-/** The page's current <title> and meta description as served. */
-export async function readLivePage(pathname: string): Promise<{ status: number; title?: string; description?: string }> {
+/** The text of the page's first <h1>, tags removed and spaces collapsed. */
+export function extractHeadline(html: string): string | undefined {
+  const inner = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1];
+  if (inner === undefined) return undefined;
+  return decodeEntities(inner.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim();
+}
+
+/** The page's current <title>, meta description and main headline as served. */
+export async function readLivePage(pathname: string): Promise<{ status: number; title?: string; description?: string; headline?: string }> {
   // redirect: "manual" so an old URL that now redirects is skipped, not edited under the wrong path.
   const response = await fetch(selfUrl(pathname), { redirect: "manual", signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "ypnus-site-optimizer" } });
   const html = response.ok ? await response.text() : "";
   const title = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1];
   const description = html.match(/<meta[^>]+name="description"[^>]+content="([^"]*)"/i)?.[1];
-  return { status: response.status, title: title ? decodeEntities(title) : undefined, description: description ? decodeEntities(description) : undefined };
+  return {
+    status: response.status,
+    title: title ? decodeEntities(title) : undefined,
+    description: description ? decodeEntities(description) : undefined,
+    headline: extractHeadline(html),
+  };
 }
 
 export function validateValue(field: SiteOverrideRecord["field"], value: string): string[] {
@@ -410,6 +425,9 @@ export async function proposeChange(input: {
 }): Promise<{ ok: true; record: SiteOverrideRecord } | { ok: false; problems: string[] }> {
   const pathname = normalizePath(input.path);
   if (!pathname) return { ok: false, problems: ["That isn't a ypnus.com page path."] };
+  if (input.field === "headline" && (input.source !== "admin" || !(HEADLINE_PATHS as readonly string[]).includes(pathname))) {
+    return { ok: false, problems: ["Only the homepage headline can be changed, and only by an admin."] };
+  }
   const value = input.value.trim().replace(/\s+/g, " ");
   const problems = validateValue(input.field, value);
   if (problems.length) return { ok: false, problems };
@@ -478,7 +496,7 @@ export async function verifyPendingChanges(
     } catch {
       page = { status: 0 };
     }
-    const shown = record.field === "title" ? page.title : page.description;
+    const shown = record.field === "title" ? page.title : record.field === "headline" ? page.headline : page.description;
     const ok = page.status === 200 && Boolean(shown?.includes(record.value));
     if (ok) {
       saveSiteOverride({ ...record, checkResult: "ok" });

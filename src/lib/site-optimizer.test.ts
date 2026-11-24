@@ -19,6 +19,7 @@ import {
   chooseProperties,
   OPTIMIZER_RUN_VERSION,
   RUNNING_LABEL,
+  extractHeadline,
   proposeChange,
   revertChange,
   verifyPendingChanges,
@@ -167,5 +168,43 @@ describe("isOpportunity on a small site", () => {
       { page: "http://ypnus.com/", clicks: 0, impressions: 108, ctr: 0, position: 6.92 },
     ]);
     assert.equal(found[0]?.path, "/");
+  });
+});
+
+describe("homepage headline (owner edits from /admin)", () => {
+  it("lets only an admin change only the homepage headline, within the limits and the advertising checks", async () => {
+    const auto = await proposeChange({ path: "/", field: "headline", value: "Answer every borrower before the other lender does.", reason: "t", source: "cerebro_auto" });
+    assert.equal(auto.ok, false);
+    const otherPage = await proposeChange({ path: "/pricing", field: "headline", value: "Answer every borrower before the other lender does.", reason: "t", source: "admin" });
+    assert.equal(otherPage.ok, false);
+    const tooShort = await proposeChange({ path: "/", field: "headline", value: "Hi there", reason: "t", source: "admin" });
+    assert.equal(tooShort.ok, false);
+    const tooLong = await proposeChange({ path: "/", field: "headline", value: "x".repeat(91), reason: "t", source: "admin" });
+    assert.equal(tooLong.ok, false);
+    const claim = await proposeChange({ path: "/", field: "headline", value: "Guaranteed lowest rates for every borrower you meet", reason: "t", source: "admin" });
+    assert.equal(claim.ok, false);
+    const markup = await proposeChange({ path: "/", field: "headline", value: "Answer every borrower <script>first</script>", reason: "t", source: "admin" });
+    assert.equal(markup.ok, false);
+  });
+
+  it("goes live at once, is confirmed against the page's h1, and can be undone", async () => {
+    const live = await proposeChange({ path: "/", field: "headline", value: "Answer every borrower before the other lender does.", reason: "t", source: "admin", previousValue: "Old" });
+    assert.ok(live.ok);
+    if (!live.ok) return;
+    assert.equal(live.record.status, "live");
+    const results = await verifyPendingChanges(async () => ({
+      status: 200,
+      headline: "Answer every borrower before the other lender does. Cerebro answers them for you, day and night.",
+    }));
+    assert.deepEqual(results.find((r) => r.id === live.record.id), { id: live.record.id, result: "ok" });
+    const undone = await revertChange(live.record.id, "Undone by the owner at /admin.");
+    assert.equal(undone?.status, "reverted");
+    assert.equal(readDb().siteOverrides.find((r) => r.id === live.record.id)?.status, "reverted");
+  });
+
+  it("reads the h1 text as a visitor sees it", () => {
+    const html = '<main><h1 class="x">Stop losing borrowers<!-- --> <span class="v">Cerebro &amp; you.</span></h1><h1>second</h1></main>';
+    assert.equal(extractHeadline(html), "Stop losing borrowers Cerebro & you.");
+    assert.equal(extractHeadline("<p>no heading</p>"), undefined);
   });
 });

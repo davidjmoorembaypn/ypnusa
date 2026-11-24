@@ -2,7 +2,8 @@ import { isRecord, jsonError, jsonOk, logApiError, parseJsonBody } from "@/lib/h
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import { formatOptInPhone, validateSmsOptIn } from "@/lib/sms-opt-in";
-import { LO_SMS_OPT_IN_SOURCE, recordSmsOptIn } from "@/lib/sms-opt-in-store";
+import { readDb } from "@/lib/db";
+import { LO_SMS_OPT_IN_SOURCE, recordSmsOptIn, smsOptInState } from "@/lib/sms-opt-in-store";
 import { LO_SMS_CONSENT_TEXT, LO_SMS_OPT_IN_PATH, SMS_BRAND } from "@/lib/sms-program";
 
 export const runtime = "nodejs";
@@ -14,7 +15,8 @@ export const dynamic = "force-dynamic";
  * was ticked: the server checks the number and the box again, whatever the browser sent.
  *
  * Saving the opt-in sends no text. Texts to loan officers go out only through the registered
- * YPN USA campaign, and a STOP reply to the YPN USA number records an opt-out here.
+ * YPN USA campaign, and a STOP reply to the YPN USA number records an opt-out here that only a
+ * START reply from that phone can undo. The entry is confirmed only once it is on disk.
  */
 export async function POST(request: Request) {
   try {
@@ -44,6 +46,14 @@ export async function POST(request: Request) {
       textShown: LO_SMS_CONSENT_TEXT,
       pageUrl: `${MARKETING_SITE_URL}${LO_SMS_OPT_IN_PATH}`,
     });
+
+    // A STOP reply can only be undone from the phone itself (anyone can type a number here).
+    if (smsOptInState(readDb(), record.phone).stoppedByText) {
+      return jsonOk({
+        id: record.id,
+        message: `Saved. This number opted out of ${SMS_BRAND} texts by replying STOP, so texts stay off until you reply START from that phone.`,
+      });
+    }
 
     return jsonOk({
       id: record.id,

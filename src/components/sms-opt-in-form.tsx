@@ -74,7 +74,7 @@ export function SmsOptInForm() {
   const consentId = `${id}-consent`;
 
   return (
-    <form noValidate onSubmit={onSubmit} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <form method="post" noValidate onSubmit={onSubmit} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
       <div>
         <label htmlFor={nameId} className="text-sm font-semibold text-slate-900">
           Full name or business name <span className="font-normal text-slate-600">(optional)</span>

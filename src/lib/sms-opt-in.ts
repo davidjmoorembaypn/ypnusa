@@ -8,14 +8,18 @@ export const SMS_OPT_IN_NAME_MAX_LENGTH = 120;
 
 /**
  * A US mobile number to its 10 digits, or null. Accepts the usual ways people type one:
- * "(559) 512-0372", "559-512-0372", "559.512.0372", "5595120372", "+1 559 512 0372".
+ * "(559) 512-0372", "559-512-0372", "559.512.0372", "5595120372", "+1 559 512 0372". A plus sign
+ * is accepted only at the start and only for +1.
  * Area code and exchange can't start with 0 or 1 (North American Numbering Plan).
  */
 export function normalizeOptInPhone(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (!/^[\d\s().+-]{10,20}$/.test(trimmed)) return null;
+  if (!/^\+?[\d\s().-]{10,20}$/.test(trimmed)) return null;
   let digits = trimmed.replace(/\D/g, "");
+  // A leading + means a country code follows: only +1 (US) is accepted, never a 10-digit
+  // foreign number such as +47 923 45 678 read as if it were a US one.
+  if (trimmed.startsWith("+") && !(digits.length === 11 && digits.startsWith("1"))) return null;
   if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
   if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) return null;
   return digits;

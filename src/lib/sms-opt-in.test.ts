@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { after, describe, it } from "node:test";
+import { after, describe, it, mock } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -39,7 +39,7 @@ describe("loan officer text opt-in", async () => {
     });
 
     it("refuses numbers that are too short, too long, not US, or contain letters", () => {
-      for (const typed of ["", "512-0372", "559512037", "55951203721", "+44 20 7946 0958", "559-512-03ab", "(059) 512-0372", "(559) 112-0372", 5595120372, undefined]) {
+      for (const typed of ["", "512-0372", "559512037", "55951203721", "+44 20 7946 0958", "+47 923 45 678", "+559 512 0372", "559+512+0372", "559-512-03ab", "(059) 512-0372", "(559) 112-0372", 5595120372, undefined]) {
         assert.equal(normalizeOptInPhone(typed), null, String(typed));
       }
     });
@@ -79,6 +79,10 @@ describe("loan officer text opt-in", async () => {
 
   describe("the page's form", () => {
     const html = renderToStaticMarkup(createElement(SmsOptInForm));
+
+    it("posts its fields in the request body, never in the page address", () => {
+      assert.match(html, /<form[^>]*method="post"/);
+    });
 
     it("renders the consent box unchecked", () => {
       const checkbox = html.match(/<input[^>]*type="checkbox"[^>]*>/)?.[0];
@@ -147,6 +151,36 @@ describe("loan officer text opt-in", async () => {
       assert.equal(hasLoanOfficerSmsOptIn(readDb(), "5595120372"), false);
       handleInboundSms({ from: "+15595120372", body: "START", messageSid: "SM_start_1" });
       assert.equal(hasLoanOfficerSmsOptIn(readDb(), "5595120372"), true);
+    });
+
+    it("a web submission after a STOP does not turn texts back on; only START from the phone does", async () => {
+      handleInboundSms({ from: "+15595120372", body: "STOP", messageSid: "SM_stop_3" });
+      assert.equal(hasLoanOfficerSmsOptIn(readDb(), "5595120372"), false);
+      const response = await post({ phone: "(559) 512-0372", consent: true });
+      assert.equal(response.status, 200);
+      assert.match((await response.json()).message, /reply START from that phone/);
+      assert.equal(hasLoanOfficerSmsOptIn(readDb(), "5595120372"), false);
+      handleInboundSms({ from: "+15595120372", body: "START", messageSid: "SM_start_3" });
+      assert.equal(hasLoanOfficerSmsOptIn(readDb(), "5595120372"), true);
+    });
+
+    it("tells the visitor it failed, and keeps nothing, when the data file can't be written", async () => {
+      const before = readDb().smsOptIns.length;
+      // The next write of the data file fails once (a full disk, say); later writes work again.
+      const failing = mock.method(fs, "renameSync", () => {
+        throw new Error("ENOSPC: no space left on device");
+      }, { times: 1 });
+      try {
+        const response = await post({ phone: "(559) 555-0100", consent: true });
+        assert.equal(response.status, 503);
+        assert.equal((await response.json()).code, "SMS_OPT_IN_FAILED");
+        assert.equal(readDb().smsOptIns.length, before);
+      } finally {
+        failing.mock.restore();
+      }
+      const retry = await post({ phone: "(559) 555-0100", consent: true });
+      assert.equal(retry.status, 200);
+      assert.equal(readDb().smsOptIns.length, before + 1);
     });
 
     it("a STOP from a number that never opted in here adds nothing", () => {

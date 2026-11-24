@@ -3,7 +3,7 @@ import test, { describe, it } from "node:test";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import mediaManifest from "@/content/wp-import/media-manifest.json";
-import { enforceSingleH1, needsFullPageLoad, normalizeWpHref, normalizeWpHtml, prepareWpHtml } from "./wp-html";
+import { enforceSingleH1, needsFullPageLoad, normalizeWpHref, normalizeWpHtml, prepareWpHtml, tidyAutoLinks } from "./wp-html";
 
 test("same-site hrefs lose trailing slashes and absolute ypnus.com hosts", () => {
   assert.equal(normalizeWpHref("/vs/bonzo/"), "/vs/bonzo");
@@ -223,4 +223,52 @@ test("normalizeWpHtml keeps SVG titles and microdata meta whose values mention c
   assert.doesNotMatch(out, /<title>Page<\/title>/);
   const docMeta = normalizeWpHtml("<meta charset='utf-8'><meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\"><meta name=viewport content=\"width=device-width\"><p>y</p>");
   assert.equal(docMeta, "<p>y</p>");
+});
+
+describe("anchor text and auto-link cleanup (Nov 24 audit)", () => {
+  it("unwraps the auto-linked bare 'MLO' term but keeps the word", () => {
+    const out = normalizeWpHtml('<p>If another <a href="https://ypnus.com/mlo-marketing-automation/">MLO</a> in your area</p>');
+    assert.equal(out, "<p>If another MLO in your area</p>");
+  });
+
+  it("unwraps 'pre-approval' linked to the features page, keeps other pre-approval links", () => {
+    assert.equal(normalizeWpHtml('<a href="/features/">pre-approval</a>'), "pre-approval");
+    assert.match(normalizeWpHtml('<a href="/blog/pre-approval-guide">pre-approval</a>'), /<a href="\/blog\/pre-approval-guide">/);
+  });
+
+  it("replaces the raw 'pricing-plans' slug used as link text", () => {
+    assert.equal(normalizeWpHtml('<a href="/pricing-plans/">pricing-plans</a>'), '<a href="/pricing">YPN USA plans and pricing</a>');
+  });
+
+  it("links each related page once per body, but keeps repeated calls to action", () => {
+    const html =
+      '<a href="/vs/bonzo">YPN USA vs Bonzo</a> x <a href="/vs/bonzo">YPN USA vs Bonzo</a> ' +
+      '<a href="/check-zip">Check your ZIP code</a> <a href="/check-zip">Check your ZIP code</a>';
+    assert.equal(
+      tidyAutoLinks(html),
+      '<a href="/vs/bonzo">YPN USA vs Bonzo</a> x YPN USA vs Bonzo ' +
+        '<a href="/check-zip">Check your ZIP code</a> <a href="/check-zip">Check your ZIP code</a>',
+    );
+  });
+
+  it("leaves external links, image links and different link text alone", () => {
+    const html =
+      '<a href="https://example.com/a">A</a><a href="https://example.com/a">A</a>' +
+      '<a href="/vs/bonzo"><img src="/x.png" alt="x"></a><a href="/vs/bonzo"><img src="/x.png" alt="x"></a>' +
+      '<a href="/vs/bonzo">Bonzo</a><a href="/vs/bonzo">compare Bonzo</a>';
+    assert.equal(tidyAutoLinks(html), html);
+  });
+
+  it("is safe to run twice", () => {
+    const html = '<p><a href="/vs/homebot">Homebot</a> and <a href="/vs/homebot">Homebot</a> <a href="/mlo-marketing-automation">MLO</a></p>';
+    const once = normalizeWpHtml(html);
+    assert.equal(normalizeWpHtml(once), once);
+  });
+
+  it("drops editor placeholder images such as src=\"image-url\"", () => {
+    const out = normalizeWpHtml('<figure class="wp-block-image"><img src="image-url" alt="Chart"></figure><p>Text</p>');
+    assert.equal(out, "<p>Text</p>");
+    assert.match(normalizeWpHtml('<img src="/media/uploads/2026/01/a.png" alt="a">'), /<img/);
+    assert.match(normalizeWpHtml('<img src="data:image/png;base64,AAAA" alt="a">'), /<img/);
+  });
 });

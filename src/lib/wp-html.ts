@@ -170,6 +170,55 @@ function isDocumentMeta(tag: string): boolean {
   return attrs.has("charset") || attrs.has("http-equiv") || attrs.get("name") === "viewport";
 }
 
+/** An <img> src that can't be a real file: an editor placeholder such as "image-url" or "#". */
+function isPlaceholderSrc(src: string): boolean {
+  const value = src.trim();
+  if (!value || value === "#") return true;
+  if (/^(?:data|blob):/i.test(value)) return false;
+  return !value.includes("/") && !/\.[a-z0-9]{2,5}(?:[?#]|$)/i.test(value);
+}
+
+/**
+ * Pages a reader may need more than once in a post (a sign-up or ZIP code check); a
+ * repeated link to these is a call to action, not link padding.
+ */
+const CTA_PATHS = /^\/(?:claim-territory|check-zip|pricing|login|onboarding|consultation|book|contact)(?:[/?#]|$)/;
+
+/**
+ * Link text a WordPress auto-linker attached to a bare term wherever it appeared. "MLO"
+ * pointed at one blog post from 98 posts and "pre-approval" pointed at the features page:
+ * one-word anchors to a page about something else, which Google's link guidance calls out.
+ * The words stay; only the link goes.
+ */
+function isAutoLinkNoise(text: string, href: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (t === "mlo" || t === "mlos") return true;
+  if (t === "pre-approval" && /^\/features(?:[?#]|$)/.test(href)) return true;
+  return false;
+}
+
+/**
+ * Removes auto-linker noise and repeat links: the same same-site link with the same text
+ * a second (or later) time in one body is unwrapped to plain text, except calls to action.
+ * Readers keep every word; each post links each related page once.
+ */
+export function tidyAutoLinks(html: string): string {
+  const seen = new Set<string>();
+  return html.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (whole, attrs: string, inner: string) => {
+    const href = /\bhref=["']([^"']*)["']/i.exec(attrs)?.[1] ?? "";
+    if (!href.startsWith("/") || href.startsWith("//")) return whole;
+    if (/<(?:img|svg|button)\b/i.test(inner)) return whole;
+    const text = inner.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    if (!text) return whole;
+    if (isAutoLinkNoise(text, href)) return inner;
+    if (CTA_PATHS.test(href)) return whole;
+    const key = `${href.split("#")[0]}|${text.toLowerCase()}`;
+    if (seen.has(key)) return inner;
+    seen.add(key);
+    return whole;
+  });
+}
+
 /** Link and asset cleanup for imported WordPress HTML. Safe to run more than once. */
 export function normalizeWpHtml(html: string): string {
   let out = html;
@@ -198,8 +247,10 @@ export function normalizeWpHtml(html: string): string {
   out = out.replace(/<link\b[^>]*\bhref=["'](?:\.\/)?style\.css["'][^>]*>\s*/gi, "");
   out = out.replace(/<script\b[^>]*\bsrc=["'](?:\.\/)?script\.js["'][^>]*>\s*<\/script>\s*/gi, "");
 
-  // Broken images: drop the <img> (and a <p>/<figure> left empty by it).
+  // Broken images: drop the <img> (and a <p>/<figure> left empty by it). That includes
+  // editor placeholders left in the export (src="image-url"): no slash, no file extension.
   out = out.replace(/<img\b[^>]*\bsrc=["']([^"']*)["'][^>]*>/gi, (tag, src: string) => {
+    if (isPlaceholderSrc(src)) return "";
     const path = srcPath(src);
     return path && BROKEN_IMAGE_PATHS.has(path) ? "" : tag;
   });
@@ -250,6 +301,11 @@ export function normalizeWpHtml(html: string): string {
   // visible link text ("See check-zip.html and lo-signup.html."). Readers see words instead.
   out = out.replace(/(<a\b[^>]*>)\s*check-zip\.html\s*(<\/a>)/gi, "$1whether your ZIP code is open$2");
   out = out.replace(/(<a\b[^>]*>)\s*lo-signup\.html\s*(<\/a>)/gi, "$1create your free account$2");
+
+  // A raw slug as link text ("pricing-plans") tells readers and Google nothing.
+  out = out.replace(/(<a\b[^>]*>)\s*pricing-plans\s*(<\/a>)/gi, "$1YPN USA plans and pricing$2");
+
+  out = tidyAutoLinks(out);
 
   // Copy rule: "ZIP code", never a bare "ZIP" (visible text only; see zip-copy.ts).
   out = zipCodeCopyHtml(out);

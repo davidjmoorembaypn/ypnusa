@@ -30,6 +30,8 @@ export default async function SocialWriterPage() {
     operatingSystem: "Web",
     isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
     isAccessibleForFree: true,
+    // Google's software-app rich result needs an offer; these tools are free.
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     description:
       "Free tool that generates local social media post drafts, hooks, CTAs and campaign ideas for mortgage loan officers and real estate professionals.",
   };

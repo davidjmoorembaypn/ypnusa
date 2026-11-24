@@ -2,6 +2,7 @@ import { BUSINESS_EMAIL, BUSINESS_PHONE_DISPLAY } from "@/lib/author";
 import { isStopKeyword, recordConsent, recordOptOutAllChannels } from "@/lib/consent";
 import { cancelPendingFollowUps, readDb } from "@/lib/db";
 import { claimKey } from "@/lib/idempotency";
+import { applyLoanOfficerSmsKeyword } from "@/lib/sms-opt-in-store";
 
 /**
  * What to do with a text message a borrower sends to our number.
@@ -68,6 +69,7 @@ export function handleInboundSms(input: { from: string; body: string; messageSid
   }
 
   if (stop) {
+    applyLoanOfficerSmsKeyword(key, "stop");
     for (const leadId of leadIds) {
       recordOptOutAllChannels(leadId, "sms_stop");
       cancelPendingFollowUps(leadId);
@@ -75,6 +77,7 @@ export function handleInboundSms(input: { from: string; body: string; messageSid
     return { action: "opted_out", leads: leadIds.length };
   }
 
+  applyLoanOfficerSmsKeyword(key, "start");
   for (const leadId of leadIds) {
     recordConsent({ borrowerLeadId: leadId, channel: "sms", granted: true, source: "sms_start", textShown: input.body.trim().slice(0, 80) });
   }

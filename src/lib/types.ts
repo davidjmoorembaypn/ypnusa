@@ -739,6 +739,27 @@ export interface ConsentRecord {
   at: string;
 }
 
+/**
+ * One entry in the loan officer text opt-in ledger (ypnus.com/sms-opt-in), keyed by mobile
+ * number. Newest entry for a number wins: a STOP reply adds `granted: false`. Separate from the
+ * borrower consent ledger above, which is keyed by borrower lead.
+ */
+export interface SmsOptInRecord {
+  id: string;
+  /** 10-digit US mobile number (encrypted at rest). */
+  phone: string;
+  granted: boolean;
+  /** Where it came from: "lo_sms_opt_in_page", "sms_stop", "sms_start". */
+  source: string;
+  /** Name or business name, when given (encrypted at rest). */
+  name?: string;
+  /** The exact consent wording shown beside the box (encrypted at rest). */
+  textShown?: string;
+  /** Page the opt-in was submitted from. */
+  pageUrl?: string;
+  at: string;
+}
+
 /** A webhook or job key already handled, so a retried delivery is not processed twice. */
 export interface ProcessedKeyRecord {
   key: string;
@@ -899,6 +920,7 @@ export interface DbShape {
   siteOverrides: SiteOverrideRecord[];
   siteOptimizer: SiteOptimizerState;
   consents: ConsentRecord[];
+  smsOptIns: SmsOptInRecord[];
   processedKeys: ProcessedKeyRecord[];
   pushSubscriptions: PushSubscriptionRecord[];
   crmConnections: CrmConnectionRecord[];

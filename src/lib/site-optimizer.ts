@@ -43,6 +43,7 @@ const PROTECTED_PATHS = [
   /^\/terms-of-service\b/,
   /^\/privacy-policy\b/,
   /^\/accessibility-statement\b/,
+  /^\/sms-opt-in\b/,
   /^\/(login|logout|admin|dashboard|portal|account|billing|onboarding|analytics|api|starter-kit|embed)\b/,
 ];
 

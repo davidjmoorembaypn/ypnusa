@@ -209,13 +209,22 @@ export default function PrivacyPolicyPage() {
         obtaining any product or service.
       </p>
       <p>
-        <strong>Text messages.</strong> We text you only if you opt in, by answering yes to the
+        <strong>Text messages to borrowers.</strong> We text you only if you opt in, by answering yes to the
         text consent question in the ypnus.com intake chat. Texts are about your own mortgage
         request (confirmation, call scheduling, reminders, and follow-ups). Message frequency
         varies. Message and data rates may apply. Reply <strong>HELP</strong> for help or{" "}
         <strong>STOP</strong> to opt out at any time; you can also opt out of any channel using
         the contact details in Section 12. See the text message terms in our{" "}
         <Link href="/terms-of-service#text-messages">Terms of Service</Link>.
+      </p>
+      <p>
+        <strong>Loan officer text messages.</strong> Loan officers opt in to texts only by checking
+        the unchecked consent box on <Link href="/sms-opt-in">ypnus.com/sms-opt-in</Link>. Those texts
+        are about their own YPN USA account (account notifications, borrower lead alerts, ZIP code
+        territory lock updates, subscription alerts, and Cerebro AI assistant messages). We keep the
+        mobile number, the date and time, and the exact consent wording shown, as a record of the
+        opt-in. Message frequency varies. Message and data rates may apply. Reply{" "}
+        <strong>HELP</strong> for help or <strong>STOP</strong> to opt out at any time.
       </p>
       <p>
         <strong>

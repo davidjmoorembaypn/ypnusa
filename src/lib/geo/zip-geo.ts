@@ -64,6 +64,11 @@ export function zipPlace(zip: string): ZipPlace | null {
   return i === undefined ? null : places[i];
 }
 
+/** Every ZIP code in the dataset, in file order. Read-only: do not mutate the returned rows. */
+export function allZipPlaces(): readonly ZipPlace[] {
+  return load().places;
+}
+
 export function zipDatasetSize(): number {
   return load().places.length;
 }

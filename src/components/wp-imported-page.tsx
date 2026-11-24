@@ -241,6 +241,11 @@ export function WpImportedPageView({
             <div className="mt-3">
               <MetroMarketList />
             </div>
+            <p className="mt-4">
+              <Link href="/markets/metro" className="font-semibold text-violet-700 hover:underline">
+                Top 100 metro mortgage markets, ranked with 2024 HMDA data
+              </Link>
+            </p>
           </nav>
         ) : null}
         {sectionIndex ? (

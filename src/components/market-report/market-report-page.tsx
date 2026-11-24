@@ -228,6 +228,13 @@ export function MarketReportHub({ origin = MARKETING_SITE_URL }: { origin?: stri
         <section className="py-12">
           <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
             <h2 className="text-3xl font-semibold text-[#13254a]">By county</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              For buyer and seller demand ZIP code by ZIP code, see the{" "}
+              <Link href="/reports/quarterly-mortgage-demand" className="font-semibold text-[#13254a] underline">
+                quarterly mortgage demand report
+              </Link>
+              .
+            </p>
             <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200">
               <table className="w-full min-w-[720px] text-left text-sm">
                 <caption className="sr-only">Originated home loans by county, {LATEST_YEAR} vs {PREVIOUS_YEAR}</caption>

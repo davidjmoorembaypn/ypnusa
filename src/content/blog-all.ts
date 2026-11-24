@@ -3,6 +3,7 @@ import { PLAN_POSTS } from "@/content/blog-plan-2026-11";
 import { ANSWER_POSTS } from "@/content/blog-answers-2026-11";
 import { REWRITTEN_POSTS } from "@/content/blog-rewrites-2026-11";
 import { WP_POSTS } from "@/content/wp-import";
+import { BLOG_SEO_TITLES } from "@/content/blog-seo-titles";
 
 /**
  * Native hand-written posts plus the ~171 canonical posts migrated from
@@ -12,10 +13,16 @@ import { WP_POSTS } from "@/content/wp-import";
  */
 const NATIVE_POSTS: readonly BlogPost[] = [...ANSWER_POSTS, ...REWRITTEN_POSTS, ...PLAN_POSTS, ...BLOG_POSTS];
 
+/** Gives a post with a too-long headline a short search-result title (see blog-seo-titles.ts). */
+function withSeoTitle(post: BlogPost): BlogPost {
+  const seoTitle = BLOG_SEO_TITLES[post.slug];
+  return post.metaTitle || !seoTitle ? post : { ...post, metaTitle: seoTitle };
+}
+
 export const ALL_BLOG_POSTS: readonly BlogPost[] = [
   ...NATIVE_POSTS,
   ...WP_POSTS.filter((wp) => !NATIVE_POSTS.some((native) => native.slug === wp.slug)),
-];
+].map(withSeoTitle);
 
 export function getAnyBlogPost(slug: string): BlogPost | undefined {
   return ALL_BLOG_POSTS.find((post) => post.slug === slug);

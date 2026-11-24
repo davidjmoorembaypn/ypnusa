@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { SiloNav } from "@/components/silo-nav";
+import { DarkPageShell } from "@/components/dark-page-shell";
 import { TrackedLink } from "@/components/tracked-link";
 import { HMDA_SOURCE_URL, REPORT_COUNTIES, type ReportCounty } from "@/content/market-report";
 import {
@@ -150,57 +151,59 @@ export function SelfEmployedHubPage() {
   const path = SELF_EMPLOYED_HUB_PATH;
   const crumbs = [{ name: "Home", href: "/" }, { name: "Mortgage Loans", href: "/mortgage-loans" }, HUB_CRUMB];
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12">
-      <JsonLd value={webPageJsonLd({ path, name: SELF_EMPLOYED_HUB.title, description: SELF_EMPLOYED_HUB.description })} />
-      <JsonLd value={faqJsonLd(SELF_EMPLOYED_HUB.faqs)} />
-      <Breadcrumbs items={crumbs} />
+    <DarkPageShell>
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <JsonLd value={webPageJsonLd({ path, name: SELF_EMPLOYED_HUB.title, description: SELF_EMPLOYED_HUB.description })} />
+        <JsonLd value={faqJsonLd(SELF_EMPLOYED_HUB.faqs)} />
+        <Breadcrumbs items={crumbs} />
 
-      <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">Self-employed &amp; investors</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{SELF_EMPLOYED_HUB.title}</h1>
-      <ShortAnswer text={SELF_EMPLOYED_HUB.shortAnswer} />
+        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">Self-employed &amp; investors</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{SELF_EMPLOYED_HUB.title}</h1>
+        <ShortAnswer text={SELF_EMPLOYED_HUB.shortAnswer} />
 
-      <h2 className="mt-10 text-lg font-semibold text-white">Two ways to qualify without tax returns</h2>
-      <ProgramCards />
+        <h2 className="mt-10 text-lg font-semibold text-white">Two ways to qualify without tax returns</h2>
+        <ProgramCards />
 
-      <h2 className="mt-10 text-lg font-semibold text-white">Who these loans are for</h2>
-      <ul className="mt-3 space-y-1.5 text-sm text-white/70">
-        {BANK_STATEMENT_CONTENT.idealFor.map((item) => (
-          <li key={item} className="flex gap-2">
-            <span aria-hidden className="text-violet-300">&bull;</span>
-            {item}
-          </li>
-        ))}
-        <li className="flex gap-2">
-          <span aria-hidden className="text-violet-300">&bull;</span>
-          Investors buying or refinancing rental property
-        </li>
-      </ul>
-
-      <h2 className="mt-10 text-lg font-semibold text-white">Central Valley counties</h2>
-      <p className="mt-2 text-sm leading-6 text-white/65">
-        Each county page covers who uses these loans locally and the county&apos;s latest public home lending numbers.
-      </p>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-        {REPORT_COUNTIES.map((county) => {
-          const facts = countyLoanFacts(county);
-          return (
-            <li key={county.slug}>
-              <Link href={selfEmployedCountyPath(county)} className="block rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10">
-                <p className="text-sm font-semibold text-white">{county.name}</p>
-                <p className="mt-1 text-xs text-white/55">
-                  {county.cities.slice(0, 3).join(", ")} · {facts.total.toLocaleString("en-US")} home loans in {facts.year}
-                </p>
-              </Link>
+        <h2 className="mt-10 text-lg font-semibold text-white">Who these loans are for</h2>
+        <ul className="mt-3 space-y-1.5 text-sm text-white/70">
+          {BANK_STATEMENT_CONTENT.idealFor.map((item) => (
+            <li key={item} className="flex gap-2">
+              <span aria-hidden className="text-violet-300">&bull;</span>
+              {item}
             </li>
-          );
-        })}
-      </ul>
+          ))}
+          <li className="flex gap-2">
+            <span aria-hidden className="text-violet-300">&bull;</span>
+            Investors buying or refinancing rental property
+          </li>
+        </ul>
 
-      <Faqs items={SELF_EMPLOYED_HUB.faqs} />
-      <Cta heading="Self-employed or investing? Talk it through with a licensed loan officer" intakeHref={selfEmployedIntakeHref()} source={selfEmployedFunnelSource()} />
-      <SiloNav silo="mortgage" currentPath={path} className="mt-10" />
-      <Disclaimer />
-    </div>
+        <h2 className="mt-10 text-lg font-semibold text-white">Central Valley counties</h2>
+        <p className="mt-2 text-sm leading-6 text-white/65">
+          Each county page covers who uses these loans locally and the county&apos;s latest public home lending numbers.
+        </p>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {REPORT_COUNTIES.map((county) => {
+            const facts = countyLoanFacts(county);
+            return (
+              <li key={county.slug}>
+                <Link href={selfEmployedCountyPath(county)} className="block rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10">
+                  <p className="text-sm font-semibold text-white">{county.name}</p>
+                  <p className="mt-1 text-xs text-white/55">
+                    {county.cities.slice(0, 3).join(", ")} · {facts.total.toLocaleString("en-US")} home loans in {facts.year}
+                  </p>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        <Faqs items={SELF_EMPLOYED_HUB.faqs} />
+        <Cta heading="Self-employed or investing? Talk it through with a licensed loan officer" intakeHref={selfEmployedIntakeHref()} source={selfEmployedFunnelSource()} />
+        <SiloNav silo="mortgage" currentPath={path} className="mt-10" />
+        <Disclaimer />
+      </div>
+    </DarkPageShell>
   );
 }
 
@@ -219,89 +222,91 @@ export function SelfEmployedCountyPage({ county, angle }: { county: ReportCounty
   const otherCounties = REPORT_COUNTIES.filter((c) => c.slug !== county.slug);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12">
-      <JsonLd value={webPageJsonLd({ path, name: title, description: shortAnswer, county })} />
-      <JsonLd value={faqJsonLd(faqs)} />
-      <Breadcrumbs items={crumbs} />
+    <DarkPageShell>
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <JsonLd value={webPageJsonLd({ path, name: title, description: shortAnswer, county })} />
+        <JsonLd value={faqJsonLd(faqs)} />
+        <Breadcrumbs items={crumbs} />
 
-      <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
-        Central Valley · {county.name}
-      </p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
-      <ShortAnswer text={shortAnswer} />
+        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
+          Central Valley · {county.name}
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
+        <ShortAnswer text={shortAnswer} />
 
-      <h2 className="mt-10 text-lg font-semibold text-white">Who uses these loans in {county.name}</h2>
-      <p className="mt-3 text-sm leading-7 text-white/70">{angle.borrowers}</p>
-      <p className="mt-3 text-sm leading-7 text-white/70">{angle.investors}</p>
+        <h2 className="mt-10 text-lg font-semibold text-white">Who uses these loans in {county.name}</h2>
+        <p className="mt-3 text-sm leading-7 text-white/70">{angle.borrowers}</p>
+        <p className="mt-3 text-sm leading-7 text-white/70">{angle.investors}</p>
 
-      <h2 className="mt-10 text-lg font-semibold text-white">Bank statement loan or DSCR loan?</h2>
-      <ProgramCards />
+        <h2 className="mt-10 text-lg font-semibold text-white">Bank statement loan or DSCR loan?</h2>
+        <ProgramCards />
 
-      <h2 className="mt-10 text-lg font-semibold text-white">{county.name} home lending by the numbers</h2>
-      <p className="mt-3 text-sm leading-7 text-white/70">{countyDataSentence(county)}</p>
-      <p className="mt-2 text-xs leading-5 text-white/50">
-        Source:{" "}
-        <a href={HMDA_SOURCE_URL} className="underline hover:text-white" rel="noopener">
-          CFPB / FFIEC HMDA data
-        </a>
-        , originated loans. HMDA does not identify bank statement or DSCR loans separately.{" "}
-        <Link href={`/research/${county.slug}`} className="underline hover:text-white">
-          Full {county.name} market report
-        </Link>
-        .
-      </p>
+        <h2 className="mt-10 text-lg font-semibold text-white">{county.name} home lending by the numbers</h2>
+        <p className="mt-3 text-sm leading-7 text-white/70">{countyDataSentence(county)}</p>
+        <p className="mt-2 text-xs leading-5 text-white/50">
+          Source:{" "}
+          <a href={HMDA_SOURCE_URL} className="underline hover:text-white" rel="noopener">
+            CFPB / FFIEC HMDA data
+          </a>
+          , originated loans. HMDA does not identify bank statement or DSCR loans separately.{" "}
+          <Link href={`/research/${county.slug}`} className="underline hover:text-white">
+            Full {county.name} market report
+          </Link>
+          .
+        </p>
 
-      <h2 className="mt-10 text-lg font-semibold text-white">What to have ready</h2>
-      <ul className="mt-3 space-y-1.5 text-sm text-white/70">
-        {[
-          "12 or 24 months of personal or business bank statements",
-          "Proof the business exists, such as a business license or a letter from your CPA or tax preparer",
-          "Statements showing your down payment and cash reserves",
-          "For a rental: the lease, or the address so the appraiser can estimate market rent",
-        ].map((item) => (
-          <li key={item} className="flex gap-2">
-            <span aria-hidden className="text-violet-300">&bull;</span>
-            {item}
-          </li>
-        ))}
-      </ul>
-
-      <Faqs items={faqs} />
-      <Cta
-        heading={`Talk to a licensed loan officer about ${county.name}`}
-        intakeHref={selfEmployedIntakeHref(county)}
-        source={selfEmployedFunnelSource(county)}
-      />
-
-      <nav aria-label="Related pages" className="mt-10">
-        <h2 className="text-lg font-semibold text-white">Related</h2>
-        <ul className="mt-3 space-y-1.5 text-sm">
-          {localPages.map((profile) => (
-            <li key={`${profile.kind}-${profile.slug}`}>
-              <Link href={getLocalSeoPath(profile)} className="text-violet-300 underline hover:text-violet-200">
-                {profile.kind === "city"
-                  ? `Mortgage broker in ${profile.city}, ${profile.stateCode}`
-                  : `${profile.city} mortgage help in ZIP code ${profile.slug}`}
-              </Link>
-            </li>
-          ))}
-          <li>
-            <Link href={SELF_EMPLOYED_HUB_PATH} className="text-violet-300 underline hover:text-violet-200">
-              All Central Valley counties
-            </Link>
-          </li>
-          {otherCounties.map((c) => (
-            <li key={c.slug}>
-              <Link href={selfEmployedCountyPath(c)} className="text-violet-300 underline hover:text-violet-200">
-                {countyPageTitle(c)}
-              </Link>
+        <h2 className="mt-10 text-lg font-semibold text-white">What to have ready</h2>
+        <ul className="mt-3 space-y-1.5 text-sm text-white/70">
+          {[
+            "12 or 24 months of personal or business bank statements",
+            "Proof the business exists, such as a business license or a letter from your CPA or tax preparer",
+            "Statements showing your down payment and cash reserves",
+            "For a rental: the lease, or the address so the appraiser can estimate market rent",
+          ].map((item) => (
+            <li key={item} className="flex gap-2">
+              <span aria-hidden className="text-violet-300">&bull;</span>
+              {item}
             </li>
           ))}
         </ul>
-      </nav>
 
-      <SiloNav silo="mortgage" currentPath={path} className="mt-10" />
-      <Disclaimer />
-    </div>
+        <Faqs items={faqs} />
+        <Cta
+          heading={`Talk to a licensed loan officer about ${county.name}`}
+          intakeHref={selfEmployedIntakeHref(county)}
+          source={selfEmployedFunnelSource(county)}
+        />
+
+        <nav aria-label="Related pages" className="mt-10">
+          <h2 className="text-lg font-semibold text-white">Related</h2>
+          <ul className="mt-3 space-y-1.5 text-sm">
+            {localPages.map((profile) => (
+              <li key={`${profile.kind}-${profile.slug}`}>
+                <Link href={getLocalSeoPath(profile)} className="text-violet-300 underline hover:text-violet-200">
+                  {profile.kind === "city"
+                    ? `Mortgage broker in ${profile.city}, ${profile.stateCode}`
+                    : `${profile.city} mortgage help in ZIP code ${profile.slug}`}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link href={SELF_EMPLOYED_HUB_PATH} className="text-violet-300 underline hover:text-violet-200">
+                All Central Valley counties
+              </Link>
+            </li>
+            {otherCounties.map((c) => (
+              <li key={c.slug}>
+                <Link href={selfEmployedCountyPath(c)} className="text-violet-300 underline hover:text-violet-200">
+                  {countyPageTitle(c)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <SiloNav silo="mortgage" currentPath={path} className="mt-10" />
+        <Disclaimer />
+      </div>
+    </DarkPageShell>
   );
 }

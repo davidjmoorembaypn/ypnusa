@@ -364,6 +364,7 @@ export const BEST_AI_ASSISTANTS_GUIDE: ComparisonGuide = {
     { label: "YPN USA vs Total Expert", href: "/vs/total-expert" },
     { label: "LeadPops alternatives", href: "/leadpops-alternatives" },
     { label: "Zillow alternatives for loan officers", href: "/zillow-alternatives-for-loan-officers" },
+    { label: "Best CRM for loan officers", href: "/best-crm-for-loan-officers" },
   ],
 };
 
@@ -613,6 +614,7 @@ export const LEADPOPS_ALTERNATIVES_GUIDE: ComparisonGuide = {
     { label: "YPN USA vs Homebot", href: "/vs/homebot" },
     { label: "Best AI assistants for loan officers", href: "/best-ai-assistants-for-loan-officers" },
     { label: "Zillow alternatives for loan officers", href: "/zillow-alternatives-for-loan-officers" },
+    { label: "Best CRM for loan officers", href: "/best-crm-for-loan-officers" },
   ],
 };
 

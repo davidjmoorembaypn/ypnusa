@@ -30,6 +30,8 @@ export default async function GbpOptimizerPage() {
     operatingSystem: "Web",
     isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
     isAccessibleForFree: true,
+    // Google's software-app rich result needs an offer; these tools are free.
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     description:
       "Free tool that generates a Google Business Profile audit, optimized business description, post ideas and local SEO actions for mortgage and real estate professionals.",
   };

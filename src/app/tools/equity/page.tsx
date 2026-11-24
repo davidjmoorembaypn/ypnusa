@@ -40,6 +40,8 @@ export default async function EquitySnapshotPage() {
     // canonical Organization node regardless of which host served this page.
     isPartOf: { "@id": `${MARKETING_SITE_URL}/#organization` },
     isAccessibleForFree: true,
+    // Google's software-app rich result needs an offer; these tools are free.
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     description:
       "Free borrower tool that estimates home equity, loan-to-value, and an illustrative cash-out ceiling from values the visitor provides. Educational estimate only, not an appraisal or eligibility determination.",
   };

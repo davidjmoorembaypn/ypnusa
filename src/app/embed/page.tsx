@@ -5,6 +5,7 @@ import { CLUSTER_NEXT_STEPS } from "@/lib/cta/next-steps";
 import Link from "next/link";
 import { EmbedCodeModal } from "@/components/embed/embed-code-modal";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { DarkPageShell } from "@/components/dark-page-shell";
 import { marketingMetadata } from "@/lib/seo";
 import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
@@ -28,76 +29,78 @@ export default async function EmbedLandingPage() {
   const origin = MARKETING_SITE_URL;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12">
-      <Breadcrumbs items={BREADCRUMB_ITEMS} />
-      <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">Free for your website</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-        Embeddable tools for loan officers and realtors
-      </h1>
-      <p className="mt-4 text-base leading-7 text-white/70">
-        Give your visitors something useful to do on your own site. Copy one of the snippets below into
-        your page (WordPress custom HTML block, Wix, Squarespace or any HTML page). Both tools are free.
-        Each widget shows a small &ldquo;Powered by Cerebro AI&rdquo; line, and the credit line under it links back to YPN USA. We appreciate you keeping both.
-      </p>
-
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold">Home Equity Snapshot</h2>
-        <p className="mt-2 text-sm leading-6 text-white/65">
-          Visitors enter their home value and mortgage balance and see estimated equity and loan-to-value.
-          Results are illustrative only.
+    <DarkPageShell>
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <Breadcrumbs items={BREADCRUMB_ITEMS} />
+        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">Free for your website</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+          Embeddable tools for loan officers and realtors
+        </h1>
+        <p className="mt-4 text-base leading-7 text-white/70">
+          Give your visitors something useful to do on your own site. Copy one of the snippets below into
+          your page (WordPress custom HTML block, Wix, Squarespace or any HTML page). Both tools are free.
+          Each widget shows a small &ldquo;Powered by Cerebro AI&rdquo; line, and the credit line under it links back to YPN USA. We appreciate you keeping both.
         </p>
-        <EmbedCodeModal
-          origin={origin}
-          path="/embed/equity"
-          height={860}
-          title="Home equity snapshot"
-          creditPath="/tools/equity"
-          creditText="Home equity calculator by YPN USA"
-          allowBranding
-        />
-        <p className="mt-2 text-xs text-white/50">
-          <Link href="/tools/equity" className="underline hover:text-white">
-            See the full-page version
+
+        <section className="mt-10">
+          <h2 className="text-xl font-semibold">Home Equity Snapshot</h2>
+          <p className="mt-2 text-sm leading-6 text-white/65">
+            Visitors enter their home value and mortgage balance and see estimated equity and loan-to-value.
+            Results are illustrative only.
+          </p>
+          <EmbedCodeModal
+            origin={origin}
+            path="/embed/equity"
+            height={860}
+            title="Home equity snapshot"
+            creditPath="/tools/equity"
+            creditText="Home equity calculator by YPN USA"
+            allowBranding
+          />
+          <p className="mt-2 text-xs text-white/50">
+            <Link href="/tools/equity" className="underline hover:text-white">
+              See the full-page version
+            </Link>
+          </p>
+        </section>
+
+        <section className="mt-12">
+          <h2 className="text-xl font-semibold">AI borrower intake assistant</h2>
+          <p className="mt-2 text-sm leading-6 text-white/65">
+            A chat assistant that answers common mortgage questions and collects a borrower&apos;s details for
+            follow-up. It is informational only and does not make credit decisions.
+          </p>
+          <EmbedCodeModal
+            origin={origin}
+            path="/embed/intake"
+            height={800}
+            title="Mortgage borrower intake assistant"
+            creditPath="/ai-platform"
+            creditText="Mortgage lead assistant by YPN USA"
+          />
+        </section>
+
+        <p className="mt-12 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-white/50">
+          Licensed professionals remain responsible for their own advertising and disclosure compliance.
+          See{" "}
+          <Link href="/licensing-disclosures" className="underline hover:text-white">
+            Licensing &amp; Disclosures
           </Link>
+          . Equal Housing Opportunity.
         </p>
-      </section>
 
-      <section className="mt-12">
-        <h2 className="text-xl font-semibold">AI borrower intake assistant</h2>
-        <p className="mt-2 text-sm leading-6 text-white/65">
-          A chat assistant that answers common mortgage questions and collects a borrower&apos;s details for
-          follow-up. It is informational only and does not make credit decisions.
-        </p>
-        <EmbedCodeModal
-          origin={origin}
-          path="/embed/intake"
-          height={800}
-          title="Mortgage borrower intake assistant"
-          creditPath="/ai-platform"
-          creditText="Mortgage lead assistant by YPN USA"
-        />
-      </section>
+        <NextStepBlock step={CLUSTER_NEXT_STEPS["loan-officer-marketing"]} source="embed" tone="dark" className="mt-10" />
+        <SiloNav silo="growth" currentPath="/embed" className="mt-10" />
 
-      <p className="mt-12 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-white/50">
-        Licensed professionals remain responsible for their own advertising and disclosure compliance.
-        See{" "}
-        <Link href="/licensing-disclosures" className="underline hover:text-white">
-          Licensing &amp; Disclosures
-        </Link>
-        . Equal Housing Opportunity.
-      </p>
-
-      <NextStepBlock step={CLUSTER_NEXT_STEPS["loan-officer-marketing"]} source="embed" tone="dark" className="mt-10" />
-      <SiloNav silo="growth" currentPath="/embed" className="mt-10" />
-
-      <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        <Link href="/pricing" className="text-violet-300 underline hover:text-violet-200">
-          See plans
-        </Link>
-        <Link href="/mortgage-loans/tools" className="text-violet-300 underline hover:text-violet-200">
-          More free tools
-        </Link>
+        <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          <Link href="/pricing" className="text-violet-300 underline hover:text-violet-200">
+            See plans
+          </Link>
+          <Link href="/mortgage-loans/tools" className="text-violet-300 underline hover:text-violet-200">
+            More free tools
+          </Link>
+        </div>
       </div>
-    </div>
+    </DarkPageShell>
   );
 }

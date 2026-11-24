@@ -98,7 +98,7 @@ export default function PricingPage() {
               Run Cerebro and the AI borrower intake assistant free, no credit card. Neither the Free plan nor the 15-day trial locks a ZIP
               code: your exclusive ZIP code locks at your first payment. Pay now, or choose a 5-year plan, to lock it today.
             </p>
-            <div className="mx-auto mt-8 max-w-md text-left">
+            <div id="check-zip" className="mx-auto mt-8 max-w-md scroll-mt-24 text-left">
               <TerritoryClaim source="pricing_hero" />
               <p className="mt-3 text-center text-xs text-white/70">
                 Checking availability is free &mdash; locking a ZIP code takes your first payment on a paid plan.
@@ -170,14 +170,14 @@ export default function PricingPage() {
                       </PricingCta>
                     </>
                   ) : null}
-                  <Link
-                    href="/#territories"
+                  <a
+                    href="#check-zip"
                     className={`mt-3 text-center text-xs font-semibold underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 ${
                       tier.highlight ? "text-white/75 focus-visible:ring-violet-300" : "text-violet-700 focus-visible:ring-violet-500"
                     }`}
                   >
                     Check ZIP code availability first
-                  </Link>
+                  </a>
                 </article>
               ))}
             </div>
@@ -366,12 +366,12 @@ export default function PricingPage() {
               Check availability free. Pay now to lock it today, or start a 15-day trial to try the tools first &mdash; your ZIP code
               locks at your first payment.
             </p>
-            <Link
-              href="/#territories"
+            <a
+              href="#check-zip"
               className="mt-8 inline-flex items-center justify-center rounded-full bg-amber-400 px-8 py-4 text-base font-semibold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             >
               Check your ZIP code — free
-            </Link>
+            </a>
           </div>
         </section>
       </main>

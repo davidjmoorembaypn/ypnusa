@@ -310,7 +310,7 @@ ${src("https://www.consumerfinance.gov/rules-policy/regulations/1002/", "CFPB: R
 export const CRM_SOLO_VS_TEAM: BlogPost = {
   slug: "mortgage-crm-solo-loan-officer-vs-team",
   title: "How to Compare Mortgage CRMs for a Solo Loan Officer vs a Lending Team",
-  metaTitle: "Mortgage CRM for a Solo Loan Officer vs a Team: How to Choose | YPN USA",
+  metaTitle: "Mortgage CRM: Solo Loan Officer vs Team | YPN USA",
   description:
     "A solo loan officer needs a mortgage CRM that's fast, mobile and cheap to run; a team needs routing, permissions, reporting and compliance controls. A checklist for both.",
   date: DATE,
@@ -390,7 +390,7 @@ ${src("https://www.consumerfinance.gov/compliance/compliance-resources/mortgage-
 export const CAN_AI_CHATBOT_TALK_TO_BORROWERS: BlogPost = {
   slug: "can-an-ai-chatbot-talk-to-mortgage-borrowers",
   title: "Can an AI Chatbot Talk to Mortgage Borrowers? The Compliance Rules Loan Officers Need to Know",
-  metaTitle: "Can an AI Chatbot Talk to Mortgage Borrowers? Compliance Rules | YPN USA",
+  metaTitle: "Can an AI Chatbot Talk to Mortgage Borrowers?",
   description:
     "Yes, an AI chatbot can answer and qualify mortgage borrowers, within limits: no application-taking or term negotiation, no rates without Reg Z disclosures, TCPA consent and fair-lending care.",
   date: DATE,
@@ -486,7 +486,7 @@ ${src("https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCo
 export const LOAN_OFFICER_PAY_PER_LOAN: BlogPost = {
   slug: "how-much-do-loan-officers-make-per-loan",
   title: "How Much Do Loan Officers Make Per Loan? Basis Points, Pay Rules and Real Math",
-  metaTitle: "How Much Do Loan Officers Make Per Loan? (Basis Points Explained) | YPN USA",
+  metaTitle: "How Much Do Loan Officers Make Per Loan?",
   description:
     "Most loan officers earn a commission of roughly 50 to 150 basis points of the loan amount, so about $2,500 to $7,500 on a $500,000 loan. How LO pay works and what federal rules allow.",
   date: DATE,

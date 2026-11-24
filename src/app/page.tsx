@@ -18,9 +18,10 @@ import { TrackedAnchor } from "@/components/homepage/tracked-anchor";
 import { BTN_PRIMARY, EYEBROW, H2, LINK } from "@/components/homepage/ui";
 import { YouTubeFacade } from "@/components/youtube-facade";
 import { EXPLAINER_VIDEO, explainerVideoJsonLd } from "@/lib/explainer-video";
-import { FOUNDER_ID, faqJsonLd, jsonLdScript, marketingMetadata, softwareApplicationJsonLd } from "@/lib/seo";
+import { FOUNDER_ID, faqJsonLd, jsonLdScript, liveHeadline, marketingMetadata, softwareApplicationJsonLd } from "@/lib/seo";
 import { PAGE_SEO } from "@/lib/seo/page-seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
+import { HOMEPAGE_HEADLINE } from "@/lib/homepage-copy";
 import { AUTHOR_NAME, CA_DRE_ID, NMLS_CONSUMER_ACCESS_URL, NMLS_ID } from "@/lib/author";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -179,7 +180,7 @@ export default function Home() {
               For licensed mortgage loan officers nationwide
             </p>
             <h1 className="text-balance text-[1.75rem] font-semibold leading-[1.12] text-slate-900 sm:mt-4 sm:text-4xl lg:text-[3.1rem] lg:leading-[1.08]">
-              Stop losing borrowers to the lender who answered first.{" "}
+              {liveHeadline("/") ?? HOMEPAGE_HEADLINE}{" "}
               <span className="text-violet-800">Cerebro answers them for you, day and night.</span>
             </h1>
 

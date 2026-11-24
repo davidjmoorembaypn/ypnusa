@@ -697,7 +697,8 @@ export interface CerebroQueuedActionRecord {
 export interface SiteOverrideRecord {
   id: string;
   path: string;
-  field: "title" | "description";
+  /** "headline" is the homepage's main heading (first sentence of its h1), edited by an admin only. */
+  field: "title" | "description" | "headline";
   value: string;
   /** What the page showed before (the coded default or an earlier override). */
   previousValue?: string;

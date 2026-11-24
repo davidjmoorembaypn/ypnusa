@@ -56,12 +56,17 @@ export function socialImageFor(origin: string) {
 }
 
 /** A live override, or null. Never lets a storage problem break a page's metadata. */
-function safeOverride(path: string, field: "title" | "description"): string | null {
+function safeOverride(path: string, field: "title" | "description" | "headline"): string | null {
   try {
     return liveSiteOverride(path, field)?.value ?? null;
   } catch {
     return null;
   }
+}
+
+/** The admin's live replacement for a page's main headline (set at /admin), or null for the coded one. */
+export function liveHeadline(path: string): string | null {
+  return safeOverride(path, "headline");
 }
 
 /**

@@ -10,7 +10,10 @@ import {
 
 export const metadata: Metadata = {
   ...marketingMetadata({
-    title: "Bank Statement Loans for Self-Employed Borrowers",
+    // Kept short: this page sits under the /mortgage-loans layout, whose title
+    // template appends " · Mortgage Loans · YPN USA" (27 chars), so the base
+    // title must stay under ~33 chars to keep the rendered title <=60.
+    title: "Bank Statement Mortgage Loans",
     description: BANK_STATEMENT_CONTENT.summary,
     path: BANK_STATEMENT_PATH,
   }),

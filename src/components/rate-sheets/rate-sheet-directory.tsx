@@ -55,7 +55,9 @@ export function RateSheetDirectory() {
                 </span>
               ))}
             </div>
-            <h3 className="mt-3 text-lg font-semibold text-[#13254a]">{s.name}</h3>
+            {/* h2, not h3: this is the first heading level under the page's h1 — no h2
+                precedes it on the page, so h3 here would skip a level. */}
+            <h2 className="mt-3 text-lg font-semibold text-[#13254a]">{s.name}</h2>
             <p className="text-sm font-medium text-slate-600">{s.publisher}</p>
             <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-700">{s.whatItShows}</p>
             <p className="mt-3 text-xs text-slate-600">

@@ -78,3 +78,15 @@ test("ZIP code links go both ways", () => {
   assert.equal(metroAreaForZip({ city: "Wilmington", state: "DE" })?.slug, "wilmington-de");
   assert.equal(metroAreaForZip({ city: "Nowhere", state: "TX" }), undefined);
 });
+
+test("metroAreasMentionedIn finds clear city names and skips ambiguous ones without a state", async () => {
+  const { metroAreasMentionedIn } = await import("@/content/metro-areas");
+  const slugs = (t: string) => metroAreasMentionedIn(t).map((m) => m.slug);
+  assert.deepEqual(slugs("<p>Buyers left Phoenix, AZ for Fresno. Fresno prices rose.</p>"), ["phoenix-az", "fresno-ca"]);
+  assert.deepEqual(slugs("If a paragraph could be copied onto a Miami site, delete it."), []);
+  assert.deepEqual(slugs("Portland and Columbus are growing."), []);
+  assert.deepEqual(slugs("Leads in Portland, OR and Columbus, OH"), ["portland-or", "columbus-oh"]);
+  assert.deepEqual(slugs("Leads in Washington, DC"), ["washington-dc"]);
+  assert.equal(metroAreasMentionedIn("Houston, TX Dallas, TX Austin, TX Denver, CO Tampa, FL").length, 4);
+  assert.deepEqual(slugs("<a href=\"/x\" title=\"Fresno\">a link</a>"), []);
+});

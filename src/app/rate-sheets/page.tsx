@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { BreadcrumbSchema } from "@/components/seo/breadcrumbs";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { RateSheetDirectory } from "@/components/rate-sheets/rate-sheet-directory";
 import { marketingMetadata } from "@/lib/seo";
 import { MARKETING_SITE_URL } from "@/lib/site";
@@ -21,10 +21,17 @@ export default function RateSheetsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-white text-slate-900">
       <SiteHeader />
-      <BreadcrumbSchema items={[{ name: "Home", href: "/" }, { name: "Rate sheet directory", href: "/rate-sheets" }]} />
       <main id="main-content" className="flex-1">
         <section className="border-b border-slate-200 bg-slate-50">
           <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+            <Breadcrumbs
+              tone="light"
+              className="mb-6"
+              items={[
+                { name: "Home", href: "/" },
+                { name: "Rate sheet directory", href: "/rate-sheets" },
+              ]}
+            />
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-800">For licensed loan officers</p>
             <h1 className="mt-3 text-balance text-4xl font-semibold leading-tight text-[#13254a] lg:text-5xl">
               Rate sheet and lock desk directory

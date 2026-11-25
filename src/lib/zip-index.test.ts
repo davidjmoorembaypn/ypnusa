@@ -9,6 +9,9 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypnus-zip-index-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
 const FLAGSHIP = ["93618", "93654", "93631", "93662", "93611", "93619", "93711", "93720", "93722", "93277", "93291", "93292", "93230", "93274", "93637"];
+/** Extra ZIP codes in a city whose main ZIP code page is indexed: noindex until claimed. */
+const SAME_CITY = ["93611", "93619", "93711", "93722", "93291", "93292"];
+const INDEXED_FLAGSHIP = FLAGSHIP.filter((z) => !SAME_CITY.includes(z));
 
 function paidSub(zip: string, overrides: Partial<RevenueSubscriptionRecord> = {}): RevenueSubscriptionRecord {
   return {
@@ -49,10 +52,10 @@ describe("ZIP page indexation gate", async () => {
   });
 
   it("indexes flagship and hand-written ZIP codes, and nothing else, when nobody has claimed a ZIP code", () => {
-    for (const zip of FLAGSHIP) assert.equal(zipIndexReason(zip), "flagship", zip);
+    for (const zip of INDEXED_FLAGSHIP) assert.equal(zipIndexReason(zip), "flagship", zip);
     assert.equal(zipIndexReason("93612"), "profile");
-    for (const zip of ["90210", "10001", "93616", "60614"]) assert.equal(isZipIndexable(zip), false, zip);
-    assert.deepEqual(indexableZips(), [...FLAGSHIP, "93612"].sort());
+    for (const zip of ["90210", "10001", "93616", "60614", ...SAME_CITY]) assert.equal(isZipIndexable(zip), false, zip);
+    assert.deepEqual(indexableZips(), [...INDEXED_FLAGSHIP, "93612"].sort());
   });
 
   it("indexes a ZIP code only while a paying loan officer holds it", () => {
@@ -66,7 +69,7 @@ describe("ZIP page indexation gate", async () => {
     });
     assert.equal(zipIndexReason("90210"), "claimed");
     for (const zip of ["10001", "60614", "33139"]) assert.equal(isZipIndexable(zip), false, zip);
-    assert.equal(indexableZips().length, 17);
+    assert.equal(indexableZips().length, 11);
     writeDb((db) => {
       db.revenueSubscriptions = [];
     });
@@ -78,12 +81,33 @@ describe("ZIP page indexation gate", async () => {
   });
 
   it("puts exactly the indexable ZIP pages in the sitemap", () => {
-    assert.deepEqual(zipUrls().sort(), [...FLAGSHIP, "93612"].sort().map((z) => `/zip/${z}`));
+    assert.deepEqual(zipUrls().sort(), [...INDEXED_FLAGSHIP, "93612"].sort().map((z) => `/zip/${z}`));
     writeDb((db) => {
       db.revenueSubscriptions = [paidSub("90210")];
     });
-    assert.equal(zipUrls().length, 17);
+    assert.equal(zipUrls().length, 11);
     assert.ok(zipUrls().includes("/zip/90210"));
+  });
+
+  it("keeps a same-city ZIP code page out of the index until a loan officer claims it", async () => {
+    for (const zip of SAME_CITY) {
+      assert.deepEqual(await robotsFor(zip), { index: false, follow: true }, zip);
+      // The page still shows its county facts.
+      assert.ok(buildZipLocalIntel(zip)?.county, zip);
+    }
+    writeDb((db) => {
+      db.revenueSubscriptions = [paidSub("93291")];
+    });
+    assert.equal(zipIndexReason("93291"), "claimed");
+    assert.deepEqual(await robotsFor("93291"), { index: true, follow: true });
+  });
+
+  it("points every same-city ZIP code at an indexed ZIP code page in the same city", () => {
+    for (const z of FLAGSHIP_ZIPS.filter((f) => f.sameCityAs)) {
+      const main = z.sameCityAs!;
+      assert.ok(isZipIndexable(main), `${z.zip} -> ${main}`);
+      assert.equal(buildZipLocalIntel(main)?.city, z.city, `${z.zip} -> ${main}`);
+    }
   });
 
   it("sets robots from the gate: noindex,follow by default, index,follow when allowed", async () => {

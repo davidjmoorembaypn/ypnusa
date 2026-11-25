@@ -9,7 +9,8 @@ import { paidLedgerClaimedZips } from "@/lib/territory";
  *
  * A ZIP code page is indexable only when the ZIP code is:
  *   (a) actively claimed by a paying loan officer in this app's ledger, or
- *   (b) one of the 15 flagship ZIP codes (src/content/zip-flagship.ts), or
+ *   (b) one of the flagship ZIP codes (src/content/zip-flagship.ts), except an extra ZIP code in a
+ *       city that already has one (sameCityAs), whose page was a near-copy of that city's, or
  *   (c) one with a hand-written local profile (src/lib/local-seo.ts), which were indexable before
  *       this gate existed and stay that way.
  * Everything else renders "noindex, follow", stays out of the sitemap and is never linked from
@@ -23,7 +24,8 @@ const HANDWRITTEN_ZIPS = new Set(LOCAL_SEO_PROFILES.filter((p) => p.kind === "zi
 export function zipIndexReason(zip: string, claimed: ReadonlySet<string> = paidLedgerClaimedZips()): ZipIndexReason | null {
   if (!/^\d{5}$/.test(zip) || !zipPlace(zip)) return null;
   if (claimed.has(zip)) return "claimed";
-  if (flagshipZip(zip)) return "flagship";
+  const flagship = flagshipZip(zip);
+  if (flagship && !flagship.sameCityAs) return "flagship";
   if (HANDWRITTEN_ZIPS.has(zip)) return "profile";
   return null;
 }

@@ -59,6 +59,18 @@ const PRICING_FAQ = [
     a: `You pay once: Pro ${formatUsd(PREPAID_5Y.growth.priceCents / 100)}, Growth ${formatUsd(PREPAID_5Y.pro.priceCents / 100)}, or Exclusive ${formatUsd(PREPAID_5Y.elite.priceCents / 100)}. Your ZIP code is locked to you, and your plan stays active, for ${PREPAID_5Y_YEARS} years from the payment date. Full refund within ${PREPAID_5Y_REFUND_WINDOW_DAYS} days of purchase; no refunds after ${PREPAID_5Y_REFUND_WINDOW_DAYS} days. A refund releases your ZIP code.`,
   },
   {
+    q: "What do I need to get started?",
+    a: "A work email. You sign in with a one-time link, with no password, and a five-step setup walks you through your profile, what Cerebro should handle first, where it may act, a safe test with a made-up borrower, and activation, which gives you your borrower page. The safe test contacts nobody. Live lead delivery and outside automations start with a paid plan.",
+  },
+  {
+    q: "How do borrower inquiries reach me?",
+    a: "Borrowers who use your YPN USA pages for your ZIP code talk to Cerebro, which answers their questions and gathers their goal, timeline and contact preference. The inquiry is then handed to you in your dashboard with Cerebro's summary and a drafted follow-up. Cerebro never quotes rates or makes credit decisions; you, the licensed loan officer, take it from there.",
+  },
+  {
+    q: "Are leads or loans guaranteed?",
+    a: "No. YPN USA gives you an exclusive ZIP code within YPN USA, local pages and Cerebro to answer and follow up with borrowers, but it does not promise a number of leads, appointments or closed loans. Results depend on your market and how you work the inquiries you get.",
+  },
+  {
     q: "Can I change plans later?",
     a: "Yes. You can upgrade at any time to add capability. Your included ZIP code carries with you — upgrading buys more automation and priority, not a second ZIP code.",
   },

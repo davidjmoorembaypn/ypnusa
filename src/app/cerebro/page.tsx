@@ -112,9 +112,12 @@ export default function CerebroPage() {
               hands the ready ones to you. Inside your dashboard it builds your growth plan and drafts your marketing. You stay
               the licensed loan officer; Cerebro does the waiting and the first round of questions.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3 text-sm font-semibold">
+            <Link href="/#cerebro" className="mt-4 inline-flex min-h-11 items-center font-semibold text-violet-200 underline underline-offset-4 hover:text-white">
+              Hear a sample borrower reply
+            </Link>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold">
               <OpenAssistantButton className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-7 py-3 text-[#09081b] shadow-xl shadow-amber-500/30 transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
-                Talk to Cerebro now
+                Chat with Cerebro
               </OpenAssistantButton>
               <a
                 href={FREE_SIGNUP_HREF}
@@ -228,8 +231,8 @@ export default function CerebroPage() {
           <div className="relative z-10 mx-auto max-w-3xl px-4 text-center sm:px-6">
             <h2 className="text-3xl font-semibold">Try Cerebro free</h2>
             <p className="mt-4 text-white/85">
-              Start on the Free plan with no credit card. When you want an exclusive ZIP code, paid plans start at $99 a month
-              with a 15-day free trial. Running a team? See{" "}
+              Run the growth diagnostic and preview borrower intake for free, with no credit card. Paid plans start at $99 a month
+              and offer a 15-day trial. Your ZIP code locks at first payment. Running a team? See{" "}
               <Link href="/teams" className="font-semibold text-violet-200 underline hover:text-white">
                 YPN USA for teams
               </Link>
@@ -237,7 +240,7 @@ export default function CerebroPage() {
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3 text-sm font-semibold">
               <OpenAssistantButton className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-amber-400 px-7 py-3 text-[#09081b] transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
-                Talk to Cerebro
+                Chat with Cerebro
               </OpenAssistantButton>
               <Link
                 href="/pricing"

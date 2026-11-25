@@ -172,12 +172,12 @@ export default function FeaturesPage() {
         <section className="relative isolate overflow-hidden bg-[#09081b] py-20">
           <div className="ypn-aurora pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative z-10 mx-auto max-w-3xl px-6 text-center">
-            <h2 className="text-3xl font-semibold lg:text-4xl">See it running on your own territory.</h2>
+            <h2 className="text-3xl font-semibold lg:text-4xl">Find out if your ZIP code is open.</h2>
             <p className="mt-4 text-lg text-white/85">
-              Check your ZIP code free, then let Cerebro answer the borrowers it brings in.
+              Check availability for free. Paid plans include an exclusive ZIP code within YPN USA, and it locks at your first payment.
             </p>
             <Link
-              href="/#territories"
+              href="/#claim"
               className="mt-8 inline-flex items-center justify-center rounded-full bg-amber-400 px-8 py-4 text-base font-semibold text-[#09081b] shadow-xl shadow-amber-500/30 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             >
               Check your ZIP code — free

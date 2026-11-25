@@ -776,7 +776,115 @@ ${src("https://newslink.mba.org/cmf-newslinks/2026/october/mba-commercial-multif
   closingHtml: closing(`<p><strong>Want a ZIP code no other YPN USA loan officer can claim?</strong> <a href="/check-zip">Check it free</a>.</p>`),
 };
 
+export const CAN_YPNUS_HELP_WITH_MORTGAGE_MARKETING: BlogPost = {
+  slug: "can-ypnus-help-with-mortgage-marketing",
+  title: "Can ypnus.com Help With Mortgage Marketing? What YPN USA Does (and Doesn't Do)",
+  metaTitle: "Can ypnus.com Help With Mortgage Marketing? | YPN USA",
+  description:
+    "Yes. YPN USA (ypnus.com) is marketing technology for licensed loan officers: an exclusive ZIP code, local pages and Cerebro, an AI assistant that answers and qualifies borrowers.",
+  date: "2026-11-25",
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 6,
+  cluster: "loan-officer-marketing",
+  html: `<p><strong>Short answer:</strong> yes. ypnus.com is YPN USA, a mortgage marketing platform built only for licensed mortgage loan officers. It gives you one ZIP code that no other YPN USA loan officer can claim, local pages for that market, and Cerebro, an AI assistant that answers borrower questions 24/7, qualifies them and hands them to you with a summary. It's marketing technology, not a lender: you stay responsible for licensing, rates and compliance. You can start free with no card.</p>
+
+<h2>What is ypnus.com?</h2>
+<p>ypnus.com is the website of YPN USA, a marketing technology company operated by YPN Inc. It was founded by David J. Moore, MBA, a mortgage loan officer for 25+ years (NMLS #787257). YPN USA sells to loan officers, branch managers and mortgage teams. It does not make loans, broker loans or service loans, and nothing on the site is a commitment to lend. See our <a href="/licensing-disclosures">licensing and disclosures</a>.</p>
+
+<h2>How does YPN USA help with mortgage marketing?</h2>
+<p>Everything below is live today. Plan limits apply; <a href="/pricing">pricing</a> shows what each plan includes.</p>
+<ul>
+<li><strong>An exclusive ZIP code within YPN USA.</strong> Each paid plan includes one ZIP code. Borrower inquiries from YPN USA pages for that ZIP code go only to you. It locks at your first payment, first come, first served. <a href="/check-zip">Check if your ZIP code is open</a>.</li>
+<li><strong>Local pages that borrowers can find.</strong> Paid plans include a local page for your ZIP code. Growth and Exclusive add local city pages for your market on a <a href="/features/branded-mlo-website">portable MLO website</a> tied to you, not your company.</li>
+<li><strong>An AI assistant that answers and qualifies.</strong> <a href="/cerebro">Cerebro</a> answers borrower questions at any hour, asks your first questions (purchase or refinance, timeline, price range, area, contact details, with consent), records the conversation and routes the borrower and a summary to you.</li>
+<li><strong>Follow-up that doesn't wait on you.</strong> On paid plans, Cerebro emails borrowers who opted in and drafts your texts for your approval, with calendar booking and CRM mirroring.</li>
+<li><strong>Marketing drafts.</strong> Cerebro drafts local social posts, Google Business Profile updates and Realtor co-marketing copy for you to review and edit before anything goes out. Two free tools do the same without an account: the <a href="/tools/social-writer">social media marketing writer</a> and the <a href="/tools/gbp-optimizer">Google Business Profile optimizer</a>.</li>
+<li><strong>A growth plan and market data.</strong> Cerebro builds a plan for your ZIP code from what you tell it about your market. Our <a href="/markets">mortgage market pages</a> and the <a href="/markets/metro">top 100 metro mortgage markets</a> show public HMDA loan data, so you can see how many loans are actually made where you work.</li>
+<li><strong>Life-event signals (Growth and Exclusive).</strong> Where supported public-record data exists, YPN USA organizes life-event signals in your territory. Availability varies by county.</li>
+<li><strong>Teams.</strong> Each loan officer on a team gets their own ZIP code, pages and Cerebro follow-up, so they don't compete for the same borrowers. See <a href="/teams">YPN USA for teams</a>.</li>
+</ul>
+
+<h2>What's coming soon (not live yet)</h2>
+<p>Cerebro is not a fully autonomous agent today. These are in development and not available yet: done-for-you Google Business Profile setup, a Local Visibility Score for your ZIP code, and a multi-task agentic mode where Cerebro works through several tasks in a row with you approving each result. The <a href="/cerebro">Cerebro page</a> marks each one live when it ships.</p>
+
+<h2>What does YPN USA cost?</h2>
+<p>Prices from the <a href="/pricing">pricing page</a> on November 25, 2026 (launch rates):</p>
+<table>
+<thead><tr><th>Plan</th><th>Price</th><th>What it adds</th></tr></thead>
+<tbody>
+<tr><td>Free</td><td>$0, no card</td><td>Cerebro growth diagnostic and AI borrower intake. Does not lock a ZIP code.</td></tr>
+<tr><td>Pro</td><td>$99/mo or $990/yr</td><td>1 exclusive ZIP code, live lead delivery, Cerebro email follow-up and text drafts, calendar booking and CRM mirroring, a local page for your ZIP code</td></tr>
+<tr><td>Growth</td><td>$199/mo</td><td>Pro plus a portable MLO website, local city pages, priority lead delivery and life-event signals</td></tr>
+<tr><td>Exclusive</td><td>$299/mo</td><td>Growth plus unlimited automation runs, priority ZIP code add-on access and white-glove onboarding</td></tr>
+</tbody>
+</table>
+<p>Every paid plan has a 15-day free trial, but the trial doesn't lock your ZIP code; your first payment does. An extra ZIP code is $79 a month or $790 a year. Five-year prepaid plans are also on the pricing page. To see what one extra loan a year covers, try the <a href="/roi">ROI calculator</a>.</p>
+
+<h2>Does YPN USA replace my CRM?</h2>
+<p>No. YPN USA brings in and answers new local borrowers; your CRM keeps your full pipeline and past clients, and your loan origination system stays the record for the loan file. Paid plans mirror leads to your CRM. If you rely on a specific CRM, ask us about your setup before you buy. Our guide to <a href="/blog/mortgage-crm-vs-ai-assistant">mortgage CRM vs AI assistant</a> explains how the two fit together.</p>
+
+<h2>What stays your responsibility</h2>
+<ul>
+<li><strong>Licensing and advertising.</strong> Your NMLS ID belongs on the pages and marketing that promote you, and your company may need to approve your marketing.</li>
+<li><strong>Rates and credit decisions.</strong> Cerebro never presents a rate as an offer, makes credit decisions or gives legal or tax advice. Every application, rate and approval is yours.</li>
+<li><strong>RESPA and TCPA.</strong> Borrowers are asked for consent before they're contacted by text or email, and texts tell them how to opt out. You remain responsible for RESPA, TCPA and state licensing compliance.</li>
+</ul>
+
+<h2>Questions to ask before you subscribe</h2>
+<ol>
+<li><strong>Are the leads exclusive or shared?</strong> Inquiries from YPN USA pages for your ZIP code go only to you. Exclusivity applies within YPN USA; other lenders can still market in your area.</li>
+<li><strong>How many leads will I get?</strong> Nobody can honestly promise a number. It depends on your market, your pages and how fast you follow up. Start with the loan volume in your area: our <a href="/markets">market data</a> shows it.</li>
+<li><strong>Who owns the leads if I cancel?</strong> You do. Every borrower Cerebro captures is yours, exported and portable, on every plan. Canceling stops new capture and your ZIP code exclusivity.</li>
+<li><strong>Will I still need to drive traffic?</strong> Usually yes. Local pages build over time; your Google Business Profile, past clients and Realtor partners speed it up.</li>
+<li><strong>Can my compliance team review it?</strong> Yes. <a href="/teams">Book a team walkthrough</a> to go through Cerebro's guardrails, consent handling and hand-off.</li>
+</ol>
+
+<h2>Is YPN USA a good fit for you?</h2>
+<p>It fits a licensed loan officer who wants to own demand in a specific ZIP code instead of buying shared leads, and wants borrowers answered at 9 PM without being on the phone at 9 PM. It's a weaker fit if you want a full CRM, someone to run paid ads for you, or done-for-you sales calls. Want the other options side by side? See the <a href="/best-ai-assistants-for-loan-officers">best AI assistants for loan officers</a> and <a href="/blog/how-to-get-mortgage-leads-without-buying-them-a-loan-officers-2026-playbook">how to get mortgage leads without buying them</a>.</p>
+
+<h2>Sources</h2>
+<ul>
+${src("https://www.consumerfinance.gov/compliance/compliance-resources/mortgage-resources/real-estate-settlement-procedures-act/real-estate-settlement-procedures-act-faqs/", "CFPB: Real Estate Settlement Procedures Act FAQs")}
+${src("https://www.fcc.gov/general/telemarketing-and-robocalls", "FCC: Telemarketing and robocalls (TCPA consent rules)")}
+${src("https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/787257", "NMLS Consumer Access: David J. Moore, NMLS #787257")}
+</ul>`,
+  faq: [
+    {
+      q: "What is ypnus.com?",
+      a: "ypnus.com is YPN USA, a mortgage marketing platform for licensed loan officers operated by YPN Inc. It provides an exclusive ZIP code within YPN USA, local pages and Cerebro, an AI assistant that answers and qualifies borrowers. It is not a lender.",
+    },
+    {
+      q: "Can ypnus.com help me with mortgage marketing?",
+      a: "Yes, if you're a licensed mortgage loan officer. YPN USA gives you local pages for an exclusive ZIP code, 24/7 AI intake and follow-up through Cerebro, and drafts of local social posts, Google Business Profile updates and Realtor co-marketing copy.",
+    },
+    {
+      q: "How much does YPN USA cost?",
+      a: "Free is $0 with no card. Pro is $99 a month ($990 a year), Growth is $199 and Exclusive is $299 a month, each with a 15-day free trial. Your ZIP code locks at your first payment.",
+      html: 'Free is $0 with no card. Pro is $99 a month ($990 a year), Growth is $199 and Exclusive is $299 a month, each with a 15-day free trial. Your ZIP code locks at your first payment. See <a href="/pricing">pricing</a>.',
+    },
+    {
+      q: "Are YPN USA leads exclusive or shared?",
+      a: "Borrower inquiries from YPN USA pages for your ZIP code go only to you, because one YPN USA loan officer holds each ZIP code. Exclusivity applies within YPN USA; other lenders can still market in the same area.",
+      html: 'Borrower inquiries from YPN USA pages for your ZIP code go only to you, because one YPN USA loan officer holds each ZIP code. Exclusivity applies within YPN USA; other lenders can still market in the same area. <a href="/check-zip">Check your ZIP code</a>.',
+    },
+    {
+      q: "Does YPN USA replace my CRM?",
+      a: "No. It works alongside your CRM: YPN USA attracts and answers new local borrowers, and paid plans mirror leads to your CRM, which keeps your full pipeline and past clients.",
+    },
+    {
+      q: "What AI tools can a loan officer use to close more loans?",
+      a: "The tools that help most answer new borrowers right away, follow up for weeks without you, and draft your local marketing. Cerebro does all three inside YPN USA. Compare options in our guide to the best AI assistants for loan officers.",
+      html: 'The tools that help most answer new borrowers right away, follow up for weeks without you, and draft your local marketing. <a href="/cerebro">Cerebro</a> does all three inside YPN USA. Compare options in our guide to the <a href="/best-ai-assistants-for-loan-officers">best AI assistants for loan officers</a>.',
+    },
+  ],
+  closingHtml: closing(
+    `<p><strong>See it on your own market.</strong> <a href="/check-zip">Check if your ZIP code is open</a>, <a href="/cerebro">talk to Cerebro</a> or <a href="/pricing">see plans</a>, starting free.</p>`,
+  ),
+};
+
 export const ANSWER_POSTS: readonly BlogPost[] = [
+  CAN_YPNUS_HELP_WITH_MORTGAGE_MARKETING,
   IS_BUYING_MORTGAGE_LEADS_WORTH_IT,
   LOAN_OFFICER_PAY_PER_LOAN,
   WILL_AI_REPLACE_LOAN_OFFICERS,

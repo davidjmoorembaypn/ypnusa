@@ -125,7 +125,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           { "@type": "ImageObject", url: photo.ogUrl, width: 1200, height: 630 },
         ]
       : `${origin}/opengraph-image`,
-    mainEntityOfPage: `${origin}/blog/${post.slug}`,
+    // The page itself, so engines see the post as the main entity of a WebPage on this site.
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${origin}/blog/${post.slug}#webpage`,
+      url: `${origin}/blog/${post.slug}`,
+      name: post.metaTitle ?? post.title,
+      isPartOf: { "@id": `${MARKETING_SITE_URL}/#website` },
+    },
   };
 
   return (

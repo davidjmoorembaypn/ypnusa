@@ -70,6 +70,11 @@ export default function BookPage() {
         <div className="mx-auto w-full max-w-5xl px-4 pt-8 sm:px-6">
           <Breadcrumbs items={homeTrail({ name: "The book", href: "/book" })} />
         </div>
+        <aside className="mx-auto mt-8 w-full max-w-5xl px-4 sm:px-6" aria-label="Second edition">
+          <Link href="/book/ai-real-estate-advantage" className="font-semibold text-violet-300 underline underline-offset-4">
+            Explore the second edition and read a sample
+          </Link>
+        </aside>
         <div className="mx-auto grid w-full max-w-5xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[240px_minmax(0,1fr)] md:items-center md:py-16">
           <Image
             src={AI_BOOK.cover}

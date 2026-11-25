@@ -165,15 +165,11 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(FAQ)) }} />
 
       {/* HERO */}
-      <section id="hero" className="relative isolate overflow-hidden border-b border-slate-200 bg-slate-50">
-        <div className="relative h-48 overflow-hidden sm:h-64 lg:absolute lg:inset-0 lg:h-auto">
+      <section id="hero" className="grid overflow-hidden border-b border-slate-200 bg-slate-50 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="relative aspect-video overflow-hidden lg:col-start-2 lg:row-start-1 lg:aspect-auto">
           <HeroVideo />
         </div>
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 hidden lg:block lg:bg-[linear-gradient(90deg,rgba(248,250,252,0.95)_0%,rgba(248,250,252,0.86)_41%,transparent_65%)]"
-        />
-        <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-6 px-4 py-8 sm:px-8 lg:min-h-[35rem] lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-14 lg:px-14 lg:py-20">
+        <div className="grid w-full max-w-xl content-center gap-6 px-4 py-8 sm:px-8 lg:col-start-1 lg:row-start-1 lg:ml-auto lg:min-h-[35rem] lg:px-10 lg:py-14">
           <div data-cerebro-avoid="" className="max-w-lg">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-800">
               For licensed mortgage loan officers nationwide

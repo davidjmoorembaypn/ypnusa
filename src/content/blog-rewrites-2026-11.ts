@@ -727,6 +727,146 @@ ${src(FANNIE_HOMEREADY, "Fannie Mae: HomeReady mortgage")}
   ),
 };
 
+/**
+ * Replaces the imported post of the same slug, which had no cited data behind any of its
+ * platform or cadence claims. Adds sourced LinkedIn timing data, mortgage-pro platform usage
+ * figures, and the link-reach study, so the claims are checkable instead of generic advice.
+ */
+export const SOCIAL_MEDIA_WHAT_WORKS: BlogPost = {
+  slug: "social-media-marketing-for-loan-officers-what-actually-works-in-2026",
+  title: "Social Media Marketing for Loan Officers: What Actually Works in 2026",
+  description:
+    "What the data actually says about social media for loan officers: which platforms mortgage pros use, the best times to post on LinkedIn, and whether a link in your post hurts reach.",
+  date: DATE,
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 7,
+  cluster: "loan-officer-marketing",
+  html: `<p><strong>Short answer:</strong> for most loan officers, LinkedIn is the main channel because referral partners (agents, CPAs, planners) use it for work, Facebook groups are worth one post a week because a large share of mortgage pros are active there, and X, Instagram, TikTok and YouTube Shorts are a lower priority because they reach borrowers more than the referral partners who drive most loan officer business. Post Tuesday through Friday mornings, keep the link in the post text, and spend ten minutes replying to comments after each one goes live.</p>
+
+<h2>Which platforms are actually worth your time</h2>
+<p>A rough industry survey puts Facebook use among mortgage professionals at 82% and X at 18%. That gap is bigger than most loan officers assume, and it changes where effort should go:</p>
+<ul>
+<li><strong>LinkedIn (personal profile):</strong> the main channel for reaching agents, branch managers and other referral partners, who use it for work. People follow people more than they follow company pages.</li>
+<li><strong>Facebook groups for loan officers:</strong> worth one post a week, posted by hand. Schedulers can't post into Facebook groups — Meta cut off third-party posting to groups in 2024 — and many groups ban links or self-promotion outright, so read each group's rules before you post.</li>
+<li><strong>X, Instagram, TikTok, YouTube Shorts:</strong> lower priority for referral-side marketing. They need a photo or video every time, and they reach borrowers and a general audience more than the agents and other referral partners who send most loan officers their business. Revisit once your LinkedIn and Facebook posts show you which topics land.</li>
+</ul>
+
+<h2>Best times to post on LinkedIn</h2>
+<p>Two independent studies of LinkedIn posting times agree closely, and both break results out for financial services specifically. All times below are Pacific.</p>
+<table>
+<thead><tr><th>Day</th><th>Time (PT)</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Tuesday</td><td>8:00 AM</td><td>11 AM Eastern, 10 AM Central — inside the best window for financial services on LinkedIn (Tue and Wed, 10 AM to 3 PM local)</td></tr>
+<tr><td>Wednesday</td><td>8:00 AM</td><td>Same window, and separately ranked as LinkedIn's single best day</td></tr>
+<tr><td>Thursday</td><td>8:00 AM</td><td>Financial services window runs 8 AM to 2 PM; ranked second-best day overall</td></tr>
+<tr><td>Friday</td><td>11:00 AM</td><td>2 PM Eastern — the financial services window; top Friday slots elsewhere run 3 to 4 PM local</td></tr>
+</tbody>
+</table>
+<p>Skip weekends — both studies rank them lowest. These are averages across all LinkedIn users, not loan officers specifically, so treat the schedule as a starting point and let your own analytics adjust it after a few weeks.</p>
+
+<h2>Does a link in the post hurt your reach?</h2>
+<p>Many loan officers put their link in the first comment instead of the post, or skip links altogether, because they've heard LinkedIn buries posts that carry one. A 2026 study of 865,980 posts found that's mostly a myth: a URL typed directly into the post text cost only about 2% fewer impressions, described as "no measurable difference," and link-in-comment versus link-in-post also showed no measurable difference.</p>
+<p>What did hurt reach: posts where the auto-generated link preview card was the only visual, which saw 35% fewer impressions. The fix is simple — put the link in the text, and attach a real image so the preview card isn't carrying the post alone.</p>
+
+<h2>What actually grows the audience</h2>
+<p>Posting is only half the job. LinkedIn's algorithm rewards engagement in the first hour or two, so replying to comments on your own post — about ten minutes after it goes live — is what gets it shown to more people. For growing the audience itself, connection requests and DMs sent through bots or automation tools are explicitly banned under LinkedIn's User Agreement, and accounts get restricted for it. Sending 10 to 20 personal connection requests a week to loan officers, agents and other referral partners in your markets, by hand, is still the most reliable free way to grow who sees your posts.</p>
+<p>For the posts themselves and how often to run them, see <a href="/blog/how-often-should-a-loan-officer-post-on-social-media">how often a loan officer should post on social media</a> and <a href="/blog/30-social-media-post-ideas-for-loan-officers-copy-use">30 social media post ideas</a>. Platform-specific playbooks: <a href="/blog/instagram-for-loan-officers-how-to-get-clients-not-just-likes">Instagram for loan officers</a> and <a href="/blog/facebook-marketing-for-loan-officers-the-2026-step-by-step-playbook">the Facebook marketing playbook</a>.</p>
+
+<h2>Sources</h2>
+<ul>
+${src("https://sproutsocial.com/insights/best-times-to-post-on-linkedin/", "Sprout Social: Best Times to Post on LinkedIn in 2026 (2 billion engagements, 307,000 profiles)")}
+${src("https://buffer.com/resources/best-time-to-post-on-linkedin/", "Buffer: Best Time to Post on LinkedIn in 2026 (4.8 million posts scheduled through Buffer)")}
+${src("https://contentin.io/blog/should-you-put-links-in-linkedin-posts/", "ContentIn: Should You Put Links in LinkedIn Posts? (865,980-post study)")}
+${src("https://www.webtonic.io/blog/mortgage-social-media-marketing-statistics", "Web Tonic: mortgage social media marketing statistics")}
+</ul>`,
+  faq: [
+    {
+      q: "What social media platform should a loan officer focus on first?",
+      a: "LinkedIn for most loan officers, because it's where referral partners like real estate agents, branch managers and financial planners already are. A survey of mortgage professionals also puts Facebook use at 82%, which makes a weekly post in a Facebook group worth the time.",
+    },
+    {
+      q: "What is the best time to post on LinkedIn?",
+      a: "Tuesday, Wednesday and Thursday mornings (8 AM Pacific) and Friday late morning (11 AM Pacific), based on two independent studies that break out financial services specifically. Skip weekends.",
+    },
+    {
+      q: "Does putting a link in a LinkedIn post hurt its reach?",
+      a: "Barely. A 2026 study of 865,980 posts found a link in the post text cost about 2% fewer impressions, called 'no measurable difference.' What actually hurt reach was relying on the auto-generated link preview as the only image — that cost 35% fewer impressions, so attach a real photo instead.",
+    },
+    {
+      q: "Can I automate connection requests on LinkedIn to grow my audience faster?",
+      a: "No. LinkedIn's User Agreement bans bots and automation tools for connection requests and DMs, and accounts get restricted for it. Sending 10 to 20 personal requests a week by hand is the reliable free way to grow reach.",
+    },
+  ],
+  closingHtml: closing(
+    `<p><strong>Want a local page to back up what you post?</strong> YPN USA gives one loan officer each ZIP code within YPN USA. <a href="/check-zip">Check if your ZIP code is open</a> or <a href="/pricing">see plans</a>, starting free.</p>`,
+  ),
+};
+
+/**
+ * Replaces the imported post of the same slug, which gave a cadence recommendation with no
+ * source behind it. Adds the sourced cadence and timing data from SOCIAL_MEDIA_WHAT_WORKS in
+ * condensed form, kept distinct so the two posts don't compete for the same search intent.
+ */
+export const SOCIAL_MEDIA_POSTING_FREQUENCY: BlogPost = {
+  slug: "how-often-should-a-loan-officer-post-on-social-media",
+  title: "How Often Should a Loan Officer Post on Social Media?",
+  description:
+    "2 to 5 LinkedIn posts a week is where most accounts start seeing results, according to a study of 4.8 million posts. Here's the cadence, the best days and times, and a simple weekly plan.",
+  date: DATE,
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 5,
+  cluster: "loan-officer-marketing",
+  html: `<p><strong>Short answer:</strong> 2 to 5 posts a week on your main platform is where most accounts start seeing results, according to a study of 4.8 million posts scheduled through Buffer. Below that, you're invisible between posts; above it, you're trading quality for frequency without much upside. Consistency on a schedule you can actually keep beats a burst of daily posts followed by silence.</p>
+
+<h2>What the data says about cadence</h2>
+<p>Buffer's analysis of 4.8 million scheduled posts found 2 to 5 posts a week is where most LinkedIn accounts start seeing results. Algorithms and audiences both reward showing up on a predictable schedule more than they reward volume. If you can only commit to 3 posts a week, do 3 — every week, indefinitely, rather than cycling between daily bursts and weeks of silence.</p>
+
+<h2>Best days and times</h2>
+<p>Two independent studies — Sprout Social (2 billion engagements across 307,000 profiles) and Buffer (4.8 million scheduled posts) — agree closely on timing, with Sprout breaking results out for financial services specifically. All times below are Pacific.</p>
+<ul>
+<li><strong>Tuesday, Wednesday, Thursday — 8:00 AM:</strong> inside the financial services window both studies rank highest; Wednesday is ranked the single best day overall.</li>
+<li><strong>Friday — 11:00 AM:</strong> the financial services window runs through early afternoon Eastern.</li>
+<li><strong>Weekends:</strong> skip — both studies rank them lowest.</li>
+</ul>
+
+<h2>A simple weekly framework</h2>
+<ul>
+<li><strong>Tuesday — Educational:</strong> teach one thing (credit, down payment, a loan type).</li>
+<li><strong>Wednesday — Trust/proof:</strong> a win, a review, or something behind the scenes.</li>
+<li><strong>Thursday or Friday — Engagement or offer:</strong> a question, a poll, or a soft call to action.</li>
+</ul>
+<p>Batch a week or a month of posts in one sitting so showing up doesn't depend on remembering each day. Whichever days you choose, reply to comments for about ten minutes after each post goes live — LinkedIn's algorithm rewards engagement in the first hour or two, and that's what gets a post shown to more people than the posting time alone. For post ideas, see <a href="/blog/30-social-media-post-ideas-for-loan-officers-copy-use">30 social media post ideas for loan officers</a>, and for the fuller platform breakdown, <a href="/blog/social-media-marketing-for-loan-officers-what-actually-works-in-2026">social media marketing for loan officers: what actually works in 2026</a>.</p>
+
+<h2>Sources</h2>
+<ul>
+${src("https://buffer.com/resources/best-time-to-post-on-linkedin/", "Buffer: Best Time to Post on LinkedIn in 2026 (4.8 million posts scheduled through Buffer)")}
+${src("https://sproutsocial.com/insights/best-times-to-post-on-linkedin/", "Sprout Social: Best Times to Post on LinkedIn in 2026 (2 billion engagements, 307,000 profiles)")}
+</ul>`,
+  faq: [
+    {
+      q: "How many times a week should a loan officer post on social media?",
+      a: "2 to 5 posts a week on your main platform, according to a study of 4.8 million LinkedIn posts. That's where most accounts start seeing results — fewer and you're invisible between posts, more and you're trading quality for frequency.",
+    },
+    {
+      q: "What are the best days and times to post?",
+      a: "Tuesday, Wednesday and Thursday mornings (8 AM Pacific) and Friday late morning (11 AM Pacific), based on studies covering financial services specifically. Skip weekends.",
+    },
+    {
+      q: "Is posting more often always better?",
+      a: "No. Past 5 posts a week, the data doesn't show much additional benefit, and quality tends to drop. A consistent, sustainable schedule beats a burst of daily posts followed by weeks of silence.",
+    },
+    {
+      q: "Does engaging with comments matter as much as the posting time?",
+      a: "It matters more. LinkedIn's algorithm rewards engagement in the first hour or two after a post goes live, so replying to comments for about ten minutes is what extends a post's reach beyond whoever sees it at the moment it's posted.",
+    },
+  ],
+  closingHtml: closing(
+    `<p><strong>Need a steady source of content ideas?</strong> YPN USA gives one loan officer each ZIP code within YPN USA. <a href="/check-zip">Check if your ZIP code is open</a> or <a href="/pricing">see plans</a>, starting free.</p>`,
+  ),
+};
+
 export const REWRITTEN_POSTS: readonly BlogPost[] = [
   LOAN_OFFICER_MARKETING_STRATEGIES,
   RESPA_CO_MARKETING,
@@ -735,4 +875,6 @@ export const REWRITTEN_POSTS: readonly BlogPost[] = [
   LANDING_PAGE_EXAMPLES,
   MORTGAGE_REFERRALS_BEYOND_REALTORS,
   EMAIL_FOLLOW_UP_SEQUENCES,
+  SOCIAL_MEDIA_WHAT_WORKS,
+  SOCIAL_MEDIA_POSTING_FREQUENCY,
 ];

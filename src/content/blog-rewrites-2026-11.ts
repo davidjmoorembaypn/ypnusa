@@ -742,7 +742,7 @@ export const SOCIAL_MEDIA_WHAT_WORKS: BlogPost = {
   byline: BYLINE,
   readingMinutes: 7,
   cluster: "loan-officer-marketing",
-  html: `<p><strong>Short answer:</strong> for most loan officers, LinkedIn is the main channel because referral partners (agents, CPAs, planners) use it for work, Facebook groups are worth one post a week because a large share of mortgage pros are active there, and X, Instagram, TikTok and YouTube Shorts are a lower priority because they reach borrowers more than the referral partners who drive most loan officer business. Post Tuesday through Friday mornings, keep the link in the post text, and spend ten minutes replying to comments after each one goes live.</p>
+  html: `<p><strong>Short answer:</strong> for most loan officers, LinkedIn is the main channel because referral partners (agents, CPAs, planners) use it for work, Facebook groups are worth one post a week because a large share of mortgage pros are active there, and X, Instagram, TikTok and YouTube Shorts are a lower priority because they reach borrowers more than the referral partners who drive most loan officer business. Start with a financial-services-specific morning/midday schedule, test an afternoon slot against it with your own analytics, keep the link in the post text, and spend ten minutes replying to comments after each one goes live.</p>
 
 <h2>Which platforms are actually worth your time</h2>
 <p>A rough industry survey puts Facebook use among mortgage professionals at 82% and X at 18%. That gap is bigger than most loan officers assume, and it changes where effort should go:</p>
@@ -753,17 +753,18 @@ export const SOCIAL_MEDIA_WHAT_WORKS: BlogPost = {
 </ul>
 
 <h2>Best times to post on LinkedIn</h2>
-<p>Two independent studies of LinkedIn posting times agree closely, and both break results out for financial services specifically. All times below are Pacific.</p>
+<p>Two real studies land in different places here, so it's worth knowing which one you're following. Sprout Social's financial-services breakdown (2 billion engagements, 307,000 profiles) gives a specific weekday schedule, with every time in <strong>your audience's own local time zone</strong> — not a fixed zone like Eastern:</p>
 <table>
-<thead><tr><th>Day</th><th>Time (PT)</th><th>Why</th></tr></thead>
+<thead><tr><th>Day</th><th>Time (audience's local time)</th></tr></thead>
 <tbody>
-<tr><td>Tuesday</td><td>8:00 AM</td><td>11 AM Eastern, 10 AM Central — inside the best window for financial services on LinkedIn (Tue and Wed, 10 AM to 3 PM local)</td></tr>
-<tr><td>Wednesday</td><td>8:00 AM</td><td>Same window, and separately ranked as LinkedIn's single best day</td></tr>
-<tr><td>Thursday</td><td>8:00 AM</td><td>Financial services window runs 8 AM to 2 PM; ranked second-best day overall</td></tr>
-<tr><td>Friday</td><td>11:00 AM</td><td>2 PM Eastern — the financial services window; top Friday slots elsewhere run 3 to 4 PM local</td></tr>
+<tr><td>Monday</td><td>10 AM and 12–1 PM</td></tr>
+<tr><td>Tuesday</td><td>10 AM – 3 PM</td></tr>
+<tr><td>Wednesday</td><td>8 AM and 10 AM – 3 PM (ranked LinkedIn's single best day)</td></tr>
+<tr><td>Thursday</td><td>8 AM – 2 PM</td></tr>
+<tr><td>Friday</td><td>11 AM</td></tr>
 </tbody>
 </table>
-<p>Skip weekends — both studies rank them lowest. These are averages across all LinkedIn users, not loan officers specifically, so treat the schedule as a starting point and let your own analytics adjust it after a few weeks.</p>
+<p>Weekends rank worst. Buffer's larger, industry-general study (4.8 million scheduled posts, no financial-services breakdown) points the other way: it found afternoons and evenings beat mornings across LinkedIn overall, with a peak window of 3 to 8 PM and Wednesday 4 PM as the single strongest slot — also normalized to each poster's own local time zone, not Eastern or Pacific. These two studies don't actually agree with each other. Sprout's is the one built specifically for financial services, so start with its morning/midday schedule, but test an afternoon slot against it with your own analytics after a few weeks, since Buffer's larger dataset found afternoons winning across LinkedIn generally.</p>
 
 <h2>Does a link in the post hurt your reach?</h2>
 <p>Many loan officers put their link in the first comment instead of the post, or skip links altogether, because they've heard LinkedIn buries posts that carry one. A 2026 study of 865,980 posts found that's mostly a myth: a URL typed directly into the post text cost only about 2% fewer impressions, described as "no measurable difference," and link-in-comment versus link-in-post also showed no measurable difference.</p>
@@ -787,7 +788,7 @@ ${src("https://www.webtonic.io/blog/mortgage-social-media-marketing-statistics",
     },
     {
       q: "What is the best time to post on LinkedIn?",
-      a: "Tuesday, Wednesday and Thursday mornings (8 AM Pacific) and Friday late morning (11 AM Pacific), based on two independent studies that break out financial services specifically. Skip weekends.",
+      a: "It depends which study you follow. Sprout Social's financial-services breakdown recommends mornings and midday (Tuesday through Thursday, plus Friday at 11 AM, all in your audience's local time), while Buffer's larger, industry-general study found afternoons and evenings (3 to 8 PM local) outperform mornings across LinkedIn overall. Start with Sprout's financial-services schedule and test an afternoon slot against it with your own analytics. Skip weekends either way.",
     },
     {
       q: "Does putting a link in a LinkedIn post hurt its reach?",
@@ -812,24 +813,25 @@ export const SOCIAL_MEDIA_POSTING_FREQUENCY: BlogPost = {
   slug: "how-often-should-a-loan-officer-post-on-social-media",
   title: "How Often Should a Loan Officer Post on Social Media?",
   description:
-    "2 to 5 LinkedIn posts a week is where most accounts start seeing results, according to a study of 4.8 million posts. Here's the cadence, the best days and times, and a simple weekly plan.",
+    "2 to 5 LinkedIn posts a week is a sustainable starting cadence, and posting more keeps paying off from there, per a study of over 2 million posts. Here's the cadence, the best days and times, and a simple weekly plan.",
   date: DATE,
   author: AUTHOR,
   byline: BYLINE,
   readingMinutes: 5,
   cluster: "loan-officer-marketing",
-  html: `<p><strong>Short answer:</strong> 2 to 5 posts a week on your main platform is where most accounts start seeing results, according to a study of 4.8 million posts scheduled through Buffer. Below that, you're invisible between posts; above it, you're trading quality for frequency without much upside. Consistency on a schedule you can actually keep beats a burst of daily posts followed by silence.</p>
+  html: `<p><strong>Short answer:</strong> 2 to 5 posts a week on your main platform is a sustainable starting cadence, and it's enough to show up consistently in your network's feed. But posting more keeps paying off past that point: Buffer's frequency study, covering more than 2 million LinkedIn posts from over 94,000 accounts, found accounts posting 6 to 10 times a week see a bigger per-post lift than the 2-to-5 tier, and 11+ times a week see the biggest lift of all — though each step up shows smaller added gains than the one before it. Treat 2 to 5 as the floor to build from, not a ceiling, and go higher only as long as you can keep the quality up. Consistency on a schedule you can actually keep beats a burst of daily posts followed by silence.</p>
 
 <h2>What the data says about cadence</h2>
-<p>Buffer's analysis of 4.8 million scheduled posts found 2 to 5 posts a week is where most LinkedIn accounts start seeing results. Algorithms and audiences both reward showing up on a predictable schedule more than they reward volume. If you can only commit to 3 posts a week, do 3 — every week, indefinitely, rather than cycling between daily bursts and weeks of silence.</p>
+<p>Buffer's analysis of more than 2 million LinkedIn posts from over 94,000 accounts found accounts posting 2 to 5 times a week saw an average per-post lift of about 1,182 extra impressions and 0.23 percentage points of engagement rate, compared with posting once a week. Accounts posting 6 to 10 times a week saw a bigger lift (about 5,001 extra impressions, +0.76 points), and 11+ times a week saw the biggest lift of all (about 16,946 extra impressions, +1.40 points, and roughly 3x more engagements). Buffer calls 2 to 5 posts a week "the sweet spot" for most people — not because frequency stops helping, but because it's the cadence most people can sustain without burning out or dropping quality. If you can only commit to 3 posts a week, do 3 — every week, indefinitely, rather than cycling between daily bursts and weeks of silence.</p>
 
 <h2>Best days and times</h2>
-<p>Two independent studies — Sprout Social (2 billion engagements across 307,000 profiles) and Buffer (4.8 million scheduled posts) — agree closely on timing, with Sprout breaking results out for financial services specifically. All times below are Pacific.</p>
+<p>Two real studies point in different directions here, so it's worth knowing which one you're following. Sprout Social's financial-services breakdown (2 billion engagements, 307,000 profiles) recommends mornings and midday, in your audience's own local time zone:</p>
 <ul>
-<li><strong>Tuesday, Wednesday, Thursday — 8:00 AM:</strong> inside the financial services window both studies rank highest; Wednesday is ranked the single best day overall.</li>
-<li><strong>Friday — 11:00 AM:</strong> the financial services window runs through early afternoon Eastern.</li>
-<li><strong>Weekends:</strong> skip — both studies rank them lowest.</li>
+<li><strong>Tuesday, Wednesday, Thursday — mornings through early afternoon:</strong> Wednesday at 8 AM is ranked the single best slot overall.</li>
+<li><strong>Friday — 11 AM</strong> local time (no afternoon slot is recommended).</li>
+<li><strong>Weekends:</strong> skip — ranked lowest.</li>
 </ul>
+<p>Buffer's larger, industry-general study (4.8 million scheduled posts, no financial-services breakdown) instead found afternoons and evenings — a 3 to 8 PM window, Wednesday 4 PM strongest, in each poster's own local time — beat mornings across LinkedIn as a whole. Sprout's is the one built for financial services, so start there, but test an afternoon slot against it with your own analytics, since Buffer's broader dataset points the other way.</p>
 
 <h2>A simple weekly framework</h2>
 <ul>
@@ -841,21 +843,22 @@ export const SOCIAL_MEDIA_POSTING_FREQUENCY: BlogPost = {
 
 <h2>Sources</h2>
 <ul>
+${src("https://buffer.com/resources/how-often-to-post-on-linkedin/", "Buffer: How Often to Post on LinkedIn (2+ million posts, 94,000+ accounts)")}
 ${src("https://buffer.com/resources/best-time-to-post-on-linkedin/", "Buffer: Best Time to Post on LinkedIn in 2026 (4.8 million posts scheduled through Buffer)")}
 ${src("https://sproutsocial.com/insights/best-times-to-post-on-linkedin/", "Sprout Social: Best Times to Post on LinkedIn in 2026 (2 billion engagements, 307,000 profiles)")}
 </ul>`,
   faq: [
     {
       q: "How many times a week should a loan officer post on social media?",
-      a: "2 to 5 posts a week on your main platform, according to a study of 4.8 million LinkedIn posts. That's where most accounts start seeing results — fewer and you're invisible between posts, more and you're trading quality for frequency.",
+      a: "2 to 5 posts a week is a sustainable starting cadence, according to a study of over 2 million LinkedIn posts. Posting more keeps paying off past that — 6 to 10 times a week shows a bigger per-post lift, and 11+ the biggest of all — so treat 2 to 5 as a floor, not a ceiling, and go higher only if you can sustain the quality.",
     },
     {
       q: "What are the best days and times to post?",
-      a: "Tuesday, Wednesday and Thursday mornings (8 AM Pacific) and Friday late morning (11 AM Pacific), based on studies covering financial services specifically. Skip weekends.",
+      a: "It depends which study you follow. Sprout Social's financial-services breakdown recommends mornings and midday (Tuesday through Thursday, plus Friday at 11 AM, in your audience's local time), while Buffer's larger, industry-general study found afternoons and evenings (3 to 8 PM local) win across LinkedIn overall. Start with Sprout's financial-services schedule and test an afternoon slot against it. Skip weekends either way.",
     },
     {
       q: "Is posting more often always better?",
-      a: "No. Past 5 posts a week, the data doesn't show much additional benefit, and quality tends to drop. A consistent, sustainable schedule beats a burst of daily posts followed by weeks of silence.",
+      a: "It keeps helping, per Buffer's study of over 2 million posts, but with diminishing returns — each step up in frequency shows a smaller added gain than the one before it, and quality is harder to sustain at higher volumes. 2 to 5 posts a week is the realistic floor most people can keep up without burning out; go higher only if the quality holds.",
     },
     {
       q: "Does engaging with comments matter as much as the posting time?",

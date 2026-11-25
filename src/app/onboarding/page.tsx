@@ -13,9 +13,13 @@ export default async function OnboardingPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await requireSession("/onboarding");
+  const { step, zip } = await searchParams;
+  const selectedZip = typeof zip === "string" && /^\d{5}$/.test(zip) ? zip : undefined;
+  const destination = new URLSearchParams();
+  if (selectedZip) destination.set("zip", selectedZip);
+  if (step === "profile") destination.set("step", step);
+  const session = await requireSession(destination.size ? `/onboarding?${destination}` : "/onboarding");
   const entitlement = resolveEntitlement(session);
-  const { step } = await searchParams;
   const profile = readAgentOnboarding(session.sub);
   const borrowerPage = publicOfficerPageFor(profile);
   return (
@@ -23,6 +27,7 @@ export default async function OnboardingPage({
       email={session.email}
       initialProfile={profile}
       purchasedZip={session.email ? claimedZipsForEmail(session.email)[0] : undefined}
+      selectedZip={selectedZip}
       tier={entitlement.tier}
       dailyLimit={automationDailyLimitFor(entitlement)}
       // ?step=profile (from the dashboard's "Complete your profile") reopens step 1.

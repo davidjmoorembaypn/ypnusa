@@ -64,7 +64,8 @@ export function proxy(request: NextRequest) {
   if (session) return NextResponse.next();
 
   const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("next", pathname);
+  const next = pathname === "/onboarding" ? pathname + request.nextUrl.search : pathname;
+  loginUrl.searchParams.set("next", next);
   return NextResponse.redirect(loginUrl);
 }
 

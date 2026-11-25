@@ -99,6 +99,7 @@ export function OnboardingWizard({
   email,
   initialProfile,
   purchasedZip,
+  selectedZip,
   tier,
   dailyLimit,
   startAtProfile = false,
@@ -109,6 +110,7 @@ export function OnboardingWizard({
   initialProfile: AgentOnboardingRecord | null;
   /** The ZIP their paid plan locked, used to prefill step 1. */
   purchasedZip?: string;
+  selectedZip?: string;
   tier: PricingTierId;
   dailyLimit: number;
   /** Open on step 1 regardless of progress (dashboard "Complete your profile"). */
@@ -152,7 +154,7 @@ export function OnboardingWizard({
   const resumeStep = Math.min(5, Math.max(2, initialProfile?.completedStep ?? 1));
   const [form, setForm] = useState<FormState>(() => {
     const base = initialProfile ?? DEFAULT_STATE;
-    return base.territoryZip ? base : { ...base, territoryZip: purchasedZip ?? "" };
+    return base.territoryZip ? base : { ...base, territoryZip: purchasedZip ?? selectedZip ?? "" };
   });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");

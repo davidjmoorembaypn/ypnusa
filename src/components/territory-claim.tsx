@@ -302,7 +302,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
   const showForm = check.status === "result";
   const claimed = check.status === "result" && !check.available;
   // A free account doesn't lock a ZIP (only a paid plan does), so no ZIP rides along.
-  const signupHref = FREE_SIGNUP_HREF;
+  const signupHref = check.status === "result" && check.available
+    ? `/login?next=${encodeURIComponent(`/onboarding?zip=${check.zip}`)}`
+    : FREE_SIGNUP_HREF;
   const resultTitle =
     check.status === "result"
       ? check.available
@@ -463,6 +465,9 @@ export function TerritoryClaim({ source = "territory_section" }: { source?: stri
                 >
                   {openNearby.length ? "Check a different ZIP code" : "Check an adjacent ZIP code →"}
                 </button>
+                <a href={FREE_SIGNUP_HREF} className="ml-3 inline-flex min-h-[48px] items-center text-sm font-semibold text-violet-800 underline">
+                  Try Cerebro free
+                </a>
               </>
             )}
             <p className="mt-2 text-[12px] text-slate-700">

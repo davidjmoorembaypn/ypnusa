@@ -26,7 +26,7 @@ export default async function LoginPage({
   const errorKey = Array.isArray(params.error) ? params.error[0] : params.error;
   const errorMessage = errorKey ? ERROR_MESSAGES[errorKey] : undefined;
 
-  const isSignup = next === "/onboarding";
+  const isSignup = next === "/onboarding" || next.startsWith("/onboarding?");
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16 text-slate-900">

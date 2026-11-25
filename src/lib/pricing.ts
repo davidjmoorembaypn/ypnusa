@@ -39,9 +39,8 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     tagline: "Run Cerebro and prove demand before you pay anything",
     features: [
       "Cerebro AI growth diagnostic",
-      "AI borrower intake assistant",
-      "Qualification + scoring",
-      "Explore the borrower intake experience",
+      "Preview AI borrower intake, qualification and scoring",
+      "Live lead delivery begins with a paid subscription",
       "Does NOT lock a ZIP code: anyone can take yours until you make a first payment on a paid plan",
     ],
     cta: "Start free",
@@ -209,7 +208,7 @@ export interface PlanEntitlementRow {
 
 export const PLAN_ENTITLEMENTS: readonly PlanEntitlementRow[] = [
   { label: "Cerebro AI growth diagnostic", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
-  { label: "AI borrower intake assistant", free: "✓", growth: "✓", pro: "✓", elite: "✓" },
+  { label: "AI borrower intake assistant", free: "Preview", growth: "✓", pro: "✓", elite: "✓" },
   { label: "Exclusive ZIP code (locks at first payment)", free: "—", growth: "1 included", pro: "1 included", elite: "1 included" },
   { label: "Live lead delivery", free: "—", growth: "✓", pro: "✓", elite: "✓" },
   { label: "Cerebro emails opted-in borrowers for you and drafts your texts", free: "—", growth: "✓", pro: "✓", elite: "✓" },

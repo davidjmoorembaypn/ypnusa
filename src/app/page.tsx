@@ -10,7 +10,7 @@ import { OpenAssistantButton } from "@/components/assistant/open-assistant-butto
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CerebroSandbox } from "@/components/homepage/cerebro-sandbox";
-import { HomePricing } from "@/components/homepage/home-pricing";
+import { FREE_SIGNUP_HREF } from "@/lib/checkout";
 import { FaqAccordion } from "@/components/homepage/faq-accordion";
 import { StickyZipBar } from "@/components/homepage/sticky-zip-bar";
 import { MobileCollapse } from "@/components/homepage/mobile-collapse";
@@ -123,7 +123,7 @@ const FAQ = [
   },
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro, our free AI growth diagnostic, plus the AI intake assistant, with no credit card. Paid plans are Pro $99/mo, Growth $199/mo and Exclusive $299/mo, and every paid plan offers a 15-day free trial so you can try the tools. Neither the Free plan nor the trial locks a ZIP code: it locks at your first payment. Pay now, or choose a 5-year plan, to lock it today.",
+    a: "Nothing. Run Cerebro’s free growth diagnostic and preview borrower intake with no credit card. Live lead delivery starts with a paid subscription. Paid plans are Pro $99/mo, Growth $199/mo and Exclusive $299/mo, and every paid plan offers a 15-day free trial so you can try the tools. Neither the Free plan nor the trial locks a ZIP code: it locks at your first payment. Pay now, or choose a 5-year plan, to lock it today.",
   },
   {
     q: "Does YPN USA work for teams?",
@@ -181,8 +181,16 @@ export default function Home() {
             </p>
             <h1 className="text-balance text-[1.75rem] font-semibold leading-[1.12] text-slate-900 sm:mt-4 sm:text-4xl lg:text-[3.1rem] lg:leading-[1.08]">
               {liveHeadline("/") ?? HOMEPAGE_HEADLINE}{" "}
-              <span className="text-violet-800">Cerebro answers them for you, day and night.</span>
+              <span className="text-violet-800">Meet your own AI assistant.</span>
             </h1>
+
+            <p className="mt-4 text-base leading-7 text-slate-800">
+              Cerebro helps your customers while you close loans. It answers borrower questions 24/7, captures inquiry
+              details, and drafts your follow-up.
+            </p>
+            <TrackedAnchor href="#cerebro" cta="hero_see_cerebro" className={`mt-3 inline-block ${LINK}`}>
+              See Cerebro in action
+            </TrackedAnchor>
 
             {/* Real, verifiable credentials only (see /about); no invented reviews, awards or user counts. */}
             <p className="mt-4 rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-[13px] font-medium leading-6 text-slate-800">
@@ -228,34 +236,14 @@ export default function Home() {
         </div>
       </section>
 
-      <HowItWorks />
-
-      {/* CLIENT CALCULATOR PREVIEW */}
-      <section id="calculator-preview" className="bg-white py-12 md:py-16">
-        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className={EYEBROW}>Co-branded client tool</p>
-            <h2 className={`mt-3 ${H2}`}>Your borrowers and Realtor partners get a calculator with your name on it</h2>
-            <p className="mt-4 text-slate-700">
-              Type your name and NMLS # to preview it. Once you claim a ZIP code, this payment and buying-power calculator carries
-              your branding on your pages.
-            </p>
-          </div>
-          <div className="mt-6 md:mt-10">
-            <ClientCalculatorPreview source="home" />
-          </div>
-        </div>
-      </section>
-
       {/* LIVE CEREBRO */}
-      <section id="cerebro" className="border-y border-slate-200 bg-slate-50 py-12 md:py-16">
+      <section id="cerebro" className="scroll-mt-24 border-y border-slate-200 bg-slate-50 py-12 md:py-16">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <p className={EYEBROW}>Meet Cerebro</p>
-            <h2 className={`mt-3 ${H2}`}>Live Cerebro: from a borrower&rsquo;s first question to your next call</h2>
+            <p className={EYEBROW}>Interactive Cerebro example</p>
+            <h2 className={`mt-3 ${H2}`}>From a borrower&rsquo;s first question to your next call</h2>
             <p className="mt-4 text-slate-700">
-              Pick a scenario. On the left is the conversation on your page; on the right is what lands in your dashboard, with
-              a follow-up drafted for you.
+              Pick a sample borrower scenario to see the conversation, the summary you get in your dashboard, and a drafted follow-up.
             </p>
           </div>
           <div className="mt-8">
@@ -304,6 +292,25 @@ export default function Home() {
                 Mortgage CRM and AI guides
               </Link>
             </p>
+          </div>
+        </div>
+      </section>
+
+      <HowItWorks />
+
+      {/* CLIENT CALCULATOR PREVIEW */}
+      <section id="calculator-preview" className="bg-white py-12 md:py-16">
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className={EYEBROW}>Co-branded client tool</p>
+            <h2 className={`mt-3 ${H2}`}>Your borrowers and Realtor partners get a calculator with your name on it</h2>
+            <p className="mt-4 text-slate-700">
+              Type your name and NMLS # to preview it. Once you claim a ZIP code, this payment and buying-power calculator carries
+              your branding on your pages.
+            </p>
+          </div>
+          <div className="mt-6 md:mt-10">
+            <ClientCalculatorPreview source="home" />
           </div>
         </div>
       </section>
@@ -462,14 +469,28 @@ export default function Home() {
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
             <p className={EYEBROW}>Pricing</p>
-            <h2 className={`mt-3 ${H2}`}>Plans and ROI</h2>
+            <h2 className={`mt-3 ${H2}`}>Choose how to get started</h2>
             <p className="mt-4 text-slate-700">
-              Start free. Check your ZIP code free, then lock it with your first payment on any paid plan.
+              Paid plans start at $99 per month and include one exclusive ZIP code within YPN USA.
             </p>
           </div>
 
-          <div className="mt-10">
-            <HomePricing />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <h3 className="text-lg font-semibold text-slate-900">$0 Free plan</h3>
+              <p className="my-3 text-sm text-slate-700">Run the growth diagnostic and preview borrower intake. No card required. Live lead delivery starts with a paid subscription.</p>
+              <Link href={FREE_SIGNUP_HREF} className={LINK}>Start free</Link>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <h3 className="text-lg font-semibold text-slate-900">15-day paid-plan trial</h3>
+              <p className="my-3 text-sm text-slate-700">Try the paid tools for 15 days. Your ZIP code locks at your first payment.</p>
+              <Link href="/pricing#paid-plans" className={LINK}>Choose a plan to try</Link>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <h3 className="text-lg font-semibold text-slate-900">Lock your ZIP code</h3>
+              <p className="my-3 text-sm text-slate-700">Check availability, then make your first payment to lock the ZIP code you choose.</p>
+              <TrackedAnchor href="#claim" cta="pricing_pay_now_zip" className={LINK}>Check your ZIP code</TrackedAnchor>
+            </div>
           </div>
 
           <p className="mt-6 text-center text-sm text-slate-700">

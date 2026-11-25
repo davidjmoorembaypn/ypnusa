@@ -44,7 +44,7 @@ const EXTRA_ZIP_PRICES = `${formatUsd(STRIPE_PLANS.extra_zip_monthly.priceCents 
 const PRICING_FAQ = [
   {
     q: "How much does it cost to start?",
-    a: "Nothing. Run Cerebro and the AI intake free, no credit card. Paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo. Every paid plan offers a 15-day free trial so you can try the tools. Neither the Free plan nor the trial locks a ZIP code: your ZIP code locks when your first payment goes through.",
+    a: "Nothing. Run the Cerebro growth diagnostic and preview borrower intake free, with no credit card. Paid plans are Pro $99/mo, Growth $199/mo, and Exclusive $299/mo. Every paid plan offers a 15-day free trial so you can try the tools. Neither the Free plan nor the trial locks a ZIP code: your ZIP code locks when your first payment goes through.",
   },
   {
     q: "Does the 15-day trial lock my ZIP code?",
@@ -95,7 +95,7 @@ export default function PricingPage() {
               Start free. Lock your territory when you&apos;re ready.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-lg text-white/85">
-              Run Cerebro and the AI borrower intake assistant free, no credit card. Neither the Free plan nor the 15-day trial locks a ZIP
+              Run the Cerebro growth diagnostic and preview borrower intake free, with no credit card. Live lead delivery starts with a paid subscription. Neither the Free plan nor the 15-day trial locks a ZIP
               code: your exclusive ZIP code locks at your first payment. Pay now, or choose a 5-year plan, to lock it today.
             </p>
             <div id="check-zip" className="mx-auto mt-8 max-w-md scroll-mt-24 text-left">
@@ -107,7 +107,7 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="bg-white py-16 text-slate-900 sm:py-20">
+        <section id="paid-plans" className="scroll-mt-24 bg-white py-16 text-slate-900 sm:py-20">
           <div className="mx-auto w-full max-w-6xl px-6">
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               {PUBLIC_PRICING_TIERS.map((tier) => (

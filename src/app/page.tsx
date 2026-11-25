@@ -165,30 +165,31 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(FAQ)) }} />
 
       {/* HERO */}
-      <section id="hero" className="relative isolate overflow-hidden border-b border-slate-200">
-        <HeroVideo />
+      <section id="hero" className="relative isolate overflow-hidden border-b border-slate-200 bg-slate-50">
+        <div className="relative h-48 overflow-hidden sm:h-64 lg:absolute lg:inset-0 lg:h-auto">
+          <HeroVideo />
+        </div>
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_8%,rgba(2,6,23,0.88)_40%,rgba(2,6,23,0.78)_100%)] lg:bg-[linear-gradient(90deg,rgba(2,6,23,0.96)_0%,rgba(2,6,23,0.87)_38%,rgba(2,6,23,0.28)_65%,transparent_90%)]"
+          className="pointer-events-none absolute inset-0 hidden lg:block lg:bg-[linear-gradient(90deg,rgba(248,250,252,0.95)_0%,rgba(248,250,252,0.86)_41%,transparent_65%)]"
         />
-        <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-6 px-4 pb-8 pt-40 sm:px-8 sm:pt-48 lg:min-h-[35rem] lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-14 lg:px-14 lg:py-20">
+        <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-6 px-4 py-8 sm:px-8 lg:min-h-[35rem] lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-14 lg:px-14 lg:py-20">
           <div data-cerebro-avoid="" className="max-w-lg">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-200">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-800">
               For licensed mortgage loan officers nationwide
             </p>
-            <h1 className="mt-3 text-balance text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl">
+            <h1 className="mt-3 text-balance text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl lg:text-5xl">
               {liveHeadline("/") ?? HOMEPAGE_HEADLINE}{" "}
-              <span className="text-violet-200">Meet your own AI assistant.</span>
+              <span className="text-violet-800">Meet your own AI assistant.</span>
             </h1>
 
-            <p className="mt-4 max-w-md text-base leading-7 text-slate-100">
+            <p className="mt-4 max-w-md text-base leading-7 text-slate-800">
               Cerebro helps your customers while you close loans. It answers borrower questions 24/7, captures inquiry
               details, and drafts your follow-up.
             </p>
-            <TrackedAnchor href="#cerebro" cta="hero_see_cerebro" className="mt-3 inline-flex min-h-11 items-center font-semibold text-white underline decoration-violet-300 underline-offset-4 hover:text-violet-200">
+            <TrackedAnchor href="#cerebro" cta="hero_see_cerebro" className="mt-3 inline-flex min-h-11 items-center font-semibold text-slate-950 underline decoration-violet-500 underline-offset-4 hover:text-violet-800">
               See Cerebro in action
             </TrackedAnchor>
-
           </div>
 
           <div id="claim" className="relative w-full max-w-sm scroll-mt-24">

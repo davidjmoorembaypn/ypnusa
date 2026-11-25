@@ -116,6 +116,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     { url: `${origin}/about`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/book`, lastModified: SEO_PLAN_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${origin}/book/ai-real-estate-advantage`, lastModified: new Date("2026-11-24"), priority: 0.7 },
+    { url: `${origin}/book/ai-lead-follow-up`, lastModified: new Date("2026-11-24"), priority: 0.7 },
     { url: `${origin}/claim-territory`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/consultation`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/blog`, lastModified: MARKETING_LAST_MODIFIED, changeFrequency: "weekly", priority: 0.7 },

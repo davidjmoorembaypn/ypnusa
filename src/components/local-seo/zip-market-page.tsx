@@ -19,7 +19,18 @@ import { metroAreaPath } from "@/content/metro-areas";
  * Every other ZIP code gets this short page with "noindex, follow" set in metadata: enough for a
  * visitor who lands on it, and nothing that invites crawlers deeper.
  */
-export function ZipMarketPage({ intel, indexable, neighbors }: { intel: ZipLocalIntel; indexable: boolean; neighbors: ZipDistance[] }) {
+export function ZipMarketPage({
+  intel,
+  indexable,
+  neighbors,
+  sameCityZip,
+}: {
+  intel: ZipLocalIntel;
+  indexable: boolean;
+  neighbors: ZipDistance[];
+  /** For an extra ZIP code in a city whose main ZIP code page is indexed: that ZIP code. */
+  sameCityZip?: string;
+}) {
   const { zip, city, state } = intel;
   const place = city && state ? `${city}, ${state}` : `ZIP code ${zip}`;
   const canonical = zipCanonicalUrl(zip);
@@ -63,7 +74,21 @@ export function ZipMarketPage({ intel, indexable, neighbors }: { intel: ZipLocal
 
         <ZipTerritoryBanner zip={zip} city={city} state={state} />
 
-        {indexable ? (
+        {sameCityZip ? (
+          <section className="mx-auto max-w-3xl px-6 pt-12">
+            <p className="leading-7 text-slate-700">
+              More about buying a home in {city}:{" "}
+              <Link href={`/zip/${sameCityZip}`} className="font-semibold text-violet-700 underline">
+                mortgage help in {city} {sameCityZip}
+              </Link>
+              .
+            </p>
+          </section>
+        ) : null}
+
+        {indexable || intel.county ? (
+          // County facts are checked for the flagship counties, so a visitor on a same-city page that
+          // is kept out of the index still gets them; neighbor links stay for indexable pages only.
           <div className="pt-14">
             <ZipLocalIntelSection intel={intel} neighbors={neighbors} />
           </div>

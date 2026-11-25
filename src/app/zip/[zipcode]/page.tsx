@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LocationPage } from "@/components/local-seo/location-page";
 import { ZipMarketPage } from "@/components/local-seo/zip-market-page";
-import { FLAGSHIP_ZIPS } from "@/content/zip-flagship";
+import { FLAGSHIP_ZIPS, flagshipZip } from "@/content/zip-flagship";
 import { buildZipLocalIntel } from "@/content/zip-local-intel";
 import { clampDescription, firstSentence } from "@/lib/seo/meta-description";
 import { socialImageFor } from "@/lib/seo";
@@ -78,5 +78,6 @@ export default async function ZipMortgagePage({ params }: Props) {
   if (profile) {
     return <LocationPage profile={profile} business={getPublicBusinessProfile()} zipIntel={indexable ? { intel, neighbors } : undefined} />;
   }
-  return <ZipMarketPage intel={intel} indexable={indexable} neighbors={neighbors} />;
+  const sameCityZip = indexable ? undefined : flagshipZip(zipcode)?.sameCityAs;
+  return <ZipMarketPage intel={intel} indexable={indexable} neighbors={neighbors} sameCityZip={sameCityZip} />;
 }

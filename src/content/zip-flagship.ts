@@ -14,22 +14,30 @@ export interface FlagshipZip {
   zip: string;
   city: string;
   county: CentralValleyCounty;
+  /**
+   * Another ZIP code page in the same city that carries the indexed page for that city. Set on
+   * the extra ZIP codes of Visalia, Clovis and Fresno: their pages were nearly word for word the
+   * same as the city's main ZIP code page (Nov 25 audit), which Google can treat as duplicate
+   * content. They keep their county facts and render "noindex, follow" until a loan officer
+   * claims the ZIP code, then index like any claimed ZIP code.
+   */
+  sameCityAs?: string;
 }
 
-/** 15 flagship Central Valley ZIP codes. */
+/** 15 flagship Central Valley ZIP codes; 9 of them have indexed pages (see sameCityAs). */
 export const FLAGSHIP_ZIPS: readonly FlagshipZip[] = [
   { zip: "93618", city: "Dinuba", county: "Tulare County" },
   { zip: "93654", city: "Reedley", county: "Fresno County" },
   { zip: "93631", city: "Kingsburg", county: "Fresno County" },
   { zip: "93662", city: "Selma", county: "Fresno County" },
-  { zip: "93611", city: "Clovis", county: "Fresno County" },
-  { zip: "93619", city: "Clovis", county: "Fresno County" },
-  { zip: "93711", city: "Fresno", county: "Fresno County" },
+  { zip: "93611", city: "Clovis", county: "Fresno County", sameCityAs: "93612" },
+  { zip: "93619", city: "Clovis", county: "Fresno County", sameCityAs: "93612" },
+  { zip: "93711", city: "Fresno", county: "Fresno County", sameCityAs: "93720" },
   { zip: "93720", city: "Fresno", county: "Fresno County" },
-  { zip: "93722", city: "Fresno", county: "Fresno County" },
+  { zip: "93722", city: "Fresno", county: "Fresno County", sameCityAs: "93720" },
   { zip: "93277", city: "Visalia", county: "Tulare County" },
-  { zip: "93291", city: "Visalia", county: "Tulare County" },
-  { zip: "93292", city: "Visalia", county: "Tulare County" },
+  { zip: "93291", city: "Visalia", county: "Tulare County", sameCityAs: "93277" },
+  { zip: "93292", city: "Visalia", county: "Tulare County", sameCityAs: "93277" },
   { zip: "93230", city: "Hanford", county: "Kings County" },
   { zip: "93274", city: "Tulare", county: "Tulare County" },
   { zip: "93637", city: "Madera", county: "Madera County" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { track } from "@/lib/track";
 import { MobileCollapse } from "./mobile-collapse";
 
@@ -150,10 +150,57 @@ export function CerebroSandbox() {
   const [active, setActive] = useState(0);
   const [draft, setDraft] = useState<Draft>("sms");
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const audio = useRef<SpeechSynthesisUtterance | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [audioError, setAudioError] = useState("");
+
+  useEffect(() => () => {
+    if (audio.current) window.speechSynthesis.cancel();
+  }, []);
+
+  function stopAudio() {
+    if (!audio.current) return;
+    audio.current = null;
+    window.speechSynthesis.cancel();
+    setPlaying(false);
+  }
+
+  function playReply(scenario: Scenario) {
+    if (playing) {
+      stopAudio();
+      return;
+    }
+    const reply = scenario.chat.find((turn) => turn.from === "cerebro");
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined" || !reply) {
+      setAudioError("Audio is unavailable on this device. The reply is shown below.");
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(reply.text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.95;
+    function finish(error = "") {
+      if (audio.current !== utterance) return;
+      audio.current = null;
+      setPlaying(false);
+      setAudioError(error);
+    }
+    utterance.onend = () => finish();
+    utterance.onerror = () => finish("Audio could not play. The reply is shown below.");
+    audio.current = utterance;
+    setAudioError("");
+    setPlaying(true);
+    window.speechSynthesis.speak(utterance);
+    track("cerebro_sandbox_audio", { scenario: scenario.id });
+  }
+
   const draftPanelId = `${baseId}-draft`;
 
   function select(index: number, focus = false) {
     const next = (index + SCENARIOS.length) % SCENARIOS.length;
+    if (next !== active) {
+      stopAudio();
+      setAudioError("");
+    }
     setActive(next);
     track("cerebro_sandbox_tab", { scenario: SCENARIOS[next].id });
     if (focus) tabRefs.current[next]?.focus();
@@ -222,6 +269,15 @@ export function CerebroSandbox() {
                   <h3 className="text-sm font-semibold text-slate-900">On your page: borrower chat</h3>
                   <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-900">{item.program}</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => playReply(item)}
+                  className="mt-3 min-h-11 rounded-full border border-violet-300 px-4 text-sm font-semibold text-violet-900 hover:bg-violet-50"
+                >
+                  {playing ? "Stop audio" : "Hear Cerebro’s sample reply"}
+                </button>
+                <p className="mt-1 text-xs text-slate-600">Sample playback uses your device’s voice.</p>
+                <p role="status" className="text-xs text-slate-700">{audioError}</p>
                 <ChatTurns turns={item.chat.slice(0, 2)} />
                 <MobileCollapse label={`Show the rest of the conversation (${item.chat.length - 2} more)`} name={`sandbox_chat_${item.id}`} className="mt-3">
                   <ChatTurns turns={item.chat.slice(2)} />

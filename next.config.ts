@@ -113,7 +113,12 @@ const nextConfig: NextConfig = {
   // With the root layout's revalidate = 300: s-maxage=300, stale-while-revalidate=300.
   expireTime: 600,
   // Hostinger LVE reports 64 CPUs but caps processes far lower; cap Next's build workers so page-data collection does not hit EAGAIN.
-  experimental: { cpus: 2, workerThreads: false },
+  // inlineCss: the site-wide stylesheet arrives inside the HTML instead of as a separate,
+  // render-blocking file, so a first-time visitor on a phone sees the page one round trip
+  // sooner (lab, phone throttling: first paint 2.1 s -> 1.2 s, hero image 2.3 s -> 1.7 s).
+  // Trade-off: each full page load carries the CSS again (~65 KB compressed); client-side
+  // navigations still use the cached stylesheet file.
+  experimental: { cpus: 2, workerThreads: false, inlineCss: true },
   images: {
     formats: ["image/avif", "image/webp"],
     // Homepage hero poster lives in the media library under ypnus.com/wp-content/uploads.

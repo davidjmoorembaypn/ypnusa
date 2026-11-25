@@ -45,8 +45,8 @@ describe("2026-08-07 batch consolidation", () => {
     }
   });
 
-  it("leaves the 9 answer-first posts indexable and un-redirected", () => {
-    assert.equal(ANSWER_POSTS.length, 9);
+  it("leaves the 10 answer-first posts indexable and un-redirected", () => {
+    assert.equal(ANSWER_POSTS.length, 10);
     const indexable = new Set(INDEXABLE_POSTS.map((p) => p.slug));
     for (const post of ANSWER_POSTS) {
       assert.ok(indexable.has(post.slug), `${post.slug} is no longer indexable`);

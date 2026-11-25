@@ -164,26 +164,29 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(softwareApplicationJsonLd()) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(FAQ)) }} />
 
-      {/* HERO */}
-      <section id="hero" className="grid overflow-hidden border-b border-slate-200 bg-slate-50 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        <div className="relative aspect-video overflow-hidden lg:col-start-2 lg:row-start-1 lg:aspect-auto">
+      {/* HERO: the video fills the whole section and plays behind the copy, with no
+          panel or gradient over it. A soft text shadow (not a backing) keeps the white
+          copy readable on the footage; the slate-900 fill shows only until the poster
+          paints. The ZIP code checker keeps its own white card because it is a form. */}
+      <section id="hero" className="relative isolate overflow-hidden border-b border-slate-200 bg-slate-900">
+        <div className="absolute inset-0 -z-10">
           <HeroVideo />
         </div>
-        <div className="grid w-full max-w-xl content-center gap-6 px-4 py-8 sm:px-8 lg:col-start-1 lg:row-start-1 lg:ml-auto lg:min-h-[35rem] lg:px-10 lg:py-14">
-          <div data-cerebro-avoid="" className="max-w-lg">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-800">
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-12 sm:px-8 sm:py-16 lg:min-h-[35rem] lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-14 lg:px-14 lg:py-20">
+          <div data-cerebro-avoid="" className="max-w-lg [text-shadow:0_1px_3px_rgb(2_6_23/0.9),0_2px_18px_rgb(2_6_23/0.7)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-100">
               For licensed mortgage loan officers nationwide
             </p>
-            <h1 className="mt-3 text-balance text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl lg:text-5xl">
+            <h1 className="mt-3 text-balance text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl">
               {liveHeadline("/") ?? HOMEPAGE_HEADLINE}{" "}
-              <span className="text-violet-800">Meet your own AI assistant.</span>
+              <span className="text-violet-200">Meet your own AI assistant.</span>
             </h1>
 
-            <p className="mt-4 max-w-md text-base leading-7 text-slate-800">
+            <p className="mt-4 max-w-md text-base font-medium leading-7 text-white">
               Cerebro helps your customers while you close loans. It answers borrower questions 24/7, captures inquiry
               details, and drafts your follow-up.
             </p>
-            <TrackedAnchor href="#cerebro" cta="hero_see_cerebro" className="mt-3 inline-flex min-h-11 items-center font-semibold text-slate-950 underline decoration-violet-500 underline-offset-4 hover:text-violet-800">
+            <TrackedAnchor href="#cerebro" cta="hero_see_cerebro" className="mt-3 inline-flex min-h-11 items-center font-semibold text-white underline decoration-violet-300 underline-offset-4 hover:text-violet-200">
               See Cerebro in action
             </TrackedAnchor>
           </div>

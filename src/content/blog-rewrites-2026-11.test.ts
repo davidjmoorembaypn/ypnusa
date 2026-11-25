@@ -11,6 +11,8 @@ import {
   NEW_LOAN_OFFICER_CLIENTS,
   RESPA_CO_MARKETING,
   REWRITTEN_POSTS,
+  SOCIAL_MEDIA_POSTING_FREQUENCY,
+  SOCIAL_MEDIA_WHAT_WORKS,
 } from "@/content/blog-rewrites-2026-11";
 import { WP_POSTS } from "@/content/wp-import";
 import { INDEXABLE_POSTS, TOPIC_CLUSTERS } from "@/lib/seo/clusters";
@@ -232,6 +234,58 @@ describe("second batch of rewrites (landing pages, referrals, email follow-up)",
     const sources = EMAIL_FOLLOW_UP_SEQUENCES.html.slice(EMAIL_FOLLOW_UP_SEQUENCES.html.indexOf("<h2>Sources</h2>"));
     for (const host of ["answers.hud.gov", "www.va.gov", "www.rd.usda.gov", "singlefamily.fanniemae.com"]) {
       assert.ok(sources.includes(host), `missing source ${host}`);
+    }
+  });
+});
+
+describe("social media posts (platforms/timing and posting-frequency)", () => {
+  const SOCIAL_POSTS = [SOCIAL_MEDIA_WHAT_WORKS, SOCIAL_MEDIA_POSTING_FREQUENCY];
+
+  it("each replaces the imported post of the same slug and stays indexable", () => {
+    for (const post of SOCIAL_POSTS) {
+      const same = ALL_BLOG_POSTS.filter((p) => p.slug === post.slug);
+      assert.equal(same.length, 1, `${post.slug}: exactly one post with this slug`);
+      // ALL_BLOG_POSTS may wrap the post with an auto-generated metaTitle (see blog-all.ts's
+      // withSeoTitle) when the title is too long for SERPs, so compare the content fields
+      // rather than requiring reference equality.
+      assert.equal(same[0].title, post.title, `${post.slug}: the native rewrite's title wins`);
+      assert.equal(same[0].html, post.html, `${post.slug}: the native rewrite's body wins over the imported post`);
+      assert.ok(WP_POSTS.some((p) => p.slug === post.slug), `${post.slug}: the imported post it replaces still exists`);
+      assert.ok(INDEXABLE_POSTS.some((p) => p.slug === post.slug), `${post.slug}: indexable, so it stays in the sitemap`);
+      assert.ok(!CONSOLIDATED_POST_SLUGS.has(post.slug));
+      assert.ok(REWRITTEN_POSTS.includes(post));
+    }
+  });
+
+  it("each carries a visible FAQ and cited sources", () => {
+    for (const post of SOCIAL_POSTS) {
+      assert.ok(post.faq && post.faq.length >= 4, `${post.slug}: at least four FAQ entries`);
+      for (const item of post.faq ?? []) {
+        assert.ok(item.q.endsWith("?") && item.a.length > 40, `${post.slug}: ${item.q}`);
+      }
+      const sources = post.html.slice(post.html.indexOf("<h2>Sources</h2>"));
+      const links = [...sources.matchAll(/<a href="(https:\/\/[^"]+)"[^>]*>/g)].map((m) => m[1]);
+      assert.ok(links.length >= 2, `${post.slug}: only ${links.length} sources`);
+      for (const url of links) assert.match(url, /^https:\/\/(www\.)?(sproutsocial|buffer|contentin|webtonic)\.(com|io)\//, `${post.slug}: ${url}`);
+    }
+  });
+
+  it("drops the unsupported single-best-day/slot ranking that CodeRabbit flagged", () => {
+    for (const post of SOCIAL_POSTS) {
+      const text = visibleText([post.html, ...(post.faq ?? []).map((f) => f.a)].join(" "));
+      for (const bad of ["ranked LinkedIn's single best day", "ranked the single best slot overall"]) {
+        assert.ok(!text.includes(bad), `${post.slug}: still says "${bad}"`);
+      }
+      assert.ok(text.includes("10 AM") && text.includes("3 PM"), `${post.slug}: keeps the Tuesday/Wednesday 10 AM-3 PM window`);
+    }
+  });
+
+  it("links between the two posts and to the platform-specific playbooks resolve to real posts", () => {
+    const slugs = new Set(ALL_BLOG_POSTS.map((p) => p.slug));
+    for (const post of SOCIAL_POSTS) {
+      const internalLinks = [...post.html.matchAll(/href="\/blog\/([a-z0-9-]+)"/g)].map((m) => m[1]);
+      assert.ok(internalLinks.length >= 1, `${post.slug}: expected at least one internal blog link`);
+      for (const target of internalLinks) assert.ok(slugs.has(target), `${post.slug}: links to missing post /blog/${target}`);
     }
   });
 });

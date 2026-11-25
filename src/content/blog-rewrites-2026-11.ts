@@ -759,7 +759,7 @@ export const SOCIAL_MEDIA_WHAT_WORKS: BlogPost = {
 <tbody>
 <tr><td>Monday</td><td>10 AM and 12–1 PM</td></tr>
 <tr><td>Tuesday</td><td>10 AM – 3 PM</td></tr>
-<tr><td>Wednesday</td><td>8 AM and 10 AM – 3 PM (ranked LinkedIn's single best day)</td></tr>
+<tr><td>Wednesday</td><td>8 AM and 10 AM – 3 PM</td></tr>
 <tr><td>Thursday</td><td>8 AM – 2 PM</td></tr>
 <tr><td>Friday</td><td>11 AM</td></tr>
 </tbody>
@@ -827,7 +827,7 @@ export const SOCIAL_MEDIA_POSTING_FREQUENCY: BlogPost = {
 <h2>Best days and times</h2>
 <p>Two real studies point in different directions here, so it's worth knowing which one you're following. Sprout Social's financial-services breakdown (2 billion engagements, 307,000 profiles) recommends mornings and midday, in your audience's own local time zone:</p>
 <ul>
-<li><strong>Tuesday, Wednesday, Thursday — mornings through early afternoon:</strong> Wednesday at 8 AM is ranked the single best slot overall.</li>
+<li><strong>Tuesday, Wednesday, Thursday — mornings through early afternoon:</strong> Tuesday and Wednesday, 10 AM–3 PM, is the core window, with 8 AM also recommended on Wednesday and Thursday.</li>
 <li><strong>Friday — 11 AM</strong> local time (no afternoon slot is recommended).</li>
 <li><strong>Weekends:</strong> skip — ranked lowest.</li>
 </ul>

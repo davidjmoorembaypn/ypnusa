@@ -54,6 +54,7 @@ const COMPANY_LEGAL: FooterLink[] = [
 const MORE: FooterLink[] = [
   { href: "/loan-officers", label: "Loan officer markets" },
   { href: "/research", label: "Market report" },
+  { href: "/markets/metro", label: "Top 100 metro markets" },
   { href: "/topics", label: "Guides by topic" },
   { href: "/loan-types", label: "Leads by loan type" },
   { href: "/self-employed-mortgage", label: "Self-employed and investor loans" },

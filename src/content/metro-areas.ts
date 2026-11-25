@@ -768,3 +768,43 @@ export function indexableMetroAreaSlugs(): Set<string> {
 export const isMetroAreaIndexable = (m: Pick<MetroAreaMeta, "slug">) => indexableMetroAreaSlugs().has(m.slug);
 
 export type { CountSum };
+
+/* --------------------------------------------------------- cross-linking */
+
+/**
+ * Short names that also mean other places (Portland OR/ME, Columbus OH/GA, Richmond VA/CA...) or
+ * are not how people write the city. Matched only as "Name, ST" so a post about one never links
+ * to the other.
+ */
+const AMBIGUOUS_SHORTS = new Set([
+  "Arlington-Alexandria", "Birmingham", "Cambridge", "Camden", "Charleston", "Columbia", "Columbus",
+  "Elgin", "Everett", "Frederick", "Greenville", "Jacksonville", "Lakewood-New Brunswick", "Marietta",
+  "Montgomery-Bucks-Chester", "Nassau-Suffolk", "Newark", "North Port", "Northwest Indiana", "Portland",
+  "Richmond", "Riverside", "Rochester", "Warren-Troy", "Washington, DC", "Wilmington, DE", "Wilmington, NC",
+]);
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Indexable metro pages a piece of text clearly talks about, in order of first mention.
+ * A city counts when it appears with its state ("Fresno, CA") or, for unambiguous names, at least twice;
+ * ambiguous names (Portland, Columbus...) always need their state.
+ */
+export function metroAreasMentionedIn(text: string, limit = 4): MetroArea[] {
+  const plain = text.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+  const found: Array<{ m: MetroArea; at: number }> = [];
+  for (const m of METRO_AREAS) {
+    if (!isMetroAreaIndexable(m)) continue;
+    const name = m.short.replace(/,\s*[A-Z]{2}$/, "");
+    const withState = new RegExp(`\\b${escapeRe(name)},?\\s+${m.states[0]}\\b`);
+    const stateHit = withState.exec(plain);
+    if (AMBIGUOUS_SHORTS.has(m.short)) {
+      if (stateHit) found.push({ m, at: stateHit.index });
+      continue;
+    }
+    // A bare name must come up at least twice, so a passing aside ("copied onto a Miami site") is not a link.
+    const hits = [...plain.matchAll(new RegExp(`\\b${escapeRe(name)}\\b`, "g"))];
+    if (stateHit || hits.length >= 2) found.push({ m, at: hits[0]?.index ?? stateHit!.index });
+  }
+  return found.sort((a, b) => a.at - b.at).slice(0, limit).map((f) => f.m);
+}

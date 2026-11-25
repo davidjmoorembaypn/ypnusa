@@ -16,6 +16,7 @@ import { MARKETING_SITE_URL } from "@/lib/site";
 import { getPostCluster, getRelatedPosts, isThinPost } from "@/lib/seo/clusters";
 import { clampDescription } from "@/lib/seo/meta-description";
 import { NextStepBlock } from "@/components/next-step";
+import { MetroAreasMentioned } from "@/components/metro-area/metro-area-links";
 import { nextStepForCluster } from "@/lib/cta/next-steps";
 import { blogImageFor, blogBodyHtml } from "@/lib/blog-images";
 
@@ -198,6 +199,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               dangerouslySetInnerHTML={{ __html: post.closingHtml }}
             />
           ) : null}
+          <MetroAreasMentioned text={`${post.title} ${post.html}`} className="mt-10" />
           {post.closingHtml ? null : (
             <NextStepBlock step={nextStepForCluster(cluster?.slug)} source={`blog_post:${cluster?.slug ?? "none"}`} className="mt-12" />
           )}

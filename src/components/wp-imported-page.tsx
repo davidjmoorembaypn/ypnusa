@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MetroMarketList } from "@/components/metro-market/metro-market-page";
+import { MetroAreaIndex } from "@/components/metro-area/metro-area-links";
 import { WpFormBridge } from "@/components/wp-form-bridge";
 import { StickyCtaBar } from "@/components/sticky-cta-bar";
 import { SiteHeader } from "@/components/site-header";
@@ -241,11 +242,12 @@ export function WpImportedPageView({
             <div className="mt-3">
               <MetroMarketList />
             </div>
-            <p className="mt-4">
-              <Link href="/markets/metro" className="font-semibold text-violet-700 hover:underline">
-                Top 100 metro mortgage markets, ranked with 2024 HMDA data
-              </Link>
-            </p>
+            <h2 id="metro-area-index-heading" className="mt-10 text-xl font-semibold text-slate-900">
+              Top 100 metro mortgage markets
+            </h2>
+            <div className="mt-3">
+              <MetroAreaIndex />
+            </div>
           </nav>
         ) : null}
         {sectionIndex ? (

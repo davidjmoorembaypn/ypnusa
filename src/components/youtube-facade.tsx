@@ -39,7 +39,7 @@ export function YouTubeFacade({ videoId, title, tone = "dark" }: { videoId: stri
           {/* eslint-disable-next-line @next/next/no-img-element -- remote YouTube thumbnail; next/image would need a remote-host config for one image */}
           <img
             src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
-            alt=""
+            alt={`Video thumbnail: ${title}`}
             loading="lazy"
             decoding="async"
             width={480}

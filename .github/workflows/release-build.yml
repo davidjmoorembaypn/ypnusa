@@ -33,6 +33,9 @@ jobs:
           # set here, not in /etc/ypnusa/app.env. The host CSP must also allow googletagmanager.com and
           # google-analytics.com, or the tag silently never loads.
           NEXT_PUBLIC_GA_ID: G-Q3V5DC6E80
+          # Public Microsoft Clarity project ID (not a secret). Records public marketing pages only
+          # (src/lib/clarity.ts); app, admin and borrower pages are never recorded.
+          NEXT_PUBLIC_CLARITY_ID: x214y1lr5s
           # Direct-to-Stripe checkout links, one per paid tier. Set as repository VARIABLES (Settings > Secrets and
           # variables > Actions > Variables) once the card-required Payment Links exist. Empty = unchanged behavior
           # (CTAs route through ypnus.com/lo-signup.html), so this is inert until then.

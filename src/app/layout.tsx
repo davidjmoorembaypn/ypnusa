@@ -6,6 +6,8 @@ import { businessEntityJsonLd } from "@/lib/business-profile";
 import { FOUNDER_ID } from "@/lib/seo";
 import "./globals.css";
 import { FunnelPageEvents } from "@/components/analytics/funnel-page-events";
+import { ClarityTag } from "@/components/analytics/clarity-tag";
+import { normalizeClarityId } from "@/lib/clarity";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -74,6 +76,8 @@ const jsonLd = {
 
 // GA4 stays off until NEXT_PUBLIC_GA_ID is set AND the host CSP allows googletagmanager.com / google-analytics.com.
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID?.trim();
+// Microsoft Clarity stays off until NEXT_PUBLIC_CLARITY_ID is set at build time (public project ID, not a secret).
+const CLARITY_ID = normalizeClarityId(process.env.NEXT_PUBLIC_CLARITY_ID);
 
 export default function RootLayout({
   children,
@@ -103,6 +107,7 @@ export default function RootLayout({
           </>
         ) : null}
         <FunnelPageEvents />
+        {CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null}
         {children}
       </body>
     </html>

@@ -883,6 +883,316 @@ ${src("https://www.nmlsconsumeraccess.org/EntityDetails.aspx/individual/787257",
   ),
 };
 
+/* ------------------------------------------------------------------------------------------
+ * Nov 26 2026: four more answer-first posts for the tracked AI-visibility questions that had
+ * no ypnus.com page (OpenSEO tracker, ChatGPT run of Nov 23: YPN USA named in 0 of 15 answers).
+ * Same rules as above: facts only from the listed sources, YPN USA claims limited to what
+ * /cerebro and /pricing say today (no SMS follow-up, appointment booking or lead scoring claims).
+ * ---------------------------------------------------------------------------------------- */
+const DATE_NOV26 = "2026-11-26";
+
+export const AI_FOLLOW_UP_WITHOUT_RATE_PROMISES: BlogPost = {
+  slug: "mortgage-ai-follow-up-without-rate-promises",
+  title: "Which Mortgage AI Tools Follow Up by Text and Email Without Making Rate Promises?",
+  metaTitle: "Mortgage AI Follow-Up Without Rate Promises | YPN USA",
+  description:
+    "Choose mortgage AI follow-up that never states a rate or payment as an offer, records text consent, honors opt-outs and hands rate questions to the licensed loan officer. A vetting checklist.",
+  date: DATE_NOV26,
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 7,
+  cluster: "ai-lead-automation",
+  html: `<p><strong>Short answer:</strong> the mortgage AI tools that are safe to use are the ones built so they cannot state a rate, payment or approval as an offer. Before you buy, ask the vendor to show you five things: the rule that blocks rate and payment quotes, how a "what's my rate?" question is handed to you, how text consent is recorded, how "STOP" is honored, and a log of every message sent in your name. If a vendor can't show all five, its follow-up is a compliance risk no matter how good the AI sounds.</p>
+
+<h2>Why rate talk is the line</h2>
+<p>A message an AI sends from your page is your advertising. Under Regulation Z, an ad that states a rate must state it as an annual percentage rate, and an ad that uses certain "trigger terms" (such as a payment amount or a down payment) must add more disclosures. The Mortgage Acts and Practices rule separately bans misleading claims in mortgage ads, including about rates and payments. A chatbot that improvises "you'd probably get 6.25%" in a text is the kind of message that creates that exposure. The safe design is simple: the AI explains how programs work and hands every rate, payment or approval question to the licensed loan officer.</p>
+
+<h2>The five things to make every vendor show you</h2>
+<ol>
+<li><strong>A hard block on rate and payment quotes.</strong> Not a prompt that "asks" the model to be careful, but a rule the vendor can demonstrate. Type "what rate can I get?" and "what would my payment be on $400,000?" in a demo and watch what happens.</li>
+<li><strong>A clean handoff for rate questions.</strong> The right answer is a friendly "your loan officer will go over rates with you" plus a way to reach you, not a deflection loop.</li>
+<li><strong>Recorded consent before texting.</strong> For marketing texts and calls sent with an autodialer or an artificial or prerecorded voice, the TCPA generally requires the borrower's prior express written consent, and the FCC has said AI-generated voices count as artificial. Ask where the consent record is stored and what it says.</li>
+<li><strong>Opt-outs that work on the first try.</strong> "STOP" by text and the unsubscribe link in email should end marketing messages right away. CAN-SPAM requires a working opt-out in commercial email and that you honor it within 10 business days.</li>
+<li><strong>A log of every message.</strong> If an examiner or a borrower asks what was said, you need the exact words, the time and who (or what) sent them.</li>
+</ol>
+
+<h2>Text vs email: what's different</h2>
+<table>
+<thead><tr><th></th><th>Text follow-up</th><th>Email follow-up</th></tr></thead>
+<tbody>
+<tr><td>Consent</td><td>Prior express written consent for automated marketing texts</td><td>No prior consent needed, but a working opt-out is</td></tr>
+<tr><td>Opt-out</td><td>"STOP" must end marketing texts</td><td>Unsubscribe honored within 10 business days</td></tr>
+<tr><td>Registration</td><td>Business texting in the U.S. runs through carrier registration (10DLC) for most senders</td><td>Sender identity and a physical address in the email</td></tr>
+<tr><td>Rate talk</td><td>Never; hand to the loan officer</td><td>Never; hand to the loan officer</td></tr>
+</tbody>
+</table>
+
+<h2>Questions to ask in the demo</h2>
+<ul>
+<li>"Show me what happens when a borrower asks for a rate."</li>
+<li>"Can I approve follow-up messages before they go out, or only after?"</li>
+<li>"Where is the borrower's consent stored, and can I export it?"</li>
+<li>"Who is named as the sender in each text and email?"</li>
+<li>"Can your AI ever say a borrower is approved or pre-approved?" (The answer should be no.)</li>
+</ul>
+
+<h2>How Cerebro handles it</h2>
+<p><a href="/cerebro">Cerebro</a>, the AI assistant in YPN USA, never offers or locks rates and never presents a rate as an offer. It can explain how programs work, asks qualifying questions with the borrower's consent, and hands every borrower to you, the licensed loan officer, with a summary. Follow-up emails can be sent on their own or held for your approval in your dashboard. You can try it free; plans are on the <a href="/pricing">pricing page</a>, and you can <a href="/check-zip">check if your ZIP code is open</a>. For the full handoff pattern, read <a href="/blog/what-ai-lead-follow-up-should-do-before-handoff">what AI follow-up should do before a handoff</a>.</p>
+
+<h2>Sources</h2>
+<ul>
+${src("https://www.consumerfinance.gov/rules-policy/regulations/1026/24/", "CFPB: Regulation Z §1026.24, advertising (rates, APR and trigger terms)")}
+${src("https://www.consumerfinance.gov/rules-policy/regulations/1014/", "CFPB: Regulation N, Mortgage Acts and Practices (advertising)")}
+${src("https://www.law.cornell.edu/cfr/text/47/64.1200", "47 CFR 64.1200: TCPA prior express written consent")}
+${src("https://www.fcc.gov/document/fcc-makes-ai-generated-voices-robocalls-illegal", "FCC (Feb 2024): AI-generated voices are artificial under the TCPA")}
+${src("https://www.ftc.gov/business-guidance/resources/can-spam-act-compliance-guide-business", "FTC: CAN-SPAM Act compliance guide")}
+${src("https://files.consumerfinance.gov/f/documents/cfpb_chatbot-issue-spotlight_2023-06.pdf", "CFPB: Chatbots in consumer finance (2023 issue spotlight)")}
+</ul>`,
+  faq: [
+    {
+      q: "Can a mortgage chatbot tell a borrower an interest rate?",
+      a: "It shouldn't. A rate stated in a message from your page is advertising: it has to be stated as an APR and can trigger more disclosures. The safe design hands every rate and payment question to the licensed loan officer.",
+    },
+    {
+      q: "Do I need consent to send AI follow-up texts to mortgage leads?",
+      a: "For marketing texts sent with an autodialer or an artificial voice, the TCPA generally requires the borrower's prior express written consent. Record it, and end marketing texts as soon as the borrower replies STOP.",
+    },
+    {
+      q: "What should I test in a mortgage AI demo?",
+      a: "Ask for a rate, ask for a payment, ask if you're approved, and reply STOP. The tool should hand the first three to the loan officer and stop messaging on the fourth.",
+    },
+    {
+      q: "Does Cerebro quote rates?",
+      a: "No. Cerebro never offers or locks rates. It explains how programs work and hands rate questions to the loan officer.",
+      html: 'No. <a href="/cerebro">Cerebro</a> never offers or locks rates. It explains how programs work and hands rate questions to you, the licensed loan officer.',
+    },
+  ],
+  closingHtml: closing(
+    `<p><strong>Want AI follow-up that never talks rates for you?</strong> <a href="/cerebro">Try Cerebro free</a>, then <a href="/check-zip">check if your ZIP code is open</a>.</p>`,
+  ),
+};
+
+export const PORTABLE_CRM_CHANGING_BROKERAGES: BlogPost = {
+  slug: "mortgage-crm-portable-when-changing-brokerages",
+  title: "What Mortgage CRM Keeps Your Leads and Website Portable If You Change Brokerages?",
+  metaTitle: "A Mortgage CRM You Keep When You Change Companies | YPN USA",
+  description:
+    "If you might change companies, choose a CRM and website licensed to you, not your employer, with full export, your own domain, and NMLS details you can update the day you move.",
+  date: DATE_NOV26,
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 7,
+  cluster: "loan-officer-websites",
+  html: `<p><strong>Short answer:</strong> the mortgage CRM that stays portable is one you pay for and hold the account for yourself, that exports every contact and note in a standard file, and that runs on a website domain registered in your name. A CRM your company buys and provisions usually belongs to the company, and you leave it behind. Portability also depends on your employment agreement: read who owns the contact list and what you may do with it before you move.</p>
+
+<h2>Three things decide whether you can take it with you</h2>
+<ol>
+<li><strong>Whose account it is.</strong> If your company holds the CRM contract, adds and removes users, and pays the bill, the data is usually theirs. If you hold the account and pay for it, you can usually keep it, subject to your agreement.</li>
+<li><strong>Whether everything exports.</strong> Ask for a full export of contacts, notes, tags, message history and consent records in CSV or another standard format. "You can export contacts" often means names and emails only.</li>
+<li><strong>Who owns the domain.</strong> Your website's address is the asset borrowers and Google remember. Register the domain in your own name, not the company's and not the website vendor's.</li>
+</ol>
+
+<h2>What does <em>not</em> move with you</h2>
+<ul>
+<li><strong>Loan files and applications.</strong> Those belong to the lender that took them.</li>
+<li><strong>Consent to contact.</strong> A borrower who agreed to texts from your old company agreed to that company. Ask your new company's compliance team before you text anyone under old consent.</li>
+<li><strong>Company disclosures on your site.</strong> The company name, its NMLS ID and state licensing details change the day you move. Your own NMLS ID stays with you; look it up on NMLS Consumer Access.</li>
+<li><strong>Anything your agreement keeps.</strong> Many agreements have non-solicitation or data-ownership clauses. If in doubt, ask an employment attorney before you export.</li>
+</ul>
+
+<h2>A portability checklist before you sign up for any CRM</h2>
+<table>
+<thead><tr><th>Question</th><th>Portable answer</th><th>Red flag</th></tr></thead>
+<tbody>
+<tr><td>Who holds the account?</td><td>You</td><td>Your company, through a team license</td></tr>
+<tr><td>What exports?</td><td>Contacts, notes, history, consent, in CSV</td><td>Contacts only, or "contact support"</td></tr>
+<tr><td>Website domain</td><td>Registered in your name</td><td>Owned by the vendor</td></tr>
+<tr><td>Company details on the site</td><td>You can edit them the day you move</td><td>Hard-coded, vendor must change them</td></tr>
+<tr><td>Cancel terms</td><td>Month to month, data kept for export</td><td>Data deleted at cancel</td></tr>
+</tbody>
+</table>
+
+<h2>Solo loan officer vs team</h2>
+<p>On a team, the company usually picks the CRM and keeps it, which is reasonable: it paid for the leads. If portability matters to you, keep a small personal system for your own sphere (past clients you brought, your referral partners) alongside the company CRM, and make sure your agreement allows it. More on choosing in <a href="/blog/mortgage-crm-solo-loan-officer-vs-team">mortgage CRM for a solo loan officer vs a team</a> and the <a href="/best-crm-for-loan-officers">best CRM for loan officers</a> guide.</p>
+
+<h2>How YPN USA handles it</h2>
+<p>In YPN USA every borrower that Cerebro captures belongs to you, exported and portable, on every plan, and canceling never takes back what you already captured. Your YPN USA page is tied to you, the loan officer, so you can update your company and licensing details when you move. YPN USA isn't a full CRM: many loan officers keep the CRM they like and use <a href="/cerebro">Cerebro</a> as the front door that answers and qualifies new borrowers. See <a href="/pricing">plans</a> and <a href="/check-zip">check if your ZIP code is open</a>.</p>
+
+<h2>Sources</h2>
+<ul>
+${src("https://www.nmlsconsumeraccess.org/", "NMLS Consumer Access (your individual NMLS ID and licenses)")}
+${src("https://www.consumerfinance.gov/rules-policy/regulations/1026/36/", "CFPB: Regulation Z §1026.36, loan originator rules, including NMLSR ID requirements")}
+${src("https://www.law.cornell.edu/cfr/text/47/64.1200", "47 CFR 64.1200: TCPA prior express written consent")}
+</ul>`,
+  faq: [
+    {
+      q: "Can I take my CRM with me when I change mortgage companies?",
+      a: "Usually only if you hold and pay for the account yourself and your employment agreement allows it. A CRM your company provides generally stays with the company.",
+    },
+    {
+      q: "Do my leads belong to me or my mortgage company?",
+      a: "It depends on your agreement and who paid for the leads. Loan files belong to the lender. Check non-solicitation and data-ownership clauses before exporting anything.",
+    },
+    {
+      q: "Can I keep my loan officer website if I switch brokerages?",
+      a: "Yes, if the domain is registered in your name. Update the company name, company NMLS ID and licensing details the day you move.",
+    },
+    {
+      q: "Do I keep my YPN USA leads if I cancel?",
+      a: "Yes. Every borrower your AI captures belongs to you, exported and portable, on every plan.",
+      html: 'Yes. Every borrower your AI captures belongs to you, exported and portable, on every plan. See <a href="/pricing">pricing</a>.',
+    },
+  ],
+  closingHtml: closing(
+    `<p><strong>Want demand that moves with you?</strong> <a href="/check-zip">Check if your ZIP code is open</a> and <a href="/cerebro">try Cerebro free</a>.</p>`,
+  ),
+};
+
+export const LEAD_SOURCES_BY_LOAN_TYPE: BlogPost = {
+  slug: "mortgage-lead-sources-by-loan-type",
+  title: "The Best Mortgage Lead Sources for FHA, VA, Conventional, DSCR and Refinance Borrowers",
+  metaTitle: "Best Mortgage Lead Sources by Loan Type (FHA, VA, DSCR) | YPN USA",
+  description:
+    "The best lead source depends on the loan: FHA from first-time buyer channels, VA from veteran communities, DSCR from investors, refinance from your past clients. Where each borrower comes from.",
+  date: DATE_NOV26,
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 8,
+  cluster: "loan-programs-and-niches",
+  html: `<p><strong>Short answer:</strong> there is no single best mortgage lead source; the best one depends on the loan. FHA borrowers come mostly from first-time buyer channels (down payment assistance, homebuyer education, agents who work entry-level listings). VA borrowers come from veteran communities and agents who know VA. Conventional buyers come from agent referrals and local search. DSCR borrowers are investors, so they come from investor groups and property managers. Refinance borrowers come from your own past clients first. Start with the program your area actually uses, which public HMDA data shows.</p>
+
+<h2>Start with what your market funds</h2>
+<p>Before picking a lead source, check which programs carry your area. In Fresno County, California, lenders reported 13,027 originated home loans in 2024: 9,728 conventional, 2,580 FHA and 708 VA, with 7,623 home purchases, 1,015 refinances and 1,992 cash-out refinances. Pull your own county in the <a href="https://ffiec.cfpb.gov/data-browser/" target="_blank" rel="noopener nofollow">FFIEC HMDA Data Browser</a> or read our <a href="/research">county market reports</a>. A VA-heavy area rewards a VA lead plan; an FHA-heavy one rewards first-time buyer channels.</p>
+
+<h2>Lead sources by loan type</h2>
+<table>
+<thead><tr><th>Loan type</th><th>Who the borrower is</th><th>Best sources</th></tr></thead>
+<tbody>
+<tr><td>FHA</td><td>Often first-time buyers with smaller down payments</td><td>Down payment assistance programs, homebuyer education classes, agents with entry-level listings, local search for "first-time homebuyer" in your city</td></tr>
+<tr><td>VA</td><td>Eligible veterans, service members and some surviving spouses</td><td>Agents who specialize in VA, veteran and military community events, content that explains VA entitlement and the funding fee plainly</td></tr>
+<tr><td>Conventional</td><td>Buyers with stronger credit and down payments</td><td>Agent referrals, past clients and their referrals, your Google Business Profile and local search</td></tr>
+<tr><td>DSCR</td><td>Real estate investors qualifying on the property's rental income</td><td>Local investor groups, property managers, investor-friendly agents, CPAs who work with landlords</td></tr>
+<tr><td>Refinance and cash-out</td><td>Existing homeowners</td><td>Your past-client database first, rate-watch and equity check-ins, then permissible prescreened offers</td></tr>
+</tbody>
+</table>
+
+<h2>Notes that change how you work each source</h2>
+<ul>
+<li><strong>FHA and DPA:</strong> learn the assistance programs in your area well enough to explain them in two sentences. That knowledge is the lead magnet.</li>
+<li><strong>VA:</strong> partner with the people veterans already trust. Never imply government endorsement; your marketing can't suggest you are the VA.</li>
+<li><strong>DSCR:</strong> these are business-purpose loans with different rules from consumer mortgages. Learn your company's DSCR guidelines before you market them.</li>
+<li><strong>Refinance:</strong> credit "trigger leads" are now restricted. The Homebuyers Privacy Protection Act took effect in March 2026 and limits when credit bureaus can sell them. Your own past clients are the cleaner source.</li>
+<li><strong>Every source:</strong> paying anyone for referrals of settlement business is generally prohibited under RESPA Section 8. Co-marketing has to reflect each party's real share of the cost.</li>
+</ul>
+
+<h2>Shared lists vs leads that come to you</h2>
+<p>Lead vendors sell all of these loan types, often to several lenders at once. The sources above have one thing in common: the borrower comes to you. Owned demand in a specific area, answered fast, usually closes better than a list. Compare the math in <a href="/blog/exclusive-vs-shared-mortgage-leads-real-cost-math">exclusive vs shared mortgage leads</a> and see <a href="/topics/loan-programs-and-niches">loan programs and niches</a>.</p>
+
+<h2>Where YPN USA fits</h2>
+<p>YPN USA gives one loan officer each ZIP code within YPN USA, and borrower inquiries from YPN USA pages for that ZIP code go to that loan officer, whatever program the borrower asks about. <a href="/cerebro">Cerebro</a> answers them at any hour and asks purpose, timeline, price range and area, so you know whether you're talking to an FHA buyer or an investor before you call. <a href="/check-zip">Check if your ZIP code is open</a> or see <a href="/pricing">plans</a>, starting free.</p>
+
+<h2>Sources</h2>
+<ul>
+${src("https://ffiec.cfpb.gov/data-browser/", "FFIEC / CFPB HMDA Data Browser (2024 originations by county, loan type and purpose)")}
+${src("https://www.hud.gov/buying/loans", "HUD: FHA-insured home loans")}
+${src("https://www.va.gov/housing-assistance/home-loans/", "VA: home loan programs and eligibility")}
+${src("https://www.consumerfinance.gov/compliance/compliance-resources/mortgage-resources/real-estate-settlement-procedures-act/real-estate-settlement-procedures-act-faqs/", "CFPB: RESPA FAQs (Section 8 referral fees)")}
+${src("https://www.congress.gov/bill/119th-congress/house-bill/2808", "Congress.gov: Homebuyers Privacy Protection Act (H.R. 2808)")}
+</ul>`,
+  faq: [
+    {
+      q: "What is the best lead source for FHA loans?",
+      a: "First-time buyer channels: down payment assistance programs, homebuyer education classes and agents who work entry-level listings. Local search for first-time homebuyer help in your city also works.",
+    },
+    {
+      q: "Where do loan officers find VA borrowers?",
+      a: "Through agents who specialize in VA loans and through veteran and military communities. Plain explanations of VA entitlement and the funding fee earn trust.",
+    },
+    {
+      q: "How do I find DSCR loan leads?",
+      a: "DSCR borrowers are investors, so work local investor groups, property managers, investor-friendly agents and CPAs who serve landlords.",
+    },
+    {
+      q: "Are trigger leads still a good refinance source?",
+      a: "They are restricted now. The Homebuyers Privacy Protection Act took effect in March 2026 and limits when credit bureaus can sell trigger leads. Past clients are the cleaner refinance source.",
+    },
+  ],
+  closingHtml: closing(
+    `<p><strong>Want every program's borrowers in your area coming to you?</strong> <a href="/check-zip">Check if your ZIP code is open</a>.</p>`,
+  ),
+};
+
+export const WHERE_TO_GET_EXCLUSIVE_LEADS: BlogPost = {
+  slug: "where-to-get-exclusive-mortgage-leads",
+  title: "Where Can Loan Officers Get Exclusive Mortgage Leads Instead of Shared Leads?",
+  metaTitle: "Where to Get Exclusive Mortgage Leads (Not Shared) | YPN USA",
+  description:
+    "Exclusive mortgage leads come from five places: your own website and Google profile, ads in your name, exclusive-lead vendors, ZIP code territory platforms and referral partners. How to vet each.",
+  date: DATE_NOV26,
+  author: AUTHOR,
+  byline: BYLINE,
+  readingMinutes: 7,
+  cluster: "exclusive-mortgage-leads",
+  html: `<p><strong>Short answer:</strong> loan officers get exclusive mortgage leads from five places: their own website and Google Business Profile, ads run in their own name, vendors that sell each lead to one lender, ZIP code territory platforms that give one loan officer an area, and referral partners. The first two are fully yours. The last three are exclusive only as far as the contract says, so get in writing how many lenders receive each lead and whether it's ever resold.</p>
+
+<h2>The five sources, compared</h2>
+<table>
+<thead><tr><th>Source</th><th>How exclusive</th><th>Cost pattern</th><th>Watch for</th></tr></thead>
+<tbody>
+<tr><td>Your website and Google Business Profile</td><td>Fully yours</td><td>Time, plus a site</td><td>Slow to build; needs reviews and local content</td></tr>
+<tr><td>Ads in your own name (Google, Meta)</td><td>Fully yours</td><td>Ad spend per click or lead</td><td>Ad rules for credit and housing; your company's approval</td></tr>
+<tr><td>Exclusive-lead vendors</td><td>One lender per lead, if the contract says so</td><td>Per lead</td><td>Resale after a short window; consent records</td></tr>
+<tr><td>ZIP code territory platforms</td><td>One loan officer per area, within that platform</td><td>Monthly</td><td>Other lenders still market in the same ZIP code</td></tr>
+<tr><td>Referral partners (agents, builders, CPAs)</td><td>Yours by relationship</td><td>Time and co-marketing</td><td>RESPA: no payments for referrals</td></tr>
+</tbody>
+</table>
+
+<h2>How to vet any "exclusive" lead offer</h2>
+<ol>
+<li><strong>How many lenders get each lead?</strong> "Exclusive" should mean one. Get the number in the contract.</li>
+<li><strong>Is it ever resold?</strong> Ask whether leads are sold again as "aged" leads after a period.</li>
+<li><strong>Exclusive within what?</strong> A territory is usually exclusive only within that vendor or platform.</li>
+<li><strong>How was consent collected?</strong> Ask to see the form the borrower filled out and who it names.</li>
+<li><strong>What happens to bad leads?</strong> Credits for wrong numbers, duplicates and out-of-area leads.</li>
+<li><strong>Can you test small?</strong> A month-to-month start and a 90-day measurement window.</li>
+</ol>
+<p>The full checklist is in <a href="/blog/what-to-check-before-buying-mortgage-leads-in-a-zip-code">what to check before paying for leads in a ZIP code</a>.</p>
+
+<h2>Are exclusive leads worth more?</h2>
+<p>They cost more per lead and often less per closed loan, because no one else is calling the same borrower. The only way to know is to measure cost per closed loan by source over at least 90 days. Run the numbers with <a href="/blog/is-buying-mortgage-leads-worth-it">is buying mortgage leads worth it</a> and <a href="/blog/exclusive-vs-shared-mortgage-leads-real-cost-math">exclusive vs shared lead math</a>.</p>
+
+<h2>Where YPN USA fits</h2>
+<p>YPN USA is a ZIP code territory platform. One loan officer holds each ZIP code within YPN USA, and borrower inquiries from YPN USA pages for that ZIP code go to that loan officer. The ZIP code locks at your first payment on a paid plan; a free account doesn't hold it. Other lenders still market in your area through other channels. <a href="/cerebro">Cerebro</a> answers those borrowers at any hour and hands them to you with a summary. <a href="/check-zip">Check if your ZIP code is open</a> or see <a href="/pricing">plans</a>, starting free.</p>
+
+<h2>Sources</h2>
+<ul>
+${src("https://www.consumerfinance.gov/compliance/compliance-resources/mortgage-resources/real-estate-settlement-procedures-act/real-estate-settlement-procedures-act-faqs/", "CFPB: RESPA FAQs (Section 8 referral fees)")}
+${src("https://www.law.cornell.edu/cfr/text/47/64.1200", "47 CFR 64.1200: TCPA prior express written consent")}
+${src("https://www.ftc.gov/business-guidance/advertising-marketing/advertising-marketing-basics", "FTC: Advertising and marketing basics (truthful claims)")}
+${src("https://support.google.com/adspolicy/answer/9997418", "Google Ads: personalized advertising policy for housing, employment and credit")}
+</ul>`,
+  faq: [
+    {
+      q: "Where can I buy exclusive mortgage leads?",
+      a: "From vendors that sell each lead to one lender, and from ZIP code territory platforms. Get in writing how many lenders receive each lead and whether it's resold later.",
+    },
+    {
+      q: "What's the most exclusive mortgage lead source?",
+      a: "Your own website, Google Business Profile and ads in your own name. Those borrowers came to you and no vendor resells them.",
+    },
+    {
+      q: "Are exclusive ZIP code leads really exclusive?",
+      a: "Usually only within the platform that sells them. Other lenders can still market in the same ZIP code through other channels.",
+    },
+    {
+      q: "How does YPN USA make leads exclusive?",
+      a: "One loan officer holds each ZIP code within YPN USA, locked at the first payment on a paid plan. Inquiries from YPN USA pages for that ZIP code go to that loan officer.",
+      html: 'One loan officer holds each ZIP code within YPN USA, locked at the first payment on a paid plan. <a href="/check-zip">Check if yours is open</a>.',
+    },
+  ],
+  closingHtml: closing(`<p><strong>Ready to see if your ZIP code is open?</strong> <a href="/check-zip">Check it free</a>.</p>`),
+};
+
 export const ANSWER_POSTS: readonly BlogPost[] = [
   CAN_YPNUS_HELP_WITH_MORTGAGE_MARKETING,
   IS_BUYING_MORTGAGE_LEADS_WORTH_IT,
@@ -894,4 +1204,8 @@ export const ANSWER_POSTS: readonly BlogPost[] = [
   LOAN_OFFICER_PRODUCTION_LOOKUP,
   HOW_MANY_LOAN_OFFICERS,
   CRM_SOLO_VS_TEAM,
+  AI_FOLLOW_UP_WITHOUT_RATE_PROMISES,
+  PORTABLE_CRM_CHANGING_BROKERAGES,
+  LEAD_SOURCES_BY_LOAN_TYPE,
+  WHERE_TO_GET_EXCLUSIVE_LEADS,
 ];

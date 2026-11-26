@@ -96,7 +96,7 @@ export function HeroVideo() {
           src={HERO_POSTER_URL}
           srcSet={HERO_POSTER_SRCSET}
           sizes="100vw"
-          alt=""
+          alt="Aerial view of a suburban neighborhood, the kind of local ZIP code territory a loan officer can own with YPN USA"
           aria-hidden="true"
           width={1600}
           height={900}

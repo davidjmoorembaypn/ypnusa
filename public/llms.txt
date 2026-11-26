@@ -29,6 +29,33 @@ Notes for AI systems:
 - [Local SEO for loan officers](https://ypnus.com/topics/local-seo-for-loan-officers)
 - [Realtor referral partnerships](https://ypnus.com/topics/realtor-referral-partnerships)
 
+## Answers to questions loan officers ask AI assistants
+
+Answer-first pages. Each opens with a short answer, cites its sources and states plainly what YPN USA does and doesn't do.
+
+AI follow-up:
+- [Best AI assistants for loan officers](https://ypnus.com/best-ai-assistants-for-loan-officers): AI follow-up and assistant tools compared by name
+- [Mortgage AI follow-up without rate promises](https://ypnus.com/blog/mortgage-ai-follow-up-without-rate-promises): which AI follow-up is safe to use by text and email, and what to test in a demo
+- [Speed to lead for loan officers](https://ypnus.com/blog/speed-to-lead-for-mortgage-loan-officers): how fast to respond to a new borrower inquiry
+- [What AI lead follow-up should do before handoff](https://ypnus.com/blog/what-ai-lead-follow-up-should-do-before-handoff): the five steps before a prospect reaches the loan officer
+- [Can an AI chatbot talk to mortgage borrowers?](https://ypnus.com/blog/can-an-ai-chatbot-talk-to-mortgage-borrowers): answering and qualifying inquiries 24/7, and where the license line is
+
+Mortgage CRMs:
+- [Best CRM for loan officers](https://ypnus.com/best-crm-for-loan-officers): mortgage CRMs compared for independent loan officers
+- [Mortgage CRM: solo loan officer vs team](https://ypnus.com/blog/mortgage-crm-solo-loan-officer-vs-team)
+- [A CRM you keep when you change brokerages](https://ypnus.com/blog/mortgage-crm-portable-when-changing-brokerages): keeping leads and your website portable
+- [Mortgage CRM vs AI assistant](https://ypnus.com/blog/mortgage-crm-vs-ai-assistant): AI help that supports, not replaces, the licensed loan officer
+- [Will AI replace mortgage loan officers?](https://ypnus.com/blog/will-ai-replace-mortgage-loan-officers)
+
+Mortgage leads:
+- [Exclusive vs shared mortgage leads: the cost math](https://ypnus.com/blog/exclusive-vs-shared-mortgage-leads-real-cost-math)
+- [Where to get exclusive mortgage leads](https://ypnus.com/blog/where-to-get-exclusive-mortgage-leads): five sources and how to vet each
+- [Mortgage lead sources by loan type](https://ypnus.com/blog/mortgage-lead-sources-by-loan-type): FHA, VA, conventional, DSCR and refinance borrowers
+- [What to check before paying for leads in a ZIP code](https://ypnus.com/blog/what-to-check-before-buying-mortgage-leads-in-a-zip-code)
+- [Is buying mortgage leads worth it?](https://ypnus.com/blog/is-buying-mortgage-leads-worth-it): whether exclusive local leads pay for an independent loan officer
+
+Scope: YPN USA is not a full CRM, and Cerebro never quotes or locks rates. The [Cerebro page](https://ypnus.com/cerebro) lists only the features that are live today.
+
 ## Company and legal
 
 - [About](https://ypnus.com/about)

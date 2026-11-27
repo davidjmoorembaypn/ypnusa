@@ -5,7 +5,7 @@ import { LegalPageLayout } from "@/components/legal-page-layout";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "How YPN Inc. collects, uses, and protects information on app.ypnus.com and through the YPN USA platform.",
+    "How YPN Inc. collects, uses, shares and protects information on ypnus.com and the YPN USA platform, your privacy rights, and text message preferences.",
   alternates: { canonical: "/privacy-policy" },
 };
 

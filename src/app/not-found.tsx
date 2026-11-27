@@ -18,24 +18,36 @@ export default function NotFound() {
       <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
         This page doesn&apos;t exist.
       </h1>
-      <p className="mt-3 max-w-md text-sm leading-6 text-white/60">
-        The link may be outdated, or the page moved. Head back to the app, or check the
-        ZIP code territory tool.
+      <p className="mt-3 max-w-md text-sm leading-6 text-white/70">
+        The link may be outdated, or the page moved. Check whether your ZIP code is open, compare plans, or head back to the
+        homepage.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Link
+          href="/claim-territory"
+          className="inline-flex min-h-[44px] items-center rounded-full bg-violet-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-400"
+        >
+          Check my ZIP code
+        </Link>
+        <Link
+          href="/pricing"
+          className="inline-flex min-h-[44px] items-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white/85 transition hover:bg-white/10"
+        >
+          See pricing
+        </Link>
+        <Link
           href="/"
-          className="rounded-full bg-violet-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-400"
+          className="inline-flex min-h-[44px] items-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white/85 transition hover:bg-white/10"
         >
           Back to YPN USA
         </Link>
-        <Link
-          href="/dashboard"
-          className="rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/10"
-        >
-          Go to dashboard
-        </Link>
       </div>
+      <p className="mt-6 text-xs text-white/60">
+        Already a member?{" "}
+        <Link href="/dashboard" className="font-semibold text-white/80 underline underline-offset-4 hover:text-white">
+          Go to your dashboard
+        </Link>
+      </p>
     </main>
   );
 }

@@ -120,7 +120,7 @@ export const DSCR_CALIFORNIA_FAQS: ProgramContent["faqs"] = [
 
 export const SELF_EMPLOYED_HUB = {
   title: "Self-Employed and Investor Mortgages in California's Central Valley",
-  metaTitle: "Self-Employed Mortgage Options in California's Central Valley",
+  metaTitle: "Self-Employed Mortgage Options in the Central Valley, CA",
   description:
     "How self-employed borrowers and real estate investors in the Central Valley buy homes with bank statement and DSCR loans instead of tax returns.",
   shortAnswer:

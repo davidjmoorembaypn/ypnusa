@@ -10,9 +10,11 @@ import {
 
 export const metadata: Metadata = {
   ...marketingMetadata({
-    title: "Bank Statement Loans for Self-Employed Borrowers",
+    // Absolute: the section template ("%s · Mortgage Loans · YPN USA") would make it 75 characters.
+    title: "Bank Statement Loans for Self-Employed Borrowers | YPN USA",
     description: BANK_STATEMENT_CONTENT.summary,
     path: BANK_STATEMENT_PATH,
+    absoluteTitle: true,
   }),
   robots: { index: true, follow: true },
 };

@@ -36,17 +36,38 @@ export function monthlyOfferPriceSpecification(price: number | string) {
   };
 }
 
-/** Base titles longer than this skip the root layout's " | YPN USA" suffix. */
-export const BRAND_SUFFIX_MAX_BASE_LENGTH = 55;
+/** Longest full <title> (brand included) that Google shows without cutting it off. */
+export const TITLE_MAX_LENGTH = 60;
+
+/** The root layout's " | YPN USA" template suffix. */
+const BRAND_SUFFIX = " | YPN USA";
+
+/** Base titles longer than this skip the root layout's " | YPN USA" suffix (base + suffix stays ≤ 60). */
+export const BRAND_SUFFIX_MAX_BASE_LENGTH = TITLE_MAX_LENGTH - BRAND_SUFFIX.length;
+
+/** A trailing brand ("| YPN USA", "— YPN USA", "· YPN USA") that can be dropped to fit. */
+const TRAILING_BRAND = /\s*[|—–·-]\s*YPN USA\s*$/;
+
+/**
+ * A full title that fits in TITLE_MAX_LENGTH: when a title runs long only because of a
+ * trailing brand suffix, the suffix goes (the brand still shows as the site name in results).
+ * Titles that are long without it are returned unchanged, to be shortened by hand.
+ */
+export function fitTitle(title: string): string {
+  if (title.length <= TITLE_MAX_LENGTH || !TRAILING_BRAND.test(title)) return title;
+  const trimmed = title.replace(TRAILING_BRAND, "").trim();
+  return trimmed.length >= 20 ? trimmed : title;
+}
 
 /**
  * Metadata `title` for a page under the root "%s | YPN USA" template. When the base
  * title is already long (or already carries the brand), the suffix would push it past
- * ~65 characters and get truncated in search results, so the title is used as-is.
+ * 60 characters and get truncated in search results, so the title is used as-is
+ * (minus a trailing brand suffix when that alone makes it too long).
  */
 export function pageTitle(title: string, { absolute = false }: { absolute?: boolean } = {}): Metadata["title"] {
   if (absolute || title.length > BRAND_SUFFIX_MAX_BASE_LENGTH || /\bYPN USA\b/.test(title)) {
-    return { absolute: title };
+    return { absolute: fitTitle(title) };
   }
   return title;
 }
@@ -107,7 +128,7 @@ export function marketingMetadata({
   description = clampDescription(description);
   const url = `${origin}${path === "/" ? "" : path}`;
   const resolvedTitle = pageTitle(title, { absolute: absoluteTitle });
-  const socialTitle = typeof resolvedTitle === "string" ? `${title} | ${SITE_NAME}` : title;
+  const socialTitle = typeof resolvedTitle === "string" ? `${title} | ${SITE_NAME}` : fitTitle(title);
   const image = socialImageFor(origin);
   return {
     title: resolvedTitle,

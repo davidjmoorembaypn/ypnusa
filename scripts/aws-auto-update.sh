@@ -41,6 +41,9 @@ MAX_ATTEMPTS="${YPNUSA_AU_MAX_ATTEMPTS:-3}"
 # With less free disk than this, old releases are removed before anything else. A full disk on
 # 2026-11-27 made every run fail while writing its own state, so no release installed for a day.
 MIN_FREE_MB="${YPNUSA_AU_MIN_FREE_MB:-1024}"
+# The installer's lock. Releases are only removed while this run holds it, so a cleanup can
+# never delete the build an install in progress would roll back to.
+DEPLOY_LOCK="${YPNUSA_AU_DEPLOY_LOCK:-/run/lock/ypnusa-deploy.lock}"
 
 FAILED_FILE="$STATE_DIR/failed-tags"
 ATTEMPTS_FILE="$STATE_DIR/attempts"
@@ -96,14 +99,27 @@ free_space_if_low() {
   [ -n "$free" ] || return 0
   [ "$free" -lt "$MIN_FREE_MB" ] || return 0
   [ -d "$BASE/releases" ] || return 0
+  mkdir -p "$(dirname "$DEPLOY_LOCK")"
+  exec 7>"$DEPLOY_LOCK" || return 0
+  if ! flock -n 7; then
+    log "only ${free} MB free on the disk, but an install is running; leaving old releases alone this run"
+    exec 7>&-
+    return 0
+  fi
+  # Read only now that no install can be switching builds.
   live="$(live_commit)"
   log "only ${free} MB free on the disk; removing old releases (keeping live ${live:-none} and one fallback)"
   while read -r d; do
     [ -n "$d" ] || continue
     [ "$d" = "$live" ] && continue
+    # A build that failed and was rolled back is never a fallback.
+    if is_failed "app-build-$d"; then rm -rf "${BASE:?}/releases/$d"; continue; fi
     kept=$((kept + 1))
     [ "$kept" -le 1 ] || rm -rf "${BASE:?}/releases/$d"
   done < <(ls -1t "$BASE/releases" 2>/dev/null)
+  # Released before any install starts: the installer takes this lock itself.
+  flock -u 7
+  exec 7>&-
   return 0
 }
 

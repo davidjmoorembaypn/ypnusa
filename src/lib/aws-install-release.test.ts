@@ -253,7 +253,10 @@ test("makes room before the download when the disk is nearly full, never removin
   // A threshold no disk can meet stands in for a full disk.
   const r = install(e, { YPNUSA_INSTALL_MIN_FREE_MB: "999999999999" });
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.ok(r.stdout.indexOf("removing old releases before the download") < r.stdout.indexOf("=== Download"));
+  const cleanupAt = r.stdout.indexOf("removing old releases before the download");
+  const downloadAt = r.stdout.indexOf("=== Download");
+  assert.ok(cleanupAt >= 0 && downloadAt >= 0, r.stdout);
+  assert.ok(cleanupAt < downloadAt);
   assert.match(r.stdout, /removing old release aaaaaaa/);
   assert.equal(liveOf(e), NEW);
   assert.deepEqual(readdirSync(path.join(e.base, "releases")).sort(), [OLD, NEW, "ccccccc"].sort());
@@ -272,4 +275,13 @@ test("a ping that fails at first is tried again", (t) => {
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.equal(readFileSync(counter, "utf8"), "xx");
   assert.doesNotMatch(r.stderr, /IndexNow ping failed/);
+});
+
+test("a rolled-back build's folder is removed, so it never becomes the fallback", (t) => {
+  const e = setup({ unhealthy: [NEW] });
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  const r = install(e);
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.equal(liveOf(e), OLD);
+  assert.deepEqual(readdirSync(path.join(e.base, "releases")), [OLD]);
 });

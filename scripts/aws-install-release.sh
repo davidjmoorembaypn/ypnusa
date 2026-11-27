@@ -86,6 +86,15 @@ else
   url="https://github.com/$REPO/releases/latest/download"
 fi
 
+# A nearly full disk fails the download, the backup and the updater's own bookkeeping. Make room
+# first, before even the work folder is created (a full disk cannot create one): keep the live
+# release and one fallback. This runs with the deploy lock held, so no other install is mid-switch.
+free_mb="$(df -Pm "$BASE" 2>/dev/null | awk 'NR==2 {print $4}')"
+if [ -n "$free_mb" ] && [ "$free_mb" -lt "$MIN_FREE_MB" ]; then
+  echo "=== Only ${free_mb} MB free; removing old releases before the download"
+  prune_releases "$(basename "$(readlink -f "$BASE/current" 2>/dev/null || true)")" 1
+fi
+
 # Amazon Linux uses a small tmpfs for /tmp. Release bundles include the Next.js
 # runtime and dependencies, so unpack them on disk-backed /var/tmp instead.
 WORK_ROOT="${YPNUSA_INSTALL_WORK_ROOT:-/var/tmp}"
@@ -97,14 +106,6 @@ fi
 work="$(mktemp -d "$WORK_ROOT/ypnusa-deploy-XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 cd "$work"
-
-# A nearly full disk fails the download, the backup and the updater's own bookkeeping. Make room
-# first: keep the live release and one fallback.
-free_mb="$(df -Pm "$BASE" 2>/dev/null | awk 'NR==2 {print $4}')"
-if [ -n "$free_mb" ] && [ "$free_mb" -lt "$MIN_FREE_MB" ]; then
-  echo "=== Only ${free_mb} MB free; removing old releases before the download"
-  prune_releases "$(basename "$(readlink -f "$BASE/current" 2>/dev/null || true)")" 1
-fi
 
 echo "=== Download $url"
 curl -fsSL --retry 3 -o app-build.tar.gz "$url/app-build.tar.gz"
@@ -206,6 +207,8 @@ roll_back() {
     body="$(curl -fsS --max-time 8 "$HEALTH_URL" 2>/dev/null || true)"
     if printf '%s' "$body" | grep -q "\"commit\":\"$(basename "$prev")\""; then
       echo "$body"
+      # Remove the failed build's folder so it never takes a fallback's place or the disk's space.
+      if [ -n "${dest:-}" ] && [ "$dest" != "$prev" ]; then rm -rf "$dest"; fi
       echo "=== ROLLED BACK: previous build $(basename "$prev") is live again; $commit was not kept."
       exit 3
     fi

@@ -177,8 +177,8 @@ describe("unsubscribe links", () => {
     const lead = addLead(officer.id);
     const other = addLead(officer.id);
     assert.equal(verifyUnsubscribeToken(lead, unsubscribeToken(other)), false);
-    assert.equal(unsubscribeBorrower(lead, "forged", "test"), false);
-    assert.equal(unsubscribeBorrower(lead, unsubscribeToken(lead), "test"), true);
+    assert.equal(unsubscribeBorrower(lead, "forged", "test"), "invalid");
+    assert.equal(unsubscribeBorrower(lead, unsubscribeToken(lead), "test"), "unsubscribed");
     const latest = readDb().consents.filter((item) => item.borrowerLeadId === lead);
     assert.deepEqual(new Set(latest.map((item) => item.channel)), new Set(["sms", "call", "email", "ai_voice"]));
     assert.ok(latest.every((item) => item.granted === false));
@@ -195,5 +195,30 @@ describe("Cerebro dispatch safety", () => {
     assert.equal(stored(old.id).status, "awaiting_approval");
     assert.equal(stored(test.id).status, "awaiting_approval");
     assert.equal(stored(marked.id).status, "awaiting_approval");
+  });
+});
+
+// Last in this file: the failed write also turns off best-effort saving for the rest of the process.
+describe("unsubscribe links when the data file can't be written", () => {
+  it("does not confirm the opt-out until it is on disk, and the same link works on a retry", () => {
+    const officer = addOfficer();
+    const lead = addLead(officer.id);
+    const storePath = path.join(dataDir, "store.json");
+    const optOutsOnDisk = () =>
+      (JSON.parse(fs.readFileSync(storePath, "utf8")) as { consents: Array<{ borrowerLeadId: string; granted: boolean }> })
+        .consents.filter((item) => item.borrowerLeadId === lead && item.granted === false).length;
+    // A directory where the temp snapshot goes makes the disk write fail, as a full or read-only disk would.
+    const blocker = `${storePath}.${process.pid}.tmp`;
+    fs.mkdirSync(blocker);
+    try {
+      assert.equal(unsubscribeBorrower(lead, unsubscribeToken(lead), "test"), "not_saved");
+      assert.equal(optOutsOnDisk(), 0, "a restart from this file would bring the old consent back");
+      // This process already stops contacting them.
+      assert.ok(readDb().consents.some((item) => item.borrowerLeadId === lead && item.granted === false));
+    } finally {
+      fs.rmSync(blocker, { recursive: true, force: true });
+    }
+    assert.equal(unsubscribeBorrower(lead, unsubscribeToken(lead), "test"), "unsubscribed");
+    assert.ok(optOutsOnDisk() >= 4, "every channel's opt-out is in the saved file a restart loads");
   });
 });

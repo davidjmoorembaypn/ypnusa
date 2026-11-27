@@ -6,6 +6,7 @@ import { MortgageLoansFinancialProductSchema } from "@/components/seo/silo-schem
 import { PROGRAM_LIST } from "@/lib/programs";
 import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
 import { marketingUrl } from "@/lib/site";
+import { LIFE_EVENT_HUB_PATH } from "@/content/life-event-mortgages";
 import { BANK_STATEMENT_CONTENT, BANK_STATEMENT_PATH, SELF_EMPLOYED_HUB_PATH } from "@/content/self-employed-loans";
 
 export const metadata: Metadata = {
@@ -65,6 +66,14 @@ export default function MortgageLoansPage() {
         Self-employed or buying a rental in the Central Valley?{" "}
         <Link href={SELF_EMPLOYED_HUB_PATH} className="text-violet-300 underline hover:text-violet-200">
           See bank statement and DSCR options by county
+        </Link>
+        .
+      </p>
+
+      <p className="mt-3 text-sm text-white/70">
+        Divorce, an inherited home, a new job or retirement?{" "}
+        <Link href={LIFE_EVENT_HUB_PATH} className="text-violet-300 underline hover:text-violet-200">
+          See the mortgage guides for life changes
         </Link>
         .
       </p>

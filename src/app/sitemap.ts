@@ -20,6 +20,7 @@ import {
   SELF_EMPLOYED_COUNTY_ANGLES,
   selfEmployedCountyPath,
 } from "@/content/self-employed-loans";
+import { LIFE_EVENT_GUIDES, LIFE_EVENT_HUB_PATH, LIFE_EVENT_REVIEWED_ON, lifeEventGuidePath } from "@/content/life-event-mortgages";
 import { COMPARISON_GUIDES, COMPARISON_GUIDES_LAST_MODIFIED } from "@/content/comparison-guides";
 import {
   WP_TOP_PAGES,
@@ -147,6 +148,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...[BANK_STATEMENT_PATH, SELF_EMPLOYED_HUB_PATH, ...REPORT_COUNTIES.filter((c) => SELF_EMPLOYED_COUNTY_ANGLES[c.slug]).map(selfEmployedCountyPath)].map((path) => ({
       url: `${origin}${path}`,
       lastModified: new Date(`${SELF_EMPLOYED_LAST_MODIFIED}T00:00:00.000Z`),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    // Life-event borrower guides (src/content/life-event-mortgages.ts).
+    ...[LIFE_EVENT_HUB_PATH, ...LIFE_EVENT_GUIDES.map(lifeEventGuidePath)].map((path) => ({
+      url: `${origin}${path}`,
+      lastModified: new Date(`${LIFE_EVENT_REVIEWED_ON}T00:00:00.000Z`),
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })),

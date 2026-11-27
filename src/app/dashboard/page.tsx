@@ -93,7 +93,7 @@ const SECTIONS: readonly Section[] = [
   {
     href: "/dashboard/life-events",
     title: "Life-Event Intelligence",
-    description: "Rule-based lead scoring across census and county life-event signals.",
+    description: "Public county and state statistics for a ZIP code, and a rule-based area score.",
   },
   {
     href: "/dashboard/autopilot",

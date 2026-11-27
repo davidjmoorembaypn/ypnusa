@@ -1,16 +1,20 @@
+import { areaDataScoringEnabled, areaProfile } from "@/lib/area-data";
 import type { ZipContext } from "./predictiveAgent";
 
 /**
- * Isolates all external data-fetching for ZipContext. No county-lookup,
- * Census, or rental-demand provider is wired into this deployment yet —
- * set the env vars below to enable live data. Until then this returns a
- * clearly-labeled neutral placeholder so predictiveAgent still gets a
- * well-formed ZipContext.
+ * Builds the ZipContext the scoring code reads.
+ *
+ * County, owner and renter shares and the past-year mobility rate come from public data built into
+ * the app (src/lib/area-data.ts): no outside service, no server setting. Household income and age
+ * are not bundled and stay 0. Rental demand has no free national source; it stays a neutral
+ * placeholder unless RENTAL_DEMAND_API_URL points at a provider.
+ *
+ * `useAreaData` decides whether the bundled figures are used. It defaults to the server setting
+ * AREA_DATA_SCORING_ENABLED (off), so the automatic paths that score stored leads keep their old
+ * neutral inputs until the owner switches it on. The dashboard lookup passes true. `sources` says
+ * which inputs are real, so a zero is never shown as if it had been measured.
  */
 
-const COUNTY_LOOKUP_API_URL = process.env.COUNTY_LOOKUP_API_URL?.trim();
-const CENSUS_API_BASE = process.env.CENSUS_API_BASE?.trim();
-const CENSUS_API_KEY = process.env.CENSUS_API_KEY?.trim();
 const RENTAL_DEMAND_API_URL = process.env.RENTAL_DEMAND_API_URL?.trim();
 const RENTAL_DEMAND_API_TOKEN = process.env.RENTAL_DEMAND_API_TOKEN?.trim();
 
@@ -32,53 +36,8 @@ const NEUTRAL_RENTAL_DEMAND: RentalDemandFields = {
   trend: "flat",
 };
 
-/**
- * TODO: wire to a real ZIP -> county lookup once COUNTY_LOOKUP_API_URL is
- * set (e.g. a HUD USPS ZIP crosswalk or Census geocoding endpoint).
- */
-async function resolveCounty(zip: string): Promise<string> {
-  if (!COUNTY_LOOKUP_API_URL) return "Unknown";
-
-  try {
-    const url = new URL(COUNTY_LOOKUP_API_URL);
-    url.searchParams.set("zip", zip);
-    const res = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8_000) });
-    if (!res.ok) return "Unknown";
-    const data = (await res.json()) as { county?: string };
-    return data.county?.trim() || "Unknown";
-  } catch {
-    return "Unknown";
-  }
-}
-
-/**
- * TODO: wire to the Census Bureau ACS API once CENSUS_API_BASE (and
- * optionally CENSUS_API_KEY) are set, e.g.
- * https://api.census.gov/data/{year}/acs/acs5.
- */
-async function fetchCensusFields(zip: string): Promise<CensusFields> {
-  if (!CENSUS_API_BASE) return NEUTRAL_CENSUS;
-
-  try {
-    const url = new URL(CENSUS_API_BASE);
-    url.searchParams.set("zip", zip);
-    if (CENSUS_API_KEY) url.searchParams.set("key", CENSUS_API_KEY);
-
-    const res = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8_000) });
-    if (!res.ok) return NEUTRAL_CENSUS;
-    const data = (await res.json()) as Partial<CensusFields>;
-    return { ...NEUTRAL_CENSUS, ...data };
-  } catch {
-    return NEUTRAL_CENSUS;
-  }
-}
-
-/**
- * TODO: wire to the rental-demand provider once RENTAL_DEMAND_API_URL (and
- * optionally RENTAL_DEMAND_API_TOKEN) are set.
- */
-async function fetchRentalDemandFields(zip: string): Promise<RentalDemandFields> {
-  if (!RENTAL_DEMAND_API_URL) return NEUTRAL_RENTAL_DEMAND;
+async function fetchRentalDemandFields(zip: string): Promise<RentalDemandFields | null> {
+  if (!RENTAL_DEMAND_API_URL) return null;
 
   try {
     const url = new URL(RENTAL_DEMAND_API_URL);
@@ -91,20 +50,38 @@ async function fetchRentalDemandFields(zip: string): Promise<RentalDemandFields>
       },
       signal: AbortSignal.timeout(8_000),
     });
-    if (!res.ok) return NEUTRAL_RENTAL_DEMAND;
+    if (!res.ok) return null;
     const data = (await res.json()) as Partial<RentalDemandFields>;
     return { ...NEUTRAL_RENTAL_DEMAND, ...data };
   } catch {
-    return NEUTRAL_RENTAL_DEMAND;
+    return null;
   }
 }
 
-export async function buildZipContext(zip: string): Promise<ZipContext> {
-  const [county, census, rentalDemand] = await Promise.all([
-    resolveCounty(zip),
-    fetchCensusFields(zip),
-    fetchRentalDemandFields(zip),
-  ]);
+export async function buildZipContext(zip: string, options?: { useAreaData?: boolean }): Promise<ZipContext> {
+  const useAreaData = options?.useAreaData ?? areaDataScoringEnabled();
+  const rentalDemand = await fetchRentalDemandFields(zip);
+  const area = useAreaData ? areaProfile(zip) : null;
 
-  return { zip, county, census, rentalDemand };
+  return {
+    zip,
+    county: area?.countyName ?? "Unknown",
+    countyFips: area?.county?.fips ?? area?.postalCountyFips ?? undefined,
+    stateFips: area?.state?.fips,
+    census: area
+      ? {
+          ...NEUTRAL_CENSUS,
+          renterShare: area.households?.renterShare ?? 0,
+          ownerShare: area.households?.ownerShare ?? 0,
+          mobilityRate: area.mobilityRate ?? 0,
+        }
+      : NEUTRAL_CENSUS,
+    rentalDemand: rentalDemand ?? NEUTRAL_RENTAL_DEMAND,
+    sources: {
+      county: Boolean(area?.has.county),
+      households: Boolean(area?.has.households),
+      mobility: Boolean(area?.has.mobility),
+      rentalDemand: rentalDemand !== null,
+    },
+  };
 }

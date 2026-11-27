@@ -44,6 +44,10 @@ jobs:
           NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ELITE: ${{ vars.STRIPE_PAYMENT_LINK_ELITE }}
         run: npm run build
 
+      # Never publish a bundle that carries the whole project: the server may not have room to unpack it.
+      - name: Check the standalone output
+        run: node scripts/check-standalone-bundle.mjs
+
       - name: Assemble standalone bundle
         run: |
           set -euo pipefail

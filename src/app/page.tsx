@@ -63,6 +63,29 @@ const NEVER = [
   "Send a borrower to another lender",
 ];
 
+/** Trust row under the hero copy. Every line restates terms already on /pricing. */
+const HERO_TRUST = [
+  "1 loan officer per ZIP code within YPN USA",
+  "15-day free trial on paid plans",
+  "ZIP code locks at your first payment",
+] as const;
+
+/** Objection cards under "How it works". Claims match the pricing FAQ, /portal/crm and the guardrails list. */
+const OBJECTIONS: ReadonlyArray<{ title: string; body: string }> = [
+  {
+    title: "Not shared leads",
+    body: "One YPN USA loan officer holds a ZIP code at a time. Inquiries from your YPN USA pages for that ZIP code route to you, so you never compete with another YPN USA lender for them. Exclusivity applies within YPN USA; other lenders can still market in your area.",
+  },
+  {
+    title: "Works with your CRM",
+    body: "On paid plans, new leads can go to your CRM through Zapier or any webhook, and every borrower Cerebro captures for you is yours to export. Keep the CRM you already use.",
+  },
+  {
+    title: "You handle rates and credit. Cerebro handles follow-up.",
+    body: "Cerebro never quotes or locks rates and never makes credit decisions. It answers questions, qualifies the inquiry and follows up with borrowers who agreed to be contacted, so your time goes to the conversations that need a licensed loan officer.",
+  },
+];
+
 const PROGRAMS = ["FHA", "VA", "Conventional", "DSCR", "HELOC", "Refinance", "Jumbo"];
 
 /** YPN USA vs. shared lead vendors. No vendor prices or resale counts: we have no source for a figure. */
@@ -116,6 +139,10 @@ const FAQ = [
   {
     q: "Do I still have to follow up myself?",
     a: "Yes, for everything that needs a licensed loan officer. Cerebro answers, qualifies and records conversations, emails routine follow-ups (on its own by default, or after your approval) and drafts marketing for your review. You handle every application, rate conversation and credit decision.",
+  },
+  {
+    q: "Is YPN USA a lender?",
+    a: "No. YPN USA (YPN Inc.) is a marketing technology platform for licensed mortgage loan officers. It is not a lender, does not quote or lock rates and does not make credit decisions, and nothing on the site is a commitment to lend. Every borrower is handed to you, the licensed loan officer.",
   },
   {
     q: "Which loan programs does it handle?",
@@ -179,16 +206,29 @@ export default function Home() {
             </p>
             <h1 className="mt-3 text-balance text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl">
               {liveHeadline("/") ?? HOMEPAGE_HEADLINE}{" "}
-              <span className="text-violet-200">Meet your own AI assistant.</span>
+              <span className="text-violet-200">Let Cerebro answer your borrowers 24/7.</span>
             </h1>
 
             <p className="mt-4 max-w-md text-base font-medium leading-7 text-white">
-              Cerebro helps your customers while you close loans. It answers borrower questions 24/7, captures inquiry
-              details, and drafts your follow-up.
+              Cerebro, your AI assistant, answers and qualifies borrowers on your pages day and night, then hands the ready
+              ones to you. The leads it captures stay yours, even if you switch brokerages.
             </p>
-            <TrackedAnchor href="#cerebro" cta="hero_see_cerebro" className="mt-3 inline-flex min-h-11 items-center font-semibold text-white underline decoration-violet-300 underline-offset-4 hover:text-violet-200">
-              See Cerebro in action
-            </TrackedAnchor>
+            <ul className="mt-4 flex max-w-md flex-wrap gap-x-4 gap-y-1.5 text-[13px] font-semibold text-white" aria-label="How the ZIP code works">
+              {HERO_TRUST.map((item) => (
+                <li key={item} className="flex items-center gap-1.5">
+                  <span aria-hidden className="text-emerald-300">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1">
+              <TrackedAnchor href={FREE_SIGNUP_HREF} cta="hero_start_free" className="inline-flex min-h-11 items-center font-semibold text-white underline decoration-amber-300 underline-offset-4 hover:text-amber-100">
+                Start free, no card required
+              </TrackedAnchor>
+              <TrackedAnchor href="#cerebro" cta="hero_see_cerebro" className="inline-flex min-h-11 items-center font-semibold text-white underline decoration-violet-300 underline-offset-4 hover:text-violet-200">
+                See Cerebro in action
+              </TrackedAnchor>
+            </p>
           </div>
 
           <div id="claim" className="relative w-full max-w-sm scroll-mt-24">
@@ -262,6 +302,29 @@ export default function Home() {
       </div>
 
       <HowItWorks />
+
+      {/* OBJECTIONS: the three questions loan officers ask before they check a ZIP code. */}
+      <section id="why-ypn" aria-labelledby="why-ypn-heading" className="bg-white py-12 md:py-16">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className={EYEBROW}>Before you check your ZIP code</p>
+            <h2 id="why-ypn-heading" className={`mt-3 ${H2}`}>Exclusive leads, your CRM, your license</h2>
+          </div>
+          <ul className="mt-8 grid gap-4 md:grid-cols-3 md:gap-5">
+            {OBJECTIONS.map((card) => (
+              <li key={card.title} className={CARD}>
+                <h3 className="text-lg font-semibold text-slate-900">{card.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">{card.body}</p>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8 text-center">
+            <TrackedAnchor href="#claim" cta="objections_check_zip" className={BTN_PRIMARY}>
+              Check my ZIP code
+            </TrackedAnchor>
+          </div>
+        </div>
+      </section>
 
       {/* CLIENT CALCULATOR PREVIEW */}
       <section id="calculator-preview" className="bg-white py-12 md:py-16">

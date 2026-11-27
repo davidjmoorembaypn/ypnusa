@@ -46,7 +46,7 @@ function ctaFor(goal: string): string {
   if (g.includes("book") || g.includes("appointment") || g.includes("call")) return "Book your free consultation today.";
   if (g.includes("sign") || g.includes("subscribe") || g.includes("join")) return "Sign up now — it takes 60 seconds.";
   if (g.includes("download") || g.includes("guide")) return "Get the free guide.";
-  if (g.includes("claim") || g.includes("territory") || g.includes("zip")) return "Claim your territory before it's gone.";
+  if (g.includes("claim") || g.includes("territory") || g.includes("zip")) return "Check whether your ZIP code is open.";
   return "Get started today.";
 }
 
@@ -120,7 +120,7 @@ export function buildLandingPage(goal: string, offer: string): PageSpec {
     id: "offer",
     headline: "The Offer",
     subheadline: titleCase(offer),
-    body: `${titleCase(offer)}. Available for a limited time.`,
+    body: `${titleCase(offer)}.`,
     callToAction: ctaFor(goal),
   };
   const rest = ["features", "testimonials", "faq"].map((name) => buildSection(name, goal, audience));

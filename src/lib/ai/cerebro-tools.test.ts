@@ -10,7 +10,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-cerebro-tools-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
 import { runWithTools } from "./chat-agent";
-import { executeMloTool } from "./cerebro-tools";
+import { executeMloTool, marketingDraftProblems } from "./cerebro-tools";
 import type { AiGenerateResult, AiProvider } from "./provider";
 import { generateWebsiteAutopilotPlan } from "./website-autopilot";
 import { listWebsiteAutopilotChanges, saveWebsiteAutopilotChange, writeDb } from "../db";
@@ -224,6 +224,86 @@ describe("executeMloTool", () => {
     );
     assert.match(missing.result.body, /Nia North, NMLS #\[add your NMLS ID\]/);
     assert.ok(missing.disclosureNote);
+  });
+
+  it("returns no draft when the request would put a rate, a promise or an unverified number in the copy", async () => {
+    const ctx = { userId: "user_dana", userEmail: "dana@example.com", paidPlan: true };
+    const draft = async (input: Record<string, unknown>) => JSON.parse(await executeMloTool({ toolName: "draft_marketing_content", input }, ctx));
+
+    const rate = await draft({ kind: "social_post", goal: "Tell buyers our 5.25% rate is guaranteed", topic: "lowest rates in town" });
+    assert.equal(rate.error, "needs_changes");
+    assert.equal(rate.result, undefined, "no draft text comes back");
+    assert.equal(rate.draftOnly, undefined);
+    assert.ok(rate.problems.some((problem: string) => /rate, APR or percentage/.test(problem)));
+    assert.ok(rate.problems.some((problem: string) => /guarantee/.test(problem)));
+    assert.ok(rate.problems.some((problem: string) => /best\/lowest rate/.test(problem)));
+    assert.match(rate.note, /goal, topic and audience/);
+
+    const years = await draft({ kind: "ad_copy", goal: "Mention my 25 years of experience" });
+    assert.equal(years.error, "needs_changes");
+    assert.ok(years.problems.some((problem: string) => /25 years of experience/i.test(problem)));
+
+    const urgency = await draft({ kind: "gmb_post", goal: "update", city: "Dinuba", businessName: "Act now Mortgage" });
+    assert.equal(urgency.error, "needs_changes");
+
+    // A payment amount with the words before the figure, and urgency written with a hyphen.
+    const payment = await draft({ kind: "ad_copy", goal: "Monthly payments starting at $1,200" });
+    assert.equal(payment.error, "needs_changes");
+    assert.ok(payment.problems.some((problem: string) => /payment or down-payment dollar amounts/.test(problem)));
+    const hyphen = await draft({ kind: "social_post", goal: "Share our limited-time refinance review" });
+    assert.equal(hyphen.error, "needs_changes");
+    assert.equal(marketingDraftProblems({ body: "Call before it's gone, while supplies last." }, undefined).length, 1);
+    assert.deepEqual(marketingDraftProblems({ body: "Your payment depends on the loan you choose. Homes here start around $350,000." }, undefined), []);
+
+    // The built-in templates carry no urgency of their own, whatever the goal.
+    const promo = await draft({ kind: "gmb_post", goal: "promotion", gmbGoal: "promotion", city: "Dinuba", businessName: "Valley Home Loans" });
+    assert.equal(promo.draftOnly, true);
+    assert.doesNotMatch(promo.result.postText, /limited/i);
+    const zipAd = await draft({ kind: "ad_copy", goal: "Tell loan officers to claim a ZIP code" });
+    assert.equal(zipAd.draftOnly, true);
+    assert.doesNotMatch(JSON.stringify(zipAd.result), /before it's gone/i);
+    const zipPage = JSON.parse(await executeMloTool({ toolName: "draft_landing_page", input: { goal: "claim a ZIP code", offer: "a local page for your market" } }, ctx));
+    assert.equal(zipPage.draftOnly, true);
+
+    // The same request, reworded, goes through and still gets the officer's disclosures.
+    const clean = await draft({ kind: "social_post", goal: "Invite buyers to ask about their loan options" });
+    assert.equal(clean.draftOnly, true);
+    assert.match(clean.result.body, /NMLS #555111/);
+
+    const page = JSON.parse(
+      await executeMloTool({ toolName: "draft_landing_page", input: { goal: "book consultations", offer: "guaranteed approval for everyone" } }, ctx),
+    );
+    assert.equal(page.error, "needs_changes");
+    assert.equal(page.page, undefined);
+    assert.match(page.note, /goal and offer/);
+  });
+
+  it("checks every piece of text in a draft, including lists and nested sections", () => {
+    assert.deepEqual(marketingDraftProblems({ headline: "Ask about your options", hashtags: ["#homeloans", "#dinuba"] }, undefined), []);
+    assert.deepEqual(marketingDraftProblems(null, undefined), []);
+    assert.deepEqual(marketingDraftProblems("just text", undefined), []);
+
+    const list = marketingDraftProblems({ headline: "Fine", hashtags: ["#homeloans", "#rates guaranteed"] }, undefined);
+    assert.deepEqual(list, ["hashtags: remove a guarantee."]);
+
+    const nested = marketingDraftProblems({ hero: { title: "Welcome" }, sections: [{ heading: "Why us", body: "Rates as low as 5.5% APR" }] }, undefined);
+    assert.deepEqual(nested, ["sections.body: remove every rate, APR or percentage figure (advertising trigger term)."]);
+
+    // The officer's own NMLS number is fine; anyone else's is not.
+    assert.deepEqual(marketingDraftProblems({ body: "Dana Diaz, NMLS #555111" }, "555111"), []);
+    assert.equal(marketingDraftProblems({ body: "Dana Diaz, NMLS #123999" }, "555111").length, 1);
+  });
+
+  it("gives a free account its daily action back when a draft is refused", async () => {
+    const ctx = { userId: "user_free_refused", userEmail: "dana@example.com", paidPlan: false };
+    const refused = JSON.parse(
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Our rate is guaranteed" } }, ctx),
+    );
+    assert.equal(refused.error, "needs_changes");
+    const next = JSON.parse(
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Invite buyers to ask about their options" } }, ctx),
+    );
+    assert.equal(next.draftOnly, true, "the refused attempt did not use up the day's one action");
   });
 });
 

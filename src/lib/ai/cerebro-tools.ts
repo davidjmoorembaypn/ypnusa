@@ -8,6 +8,7 @@ import {
   writeDb,
   saveWebsiteAutopilotChange,
 } from "@/lib/db";
+import { checkMarketingCompliance } from "@/lib/ai/marketing-compliance";
 import { runAgent } from "@/lib/agents/coreAgent";
 import { decideQueuedAction, MAX_EDITED_BODY, queueViewFor } from "@/lib/cerebro-queue";
 import { GENERIC_MARKETING_DISCLOSURES, withMarketingDisclosures } from "@/lib/compliance/guardrails";
@@ -124,7 +125,7 @@ export const DECIDE_WEBSITE_CHANGE_TOOL: AiToolDefinition = {
 export const DRAFT_MARKETING_CONTENT_TOOL: AiToolDefinition = {
   name: "draft_marketing_content",
   description:
-    "Draft (never send) marketing copy for the officer to review: a social post, email, ad copy, a Google Business Profile post, or a Google Business Profile description. Returns text only.",
+    "Draft (never send) marketing copy for the officer to review: a social post, email, ad copy, a Google Business Profile post, or a Google Business Profile description. Returns text only. The server checks the draft against mortgage advertising rules: keep rates, percentages, payment amounts, guarantees, urgency and track-record numbers out of the goal, topic and audience, or it returns needs_changes with what to remove and no draft.",
   inputSchema: {
     type: "object",
     properties: {
@@ -454,12 +455,52 @@ async function draftMarketing(call: AiToolCall, ctx: MloToolContext): Promise<st
       return JSON.stringify({ error: "Unknown kind." });
   }
   if (!result.ok) return JSON.stringify({ error: result.error ?? "Draft failed." });
-  const disclosed = addMarketingDisclosures(kind, channel, result.data, findOfficer(ctx));
+  const officer = findOfficer(ctx);
+  // The drafts are built from the goal, topic and audience the model passed in, so a rate, a
+  // promise or a made-up track record in those words would land in the copy. Checked here, before
+  // the officer's disclosures are added (those carry their real NMLS number).
+  const problems = marketingDraftProblems(result.data, officer?.nmlsId);
+  if (problems.length) return draftNeedsChanges(problems, "goal, topic and audience");
+  const disclosed = addMarketingDisclosures(kind, channel, result.data, officer);
   return JSON.stringify({
     draftOnly: true,
-    note: "Draft for the officer to review. Not sent or published. Regulated language (rates, approvals, guarantees, NMLS) must be reviewed by the officer before use.",
+    note: "Draft for the officer to review. Not sent or published. It passed the automated advertising check (no rates, payment amounts, guarantees or unverified track record); the officer is still responsible for reviewing it before use.",
     result: disclosed.data,
     ...disclosed.meta,
+  });
+}
+
+/**
+ * Every piece of text in a draft, however deeply it is nested (fields, lists such as hashtags,
+ * page sections), run through the advertising check. Returns the problems as short sentences
+ * that name the field, empty when the draft passes.
+ */
+export function marketingDraftProblems(data: unknown, nmlsId: string | undefined): string[] {
+  const fields: Record<string, string> = {};
+  const collect = (value: unknown, name: string, depth: number) => {
+    if (typeof value === "string") {
+      fields[name] = fields[name] ? `${fields[name]}\n${value}` : value;
+    } else if (Array.isArray(value)) {
+      // List items share the list's name, so a problem reads "hashtags: ..." not "hashtags.3: ...".
+      if (depth < 6) for (const item of value) collect(item, name, depth + 1);
+    } else if (value && typeof value === "object" && depth < 6) {
+      for (const [key, inner] of Object.entries(value)) collect(inner, name ? `${name}.${key}` : key, depth + 1);
+    }
+  };
+  collect(data, "", 0);
+  return checkMarketingCompliance({ fields, nmlsId });
+}
+
+/**
+ * The tool result when a draft fails the advertising check: the problems, and no draft text.
+ * What Cerebro does next (reword and try once more) is in its system prompt, because tool output
+ * reaches the model as data it must not take instructions from.
+ */
+function draftNeedsChanges(problems: string[], inputs: string): string {
+  return JSON.stringify({
+    error: "needs_changes",
+    problems,
+    note: `No draft was made: the wording built from the ${inputs} breaks a mortgage advertising rule.`,
   });
 }
 
@@ -497,12 +538,14 @@ function addMarketingDisclosures(
   return { data: { ...record, [field]: added.text }, meta };
 }
 
-async function draftLandingPage(call: AiToolCall): Promise<string> {
+async function draftLandingPage(call: AiToolCall, ctx: MloToolContext): Promise<string> {
   const goal = str(call.input.goal, 300);
   const offer = str(call.input.offer, 300);
   if (!goal || !offer) return JSON.stringify({ error: "goal and offer are required." });
   const result = await runAgent({ type: "website-landing-page", goal, offer });
   if (!result.ok) return JSON.stringify({ error: result.error ?? "Draft failed." });
+  const problems = marketingDraftProblems(result.data, findOfficer(ctx)?.nmlsId);
+  if (problems.length) return draftNeedsChanges(problems, "goal and offer");
   return JSON.stringify({ draftOnly: true, note: "Draft only - not published.", page: result.data });
 }
 
@@ -670,7 +713,7 @@ async function runMloTool(call: AiToolCall, ctx: MloToolContext): Promise<string
       case "draft_marketing_content":
         return await draftMarketing(call, ctx);
       case "draft_landing_page":
-        return await draftLandingPage(call);
+        return await draftLandingPage(call, ctx);
       case "list_queued_actions":
         return listQueued(ctx);
       case "decide_queued_action":

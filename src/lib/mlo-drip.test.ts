@@ -281,6 +281,8 @@ describe("the wording of the series", () => {
     assert.match(withZip, /When this email was sent, ZIP code 93618 was not held by anyone/);
     assert.match(withZip, /Not a lead count, a forecast or a guarantee|Illustrative market estimate/);
     assert.doesNotMatch(text("day_3_exclusive_zip", "not-a-zip").join("\n"), /not-a-zip/);
+    // Five digits that are not a real ZIP code: nothing is said about it.
+    assert.doesNotMatch(text("day_3_exclusive_zip", "00000").join("\n"), /00000|not held by anyone/);
   });
 
   it("escapes what it renders", () => {

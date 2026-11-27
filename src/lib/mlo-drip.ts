@@ -1,12 +1,12 @@
 import crypto from "node:crypto";
 import { entitlementForEmail, normalizeEmail } from "@/lib/accounts";
 import { BUSINESS_EMAIL } from "@/lib/author";
-import { findZipOwnerSubscription } from "@/lib/crm";
-import { readDb, writeDb } from "@/lib/db";
+import { readDb, writeDb, writeDbDurably } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { getPublicBusinessProfile } from "@/lib/local-seo";
 import { getPricingTier, PLAN_ENTITLEMENTS, TRIAL_DAYS } from "@/lib/pricing";
 import { signValue, verifySignedValue } from "@/lib/session";
+import { checkLedgerTerritory } from "@/lib/territory-ledger";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import type { MloDripEnrollmentRecord, MloDripStepId } from "@/lib/types";
 import { DEMAND_ESTIMATE_LABEL, estimateZipDemand } from "@/lib/zip-demand";
@@ -75,16 +75,22 @@ export const mloDripOneClickUrl = (enrollmentId: string) => link("/api/unsubscri
 export function unsubscribeMloDrip(enrollmentId: string, token: string): boolean {
   if (!/^[\w-]{1,80}$/.test(enrollmentId) || !token || !verifySignedValue(`mlo-drip-unsub:${enrollmentId}`, token)) return false;
   let found = false;
-  writeDb((db) => {
-    const enrollment = db.mloDrip.enrollments.find((item) => item.id === enrollmentId);
-    if (!enrollment) return;
-    found = true;
-    if (enrollment.status !== "unsubscribed") {
-      enrollment.status = "unsubscribed";
-      enrollment.statusAt = new Date().toISOString();
-      delete enrollment.sending;
-    }
-  });
+  // Confirmed only once it is on disk. An opt-out that stayed in memory would be lost on a
+  // restart and the emails would start again, so a failed write reports failure to the person.
+  try {
+    writeDbDurably((db) => {
+      const enrollment = db.mloDrip.enrollments.find((item) => item.id === enrollmentId);
+      if (!enrollment) return;
+      found = true;
+      if (enrollment.status !== "unsubscribed") {
+        enrollment.status = "unsubscribed";
+        enrollment.statusAt = new Date().toISOString();
+        delete enrollment.sending;
+      }
+    });
+  } catch {
+    return false;
+  }
   return found;
 }
 
@@ -151,9 +157,12 @@ export function buildMloDripEmail(step: MloDripStepId, context: { zip?: string }
           "To lock it the same day, choose the pay-now option or a prepaid plan.",
         ] },
       ];
-      if (zip) {
+      // The same check the site's ZIP checker uses. A five-digit number that is not a real ZIP
+      // code (00000, a typo) gets no sentence at all, never "nobody holds it".
+      const territory = zip ? checkLedgerTerritory(zip) : null;
+      if (zip && territory?.valid) {
         const demand = estimateZipDemand(zip);
-        const open = findZipOwnerSubscription(zip) === null;
+        const open = territory.available;
         if (open) blocks.push({ p: `When this email was sent, ZIP code ${zip} was not held by anyone on YPN USA. That can change at any time.` });
         if (demand && demand.basis === "census_acs" && demand.total > 0) {
           blocks.push({ p: `For ${zip}, Census survey data suggests about ${demand.buyers} households move into a home they own in a typical 60 days. ${DEMAND_ESTIMATE_LABEL}` });

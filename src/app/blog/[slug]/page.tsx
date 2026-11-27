@@ -9,7 +9,7 @@ import { ALL_BLOG_POSTS, getAnyBlogPost } from "@/content/blog-all";
 import { faqForSchema } from "@/content/blog";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
-import { FOUNDER_ID, ORGANIZATION_ID, faqJsonLd, jsonLdScript, pageTitle, socialImageFor } from "@/lib/seo";
+import { FOUNDER_ID, ORGANIZATION_ID, faqJsonLd, fitTitle, jsonLdScript, pageTitle, socialImageFor } from "@/lib/seo";
 import { homeTrail, topicTrail } from "@/lib/seo/breadcrumbs";
 import { AUTHOR_NAME } from "@/lib/author";
 import { MARKETING_SITE_URL } from "@/lib/site";
@@ -34,13 +34,13 @@ export async function generateMetadata({
   if (!post) return {};
   const origin = MARKETING_SITE_URL;
   const url = `${origin}/blog/${post.slug}`;
-  const title = post.metaTitle ? { absolute: post.metaTitle } : pageTitle(post.title);
+  const title = post.metaTitle ? pageTitle(post.metaTitle, { absolute: true }) : pageTitle(post.title);
   if (isThinPost(post)) {
     return { title, robots: { index: false, follow: true }, alternates: { canonical: url } };
   }
   const photo = blogImageFor(post.slug);
   const image = photo ? { url: photo.ogUrl, width: 1200, height: 630, alt: photo.alt } : socialImageFor(origin);
-  const socialTitle = post.metaTitle ?? post.title;
+  const socialTitle = fitTitle(post.metaTitle ?? post.title);
   const description = clampDescription(post.description);
   return {
     title,

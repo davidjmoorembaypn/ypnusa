@@ -6,7 +6,7 @@ import { CUSTOMER_PORTAL_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "The terms that govern use of app.ypnus.com and the YPN USA platform.",
+  description: "The terms of service for ypnus.com and the YPN USA platform: accounts, subscriptions and free trials, cancellation, acceptable use, AI and SMS terms.",
   alternates: { canonical: "/terms-of-service" },
 };
 

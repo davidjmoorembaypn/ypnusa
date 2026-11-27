@@ -4,7 +4,7 @@ import { LegalPageLayout } from "@/components/legal-page-layout";
 
 export const metadata: Metadata = {
   title: "Licensing & Disclosures",
-  description: "NMLS licensing, Equal Housing Opportunity, and fair lending disclosures for YPN Inc.",
+  description: "NMLS #787257 and California DRE #01852847 licensing, Equal Housing Opportunity and fair lending disclosures for YPN Inc. and the YPN USA platform.",
   alternates: { canonical: "/licensing-disclosures" },
 };
 

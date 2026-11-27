@@ -3,7 +3,7 @@ import { LegalPageLayout } from "@/components/legal-page-layout";
 
 export const metadata: Metadata = {
   title: "Accessibility Statement",
-  description: "YPN Inc.'s commitment to digital accessibility on app.ypnus.com.",
+  description: "YPN Inc.'s accessibility statement for ypnus.com: our commitment, the work still under way, third-party content, and how to report a barrier on any page.",
   alternates: { canonical: "/accessibility-statement" },
 };
 

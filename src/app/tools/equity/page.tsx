@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Home Equity Snapshot",
     description:
-      "Estimate home equity, loan-to-value, and an illustrative cash-out ceiling using values you provide.",
+      "Free home equity calculator: estimate equity, loan-to-value and an illustrative cash-out ceiling from values you enter. A starting point, not a loan offer.",
     alternates: { canonical: `${origin}/tools/equity` },
     robots: {
       index: true,

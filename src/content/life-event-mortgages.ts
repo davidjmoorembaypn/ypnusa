@@ -23,7 +23,7 @@ export interface LifeEventGuide {
   title: string;
   /** Short name for breadcrumbs. */
   shortTitle: string;
-  /** Browser and search title. */
+  /** Browser and search title; " | YPN USA" is added after it. */
   metaTitle: string;
   description: string;
   intro: string;
@@ -37,11 +37,15 @@ export interface LifeEventGuide {
 
 export const lifeEventGuidePath = (guide: Pick<LifeEventGuide, "slug">) => `${LIFE_EVENT_HUB_PATH}/${guide.slug}`;
 
-/** Lead-source tag for the borrower intake, e.g. "life-event-inherited-home". It records which guide the borrower came from, by their own choice of page. */
-export const lifeEventFunnelSource = (guide?: Pick<LifeEventGuide, "slug">) => (guide ? `life-event-${guide.slug}` : "life-events");
+/**
+ * Lead-source tag for the borrower intake. One tag for every guide, on purpose: a tag naming the
+ * guide ("divorce", "getting married", "growing family") would write a marital or family-status
+ * marker onto a credit lead. Which guide was read stays out of the lead record.
+ */
+export const LIFE_EVENT_FUNNEL_SOURCE = "life-events";
 
 /** The borrower intake flow (not /consultation, which is the sales page for loan officers). */
-export const lifeEventIntakeHref = (guide?: Pick<LifeEventGuide, "slug">) => `/embed/intake?funnelSource=${encodeURIComponent(lifeEventFunnelSource(guide))}`;
+export const LIFE_EVENT_INTAKE_HREF = `/embed/intake?funnelSource=${LIFE_EVENT_FUNNEL_SOURCE}`;
 
 const HUD_HANDBOOK = {
   label: "HUD Handbook 4000.1, FHA Single Family Housing Policy Handbook (Update 18)",
@@ -54,7 +58,7 @@ export const LIFE_EVENT_GUIDES: LifeEventGuide[] = [
     slug: "after-divorce",
     title: "Mortgages During and After a Divorce",
     shortTitle: "Divorce",
-    metaTitle: "Mortgage After Divorce: Buyouts, Support Income and the Old Loan",
+    metaTitle: "Mortgage After Divorce: Buyouts and Support Income",
     description:
       "How lenders treat alimony and child support, how one spouse can buy out the other, and why a divorce decree does not take your name off the mortgage.",
     intro:
@@ -241,7 +245,7 @@ export const LIFE_EVENT_GUIDES: LifeEventGuide[] = [
     slug: "getting-married",
     title: "Buying a Home When You Get Married",
     shortTitle: "Getting married",
-    metaTitle: "Buying a House as a Couple: Credit Scores, Gifts and Down Payments",
+    metaTitle: "Buying a House as a Couple: Credit Scores and Gifts",
     description:
       "How lenders combine two credit scores, when a spouse's debts count even if they are not on the loan, and the gift and down payment rules for a first home.",
     intro:
@@ -335,7 +339,7 @@ export const LIFE_EVENT_GUIDES: LifeEventGuide[] = [
     slug: "growing-family",
     title: "Moving Up to a Bigger Home for a Growing Family",
     shortTitle: "Growing family",
-    metaTitle: "Buying a Bigger Home: Parental Leave, Two Mortgages and FHA Rules",
+    metaTitle: "Buying a Bigger Home: Parental Leave and Two Mortgages",
     description:
       "How parental leave income is counted, how to buy before your current home sells, and when FHA allows a second loan because your family has outgrown the house.",
     intro:
@@ -513,7 +517,7 @@ export const LIFE_EVENT_GUIDES: LifeEventGuide[] = [
     slug: "downsizing-in-retirement",
     title: "Downsizing and Getting a Mortgage in Retirement",
     shortTitle: "Retirement",
-    metaTitle: "Mortgage in Retirement: Social Security, Pensions and Savings",
+    metaTitle: "Mortgage in Retirement: Social Security and Pensions",
     description:
       "How Social Security, pensions and retirement savings count as mortgage income, how the home-sale tax exclusion works, and what a reverse mortgage purchase is.",
     intro:

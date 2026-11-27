@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { SiloNav } from "@/components/silo-nav";
-import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { TrackedLink } from "@/components/tracked-link";
-import { LIFE_EVENT_GUIDES, LIFE_EVENT_HUB_PATH, LIFE_EVENT_REVIEWED_ON, lifeEventFunnelSource, lifeEventGuidePath, lifeEventIntakeHref, type LifeEventGuide } from "@/content/life-event-mortgages";
+import { LIFE_EVENT_GUIDES, LIFE_EVENT_HUB_PATH, LIFE_EVENT_FUNNEL_SOURCE, LIFE_EVENT_INTAKE_HREF, LIFE_EVENT_REVIEWED_ON, lifeEventGuidePath, type LifeEventGuide } from "@/content/life-event-mortgages";
 import { faqJsonLd, jsonLdScript } from "@/lib/seo";
 import { MARKETING_SITE_URL, marketingUrl } from "@/lib/site";
 
 /**
  * Body of a life-event mortgage guide (/mortgage-loans/life-events/after-divorce, ...). Emits
- * Article, FAQPage and BreadcrumbList JSON-LD; every FAQ and every source is also shown on the page.
+ * Article, FAQPage and BreadcrumbList JSON-LD. It names no author or reviewer; every FAQ and every source is also shown on the page.
  */
 export function LifeEventGuidePage({ guide }: { guide: LifeEventGuide }) {
   const path = lifeEventGuidePath(guide);
@@ -106,9 +105,9 @@ export function LifeEventGuidePage({ guide }: { guide: LifeEventGuide }) {
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <TrackedLink
-            href={lifeEventIntakeHref(guide)}
+            href={LIFE_EVENT_INTAKE_HREF}
             event="generate_lead_click"
-            eventParams={{ source: lifeEventFunnelSource(guide), guide: guide.slug }}
+            eventParams={{ source: LIFE_EVENT_FUNNEL_SOURCE }}
             className="inline-flex rounded-full bg-white px-6 py-3 text-sm font-bold text-[#17152f] transition hover:bg-violet-100"
           >
             Start with a few questions
@@ -116,7 +115,7 @@ export function LifeEventGuidePage({ guide }: { guide: LifeEventGuide }) {
           <TrackedLink
             href="/pricing"
             event="pricing_click"
-            eventParams={{ source: "life_event_guide", guide: guide.slug }}
+            eventParams={{ source: LIFE_EVENT_FUNNEL_SOURCE }}
             className="inline-flex rounded-full border border-white/25 px-6 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
           >
             Loan officer? See plans
@@ -156,7 +155,7 @@ export function LifeEventGuidePage({ guide }: { guide: LifeEventGuide }) {
         </ul>
       </nav>
 
-      <AuthorReviewerCard path={path} pageName={guide.title} pageId={`${marketingUrl(path)}#article`} tone="dark" className="mt-10" />
+      {/* No "Written & Reviewed by" card yet: add AuthorReviewerCard once the founder has read the guide. */}
 
       <SiloNav silo="mortgage" currentPath={path} className="mt-10" />
 

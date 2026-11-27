@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { SiloNav } from "@/components/silo-nav";
-import { LIFE_EVENT_GUIDES, LIFE_EVENT_HUB_PATH, lifeEventGuidePath, lifeEventIntakeHref } from "@/content/life-event-mortgages";
+import { LIFE_EVENT_GUIDES, LIFE_EVENT_HUB_PATH, LIFE_EVENT_INTAKE_HREF, lifeEventGuidePath } from "@/content/life-event-mortgages";
 import { marketingMetadata } from "@/lib/seo";
 
 const TITLE = "Mortgages for Life Changes";
@@ -10,7 +10,7 @@ const DESCRIPTION =
   "Plain-language mortgage guides for divorce, an inherited home, marriage, a growing family, a job move and retirement, with links to the program rules.";
 
 export const metadata: Metadata = {
-  ...marketingMetadata({ title: TITLE, description: DESCRIPTION, path: LIFE_EVENT_HUB_PATH }),
+  ...marketingMetadata({ title: `${TITLE} | YPN USA`, description: DESCRIPTION, path: LIFE_EVENT_HUB_PATH, absoluteTitle: true }),
   robots: { index: true, follow: true },
 };
 
@@ -52,7 +52,7 @@ export default function LifeEventHubPage() {
       </p>
 
       <p className="mt-8 text-sm">
-        <Link href={lifeEventIntakeHref()} className="text-violet-300 underline hover:text-violet-200">Talk to a licensed loan officer</Link>
+        <Link href={LIFE_EVENT_INTAKE_HREF} className="text-violet-300 underline hover:text-violet-200">Talk to a licensed loan officer</Link>
       </p>
     </div>
   );

@@ -17,7 +17,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const guide = LIFE_EVENT_GUIDES.find((item) => item.slug === slug);
   if (!guide) notFound();
   return {
-    ...marketingMetadata({ title: guide.metaTitle, description: guide.description, path: lifeEventGuidePath(guide) }),
+    // The full title is set here so the section's " · Mortgage Loans · YPN USA" suffix does not push it past search-result length.
+    ...marketingMetadata({ title: `${guide.metaTitle} | YPN USA`, description: guide.description, path: lifeEventGuidePath(guide), absoluteTitle: true }),
     robots: { index: true, follow: true },
   };
 }

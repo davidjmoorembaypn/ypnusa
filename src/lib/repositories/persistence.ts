@@ -1,7 +1,7 @@
 import { configureLedgerReadModel, ledgerReadModelStatus, refreshLedgerReadModel } from "@/lib/persistence/ledger-read-model";
 import type { PersistenceModes } from "@/lib/persistence/mode";
 import { runSchemaMigrations } from "@/lib/persistence/schema";
-import { DatabaseUnavailableError, type SqlClient } from "@/lib/persistence/sql-client";
+import { DatabaseUnavailableError, isConnectionError, isDataError, type SqlClient } from "@/lib/persistence/sql-client";
 import type { RevenueSubscriptionRecord } from "@/lib/types";
 import { PostgresSubscriptionRepository, PostgresTerritoryLedgerRepository } from "./postgres-repositories";
 import { RecordNotStorableError, StaleWriteError, differingFields, sameSubscription } from "./subscription-record";
@@ -43,6 +43,20 @@ export interface ParityReport {
     different: Array<{ id: string; fields: string[] }>;
   };
   ledger: { dataFile: number; postgres: number; onlyInDataFile: string[]; onlyInPostgres: string[] };
+  /**
+   * Stripe subscriptions that more than one plan record points at, in whichever store has more.
+   * Not a difference between the stores (both can hold the same duplicates), so it does not make
+   * the report unclean; it is reported because a duplicate is a plan someone may be billed twice for.
+   */
+  duplicateStripeSubscriptions: number;
+}
+
+/** How long one kind of database operation takes, since this process started. Milliseconds. */
+export interface LatencyStat {
+  count: number;
+  avgMs: number;
+  maxMs: number;
+  lastMs: number;
 }
 
 export interface SyncReport {
@@ -74,6 +88,21 @@ export interface PersistenceStatus {
   ledgerMismatches: number;
   /** Times the ZIP code ledger answered from the data file because PostgreSQL had no fresh answer. */
   ledgerFallbacks: number;
+  /**
+   * PostgreSQL was told to take charge but was not allowed to: the copy from the data file left
+   * plans it could not store, or ZIP code claims it refused. Payment events are refused until a
+   * person fixes those records or goes back to shadow.
+   */
+  handoverBlocked: boolean;
+  /** Differences the scheduled comparison found after start-up (counted before they are repaired). */
+  driftDetected: number;
+  /** Plans the last full copy could not store in the other store. */
+  unstorableRecords: number;
+  /** ZIP code claims the last full copy to PostgreSQL refused because another holder has the ZIP code. */
+  refusedClaims: number;
+  /** See ParityReport. 0 until the stores have been compared. */
+  duplicateStripeSubscriptions: number;
+  latency: { postgresWrite: LatencyStat; postgresRead: LatencyStat; mirror: LatencyStat };
 }
 
 /**
@@ -111,6 +140,48 @@ export interface PersistenceOptions {
 const LIST_LIMIT = 20;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+class Timing {
+  private count = 0;
+  private total = 0;
+  private max = 0;
+  private last = 0;
+  async measure<T>(run: () => Promise<T>): Promise<T> {
+    const started = performance.now();
+    try {
+      return await run();
+    } finally {
+      const elapsed = performance.now() - started;
+      this.count += 1;
+      this.total += elapsed;
+      this.last = elapsed;
+      if (elapsed > this.max) this.max = elapsed;
+    }
+  }
+  stat(): LatencyStat {
+    const round = (value: number) => Math.round(value * 10) / 10;
+    return { count: this.count, avgMs: this.count ? round(this.total / this.count) : 0, maxMs: round(this.max), lastMs: round(this.last) };
+  }
+}
+
+function mismatchCount(report: ParityReport): number {
+  return (
+    report.subscriptions.onlyInDataFile.length +
+    report.subscriptions.onlyInPostgres.length +
+    report.subscriptions.different.length +
+    report.ledger.onlyInDataFile.length +
+    report.ledger.onlyInPostgres.length
+  );
+}
+
+/** How many Stripe subscriptions have more than one plan record. */
+function duplicateStripeIds(records: RevenueSubscriptionRecord[]): number {
+  const seen = new Map<string, number>();
+  for (const record of records) {
+    if (record.stripeSubscriptionId) seen.set(record.stripeSubscriptionId, (seen.get(record.stripeSubscriptionId) ?? 0) + 1);
+  }
+  return [...seen.values()].filter((count) => count > 1).length;
+}
+
 export class Persistence {
   readonly subscriptions: SubscriptionRepository;
   readonly ledger: TerritoryLedgerRepository;
@@ -136,7 +207,12 @@ export class Persistence {
   private needsResync = false;
   private parity: ParityReport | null = null;
   private readonly background = new Set<Promise<unknown>>();
-  private readonly counters = { mirrorFailures: 0, writeFailures: 0, readMismatches: 0, ledgerMismatches: 0 };
+  private readonly counters = { mirrorFailures: 0, writeFailures: 0, readMismatches: 0, ledgerMismatches: 0, driftDetected: 0 };
+  private readonly timings = { postgresWrite: new Timing(), postgresRead: new Timing(), mirror: new Timing() };
+  /** See PersistenceStatus.handoverBlocked. */
+  private handoverBlocked = false;
+  /** The last full copy between the stores, for the health counts. */
+  private lastSync: SyncReport | null = null;
 
   constructor(options: PersistenceOptions) {
     this.modes = options.modes;
@@ -209,14 +285,31 @@ export class Persistence {
   /**
    * One scheduled comparison. Waits for copies already in flight first, so a write caught
    * between the two stores is not reported as drift. Never throws and never overlaps itself.
-   * Detection only: a difference is logged and shown in /api/health for a person to look at.
+   *
+   * A difference seen twice (so not a write between its two stores) is counted in
+   * `driftDetected` and logged, and then repaired: everything is copied again from the store in
+   * charge to the other one, which is only ever a copy. What a copy cannot fix (a record only the
+   * other store holds, a record it cannot store) stays in the parity report for a person.
    */
   async periodicParity(): Promise<ParityReport | null> {
     if (this.parityRunning) return null;
     this.parityRunning = true;
     try {
       await this.settle();
-      return await this.checkParity();
+      let report = await this.checkParity();
+      if (!report || report.clean) return report;
+      await sleep(this.recheckAfterMs);
+      await this.settle();
+      report = await this.checkParity();
+      if (!report || report.clean) return report;
+
+      this.counters.driftDetected += mismatchCount(report);
+      this.log(`the stores drifted apart (${mismatchCount(report)} difference(s)); copying again from the store in charge`);
+      await this.synchronise(this.desiredAuthority, true);
+      this.needsResync = false;
+      const repaired = await this.checkParity();
+      if (repaired && !repaired.clean) this.log("differences a copy could not fix remain (they need a person)");
+      return repaired;
     } catch (error) {
       this.log(`scheduled parity check failed: ${error instanceof Error ? error.name : "error"}`);
       return null;
@@ -247,24 +340,23 @@ export class Persistence {
       ledger: this.modes.ledger,
       subscriptions: this.modes.subscriptions,
       ready: this.ready,
-      parity: parity
-        ? {
-            clean: parity.clean,
-            mismatches:
-              parity.subscriptions.onlyInDataFile.length +
-              parity.subscriptions.onlyInPostgres.length +
-              parity.subscriptions.different.length +
-              parity.ledger.onlyInDataFile.length +
-              parity.ledger.onlyInPostgres.length,
-            checkedAt: parity.checkedAt,
-          }
-        : null,
+      parity: parity ? { clean: parity.clean, mismatches: mismatchCount(parity), checkedAt: parity.checkedAt } : null,
       mirrorFailures: this.counters.mirrorFailures,
       writeFailures: this.counters.writeFailures,
       dataFileBehind: this.needsResync && this.desiredAuthority === "postgres",
       readMismatches: this.counters.readMismatches,
       ledgerMismatches: this.counters.ledgerMismatches,
       ledgerFallbacks: readModel.fallbacks,
+      handoverBlocked: this.handoverBlocked,
+      driftDetected: this.counters.driftDetected,
+      unstorableRecords: this.lastSync?.failed.length ?? 0,
+      refusedClaims: this.lastSync?.refusedClaims.length ?? 0,
+      duplicateStripeSubscriptions: parity?.duplicateStripeSubscriptions ?? 0,
+      latency: {
+        postgresWrite: this.timings.postgresWrite.stat(),
+        postgresRead: this.timings.postgresRead.stat(),
+        mirror: this.timings.mirror.stat(),
+      },
     };
   }
 
@@ -301,6 +393,7 @@ export class Persistence {
         onlyInDataFile: [...dataFileLedger].filter((zip) => !postgresLedger.has(zip)).sort(),
         onlyInPostgres: [...postgresLedger].filter((zip) => !dataFileLedger.has(zip)).sort(),
       },
+      duplicateStripeSubscriptions: Math.max(duplicateStripeIds(dataFile), duplicateStripeIds(postgres)),
     };
     report.clean =
       report.subscriptions.onlyInDataFile.length === 0 &&
@@ -357,7 +450,9 @@ export class Persistence {
         }
         report.copied += 1;
       } catch (error) {
-        if (!(error instanceof RecordNotStorableError)) throw error;
+        // One record the target cannot hold (an unreadable date, a value the database rejects)
+        // must not stop the rest of the copy or be mistaken for an outage.
+        if (!(error instanceof RecordNotStorableError) && !isDataError(error)) throw error;
         report.failed.push(record.id);
       }
     }
@@ -371,6 +466,7 @@ export class Persistence {
         })}`,
       );
     }
+    this.lastSync = report;
     return report;
   }
 
@@ -422,7 +518,19 @@ export class Persistence {
       // in full before this process lets the newly chosen store decide anything. A copy to the
       // data file counts only once it is on disk (synchronise throws otherwise).
       if (stored !== desired) {
-        const handover = await this.synchronise(stored);
+        // From the data file, every plan is saved again even when its record already matches:
+        // only that shows the ZIP code claims PostgreSQL refuses (two holders in old data).
+        const handover = await this.synchronise(stored, stored === "json");
+        if (desired === "postgres" && (handover.failed.length > 0 || handover.refusedClaims.length > 0)) {
+          // PostgreSQL would be missing plans or ZIP code locks the data file has, and could sell
+          // a held ZIP code again. It does not take charge. The data file is still the truth, so
+          // its note says so again: going back to shadow, or removing DATABASE_URL, owes nothing.
+          this.handoverBlocked = true;
+          this.writeMarker("json");
+          throw new Error(
+            `hand-over to PostgreSQL refused: ${handover.failed.length} plan(s) could not be stored and ${handover.refusedClaims.length} ZIP code claim(s) were refused. Fix them (see the log line above) or go back to shadow`,
+          );
+        }
         this.log(`hand-over from ${stored} to ${desired}: ${handover.copied} copied, ${handover.unchanged} already in step`);
         await this.pg.client.query(
           `insert into persistence_state (key, value) values ('authority', $1)
@@ -430,6 +538,7 @@ export class Persistence {
           [desired],
         );
       }
+      this.handoverBlocked = false;
       if (desired === "json") this.writeMarker("json");
 
       // Keep the other store in step. In json mode PostgreSQL is not kept up to date at all.
@@ -524,8 +633,9 @@ export class Persistence {
     // postgres: the callers of this repository are payment flows, which must read what they are
     // about to overwrite from the store in charge. No fallback: the event is retried instead.
     if (!(await this.ensureReady()) || !this.pg) throw this.refused();
+    const pg = this.pg;
     try {
-      return await run(this.pg.subscriptions);
+      return await this.timings.postgresRead.measure(() => run(pg.subscriptions));
     } catch (error) {
       throw this.refused(error);
     }
@@ -534,7 +644,9 @@ export class Persistence {
   /** Counts a payment-flow request turned away because PostgreSQL is in charge and unreachable. */
   private refused(cause?: unknown): DatabaseUnavailableError {
     this.counters.writeFailures += 1;
-    if (cause !== undefined) this.ready = false;
+    // Only a lost connection means the database is down. A statement it rejected does not, and
+    // must not send the next request through a full start-up again.
+    if (cause !== undefined && isConnectionError(cause)) this.ready = false;
     return new DatabaseUnavailableError(undefined, cause === undefined ? undefined : { cause });
   }
 
@@ -566,8 +678,8 @@ export class Persistence {
     if ((await this.ensureReady()) && this.pg) {
       try {
         return await run(this.pg.ledger);
-      } catch {
-        this.ready = false;
+      } catch (error) {
+        if (isConnectionError(error)) this.ready = false;
       }
     }
     return run(this.json.ledger);
@@ -606,9 +718,10 @@ export class Persistence {
     }
 
     if (!(await this.ensureReady()) || !this.pg) throw this.refused();
+    const pg = this.pg;
     let stored: RevenueSubscriptionRecord;
     try {
-      stored = await run(this.pg.subscriptions);
+      stored = await this.timings.postgresWrite.measure(() => run(pg.subscriptions));
     } catch (error) {
       // Not an outage: the caller reads again and retries (stale), or the record is bad.
       if (error instanceof RecordNotStorableError || error instanceof StaleWriteError) throw error;
@@ -626,29 +739,33 @@ export class Persistence {
    */
   private async mirror(to: Authority, record: RevenueSubscriptionRecord): Promise<void> {
     try {
-      if (to === "postgres") {
-        if (!(await this.ensureReady()) || !this.pg) throw new DatabaseUnavailableError();
-        if (this.needsResync) {
-          await this.synchronise("json");
-          this.needsResync = false;
-        } else {
-          await this.pg.subscriptions.saveReportingSkippedClaims(record);
-        }
-      } else if (this.needsResync) {
-        await this.synchronise("postgres");
-        this.needsResync = false;
-      } else if (this.json.subscriptions.saveDurably) {
-        await this.json.subscriptions.saveDurably(record);
-      } else {
-        await this.json.subscriptions.save(record);
-      }
+      await this.timings.mirror.measure(() => this.mirrorOnce(to, record));
     } catch (error) {
       this.counters.mirrorFailures += 1;
       this.needsResync = true;
-      if (to === "postgres") this.ready = false;
+      if (to === "postgres" && isConnectionError(error)) this.ready = false;
       this.log(`copy of subscription ${record.id} to ${to} failed (${error instanceof Error ? error.name : "error"}); it will be re-copied`);
     }
     if (this.modes.ledger === "postgres") await refreshLedgerReadModel();
+  }
+
+  private async mirrorOnce(to: Authority, record: RevenueSubscriptionRecord): Promise<void> {
+    if (to === "postgres") {
+      if (!(await this.ensureReady()) || !this.pg) throw new DatabaseUnavailableError();
+      if (this.needsResync) {
+        await this.synchronise("json");
+        this.needsResync = false;
+      } else {
+        await this.pg.subscriptions.saveReportingSkippedClaims(record);
+      }
+    } else if (this.needsResync) {
+      await this.synchronise("postgres");
+      this.needsResync = false;
+    } else if (this.json.subscriptions.saveDurably) {
+      await this.json.subscriptions.saveDurably(record);
+    } else {
+      await this.json.subscriptions.save(record);
+    }
   }
 
   private inBackground(task: Promise<unknown>): void {

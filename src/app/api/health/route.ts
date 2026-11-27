@@ -49,6 +49,18 @@ export async function GET() {
         readMismatches: database.readMismatches,
         ledgerMismatches: database.ledgerMismatches,
         ledgerFallbacks: database.ledgerFallbacks,
+        // True when PostgreSQL was told to take charge but the copy from the data file left plans
+        // it could not store or ZIP code claims it refused. Payment events wait until that is fixed.
+        handoverBlocked: database.handoverBlocked,
+        // Differences the 5-minute comparison found after start-up, counted before they are repaired.
+        driftDetected: database.driftDetected,
+        // What the last full copy between the stores could not carry over.
+        unstorableRecords: database.unstorableRecords,
+        refusedClaims: database.refusedClaims,
+        // Stripe subscriptions with more than one plan record.
+        duplicateStripeSubscriptions: database.duplicateStripeSubscriptions,
+        // How long PostgreSQL writes, reads and copies take, in milliseconds, since this process started.
+        latencyMs: database.latency,
       },
       // Whether outgoing email (Cerebro's borrower follow-ups, lead alerts) can send. On/off only.
       email: process.env.RESEND_API_KEY?.trim() ? "on" : "off",

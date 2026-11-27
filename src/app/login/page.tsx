@@ -59,6 +59,11 @@ export default async function LoginPage({
         </p>
       )}
       <EmailLoginForm next={next} />
+      {isSignup && (
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          After you sign up we may send a few short emails about getting started. Every one has an unsubscribe link.
+        </p>
+      )}
       <p className="mt-6 text-sm leading-6 text-slate-600">
         Trouble signing in?{" "}
         <a href="mailto:support@ypnus.com" className="font-medium text-[#13254a] underline">

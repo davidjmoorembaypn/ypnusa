@@ -91,6 +91,7 @@ routing logic, not an aspirational claim).
 | `WORDPRESS_AUTOPILOT_*` | WordPress content autopilot | Proposal-only, never writes to WordPress |
 | `WEBSITE_AUTOPILOT_UNATTENDED_*` | Scheduled autopilot runs | Fully off, no plan generated |
 | `NEXT_PUBLIC_PREDICTIVE_HOMEPAGE_ENABLED` | Client-side behavior-scoring homepage engine | Renders nothing, homepage unchanged |
+| `MLO_DRIP_ENABLED` | Email series for loan officers with a free account | Off: nobody is enrolled or emailed |
 | `AREA_DATA_SCORING_ENABLED` | Score stored leads with the built-in county and Census data | Off: stored leads keep neutral placeholder inputs (the dashboard lookup shows the data either way) |
 | `RENTAL_DEMAND_API_*` | Rental-demand provider for lead scoring | Neutral placeholder data |
 | `GBP_PLACE_ID` / `GBP_PROFILE_URL` / `GBP_REVIEWS_PROVIDER_*` | Google Business Profile reviews | No reviews shown |

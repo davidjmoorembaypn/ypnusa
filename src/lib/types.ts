@@ -896,6 +896,31 @@ export interface ZipScarcityEventRecord {
   checkedCount: number;
 }
 
+export type MloDripStepId = "day_1_free_account" | "day_3_exclusive_zip" | "day_6_cerebro" | "day_10_plans" | "day_14_last_note";
+
+/** One loan officer's place in the free-account email series (src/lib/mlo-drip.ts). One per address, ever. */
+export interface MloDripEnrollmentRecord {
+  id: string;
+  /** Lowercased, trimmed. */
+  email: string;
+  /** When the account was created; step timing counts from here. */
+  enrolledAt: string;
+  sent: Array<{ step: MloDripStepId; at: string }>;
+  /** Steps that came due too late to send. */
+  skipped: MloDripStepId[];
+  /** "unsubscribed" is permanent for the address. "converted": they bought a plan or started a trial. */
+  status: "active" | "completed" | "unsubscribed" | "converted";
+  statusAt?: string;
+  /** Set while one run is sending a step, so a second run cannot send it too. */
+  sending?: { step: MloDripStepId; at: string };
+}
+
+export interface MloDripState {
+  /** First time the series ran switched on. Accounts created before it are never enrolled. */
+  enabledAt?: string;
+  enrollments: MloDripEnrollmentRecord[];
+}
+
 export interface DbShape {
   loanOfficers: LoanOfficerRecord[];
   sessions: IntakeSessionRecord[];
@@ -920,6 +945,7 @@ export interface DbShape {
   cerebroActions: CerebroQueuedActionRecord[];
   siteOverrides: SiteOverrideRecord[];
   siteOptimizer: SiteOptimizerState;
+  mloDrip: MloDripState;
   consents: ConsentRecord[];
   smsOptIns: SmsOptInRecord[];
   processedKeys: ProcessedKeyRecord[];

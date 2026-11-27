@@ -1,5 +1,5 @@
 import { checkMarketingCompliance } from "@/lib/ai/marketing-compliance";
-import { AUTO_SEND_KINDS } from "@/lib/cerebro-dispatch";
+import { AUTO_SEND_KINDS, isBeingSent } from "@/lib/cerebro-dispatch";
 import { listCerebroActions, readDb, saveCerebroAction } from "@/lib/db";
 import type { CerebroQueuedActionRecord, LoanOfficerRecord } from "@/lib/types";
 
@@ -74,14 +74,15 @@ export function officerForEmail(email: string | undefined): LoanOfficerRecord | 
   return readDb().loanOfficers.find((officer) => officer.email.trim().toLowerCase() === wanted);
 }
 
-export function queueViewFor(officer: LoanOfficerRecord): QueueView {
+export function queueViewFor(officer: LoanOfficerRecord, now = new Date()): QueueView {
   const leads = new Map(readDb().borrowerLeads.map((lead) => [lead.id, lead]));
   const borrower = (id: string) => leads.get(id)?.answers.name ?? "Unnamed lead";
   const mine = listCerebroActions(officer.id);
   return {
     replyMode: officer.cerebroReplyMode === "approve" ? "approve" : "live",
     waiting: mine
-      .filter(needsOfficer)
+      // An item Cerebro is emailing right now isn't the officer's to decide any more.
+      .filter((action) => needsOfficer(action) && !isBeingSent(action, now))
       .slice(-20)
       .map((action) => ({
         id: action.id,
@@ -111,6 +112,8 @@ export type QueueDecisionResult =
   | { ok: true; decision: QueueDecision; cerebroSends: boolean; finalText: string }
   | { ok: false; code: "NOT_FOUND" }
   | { ok: false; code: "ALREADY_DECIDED"; status: CerebroQueuedActionRecord["status"] }
+  /** Cerebro is emailing it right now (live replies), so it can no longer be stopped or edited. Nothing changed. */
+  | { ok: false; code: "SENDING" }
   /** The draft was rewritten after the officer's page loaded (a borrower changed their request). Nothing changed. */
   | { ok: false; code: "CHANGED" }
   /** The wording breaks an advertising rule, so it was not approved. Nothing changed. */
@@ -139,6 +142,7 @@ export function decideQueuedAction(input: {
 }): QueueDecisionResult {
   const action = listCerebroActions(input.officer.id).find((item) => item.id === input.actionId);
   if (!action) return { ok: false, code: "NOT_FOUND" };
+  if (isBeingSent(action, input.now ?? new Date())) return { ok: false, code: "SENDING" };
   if (!needsOfficer(action)) return { ok: false, code: "ALREADY_DECIDED", status: action.status };
   if (input.seenVersion !== undefined && input.seenVersion !== action.updatedAt) return { ok: false, code: "CHANGED" };
 
@@ -160,6 +164,7 @@ export function decideQueuedAction(input: {
     ...(subject !== undefined ? { subject } : {}),
     ...(input.decision === "approve" ? { approvedAt: stamp } : {}),
     holdReason: undefined,
+    sendingAt: undefined,
     updatedAt: stamp,
   });
   return { ok: true, decision: input.decision, cerebroSends, finalText: body };

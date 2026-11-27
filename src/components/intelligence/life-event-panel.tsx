@@ -37,7 +37,7 @@ export function LifeEventPanel() {
       <p className="text-sm text-slate-600">
         A rule-based score (fixed points, not a trained model) from the area data above: county births, deaths and
         migration, state marriage and divorce rates, and the ZIP code&rsquo;s renter share and mobility. It rates the
-        area the lead is in, not the person. Rental demand and probate filings are not connected and add nothing.
+        area the lead is in, not the person. Rental demand and probate filings are not connected, so they add no points.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">

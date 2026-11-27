@@ -16,7 +16,7 @@ function rows(profile: AreaProfile): { label: string; area: string; national: st
   return [
     { label: "Births per 1,000 residents", area: rate(profile.rates.births), national: rate(profile.national.births), scope: county },
     { label: "Deaths per 1,000 residents", area: rate(profile.rates.deaths), national: rate(profile.national.deaths), scope: county },
-    { label: "Net gain from moves per 1,000 residents", area: rate(profile.rates.netMigration), national: "0.0", scope: county },
+    { label: "Net gain from moves per 1,000 residents", area: rate(profile.rates.netMigration), national: rate(profile.national.netMigration), scope: county },
     { label: "Marriages per 1,000 adults", area: rate(profile.rates.marriages), national: rate(profile.national.marriages), scope: state },
     { label: "Divorces per 1,000 adults", area: rate(profile.rates.divorces), national: rate(profile.national.divorces), scope: state },
   ];
@@ -75,7 +75,7 @@ export function AreaDataCard({ zip }: { zip?: string }) {
               <dd className="font-semibold text-slate-900">{percent(profile.households?.renterShare)}</dd>
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
-              <dt className="text-slate-500">Residents who moved in the past year</dt>
+              <dt className="text-slate-500">People in households who moved in the past year</dt>
               <dd className="font-semibold text-slate-900">{percent(profile.mobilityRate)}</dd>
             </div>
           </dl>
@@ -112,8 +112,8 @@ export function AreaDataCard({ zip }: { zip?: string }) {
           code: {AREA_SOURCES.county}.
         </p>
         <p>
-          Not connected: probate, divorce and deed filings (individual court and recorder records), and rental demand.
-          Scores do not use them.
+          Net gain from moves counts moves within the US and moves to and from abroad. Not connected: probate,
+          divorce and deed filings (individual court and recorder records), and rental demand. Scores do not use them.
         </p>
         <p>
           Scoring of stored leads with this data is <strong>{scoring ? "on" : "off"}</strong>

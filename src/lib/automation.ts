@@ -51,7 +51,7 @@ async function resolveOutreachPersonalization(
 
   try {
     const zipContext = await buildZipContext(zip);
-    const countyEvents = await buildCountyEvents(zipContext.county, zipContext.countyFips);
+    const countyEvents = await buildCountyEvents(zipContext.county, zipContext);
     const leadForScoring: Lead = {
       id: lead.id,
       name: lead.answers.name ?? "Borrower",

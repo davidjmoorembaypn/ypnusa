@@ -26,6 +26,8 @@ export interface ZipContext {
   county: string;
   /** 5-digit county FIPS code, when the ZIP code's county is known. */
   countyFips?: string;
+  /** 2-digit state FIPS code, when the ZIP code's state is known. */
+  stateFips?: string;
   /** Which inputs are real data. Absent or false means that group is a neutral placeholder, not a measurement. */
   sources?: { county: boolean; households: boolean; mobility: boolean; rentalDemand: boolean };
   census: {
@@ -76,6 +78,9 @@ function clampScore(value: number): number {
 
 /** census shares/rates arrive as fractions (0-1), e.g. 0.42 = 42%. */
 function rentalMarketSignal(zipCtx: ZipContext, tags: string[], reasons: string[]): number {
+  // No rental provider connected: the fields are placeholders. A placeholder vacancy of 0 must
+  // not score as a tight market or be given as a reason.
+  if (zipCtx.sources && !zipCtx.sources.rentalDemand) return 0;
   const { demandScore, vacancyRate, trend } = zipCtx.rentalDemand;
   let score = clampScore(demandScore) * 0.5;
 

@@ -32,6 +32,40 @@ describe("bundled area data", () => {
       assert.ok(value !== null && value > 3 && value < 30, `${key} = ${value}`);
     }
     assert.ok(NATIONAL_RATES.marriages! > NATIONAL_RATES.divorces!);
+    // Moves within the US cancel out; moves from abroad do not, so the national figure is not zero.
+    assert.ok(NATIONAL_RATES.netMigration! > 1 && NATIONAL_RATES.netMigration! < 10, `netMigration = ${NATIONAL_RATES.netMigration}`);
+  });
+
+  it("measures mobility against people in households, and has no rate where nobody lives in one", () => {
+    const dinuba = areaProfile("93618");
+    // 31,659 people in households, 29,580 of them in the same house a year earlier.
+    assert.ok(Math.abs(dinuba.mobilityRate! - (31659 - 29580) / 31659) < 1e-9);
+    // Cornell's campus ZIP code: dormitories only, so the mobility table covers nobody.
+    const campus = areaProfile("14853");
+    assert.equal(campus.mobilityRate, null);
+    assert.equal(campus.has.mobility, false);
+  });
+
+  it("still gives state rates when the county is unknown or not in the estimates", async () => {
+    // Puerto Rico ZIP codes have no county code in the postal file.
+    const sanJuan = areaProfile("00901");
+    assert.equal(sanJuan.county, null);
+    assert.equal(sanJuan.state?.abbr, "PR");
+    assert.ok(sanJuan.rates.divorces !== null && sanJuan.rates.births === null);
+    assert.deepEqual([sanJuan.has.countyChange, sanJuan.has.marital], [false, true]);
+
+    // Yakutat, Alaska: the postal file's county code is not in the estimates file.
+    const yakutat = areaProfile("99689");
+    assert.equal(yakutat.county, null);
+    assert.equal(yakutat.state?.abbr, "AK");
+    const ctx = await buildZipContext("99689", { useAreaData: true });
+    assert.equal(ctx.stateFips, "02");
+    const events = await buildCountyEvents(ctx.county, ctx, { useAreaData: true });
+    assert.deepEqual(events.available, { countyChange: false, marital: true, probate: false });
+    assert.equal(events.maritalRatesFor, "Alaska");
+    assert.ok(events.divorcesPerCapita > 0 && events.deathsPerCapita === 0);
+    const scored = scoreLead({ ...lead, zip: "99689" }, ctx, events);
+    assert.ok(scored.reasons.every((reason) => !/Death rate|Birth rate|residents through moves/.test(reason)));
   });
 
   it("covers every state and keeps names with accents intact", () => {
@@ -62,7 +96,7 @@ describe("bundled area data", () => {
     assert.equal(zipContext.county, "Unknown");
     assert.equal(zipContext.countyFips, undefined);
     assert.deepEqual(zipContext.sources, { county: false, households: false, mobility: false, rentalDemand: false });
-    const county = await buildCountyEvents(zipContext.county, zipContext.countyFips);
+    const county = await buildCountyEvents(zipContext.county, zipContext);
     assert.equal(county.national, undefined);
     assert.equal(county.deathsPerCapita, 0);
     assert.deepEqual(county.available, { countyChange: false, marital: false, probate: false });
@@ -78,7 +112,7 @@ describe("bundled area data", () => {
     process.env.AREA_DATA_SCORING_ENABLED = "true";
     const viaSetting = await buildZipContext("93618");
     assert.equal(viaSetting.countyFips, "06107");
-    const county = await buildCountyEvents(viaSetting.county, viaSetting.countyFips);
+    const county = await buildCountyEvents(viaSetting.county, viaSetting);
     assert.equal(county.county, "Tulare County");
     assert.equal(county.maritalRatesFor, "California");
     assert.ok(county.deathsPerCapita > 0.003 && county.deathsPerCapita < 0.03);
@@ -137,6 +171,16 @@ describe("scoring an area against the national rate", () => {
     }
   });
 
+  it("gives no points and no reason for rental demand that is only a placeholder", () => {
+    const placeholder: ZipContext = { ...zipCtx, rentalDemand: { demandScore: 0, vacancyRate: 0, avgRent: 0, trend: "flat" } };
+    const unconnected = scoreLead(lead, { ...placeholder, sources: { county: true, households: true, mobility: true, rentalDemand: false } }, base);
+    assert.equal(unconnected.leadScore, 0);
+    assert.ok(unconnected.reasons.every((reason) => !/rental/i.test(reason)));
+    // A real provider reporting a tight market still scores.
+    const connected = scoreLead(lead, { ...placeholder, rentalDemand: { demandScore: 0, vacancyRate: 0.03, avgRent: 0, trend: "flat" }, sources: { county: true, households: true, mobility: true, rentalDemand: true } }, base);
+    assert.ok(connected.leadScore > 0 && connected.reasons.some((reason) => /Tight rental market/.test(reason)));
+  });
+
   it("still uses the fixed thresholds for a feed that supplies no national baseline", () => {
     const legacy: CountyEvents = { county: "Sample", divorcesPerCapita: 0.004, marriagesPerCapita: 0, deathsPerCapita: 0, probateFilings: 0, newBirths: 0, migrationIn: 0, migrationOut: 0 };
     assert.equal(scoreLead(lead, zipCtx, legacy).lifeEventLikelihood, 22);
@@ -145,7 +189,7 @@ describe("scoring an area against the national rate", () => {
   it("scores real counties without throwing", async () => {
     for (const zip of ["93618", "33101", "06101", "99999"]) {
       const ctx = await buildZipContext(zip, { useAreaData: true });
-      const county = await buildCountyEvents(ctx.county, ctx.countyFips, { useAreaData: true });
+      const county = await buildCountyEvents(ctx.county, ctx, { useAreaData: true });
       const result = scoreLead({ ...lead, zip }, ctx, county);
       assert.ok(result.lifeEventLikelihood >= 0 && result.lifeEventLikelihood <= 100);
     }

@@ -66,7 +66,8 @@ export async function buildZipContext(zip: string, options?: { useAreaData?: boo
   return {
     zip,
     county: area?.countyName ?? "Unknown",
-    countyFips: area?.county?.fips,
+    countyFips: area?.county?.fips ?? area?.postalCountyFips ?? undefined,
+    stateFips: area?.state?.fips,
     census: area
       ? {
           ...NEUTRAL_CENSUS,

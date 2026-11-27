@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     const zipContext = await buildZipContext(zip);
-    const countyEvents = await buildCountyEvents(zipContext.county, zipContext.countyFips);
+    const countyEvents = await buildCountyEvents(zipContext.county, zipContext);
     const personalization = buildPersonalization({ zipContext, countyEvents });
     const cta = buildCtaSet({ zip, county: zipContext.county, pattern, funnel, personalization });
 

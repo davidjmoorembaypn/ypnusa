@@ -133,6 +133,6 @@ export async function runPredictLeadForZip(lead: Lead, zip: string): Promise<Age
   // The dashboard's manual lookup: always uses the bundled area data, whatever the server setting
   // for stored leads, so the officer sees real figures (or "no data"), never placeholder zeros.
   const zipContext = await buildZipContext(zip, { useAreaData: true });
-  const countyEvents = await buildCountyEvents(zipContext.county, zipContext.countyFips, { useAreaData: true });
+  const countyEvents = await buildCountyEvents(zipContext.county, zipContext, { useAreaData: true });
   return runAgent({ type: "predict-lead", lead, zipContext, countyEvents });
 }

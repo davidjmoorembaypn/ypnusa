@@ -3,10 +3,12 @@
 // households per ZIP code, county births, deaths and migration, and state marriage and divorce
 // rates. Area-level figures only: nothing in these files describes a person or a household.
 //
-// Put these five public files in one folder (none needs an account or a key):
+// Put these seven public files in one folder (none needs an account or a key):
 //   US.txt                    GeoNames US postal codes (CC BY 4.0)
 //                             https://download.geonames.org/export/zip/US.zip
 //   acsdt5y2023-b25003.dat    Census ACS 2019-2023 5-year, tenure (owner and renter households)
+//   acsdt5y2023-b07013.dat    ... people in households, and how many moved in the past year
+//   acsdt5y2023-b07013pr.dat  ... the same table for Puerto Rico
 //   acsdt5y2023-b12503.dat    ... divorces in the last year (published for states, not counties)
 //   acsdt5y2023-b12501.dat    ... marriages in the last year (published for states, not counties)
 //                             https://www2.census.gov/programs-surveys/acs/summary_file/2023/table-based-SF/data/5YRData/
@@ -56,6 +58,15 @@ const count = (value) => {
   const n = Number(value);
   return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0;
 };
+/**
+ * An ACS estimate, or null when it was not published. The Census marks an unavailable estimate
+ * with a negative code (such as -666666666) or leaves it empty; neither is a measured zero.
+ */
+const estimate = (value) => {
+  if (value === undefined || String(value).trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+};
 
 /** One ACS table: Map<GEO_ID, Record<column, number>> for rows whose GEO_ID starts with `prefix`. */
 function acsTable(file, prefix, columns) {
@@ -70,7 +81,7 @@ function acsTable(file, prefix, columns) {
   for (const line of lines) {
     if (!line.startsWith(prefix)) continue;
     const f = line.split("|");
-    out.set(f[0].slice(prefix.length), Object.fromEntries(columns.map((c, k) => [c, count(f[at[k]])])));
+    out.set(f[0].slice(prefix.length), Object.fromEntries(columns.map((c, k) => [c, estimate(f[at[k]])])));
   }
   return out;
 }
@@ -98,7 +109,7 @@ const signed = (value) => {
 
 const counties = new Map();
 const stateNames = new Map();
-const nation = { population: 0, births: 0, deaths: 0 };
+const nation = { population: 0, births: 0, deaths: 0, internationalMigration: 0 };
 for (const line of pepLines.slice(1)) {
   const f = line.split(",");
   if (f.length !== pepHeader.length) throw new Error(`${PEP_FILE}: a row has ${f.length} fields, expected ${pepHeader.length}`);
@@ -108,6 +119,8 @@ for (const line of pepLines.slice(1)) {
     nation.population += count(f[P.pop]);
     nation.births += count(f[P.births]);
     nation.deaths += count(f[P.deaths]);
+    // Moves between states cancel out across the country; moves to and from abroad do not.
+    nation.internationalMigration += signed(f[P.intl]);
     continue;
   }
   if (f[P.sumlev] !== "050") continue;
@@ -131,17 +144,28 @@ const divorces = { state: acsTable("b12503.dat", "0400000US", maritalColumns("B1
 const marriages = { state: acsTable("b12501.dat", "0400000US", maritalColumns("B12501")), us: acsTable("b12501.dat", "0100000US", maritalColumns("B12501")).get("") };
 if (!divorces.us || !marriages.us) throw new Error("The marriage or divorce table has no national row.");
 
+const complete = (row) => Boolean(row) && Object.values(row).every((value) => value !== null);
+if (!complete(divorces.us) || !complete(marriages.us)) throw new Error("The national marriage or divorce row has an unpublished value.");
+
 const states = [];
 for (const [fips, d] of divorces.state) {
   const m = marriages.state.get(fips);
   const abbr = ABBR_BY_FIPS[fips];
-  if (!m || !abbr) continue;
+  // A state with any unpublished value is left out, so it shows as "no data", never as zero.
+  if (!abbr || !complete(d) || !complete(m)) continue;
   states.push(`${fips}|${abbr}|${stateNames.get(fips) ?? abbr}|${d.B12503_E001}|${d.B12503_E005 + d.B12503_E010}|${m.B12501_E005 + m.B12501_E010}`);
 }
 states.sort();
 
-// --- ZIP codes: county and tenure ----------------------------------------------------------------
+// --- ZIP codes: county, tenure and mobility ------------------------------------------------------
 const tenure = acsTable("b25003.dat", "860Z200US", ["B25003_E002", "B25003_E003"]);
+// E001 people aged 1 and over living in households; E004 of those, in the same house a year ago.
+// The table leaves out people in group quarters (dormitories, barracks, care homes), so the
+// mobility share must be worked out against E001, never against total population.
+const mobility = acsTable("b07013.dat", "860Z200US", ["B07013_E001", "B07013_E004"]);
+for (const [zip, row] of acsTable("b07013pr.dat", "860Z200US", ["B07013PR_E001", "B07013PR_E004"])) {
+  if (!mobility.has(zip)) mobility.set(zip, { B07013_E001: row.B07013PR_E001, B07013_E004: row.B07013PR_E004 });
+}
 const zipCounty = new Map();
 for (const line of read("US.txt").split(/\r?\n/)) {
   // country, postal code, place, state name, state code, county name, county code, ...
@@ -156,14 +180,19 @@ for (const line of read("US.txt").split(/\r?\n/)) {
 const zipRows = [];
 let noCounty = 0;
 let countyNotInEstimates = 0;
-for (const zip of new Set([...zipCounty.keys(), ...tenure.keys()])) {
+for (const zip of new Set([...zipCounty.keys(), ...tenure.keys(), ...mobility.keys()])) {
   if (!/^\d{5}$/.test(zip)) continue;
   const c = zipCounty.get(zip) ?? { fips: "", name: "" };
   if (!c.fips) noCounty += 1;
   else if (!counties.has(c.fips)) countyNotInEstimates += 1;
   const t = tenure.get(zip);
-  // Empty, not 0, when the Census has no housing data for the ZIP code.
-  zipRows.push(`${zip}|${c.fips}|${c.name}|${t ? t.B25003_E002 : ""}|${t ? t.B25003_E003 : ""}`);
+  const m = mobility.get(zip);
+  // Empty, not 0, when the Census published no figure for the ZIP code.
+  const owner = t && t.B25003_E002 !== null && t.B25003_E003 !== null ? t.B25003_E002 : "";
+  const renter = owner === "" ? "" : t.B25003_E003;
+  const inHouseholds = m && m.B07013_E001 !== null && m.B07013_E004 !== null ? m.B07013_E001 : "";
+  const movers = inHouseholds === "" ? "" : Math.max(0, m.B07013_E001 - m.B07013_E004);
+  zipRows.push(`${zip}|${c.fips}|${c.name}|${owner}|${renter}|${inHouseholds}|${movers}`);
 }
 zipRows.sort();
 
@@ -176,6 +205,7 @@ const national = {
   population: nation.population,
   births: nation.births,
   deaths: nation.deaths,
+  netInternationalMigration: nation.internationalMigration,
   adults15Plus: divorces.us.B12503_E001,
   divorcedLastYear: divorces.us.B12503_E005 + divorces.us.B12503_E010,
   marriedLastYear: marriages.us.B12501_E005 + marriages.us.B12501_E010,
@@ -184,8 +214,8 @@ const national = {
 const out = `// GENERATED by scripts/build-area-data.mjs. Do not edit by hand.
 // Area-level public data: ${zipRows.length} ZIP codes, ${countyRows.length} counties, ${states.length} states.
 // County for each ZIP code: © GeoNames (https://www.geonames.org), CC BY 4.0.
-// Owner and renter households, marriages and divorces: U.S. Census Bureau, American Community
-// Survey ${ACS_VINTAGE} 5-year estimates (tables B25003, B12501, B12503). Public domain.
+// Owner and renter households, movers, marriages and divorces: U.S. Census Bureau, American Community
+// Survey ${ACS_VINTAGE} 5-year estimates (tables B25003, B07013, B12501, B12503). Public domain.
 // County population, births, deaths and migration: U.S. Census Bureau, Population Estimates
 // Program, Vintage ${PEP_YEAR} (${PEP_PERIOD}). Public domain.
 // Server-only: importing this from a client component would ship it to the browser.
@@ -194,7 +224,7 @@ export const AREA_ESTIMATES_VINTAGE = "${PEP_YEAR}";
 export const AREA_ESTIMATES_PERIOD = "${PEP_PERIOD}";
 /** National totals from the same files, for comparing an area with the country. */
 export const AREA_NATIONAL = ${JSON.stringify(national)} as const;
-/** "zip|countyFips|countyName|ownerHouseholds|renterHouseholds"; household fields empty when not published. */
+/** "zip|countyFips|countyName|ownerHouseholds|renterHouseholds|peopleInHouseholds|movedInPastYear"; a field is empty when not published. */
 export const AREA_ZIP_GZ_BASE64 =
   "${gz(zipRows)}";
 /** "fips|name|ST|population|births|deaths|netDomesticMigration|netInternationalMigration" */
@@ -207,6 +237,6 @@ export const AREA_STATE_GZ_BASE64 =
 
 const target = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "lib", "geo", "area-data.generated.ts");
 fs.writeFileSync(target, out);
-console.log(`${noCounty} ZIP codes have no county in GeoNames; ${countyNotInEstimates} are in a county the estimates file does not list (Connecticut uses planning regions there).`);
+console.log(`${noCounty} ZIP codes have no county in GeoNames; ${countyNotInEstimates} have a county code the estimates file does not list (boundaries change; those ZIP codes still get state figures).`);
 console.log(`National: ${JSON.stringify(national)}`);
 console.log(`Wrote ${zipRows.length} ZIP codes, ${countyRows.length} counties, ${states.length} states (${(out.length / 1024).toFixed(0)} KB) to ${path.relative(process.cwd(), target)}`);

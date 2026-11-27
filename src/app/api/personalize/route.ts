@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   try {
     const zipContext = await buildZipContext(body.zip.trim());
-    const countyEvents = await buildCountyEvents(zipContext.county, zipContext.countyFips);
+    const countyEvents = await buildCountyEvents(zipContext.county, zipContext);
     const lead = isRecord(body.lead) ? (body.lead as unknown as Lead) : null;
     const predictive = lead ? scoreLead(lead, zipContext, countyEvents) : undefined;
 

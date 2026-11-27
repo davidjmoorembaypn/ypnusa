@@ -8,7 +8,7 @@ import {
   AREA_STATE_GZ_BASE64,
   AREA_ZIP_GZ_BASE64,
 } from "@/lib/geo/area-data.generated";
-import { zipDemandSourceRow } from "@/lib/zip-demand";
+import { zipToState } from "@/lib/compliance/zip-state";
 
 /**
  * Area-level public data for a ZIP code: the county it is in, how its households split between
@@ -25,7 +25,7 @@ import { zipDemandSourceRow } from "@/lib/zip-demand";
  *  - marriage and divorce rates below state level;
  *  - rental demand, vacancy or rents; household income and age (not bundled).
  *
- * Server-only (the data module is ~510 KB): never import this from a client component.
+ * Server-only (the data module is ~700 KB): never import this from a client component.
  */
 
 export const AREA_SOURCES = {
@@ -44,6 +44,10 @@ export interface ZipAreaRow {
   /** null when the Census published no housing data for the ZIP code (not the same as 0). */
   ownerHouseholds: number | null;
   renterHouseholds: number | null;
+  /** People aged 1 and over living in households (group quarters are not in the mobility table). */
+  peopleInHouseholds: number | null;
+  /** Of those, how many moved into their current home in the past year. */
+  movedInPastYear: number | null;
 }
 
 export interface CountyRow {
@@ -71,6 +75,7 @@ interface Index {
   zips: Map<string, ZipAreaRow>;
   counties: Map<string, CountyRow>;
   states: Map<string, StateMaritalRow>;
+  statesByAbbr: Map<string, StateMaritalRow>;
 }
 
 let cached: Index | null = null;
@@ -83,9 +88,13 @@ function load(): Index {
   if (cached) return cached;
   const zips = new Map<string, ZipAreaRow>();
   for (const line of lines(AREA_ZIP_GZ_BASE64)) {
-    const [zip, fips, name, owner, renter] = line.split("|");
+    const [zip, fips, name, owner, renter, inHouseholds, movers] = line.split("|");
     if (!zip || !/^\d{5}$/.test(zip)) continue;
-    zips.set(zip, { countyFips: fips || null, countyName: name || null, ownerHouseholds: measured(owner), renterHouseholds: measured(renter) });
+    zips.set(zip, {
+      countyFips: fips || null, countyName: name || null,
+      ownerHouseholds: measured(owner), renterHouseholds: measured(renter),
+      peopleInHouseholds: measured(inHouseholds), movedInPastYear: measured(movers),
+    });
   }
   const counties = new Map<string, CountyRow>();
   for (const line of lines(AREA_COUNTY_GZ_BASE64)) {
@@ -103,7 +112,8 @@ function load(): Index {
     if (!fips || !/^\d{2}$/.test(fips)) continue;
     states.set(fips, { fips, state, name, adults15Plus: Number(adults), divorcedLastYear: Number(divorced), marriedLastYear: Number(married) });
   }
-  cached = { zips, counties, states };
+  const statesByAbbr = new Map([...states.values()].map((row) => [row.state, row]));
+  cached = { zips, counties, states, statesByAbbr };
   return cached;
 }
 
@@ -119,6 +129,23 @@ export function stateMaritalRow(stateFips: string | null | undefined): StateMari
   return stateFips ? (load().states.get(stateFips) ?? null) : null;
 }
 
+/**
+ * The state a ZIP code is in: from its county code when the postal file has one, otherwise from
+ * the ZIP code's prefix. Puerto Rico ZIP codes and ZIP codes in a county the estimates file does
+ * not list still get their state's marriage and divorce rates this way.
+ */
+export function stateForZip(zip: string): StateMaritalRow | null {
+  if (!/^\d{5}$/.test(zip)) return null;
+  const index = load();
+  const row = index.zips.get(zip);
+  // A ZIP code that is in none of the source files gets nothing, not a guess from its prefix.
+  if (!row) return null;
+  const fromCounty = index.states.get(row.countyFips?.slice(0, 2) ?? "");
+  if (fromCounty) return fromCounty;
+  const abbr = zipToState(zip);
+  return abbr ? (index.statesByAbbr.get(abbr) ?? null) : null;
+}
+
 /** Events per 1,000 people. null when the base is missing or zero, so a rate is never invented. */
 function per1000(events: number | null | undefined, base: number | null | undefined): number | null {
   if (events === null || events === undefined || !base || !(base > 0)) return null;
@@ -129,7 +156,10 @@ export interface AreaRates {
   /** Per 1,000 residents, over the estimates year. */
   births: number | null;
   deaths: number | null;
-  /** Net people gained (or lost, when negative) through moves, per 1,000 residents. */
+  /**
+   * Net people gained (or lost, when negative) through moves, per 1,000 residents: moves within
+   * the US plus moves to and from abroad.
+   */
   netMigration: number | null;
   /** Per 1,000 people aged 15 and over, in the year before the survey. State level. */
   marriages: number | null;
@@ -139,8 +169,9 @@ export interface AreaRates {
 export const NATIONAL_RATES: AreaRates = {
   births: per1000(AREA_NATIONAL.births, AREA_NATIONAL.population),
   deaths: per1000(AREA_NATIONAL.deaths, AREA_NATIONAL.population),
-  // Moves between counties cancel out across the country, so the national baseline is zero.
-  netMigration: 0,
+  // Moves within the US cancel out across the country; moves to and from abroad do not, so the
+  // national figure is the net international gain. Same two components as a county's figure.
+  netMigration: per1000(AREA_NATIONAL.netInternationalMigration, AREA_NATIONAL.population),
   marriages: per1000(AREA_NATIONAL.marriedLastYear, AREA_NATIONAL.adults15Plus),
   divorces: per1000(AREA_NATIONAL.divorcedLastYear, AREA_NATIONAL.adults15Plus),
 };
@@ -148,11 +179,13 @@ export const NATIONAL_RATES: AreaRates = {
 export interface AreaProfile {
   zip: string;
   county: { fips: string; name: string; state: string; population: number } | null;
+  /** The county code from the postal file, even when the estimates file has no such county. */
+  postalCountyFips: string | null;
   /** County name from the postal file when the county is not in the estimates file. */
   countyName: string | null;
-  state: { abbr: string; name: string } | null;
+  state: { abbr: string; name: string; fips: string } | null;
   households: { owner: number; renter: number; ownerShare: number; renterShare: number } | null;
-  /** Share of residents who moved into their current home in the past year, 0 to 1. */
+  /** Share of people living in households who moved into their current home in the past year, 0 to 1. */
   mobilityRate: number | null;
   rates: AreaRates;
   national: AreaRates;
@@ -167,7 +200,7 @@ export interface AreaProfile {
 export function areaProfile(zip: string): AreaProfile {
   const row = zipAreaRow(zip);
   const county = countyRow(row?.countyFips);
-  const state = stateMaritalRow(row?.countyFips?.slice(0, 2));
+  const state = stateForZip(zip);
 
   const owner = row?.ownerHouseholds ?? null;
   const renter = row?.renterHouseholds ?? null;
@@ -176,10 +209,11 @@ export function areaProfile(zip: string): AreaProfile {
     ? { owner, renter, ownerShare: owner / occupied, renterShare: renter / occupied }
     : null;
 
-  const demand = zipDemandSourceRow(zip);
-  const mobilityRate = demand && demand.allMovers !== null && demand.population > 0
-    ? Math.min(1, demand.allMovers / demand.population)
-    : null;
+  // Movers over the people the mobility table covers (those living in households). A ZIP code
+  // with nobody in households, such as a campus of dormitories, has no rate, not a rate of zero.
+  const inHouseholds = row?.peopleInHouseholds ?? null;
+  const movers = row?.movedInPastYear ?? null;
+  const mobilityRate = inHouseholds !== null && movers !== null && inHouseholds > 0 ? Math.min(1, movers / inHouseholds) : null;
 
   const rates: AreaRates = {
     births: per1000(county?.births, county?.population),
@@ -192,8 +226,9 @@ export function areaProfile(zip: string): AreaProfile {
   return {
     zip,
     county: county ? { fips: county.fips, name: county.name, state: county.state, population: county.population } : null,
+    postalCountyFips: row?.countyFips ?? null,
     countyName: county?.name ?? row?.countyName ?? null,
-    state: state ? { abbr: state.state, name: state.name } : null,
+    state: state ? { abbr: state.state, name: state.name, fips: state.fips } : null,
     households,
     mobilityRate,
     rates,

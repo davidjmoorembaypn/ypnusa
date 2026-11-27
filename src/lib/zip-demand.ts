@@ -150,8 +150,3 @@ export function allZipDemand(): ZipDemandRow[] {
 export function zipDemandCoverage(): number {
   return load().size;
 }
-
-/** The raw Census row behind the estimate, or null when the ZIP code is not in the data. */
-export function zipDemandSourceRow(zip: string): ZipDemandSourceRow | null {
-  return /^\d{5}$/.test(zip) ? (load().get(zip) ?? null) : null;
-}

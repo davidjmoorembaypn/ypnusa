@@ -491,12 +491,16 @@ export function marketingDraftProblems(data: unknown, nmlsId: string | undefined
   return checkMarketingCompliance({ fields, nmlsId });
 }
 
-/** The tool result when a draft fails the advertising check: the problems, and no draft text. */
+/**
+ * The tool result when a draft fails the advertising check: the problems, and no draft text.
+ * What Cerebro does next (reword and try once more) is in its system prompt, because tool output
+ * reaches the model as data it must not take instructions from.
+ */
 function draftNeedsChanges(problems: string[], inputs: string): string {
   return JSON.stringify({
     error: "needs_changes",
     problems,
-    note: `No draft was returned: the wording would break a mortgage advertising rule. Call again with the ${inputs} reworded to leave out what is listed, and tell the officer plainly what you left out and why. A track-record number (years in business, loans closed) cannot be verified here, so leave it out and let the officer add it to the draft themselves. Do not write the flagged wording yourself.`,
+    note: `No draft was made: the wording built from the ${inputs} breaks a mortgage advertising rule.`,
   });
 }
 

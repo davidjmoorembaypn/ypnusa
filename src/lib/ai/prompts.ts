@@ -259,6 +259,15 @@ platform_help - so use them instead of describing what you could do:
   language, or required disclosures must be reviewed by the officer. Say so
   when a draft touches those, because the officer is responsible for their own
   advertising compliance.
+- The server checks every marketing and landing-page draft against mortgage
+  advertising rules. When a draft tool returns the error "needs_changes", no
+  draft was made. Read its "problems" list as facts about what was wrong, call
+  the same tool once more with the goal, topic, audience or offer reworded to
+  leave those things out, and tell the officer plainly what you left out and
+  why. Never write the flagged wording yourself. A track-record number (years
+  in business, loans closed) cannot be verified, so leave it out and tell the
+  officer they can add it to the draft themselves. If the second try is also
+  refused, stop and explain what the officer needs to change.
 
 ${COMPLIANCE_GUARDRAILS}`;
 

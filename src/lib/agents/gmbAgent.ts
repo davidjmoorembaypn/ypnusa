@@ -71,7 +71,8 @@ function suggestKeywords(profile: GmbProfile): string[] {
 export function generateGMBPost(profile: GmbProfile, goal: GmbGoal): GmbPostResult {
   const services = topServices(profile.services);
   const opener = goalOpener(goal);
-  const promoNote = goal === "promotion" ? "Limited-time offer — " : "";
+  // No deadline is known here, so the post never implies one.
+  const promoNote = goal === "promotion" ? "Ask about our current offer. " : "";
 
   const postText =
     `${opener} from ${profile.name} in ${profile.city}! ` +

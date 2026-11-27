@@ -246,6 +246,25 @@ describe("executeMloTool", () => {
     const urgency = await draft({ kind: "gmb_post", goal: "update", city: "Dinuba", businessName: "Act now Mortgage" });
     assert.equal(urgency.error, "needs_changes");
 
+    // A payment amount with the words before the figure, and urgency written with a hyphen.
+    const payment = await draft({ kind: "ad_copy", goal: "Monthly payments starting at $1,200" });
+    assert.equal(payment.error, "needs_changes");
+    assert.ok(payment.problems.some((problem: string) => /payment or down-payment dollar amounts/.test(problem)));
+    const hyphen = await draft({ kind: "social_post", goal: "Share our limited-time refinance review" });
+    assert.equal(hyphen.error, "needs_changes");
+    assert.equal(marketingDraftProblems({ body: "Call before it's gone, while supplies last." }, undefined).length, 1);
+    assert.deepEqual(marketingDraftProblems({ body: "Your payment depends on the loan you choose. Homes here start around $350,000." }, undefined), []);
+
+    // The built-in templates carry no urgency of their own, whatever the goal.
+    const promo = await draft({ kind: "gmb_post", goal: "promotion", gmbGoal: "promotion", city: "Dinuba", businessName: "Valley Home Loans" });
+    assert.equal(promo.draftOnly, true);
+    assert.doesNotMatch(promo.result.postText, /limited/i);
+    const zipAd = await draft({ kind: "ad_copy", goal: "Tell loan officers to claim a ZIP code" });
+    assert.equal(zipAd.draftOnly, true);
+    assert.doesNotMatch(JSON.stringify(zipAd.result), /before it's gone/i);
+    const zipPage = JSON.parse(await executeMloTool({ toolName: "draft_landing_page", input: { goal: "claim a ZIP code", offer: "a local page for your market" } }, ctx));
+    assert.equal(zipPage.draftOnly, true);
+
     // The same request, reworded, goes through and still gets the officer's disclosures.
     const clean = await draft({ kind: "social_post", goal: "Invite buyers to ask about their loan options" });
     assert.equal(clean.draftOnly, true);

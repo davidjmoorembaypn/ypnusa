@@ -171,6 +171,8 @@ const nextConfig: NextConfig = {
       })),
       // WordPress addresses Search Console still lists that 404ed (checked 2026-11-17).
       // Junk pages (test posts, form-plugin screens) stay 404 so Google drops them.
+      // People type /compliance looking for the licensing page (it 404ed until 2026-11-27).
+      { source: "/compliance", destination: "/licensing-disclosures", permanent: true },
       { source: "/about-us", destination: "/about", permanent: true },
       { source: "/contact-3", destination: "/contact", permanent: true },
       { source: "/cart", destination: "/pricing", permanent: true },

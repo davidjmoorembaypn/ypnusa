@@ -6,6 +6,22 @@ import { TrackedLink } from "@/components/tracked-link";
 import { faqJsonLd, jsonLdScript } from "@/lib/seo";
 import { MARKETING_SITE_URL, marketingUrl } from "@/lib/site";
 import type { ProgramContent } from "@/content/mortgage-programs";
+import { coerceLoanProgram } from "@/lib/programs";
+
+/**
+ * Where a borrower goes to reach a loan officer: the intake form. Not /consultation, which is
+ * the sales page for loan officers buying the platform. One source tag for every program page.
+ */
+export const BORROWER_INTAKE_HREF = "/embed/intake?funnelSource=mortgage-loans";
+
+/**
+ * The intake form opened on the program the borrower was reading about. A page whose program is
+ * not one of the form's own (bank statement loans) opens it on the default.
+ */
+export function borrowerIntakeHref(program?: string): string {
+  const lane = coerceLoanProgram(program);
+  return lane ? `${BORROWER_INTAKE_HREF}&program=${lane.toLowerCase()}` : BORROWER_INTAKE_HREF;
+}
 
 /**
  * Body of a loan program page (/mortgage-loans/fha, /mortgage-loans/bank-statement, ...).
@@ -115,17 +131,17 @@ export function ProgramPage({
           Talk through {content.label.toLowerCase()} with a licensed loan officer
         </h2>
         <p className="mt-2 text-sm leading-6 text-white/70">
-          Get a straight answer on whether this program fits your situation. A consultation is free
-          and carries no obligation.
+          Answer a few questions and a licensed loan officer will follow up on whether this program
+          fits your situation. It is free and carries no obligation.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <TrackedLink
-            href="/consultation"
+            href={borrowerIntakeHref(program)}
             event="generate_lead_click"
             eventParams={{ source: "program_page", program }}
             className="inline-flex rounded-full bg-white px-6 py-3 text-sm font-bold text-[#17152f] transition hover:bg-violet-100"
           >
-            Book a free consultation
+            Start with a few questions
           </TrackedLink>
           <TrackedLink
             href="/pricing"
@@ -173,7 +189,7 @@ export function ProgramPage({
         <Link href="/mortgage-loans/tools" className="text-violet-300 underline hover:text-violet-200">
           MLO portal tools
         </Link>
-        <Link href="/consultation" className="text-violet-300 underline hover:text-violet-200">
+        <Link href={borrowerIntakeHref(program)} className="text-violet-300 underline hover:text-violet-200">
           Talk to a loan officer
         </Link>
       </div>

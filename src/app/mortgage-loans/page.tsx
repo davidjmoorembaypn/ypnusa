@@ -3,6 +3,7 @@ import { SiloNav } from "@/components/silo-nav";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { MortgageLoansFinancialProductSchema } from "@/components/seo/silo-schema";
+import { BORROWER_INTAKE_HREF } from "@/components/program-page";
 import { PROGRAM_LIST } from "@/lib/programs";
 import { PROGRAM_CONTENT } from "@/content/mortgage-programs";
 import { marketingUrl } from "@/lib/site";
@@ -81,7 +82,7 @@ export default function MortgageLoansPage() {
       <SiloNav silo="mortgage" currentPath="/mortgage-loans" className="mt-10" />
 
       <p className="mt-8 text-sm">
-        <Link href="/consultation" className="text-violet-300 underline hover:text-violet-200">
+        <Link href={BORROWER_INTAKE_HREF} className="text-violet-300 underline hover:text-violet-200">
           Talk to a licensed loan officer
         </Link>
       </p>

@@ -55,6 +55,8 @@ export function MortgageIntakeChat(props: {
   prefillZip?: string;
   /** ?lo= from a loan officer's /lo/[slug] page, so the lead routes to that officer. */
   officerSlug?: string;
+  /** ?program= from a loan program page: the lane a new session starts on (default FHA). A resumed session keeps its own. */
+  initialProgram?: LoanProgram;
 }) {
   const brand = props.brand ?? "loanpilot";
   const variant = props.variant ?? "fab";
@@ -70,7 +72,7 @@ export function MortgageIntakeChat(props: {
   }`;
   const LANE_STORAGE_KEY = `${STORAGE_KEY}_lane`;
 
-  const [loanProgram, setLoanProgram] = useState<LoanProgram>("FHA");
+  const [loanProgram, setLoanProgram] = useState<LoanProgram>(props.initialProgram ?? "FHA");
   /** The lane locks on the first borrower answer, not on session creation. */
   const [laneLocked, setLaneLocked] = useState(false);
   const [open, setOpen] = useState(variant !== "fab");
@@ -80,7 +82,7 @@ export function MortgageIntakeChat(props: {
   );
   const sessionIdRef = useRef<string | null>(null);
   /** Ticks read the lane from a ref so a resumed session never posts a stale program. */
-  const loanProgramRef = useRef<LoanProgram>("FHA");
+  const loanProgramRef = useRef<LoanProgram>(props.initialProgram ?? "FHA");
 
   const hasHydratedFsRef = useRef(false);
   const embedBootedRef = useRef(false);
@@ -1037,7 +1039,7 @@ export function LoanPilotFloatingIntake(props: { funnelSource?: string }) {
   return <MortgageIntakeChat brand="loanpilot" variant="fab" funnelSource={props.funnelSource} />;
 }
 
-export function YpnEmbedIntake(props: { funnelSource?: string; prefillZip?: string; officerSlug?: string }) {
+export function YpnEmbedIntake(props: { funnelSource?: string; prefillZip?: string; officerSlug?: string; initialProgram?: LoanProgram }) {
   return (
     <MortgageIntakeChat
       brand="ypn"
@@ -1045,6 +1047,7 @@ export function YpnEmbedIntake(props: { funnelSource?: string; prefillZip?: stri
       funnelSource={props.funnelSource}
       prefillZip={props.prefillZip}
       officerSlug={props.officerSlug}
+      initialProgram={props.initialProgram}
     />
   );
 }

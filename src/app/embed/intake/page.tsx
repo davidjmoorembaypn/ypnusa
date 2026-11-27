@@ -2,6 +2,7 @@ import { YpnEmbedIntake } from "@/components/loanpilot-floating-assistant";
 import { EmbedAttribution } from "@/components/embed/embed-attribution";
 import { parseFunnelSourceParam } from "@/lib/local-seo";
 import { findPublicOfficerPage, shortIdFromSlug } from "@/lib/officer-profile";
+import { coerceLoanProgram } from "@/lib/programs";
 
 // Reads ?zip=/?lo= and the officer's live plan state on every request.
 export const dynamic = "force-dynamic";
@@ -28,8 +29,9 @@ export default async function EmbedIntakePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   // Borrower CTAs tag their leads: local ZIP code pages pass ?funnelSource= and ?zip=,
-  // loan officer pages (/lo/[slug]) also pass ?lo= so the lead routes to that officer.
-  const { funnelSource, zip, lo } = await searchParams;
+  // loan officer pages (/lo/[slug]) also pass ?lo= so the lead routes to that officer, and loan
+  // program pages pass ?program= so the form starts on the program the borrower was reading about.
+  const { funnelSource, zip, lo, program } = await searchParams;
   const officerSlug = parseOfficerParam(lo);
   // When the borrower came from a live officer page, disclose that officer's NMLS ID.
   const officerPage = officerSlug ? findPublicOfficerPage(officerSlug) : null;
@@ -46,6 +48,7 @@ export default async function EmbedIntakePage({
           funnelSource={parseFunnelSourceParam(funnelSource)}
           prefillZip={parseZipParam(zip)}
           officerSlug={officerPage ? officerSlug : undefined}
+          initialProgram={coerceLoanProgram(firstParam(program))}
         />
       </div>
       <p className="mt-2 max-w-lg text-center text-[10px] leading-4 text-slate-500">

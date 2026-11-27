@@ -63,7 +63,7 @@ export function EmailLoginForm({ next }: { next: string }) {
         autoComplete="email"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
-        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:border-[#13254a] focus:outline-none focus:ring-2 focus:ring-[#13254a]/20"
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-500 focus:border-[#13254a] focus:outline-none focus:ring-2 focus:ring-[#13254a]/20"
         placeholder="you@yourcompany.com"
       />
       {error && (

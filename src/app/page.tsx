@@ -199,21 +199,29 @@ export default function Home() {
         <div className="absolute inset-0 -z-10">
           <HeroVideo />
         </div>
-        <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-12 sm:px-8 sm:py-16 lg:min-h-[35rem] lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-14 lg:px-14 lg:py-20">
-          <div data-cerebro-avoid="" className="max-w-lg [text-shadow:0_1px_3px_rgb(2_6_23/0.9),0_2px_18px_rgb(2_6_23/0.7)]">
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-6 px-4 py-12 sm:px-8 sm:py-16 lg:min-h-[35rem] lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-x-14 lg:gap-y-5 lg:px-14 lg:py-20">
+          <div data-cerebro-avoid="" className="max-w-lg [text-shadow:0_1px_3px_rgb(2_6_23/0.9),0_2px_18px_rgb(2_6_23/0.7)] lg:col-start-1 lg:row-start-1 lg:self-end">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-100">
               For licensed mortgage loan officers nationwide
             </p>
             <h1 className="mt-3 text-balance text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl">
               {liveHeadline("/") ?? HOMEPAGE_HEADLINE}{" "}
-              <span className="text-violet-200">Let Cerebro answer your borrowers 24/7.</span>
+              <span className="text-violet-200">Cerebro answers your borrowers 24/7.</span>
             </h1>
 
             <p className="mt-4 max-w-md text-base font-medium leading-7 text-white">
-              Cerebro, your AI assistant, answers and qualifies borrowers on your pages day and night, then hands the ready
-              ones to you. The leads it captures stay yours, even if you switch brokerages.
+              Cerebro, your AI assistant, answers and qualifies borrowers day and night and hands the ready ones to you.
+              Leads stay yours, even if you switch brokerages.
             </p>
-            <ul className="mt-4 flex max-w-md flex-wrap gap-x-4 gap-y-1.5 text-[13px] font-semibold text-white" aria-label="How the ZIP code works">
+          </div>
+
+          <div id="claim" className="relative w-full max-w-sm scroll-mt-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+            <TerritoryClaim source="hero" />
+          </div>
+
+          {/* After the ZIP code card on phones (so the card stays near the top), under the copy on desktop. */}
+          <div data-cerebro-avoid="" className="max-w-lg [text-shadow:0_1px_3px_rgb(2_6_23/0.9),0_2px_18px_rgb(2_6_23/0.7)] lg:col-start-1 lg:row-start-2 lg:self-start">
+            <ul className="flex max-w-md flex-wrap gap-x-4 gap-y-1.5 text-[13px] font-semibold text-white" aria-label="How the ZIP code works">
               {HERO_TRUST.map((item) => (
                 <li key={item} className="flex items-center gap-1.5">
                   <span aria-hidden className="text-emerald-300">✓</span>
@@ -221,7 +229,7 @@ export default function Home() {
                 </li>
               ))}
             </ul>
-            <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1">
+            <p className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
               <TrackedAnchor href={FREE_SIGNUP_HREF} cta="hero_start_free" className="inline-flex min-h-11 items-center font-semibold text-white underline decoration-amber-300 underline-offset-4 hover:text-amber-100">
                 Start free, no card required
               </TrackedAnchor>
@@ -231,9 +239,6 @@ export default function Home() {
             </p>
           </div>
 
-          <div id="claim" className="relative w-full max-w-sm scroll-mt-24">
-            <TerritoryClaim source="hero" />
-          </div>
         </div>
       </section>
 

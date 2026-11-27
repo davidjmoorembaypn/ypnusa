@@ -8,7 +8,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-cerebro-queue-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
 import { dispatchCerebroMessages } from "./cerebro-dispatch";
-import { cerebroSendsIt, decideQueuedAction, MAX_EDITED_BODY, officerForEmail, queueViewFor } from "./cerebro-queue";
+import { cerebroSendsIt, decideQueuedAction, MAX_EDITED_BODY, needsOfficer, officerForEmail, queueViewFor } from "./cerebro-queue";
 import { appendBorrowerLead, readDb, saveCerebroAction, writeDb } from "./db";
 import type { SendEmailInput } from "./email";
 import { generateId } from "./id";
@@ -198,5 +198,78 @@ describe("the approval queue", () => {
     const long = queue(officer.id, addLead(officer.id), { kind: "callback_request", channel: "phone" });
     const capped = decideQueuedAction({ officer, actionId: long.id, decision: "approve", editedBody: "x".repeat(MAX_EDITED_BODY + 50) });
     assert.ok(capped.ok && capped.finalText.length === MAX_EDITED_BODY);
+  });
+
+  it("does not email a draft the officer dismissed while the sender was mid-pass", async () => {
+    const officer = addOfficer({ cerebroReplyMode: "live" });
+    const first = queue(officer.id, addLead(officer.id), { subject: "First one" });
+    const second = queue(officer.id, addLead(officer.id), { subject: "Second one" });
+
+    const sent: SendEmailInput[] = [];
+    await dispatchCerebroMessages(noon, async (input) => {
+      sent.push(input);
+      // While the first email is going out, the officer dismisses the second.
+      if (input.subject === "First one") {
+        assert.ok(decideQueuedAction({ officer, actionId: second.id, decision: "dismiss" }).ok);
+      }
+      return { sent: true };
+    });
+    assert.deepEqual(sent.map((input) => input.subject).filter((subject) => subject === "First one" || subject === "Second one"), ["First one"]);
+    assert.equal(stored(first.id)?.status, "sent");
+    assert.equal(stored(second.id)?.status, "dismissed");
+  });
+
+  it("will not approve a draft that was rewritten after the officer's page loaded", () => {
+    const officer = addOfficer();
+    const action = queue(officer.id, addLead(officer.id));
+    const seen = queueViewFor(officer).waiting.find((item) => item.id === action.id)?.version;
+    assert.equal(seen, action.updatedAt);
+
+    // The borrower changes their request: same item, new wording.
+    saveCerebroAction({ ...action, body: "Hi Sam, new wording the officer has not read.", updatedAt: "2026-11-20T21:00:00.000Z" });
+    assert.deepEqual(decideQueuedAction({ officer, actionId: action.id, decision: "approve", seenVersion: seen }), { ok: false, code: "CHANGED" });
+    assert.equal(stored(action.id)?.status, "awaiting_approval");
+
+    const fresh = queueViewFor(officer).waiting.find((item) => item.id === action.id)?.version;
+    assert.ok(decideQueuedAction({ officer, actionId: action.id, decision: "approve", seenVersion: fresh }).ok);
+  });
+
+  it("shows a call script Cerebro put on hold, and leaves it alone once the officer approves it", async () => {
+    const officer = addOfficer({ cerebroReplyMode: "live" });
+    const script = queue(officer.id, addLead(officer.id), { channel: "phone", body: "Call Sam back about buying a home in Visalia." });
+
+    // Cerebro cannot make the call, so its sender puts the script on hold.
+    await dispatchCerebroMessages(noon, async () => ({ sent: true }));
+    assert.equal(stored(script.id)?.status, "held");
+    assert.equal(needsOfficer(stored(script.id)!), true);
+
+    const view = queueViewFor(officer);
+    const item = view.waiting.find((entry) => entry.id === script.id);
+    assert.ok(item && item.cerebroSends === false && item.needsYou === undefined);
+    assert.equal(view.waitingToSend, 0);
+
+    const result = decideQueuedAction({ officer, actionId: script.id, decision: "approve", seenVersion: item.version, now: noon });
+    assert.ok(result.ok && result.finalText === script.body);
+    await dispatchCerebroMessages(noon, async () => ({ sent: true }));
+    assert.equal(stored(script.id)?.status, "approved");
+    assert.equal(queueViewFor(officer).waiting.some((entry) => entry.id === script.id), false);
+
+    // An email held for quiet hours is not the officer's to handle.
+    assert.equal(needsOfficer({ status: "held", channel: "email" }), false);
+  });
+
+  it("lets the officer fix a subject line that breaks a rule", () => {
+    const officer = addOfficer();
+    const action = queue(officer.id, addLead(officer.id), { subject: "Following up on rates at 5.25%" });
+    const blocked = decideQueuedAction({ officer, actionId: action.id, decision: "approve" });
+    assert.ok(!blocked.ok && blocked.code === "NEEDS_CHANGES");
+
+    assert.ok(decideQueuedAction({ officer, actionId: action.id, decision: "approve", editedSubject: "  Following up on\nyour   question  " }).ok);
+    assert.equal(stored(action.id)?.subject, "Following up on your question");
+
+    // An item with no subject (a call script) never gains one.
+    const call = queue(officer.id, addLead(officer.id), { kind: "callback_request", channel: "phone", subject: undefined });
+    assert.ok(decideQueuedAction({ officer, actionId: call.id, decision: "approve", editedSubject: "Not used" }).ok);
+    assert.equal(stored(call.id)?.subject, undefined);
   });
 });

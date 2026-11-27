@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { decideQueuedAction, MAX_EDITED_BODY, officerForEmail } from "@/lib/cerebro-queue";
+import { decideQueuedAction, MAX_EDITED_BODY, MAX_EDITED_SUBJECT, officerForEmail } from "@/lib/cerebro-queue";
 import { isRecord, jsonError, logApiError, parseJsonBody } from "@/lib/http";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -10,12 +10,13 @@ export const dynamic = "force-dynamic";
 const noStore = { headers: { "Cache-Control": "no-store" } };
 
 /**
- * POST /api/cerebro/approvals { actionId, decision: "approve" | "dismiss", body? }
+ * POST /api/cerebro/approvals { actionId, version, decision: "approve" | "dismiss", body?, subject? }
  *
  * The signed-in loan officer approves or dismisses one item Cerebro drafted for them, from
  * /dashboard/approvals. The officer comes from the session, never from the request, so one
  * officer cannot decide another's item. Approving an email does not send it here: Cerebro's
  * sender picks it up within five minutes and runs the consent and compliance checks again.
+ * `version` is the one the page showed: if the draft was rewritten since, nothing is decided.
  */
 export async function POST(request: Request) {
   const session = await getSession();
@@ -31,11 +32,16 @@ export async function POST(request: Request) {
   try {
     const parsed = await parseJsonBody(request);
     if (!parsed.ok || !isRecord(parsed.data)) return jsonError("Nothing to decide.", 400, "INVALID_BODY");
-    const { actionId, decision, body } = parsed.data;
+    const { actionId, version, decision, body, subject } = parsed.data;
     if (typeof actionId !== "string" || !actionId || (decision !== "approve" && decision !== "dismiss")) {
       return jsonError("Nothing to decide.", 400, "INVALID_BODY");
     }
+    if (typeof version !== "string" || !version) return jsonError("Nothing to decide.", 400, "INVALID_BODY");
     if (body !== undefined && typeof body !== "string") return jsonError("Nothing to decide.", 400, "INVALID_BODY");
+    if (subject !== undefined && typeof subject !== "string") return jsonError("Nothing to decide.", 400, "INVALID_BODY");
+    if (typeof subject === "string" && subject.length > MAX_EDITED_SUBJECT) {
+      return jsonError(`Keep the subject under ${MAX_EDITED_SUBJECT} characters.`, 400, "SUBJECT_TOO_LONG");
+    }
     if (typeof body === "string" && body.length > MAX_EDITED_BODY) {
       return jsonError(`Keep the message under ${MAX_EDITED_BODY} characters.`, 400, "BODY_TOO_LONG");
     }
@@ -43,7 +49,14 @@ export async function POST(request: Request) {
     const officer = officerForEmail(session.email);
     if (!officer) return jsonError("Finish your profile first.", 409, "NO_OFFICER_PROFILE");
 
-    const result = decideQueuedAction({ officer, actionId: actionId.slice(0, 120), decision, editedBody: body });
+    const result = decideQueuedAction({
+      officer,
+      actionId: actionId.slice(0, 120),
+      decision,
+      editedBody: body,
+      editedSubject: subject,
+      seenVersion: version,
+    });
     if (result.ok) return NextResponse.json({ ok: true, decision: result.decision, cerebroSends: result.cerebroSends }, noStore);
     if (result.code === "NEEDS_CHANGES") {
       return NextResponse.json(
@@ -58,6 +71,9 @@ export async function POST(request: Request) {
       );
     }
     if (result.code === "ALREADY_DECIDED") return jsonError("That one was already handled.", 409, "ALREADY_DECIDED");
+    if (result.code === "CHANGED") {
+      return jsonError("This draft changed after the page loaded. Reload the page to see the current wording.", 409, "CHANGED");
+    }
     return jsonError("That item is no longer in your queue.", 404, "NOT_FOUND");
   } catch (error) {
     logApiError("/api/cerebro/approvals", error);

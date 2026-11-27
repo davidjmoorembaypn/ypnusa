@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ApprovalItem } from "@/components/portal/approval-item";
 import { SessionBar } from "@/components/session-bar";
 import { requireSession } from "@/lib/auth";
-import { MAX_EDITED_BODY, officerForEmail, QUEUE_KIND_LABEL, queueViewFor } from "@/lib/cerebro-queue";
+import { MAX_EDITED_BODY, MAX_EDITED_SUBJECT, officerForEmail, QUEUE_KIND_LABEL, queueViewFor } from "@/lib/cerebro-queue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,8 +85,9 @@ export default async function DashboardApprovalsPage() {
                 <ul className="mt-4 flex flex-col gap-4">
                   {[...view.waiting].reverse().map((item) => (
                     <ApprovalItem
-                      key={item.id}
+                      key={`${item.id}-${item.version}`}
                       id={item.id}
+                      version={item.version}
                       kindLabel={QUEUE_KIND_LABEL[item.kind]}
                       borrower={item.borrower}
                       channelLabel={CHANNEL_LABEL[item.channel]}
@@ -97,6 +98,7 @@ export default async function DashboardApprovalsPage() {
                       body={item.body}
                       cerebroSends={item.cerebroSends}
                       maxLength={MAX_EDITED_BODY}
+                      maxSubjectLength={MAX_EDITED_SUBJECT}
                     />
                   ))}
                 </ul>

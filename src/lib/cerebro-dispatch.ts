@@ -107,6 +107,9 @@ export function decideDispatch(
 ): DispatchDecision {
   if (!AUTO_SEND_KINDS.has(action.kind) || action.status === "dismissed" || action.status === "sent") return { action: "skip" };
   const approved = action.status === "approved" || Boolean(action.approvedAt);
+  // Cerebro cannot send a text or make a call. Once the officer has approved one it is theirs to
+  // send, so it is never put back on hold.
+  if (approved && action.channel !== "email") return { action: "skip" };
   const live = replyModeFor(officer) === "live";
   // Waiting on the officer: either they asked to approve first, or it was sent back with a reason.
   if (action.status === "awaiting_approval" && (!live || action.holdReason)) return { action: "skip" };
@@ -170,8 +173,12 @@ export async function dispatchCerebroMessages(now = new Date(), send: typeof sen
   const result: DispatchResult = { sent: 0, held: 0, toOfficer: 0 };
   const stamp = now.toISOString();
 
-  for (const action of db.cerebroActions) {
+  for (const listed of db.cerebroActions) {
     if (result.sent >= MAX_SENDS_PER_PASS) break;
+    // A pass can take a while (one email at a time), so decide on the record as it is now: the
+    // officer may have dismissed or edited it since the pass began.
+    const action = readDb().cerebroActions.find((item) => item.id === listed.id);
+    if (!action) continue;
     const officer = officerFor(action.loId);
     const decision = decideDispatch(action, leads.get(action.borrowerLeadId), officer, db, now);
     if (decision.action === "skip") continue;

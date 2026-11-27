@@ -606,6 +606,7 @@ function decideQueued(call: AiToolCall, ctx: MloToolContext): string {
   if (!result.ok) {
     if (result.code === "NOT_FOUND") return JSON.stringify({ error: "not_found" });
     if (result.code === "ALREADY_DECIDED") return JSON.stringify({ error: "already_decided", status: result.status });
+    if (result.code === "CHANGED") return JSON.stringify({ error: "changed", note: "The draft changed. Call list_queued_actions again and show the officer the new wording." });
     return JSON.stringify({
       error: "needs_changes",
       problems: result.problems,

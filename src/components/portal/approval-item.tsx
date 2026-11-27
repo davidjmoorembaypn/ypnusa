@@ -4,6 +4,8 @@ import { useId, useState } from "react";
 
 export interface ApprovalItemProps {
   id: string;
+  /** The draft's version when the page loaded; sent back so an unseen rewrite is never approved. */
+  version: string;
   kindLabel: string;
   borrower: string;
   channelLabel: string;
@@ -15,6 +17,7 @@ export interface ApprovalItemProps {
   /** True when approving makes Cerebro email it; false when the officer sends it themselves. */
   cerebroSends: boolean;
   maxLength: number;
+  maxSubjectLength: number;
 }
 
 type Outcome =
@@ -26,7 +29,9 @@ type Outcome =
 /** One draft waiting on the loan officer: read it, change the wording, then approve or dismiss. */
 export function ApprovalItem(props: ApprovalItemProps) {
   const fieldId = useId();
+  const subjectId = useId();
   const [text, setText] = useState(props.body);
+  const [subject, setSubject] = useState(props.subject ?? "");
   const [outcome, setOutcome] = useState<Outcome>({ kind: "idle" });
   const saving = outcome.kind === "saving";
 
@@ -36,7 +41,13 @@ export function ApprovalItem(props: ApprovalItemProps) {
       const response = await fetch("/api/cerebro/approvals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ actionId: props.id, decision, ...(decision === "approve" && text !== props.body ? { body: text } : {}) }),
+        body: JSON.stringify({
+          actionId: props.id,
+          version: props.version,
+          decision,
+          ...(decision === "approve" && text !== props.body ? { body: text } : {}),
+          ...(decision === "approve" && props.subject !== undefined && subject.trim() && subject !== props.subject ? { subject } : {}),
+        }),
       });
       const data: { ok?: boolean; error?: string; problems?: string[] } = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) {
@@ -81,10 +92,21 @@ export function ApprovalItem(props: ApprovalItemProps) {
       </div>
       {props.needsYou ? <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950">{props.needsYou}</p> : null}
       {props.preferredWindow ? <p className="mt-2 text-sm text-slate-700">Best time to reach them: {props.preferredWindow}</p> : null}
-      {props.subject ? (
-        <p className="mt-3 text-sm text-slate-700">
-          <span className="font-semibold">Subject:</span> {props.subject}
-        </p>
+      {props.subject !== undefined ? (
+        <>
+          <label htmlFor={subjectId} className="mt-3 block text-sm font-semibold text-slate-800">
+            Subject
+          </label>
+          <input
+            id={subjectId}
+            type="text"
+            value={subject}
+            onChange={(event) => setSubject(event.target.value)}
+            maxLength={props.maxSubjectLength}
+            disabled={saving}
+            className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm text-slate-900 focus:border-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-200"
+          />
+        </>
       ) : null}
 
       <label htmlFor={fieldId} className="mt-3 block text-sm font-semibold text-slate-800">

@@ -10,6 +10,7 @@ import type { CerebroQueuedActionRecord, LoanOfficerRecord } from "@/lib/types";
  */
 
 export const MAX_EDITED_BODY = 2000;
+export const MAX_EDITED_SUBJECT = 200;
 
 export const QUEUE_KIND_LABEL: Record<CerebroQueuedActionRecord["kind"], string> = {
   callback_request: "Callback request",
@@ -31,6 +32,8 @@ export interface QueueItem {
   subject?: string;
   body: string;
   createdAt: string;
+  /** Changes whenever the draft does. Sent back with a decision so an unseen rewrite is never approved. */
+  version: string;
   /** True when approving makes Cerebro email it; false when the officer sends it themselves. */
   cerebroSends: boolean;
 }
@@ -55,6 +58,16 @@ export function cerebroSendsIt(action: Pick<CerebroQueuedActionRecord, "kind" | 
   return action.channel === "email" && AUTO_SEND_KINDS.has(action.kind);
 }
 
+/**
+ * Waiting on the officer: anything awaiting their approval, plus a text or call script that
+ * Cerebro put on hold because it cannot send those. Without the second part such a script would
+ * sit on hold for good and the borrower would never hear back.
+ */
+export function needsOfficer(action: Pick<CerebroQueuedActionRecord, "status" | "channel" | "approvedAt">): boolean {
+  if (action.status === "awaiting_approval") return true;
+  return action.status === "held" && action.channel !== "email" && !action.approvedAt;
+}
+
 export function officerForEmail(email: string | undefined): LoanOfficerRecord | undefined {
   const wanted = email?.trim().toLowerCase();
   if (!wanted) return undefined;
@@ -68,7 +81,7 @@ export function queueViewFor(officer: LoanOfficerRecord): QueueView {
   return {
     replyMode: officer.cerebroReplyMode === "approve" ? "approve" : "live",
     waiting: mine
-      .filter((action) => action.status === "awaiting_approval")
+      .filter(needsOfficer)
       .slice(-20)
       .map((action) => ({
         id: action.id,
@@ -76,17 +89,19 @@ export function queueViewFor(officer: LoanOfficerRecord): QueueView {
         borrower: borrower(action.borrowerLeadId),
         channel: action.channel,
         preferredWindow: action.preferredWindow,
-        needsYou: action.holdReason,
+        // On an item held because Cerebro cannot send it, the hold note is not something to fix.
+        needsYou: action.status === "awaiting_approval" ? action.holdReason : undefined,
         subject: action.subject,
         body: action.body,
         createdAt: action.createdAt,
+        version: action.updatedAt,
         cerebroSends: cerebroSendsIt(action),
       })),
     recentlySent: mine
       .filter((action) => action.status === "sent")
       .slice(-10)
       .map((action) => ({ borrower: borrower(action.borrowerLeadId), kind: action.kind, subject: action.subject, sentAt: action.sentAt })),
-    waitingToSend: mine.filter((action) => action.status === "held").length,
+    waitingToSend: mine.filter((action) => action.status === "held" && !needsOfficer(action)).length,
   };
 }
 
@@ -96,6 +111,8 @@ export type QueueDecisionResult =
   | { ok: true; decision: QueueDecision; cerebroSends: boolean; finalText: string }
   | { ok: false; code: "NOT_FOUND" }
   | { ok: false; code: "ALREADY_DECIDED"; status: CerebroQueuedActionRecord["status"] }
+  /** The draft was rewritten after the officer's page loaded (a borrower changed their request). Nothing changed. */
+  | { ok: false; code: "CHANGED" }
   /** The wording breaks an advertising rule, so it was not approved. Nothing changed. */
   | { ok: false; code: "NEEDS_CHANGES"; problems: string[] };
 
@@ -114,17 +131,24 @@ export function decideQueuedAction(input: {
   actionId: string;
   decision: QueueDecision;
   editedBody?: string;
+  /** New subject line for an email. Ignored for an item that has no subject. */
+  editedSubject?: string;
+  /** The `version` the officer was looking at. When given and out of date, nothing is decided. */
+  seenVersion?: string;
   now?: Date;
 }): QueueDecisionResult {
   const action = listCerebroActions(input.officer.id).find((item) => item.id === input.actionId);
   if (!action) return { ok: false, code: "NOT_FOUND" };
-  if (action.status !== "awaiting_approval") return { ok: false, code: "ALREADY_DECIDED", status: action.status };
+  if (!needsOfficer(action)) return { ok: false, code: "ALREADY_DECIDED", status: action.status };
+  if (input.seenVersion !== undefined && input.seenVersion !== action.updatedAt) return { ok: false, code: "CHANGED" };
 
   const edited = input.editedBody?.trim().slice(0, MAX_EDITED_BODY);
   const body = edited ? edited : action.body;
+  const editedSubject = input.editedSubject?.replace(/\s+/g, " ").trim().slice(0, MAX_EDITED_SUBJECT);
+  const subject = action.subject !== undefined && editedSubject ? editedSubject : action.subject;
   const cerebroSends = input.decision === "approve" && cerebroSendsIt(action);
   if (cerebroSends) {
-    const problems = checkMarketingCompliance({ fields: { message: `${action.subject ?? ""}\n${body}` }, nmlsId: input.officer.nmlsId });
+    const problems = checkMarketingCompliance({ fields: { message: `${subject ?? ""}\n${body}` }, nmlsId: input.officer.nmlsId });
     if (problems.length) return { ok: false, code: "NEEDS_CHANGES", problems };
   }
 
@@ -133,6 +157,7 @@ export function decideQueuedAction(input: {
     ...action,
     status: input.decision === "approve" ? "approved" : "dismissed",
     body,
+    ...(subject !== undefined ? { subject } : {}),
     ...(input.decision === "approve" ? { approvedAt: stamp } : {}),
     holdReason: undefined,
     updatedAt: stamp,

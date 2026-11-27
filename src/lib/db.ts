@@ -4,6 +4,7 @@ import { openSnapshot, sealSnapshot } from "@/lib/crypto/pii-snapshot";
 import type { Stats } from "fs";
 import path from "path";
 import type {
+  MloDripEnrollmentRecord,
   AccountRecord,
   LoginTokenRecord,
   StarterKitRecord,
@@ -241,6 +242,7 @@ const emptyDb = (): DbShape => ({
   cerebroActions: [],
   siteOverrides: [],
   siteOptimizer: {},
+  mloDrip: { enrollments: [] },
   consents: [],
   smsOptIns: [],
   processedKeys: [],
@@ -309,6 +311,14 @@ function normalize(snapshot: unknown): DbShape {
     cerebroActions: arrayOrEmpty<CerebroQueuedActionRecord>(parsed.cerebroActions),
     siteOverrides: arrayOrEmpty<SiteOverrideRecord>(parsed.siteOverrides),
     siteOptimizer: isPlainRecord(parsed.siteOptimizer) ? (parsed.siteOptimizer as SiteOptimizerState) : {},
+    mloDrip: {
+      ...(isPlainRecord(parsed.mloDrip) && typeof parsed.mloDrip.enabledAt === "string" ? { enabledAt: parsed.mloDrip.enabledAt } : {}),
+      enrollments: arrayOrEmpty<MloDripEnrollmentRecord>(isPlainRecord(parsed.mloDrip) ? parsed.mloDrip.enrollments : undefined).map((item) => ({
+        ...item,
+        sent: arrayOrEmpty<MloDripEnrollmentRecord["sent"][number]>(item.sent),
+        skipped: arrayOrEmpty<MloDripEnrollmentRecord["skipped"][number]>(item.skipped),
+      })),
+    },
     consents: arrayOrEmpty<ConsentRecord>(parsed.consents),
     smsOptIns: arrayOrEmpty<SmsOptInRecord>(parsed.smsOptIns),
     processedKeys: arrayOrEmpty<ProcessedKeyRecord>(parsed.processedKeys),

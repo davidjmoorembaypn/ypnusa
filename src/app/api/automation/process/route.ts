@@ -1,5 +1,6 @@
 import { processDueFollowUps } from "@/lib/automation";
 import { processDueCrmDeliveries } from "@/lib/integrations/crm/link";
+import { processMloDrip } from "@/lib/mlo-drip";
 import { jsonError, jsonOk, logApiError, requireSecret } from "@/lib/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
 
@@ -20,7 +21,9 @@ export async function POST(request: Request) {
 
     const summary = await processDueFollowUps();
     const crm = await processDueCrmDeliveries();
-    return jsonOk({ ...summary, crmDeliveries: crm });
+    // The free-account email series for loan officers (off unless MLO_DRIP_ENABLED=true). Counts only.
+    const mloDrip = await processMloDrip();
+    return jsonOk({ ...summary, crmDeliveries: crm, mloDrip });
   } catch (error) {
     logApiError("/api/automation/process", error);
     return jsonError("Automation processing failed.", 500, "AUTOMATION_PROCESS_FAILED");

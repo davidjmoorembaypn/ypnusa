@@ -1,8 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { generateId } from "@/lib/id";
 import { bookAppointment, listSyncedAvailableSlots } from "@/lib/calendar";
-import { readAgentOnboarding, readChatSession, readDb, saveChatSession, writeDb } from "@/lib/db";
+import { cancelPendingFollowUps, readAgentOnboarding, readChatSession, readDb, saveChatSession, writeDb } from "@/lib/db";
+import { latestConsent, recordOptOutAllChannels } from "@/lib/consent";
 import { normalizeEmail } from "@/lib/accounts";
+import { CHAT_LEAD_JOURNEY_PLANS, chatLeadJourneyEnabled, scheduleBorrowerJourney } from "@/lib/automation";
 import { findZipOwnerSubscription, HOUSE_OFFICER_ID, logCrmActivity, routeLead } from "@/lib/crm";
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import { emailNewLeadAlert, notifyAssignedOfficer } from "@/lib/notifications";
@@ -767,6 +769,21 @@ function inferLeadQuality(score: number | undefined): LeadQuality {
 }
 
 /**
+ * A borrower who said yes to being contacted and then, later in the same chat, says no. The lead
+ * and its consent record already exist by then, so the change of mind has to be written to the
+ * consent record too: that record, not the chat, is what every send checks. Also drops anything
+ * already queued for them. Does nothing unless the chat's latest answer is a clear no, and
+ * records it once.
+ */
+function recordChatConsentWithdrawal(session: ChatSessionRecord): void {
+  const leadId = session.borrowerLeadId;
+  if (!leadId || session.capturedFields.consent !== false) return;
+  const latest = latestConsent(readDb(), leadId, "email");
+  if (!latest || latest.granted) recordOptOutAllChannels(leadId, `chat_assistant:${session.id}`);
+  cancelPendingFollowUps(leadId);
+}
+
+/**
  * Hands a qualified lead_qualification session off into the same deterministic
  * borrower-lead / CRM store the manual intake flow uses, so an MLO sees it
  * alongside every other lead. Chat-captured fields don't map to the full
@@ -777,6 +794,7 @@ function inferLeadQuality(score: number | undefined): LeadQuality {
  * never creates a second borrower/CRM lead for the same session.
  */
 export function linkQualifiedLead(session: ChatSessionRecord): void {
+  recordChatConsentWithdrawal(session);
   if (session.status !== "qualified") return;
   if (session.borrowerLeadId || session.crmLeadId) return;
 
@@ -835,6 +853,21 @@ export function linkQualifiedLead(session: ChatSessionRecord): void {
     answers,
     qualification,
   });
+
+  // Scheduled follow-up emails, as form leads get (off unless the server turns it on). Queued
+  // only with the borrower's consent and an email address; each one is checked again for
+  // consent, opt-out, a booked call, licensing and advertising rules when it comes due
+  // (src/lib/automation.ts, src/lib/outreach.ts). A failure here never loses the lead.
+  // The emails are about a home loan, so only someone buying or refinancing gets them. A ZIP
+  // code is required because it is how each email is checked against the states the officer is
+  // licensed in; a lead that named a state but no ZIP code gets none.
+  if (chatLeadJourneyEnabled() && (f.leadType === "buyer" || f.leadType === "refinance") && /^\d{5}$/.test(f.zip?.trim() ?? "")) {
+    try {
+      scheduleBorrowerJourney(result.borrowerLeadId, answers, { plans: CHAT_LEAD_JOURNEY_PLANS });
+    } catch (error) {
+      console.error("[chat-agent] could not schedule the chat lead's follow-ups", error);
+    }
+  }
 }
 
 /**

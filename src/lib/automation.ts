@@ -123,9 +123,34 @@ const nurtureCopy: Record<FollowUpPlan, string> = {
   day_90_check_in: "90-day mortgage game-plan refresh.",
 };
 
+/**
+ * The follow-up emails a lead captured in a Cerebro chat gets, when the server setting below is
+ * on. A subset of the form journey:
+ * - No instant email or text: the chat itself answered the borrower, and Cerebro may already
+ *   have queued its own first reply.
+ * - No texts at all, so a chat lead is only ever emailed.
+ * - Not the day-5 "timing and rates can change quickly" email.
+ */
+export const CHAT_LEAD_JOURNEY_PLANS: readonly FollowUpPlan[] = [
+  "day_1_educational_email",
+  "day_3_book_call_email",
+  "day_30_check_in",
+  "day_60_check_in",
+  "day_90_check_in",
+];
+
+/**
+ * Off unless the server sets CHAT_LEAD_JOURNEY_ENABLED=true. Chat leads were never emailed on a
+ * schedule before, so turning this on raises how many emails go out.
+ */
+export function chatLeadJourneyEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.CHAT_LEAD_JOURNEY_ENABLED?.trim().toLowerCase() === "true";
+}
+
 export function scheduleBorrowerJourney(
   borrowerLeadId: string,
   answers: BorrowerAnswers,
+  options?: { /** Only these steps are queued. Default: the whole journey. */ plans?: readonly FollowUpPlan[] },
 ): ScheduledFollowUpRecord[] {
   if (answers.contactConsent !== true) return [];
 
@@ -144,7 +169,10 @@ export function scheduleBorrowerJourney(
     "day_60_check_in",
     "day_90_check_in",
   ];
-  const plans = allPlans.filter((plan) => (plan === "immediate_sms_ack" ? Boolean(phone) : Boolean(email)));
+  const wanted = options?.plans;
+  const plans = allPlans
+    .filter((plan) => !wanted || wanted.includes(plan))
+    .filter((plan) => (plan === "immediate_sms_ack" ? Boolean(phone) : Boolean(email)));
   if (plans.length === 0) return [];
 
   const anchor = Date.now();

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { entitlementForEmail, normalizeEmail } from "@/lib/accounts";
 import { BUSINESS_EMAIL } from "@/lib/author";
-import { readDb, writeDb, writeDbDurably } from "@/lib/db";
+import { readDb, StoreNotDurableError, writeDb, writeDbDurably } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { getPublicBusinessProfile } from "@/lib/local-seo";
 import { getPricingTier, PLAN_ENTITLEMENTS, TRIAL_DAYS } from "@/lib/pricing";
@@ -9,6 +9,7 @@ import { signValue, verifySignedValue } from "@/lib/session";
 import { checkLedgerTerritory } from "@/lib/territory-ledger";
 import { MARKETING_SITE_URL } from "@/lib/site";
 import type { MloDripEnrollmentRecord, MloDripStepId } from "@/lib/types";
+import type { UnsubscribeOutcome } from "@/lib/unsubscribe";
 import { DEMAND_ESTIMATE_LABEL, estimateZipDemand } from "@/lib/zip-demand";
 
 /**
@@ -70,13 +71,15 @@ export const mloDripOneClickUrl = (enrollmentId: string) => link("/api/unsubscri
 
 /**
  * Stops the series for the address behind this enrollment when the signed link checks out.
- * Returns false for a bad or unknown link without saying which.
+ * "invalid" for a bad or unknown link without saying which; "not_saved" when the link is good but
+ * the data file could not be written (see UnsubscribeOutcome).
  */
-export function unsubscribeMloDrip(enrollmentId: string, token: string): boolean {
-  if (!/^[\w-]{1,80}$/.test(enrollmentId) || !token || !verifySignedValue(`mlo-drip-unsub:${enrollmentId}`, token)) return false;
+export function unsubscribeMloDrip(enrollmentId: string, token: string): UnsubscribeOutcome {
+  if (!/^[\w-]{1,80}$/.test(enrollmentId) || !token || !verifySignedValue(`mlo-drip-unsub:${enrollmentId}`, token)) return "invalid";
   let found = false;
   // Confirmed only once it is on disk. An opt-out that stayed in memory would be lost on a
-  // restart and the emails would start again, so a failed write reports failure to the person.
+  // restart and the emails would start again, so a failed write is reported as not saved.
+  // A retry writes the snapshot again even when memory already says "unsubscribed".
   try {
     writeDbDurably((db) => {
       const enrollment = db.mloDrip.enrollments.find((item) => item.id === enrollmentId);
@@ -88,10 +91,12 @@ export function unsubscribeMloDrip(enrollmentId: string, token: string): boolean
         delete enrollment.sending;
       }
     });
-  } catch {
-    return false;
+  } catch (error) {
+    // An unknown enrollment stays "invalid"; any other failure (the write, or reading the store)
+    // asks the person to try again rather than telling them the link is bad.
+    return error instanceof StoreNotDurableError && !found ? "invalid" : "not_saved";
   }
-  return found;
+  return found ? "unsubscribed" : "invalid";
 }
 
 // --- The emails ----------------------------------------------------------------------------------

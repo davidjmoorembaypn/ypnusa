@@ -188,11 +188,11 @@ describe("free-account email series for loan officers", () => {
     const id = enrollmentFor("leaver@example.com").id;
     const token = new URL(mloDripUnsubscribeUrl(id)).searchParams.get("t") as string;
 
-    assert.equal(unsubscribeMloDrip(id, "wrong-token"), false);
-    assert.equal(unsubscribeMloDrip("mdrip_unknown", token), false);
+    assert.equal(unsubscribeMloDrip(id, "wrong-token"), "invalid");
+    assert.equal(unsubscribeMloDrip("mdrip_unknown", token), "invalid");
     assert.equal(enrollmentFor("leaver@example.com").status, "active");
 
-    assert.equal(unsubscribeMloDrip(id, token), true);
+    assert.equal(unsubscribeMloDrip(id, token), "unsubscribed");
     assert.equal(enrollmentFor("leaver@example.com").status, "unsubscribed");
     await run(3.6);
     await run(6.6);
@@ -202,11 +202,42 @@ describe("free-account email series for loan officers", () => {
     assert.equal(readDb().accounts.some((item) => item.email === "leaver@example.com"), true);
   });
 
+  it("never confirms an unsubscribe that did not reach the disk, and the same link works on a retry", async () => {
+    await run(0);
+    account("disk@example.com");
+    await run(1.6);
+    const id = enrollmentFor("disk@example.com").id;
+    const token = new URL(mloDripUnsubscribeUrl(id)).searchParams.get("t") as string;
+    const storePath = path.join(dataDir, "store.json");
+    const onDisk = () =>
+      (JSON.parse(fs.readFileSync(storePath, "utf8")) as { mloDrip: { enrollments: MloDripEnrollmentRecord[] } })
+        .mloDrip.enrollments.find((item) => item.id === id)?.status;
+    // A directory where the temp snapshot goes makes the disk write fail, as a full or read-only disk would.
+    const blocker = `${storePath}.${process.pid}.tmp`;
+    fs.mkdirSync(blocker);
+    try {
+      assert.equal(unsubscribeMloDrip(id, token), "not_saved");
+      assert.equal(onDisk(), "active", "a restart from this file would bring the emails back, so nothing was confirmed");
+    } finally {
+      fs.rmSync(blocker, { recursive: true, force: true });
+    }
+    assert.equal(unsubscribeMloDrip(id, token), "unsubscribed");
+    assert.equal(onDisk(), "unsubscribed", "the saved file is what a restart loads");
+    // A bad link stays "invalid" even while the disk is failing: it never reads as "try again".
+    fs.mkdirSync(blocker);
+    try {
+      assert.equal(unsubscribeMloDrip(id, "wrong-token"), "invalid");
+      assert.equal(unsubscribeMloDrip("mdrip_unknown", token), "invalid");
+    } finally {
+      fs.rmSync(blocker, { recursive: true, force: true });
+    }
+  });
+
   it("keeps borrower unsubscribe links working and separate from these", () => {
     const borrowerToken = unsubscribeToken("lead_123");
     assert.equal(verifyUnsubscribeToken("lead_123", borrowerToken), true);
     // A borrower's token cannot unsubscribe a loan officer, and the other way round.
-    assert.equal(unsubscribeMloDrip("lead_123", borrowerToken), false);
+    assert.equal(unsubscribeMloDrip("lead_123", borrowerToken), "invalid");
     const officerToken = new URL(mloDripUnsubscribeUrl("mdrip_abc")).searchParams.get("t") as string;
     assert.equal(verifyUnsubscribeToken("mdrip_abc", officerToken), false);
   });

@@ -298,10 +298,10 @@ describe("borrower messaging compliance", async () => {
       const lead = addLead(officer.id);
       persistFollowUpsBatch([job(lead, "day_1_educational_email"), job(lead, "day_30_check_in", { scheduledAt: new Date(Date.now() + 30 * 86400_000).toISOString() })]);
 
-      assert.equal(unsubscribeBorrower(lead.id, "wrong-token", "email_unsubscribe_page"), false);
+      assert.equal(unsubscribeBorrower(lead.id, "wrong-token", "email_unsubscribe_page"), "invalid");
       assert.equal(followUpsOf(lead.id).every((item) => item.status === "pending"), true);
 
-      assert.equal(unsubscribeBorrower(lead.id, unsubscribeToken(lead.id), "email_one_click_unsubscribe"), true);
+      assert.equal(unsubscribeBorrower(lead.id, unsubscribeToken(lead.id), "email_one_click_unsubscribe"), "unsubscribed");
       assert.equal(followUpsOf(lead.id).every((item) => item.status === "cancelled"), true);
       for (const channel of ["email", "sms", "call", "ai_voice"] as const) {
         assert.deepEqual(canContact({ db: readDb(), borrowerLeadId: lead.id, channel, legacyConsent: true, now: new Date("2026-11-20T20:00:00Z") }), {

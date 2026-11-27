@@ -1,4 +1,4 @@
-import { readDb, writeDb } from "./db";
+import { readDb, writeDb, writeDbDurably } from "./db";
 import { generateId } from "./id";
 import type { ConsentChannel, ConsentRecord, DbShape } from "./types";
 
@@ -184,12 +184,23 @@ export function recordCaptureConsent(input: Parameters<typeof consentRecordsForC
 
 /** Records an opt-out on every channel for a lead (e.g. after a STOP reply). */
 export function recordOptOutAllChannels(borrowerLeadId: string, source: string): void {
+  writeDb((db) => pushOptOutAllChannels(db, borrowerLeadId, source));
+}
+
+/**
+ * recordOptOutAllChannels() for an opt-out the person is told succeeded (the unsubscribe link):
+ * throws StoreNotDurableError when it did not reach the disk, so a restart can't bring the old
+ * consent back after we said "you're unsubscribed". Memory holds the opt-out either way.
+ */
+export function recordOptOutAllChannelsDurably(borrowerLeadId: string, source: string): void {
+  writeDbDurably((db) => pushOptOutAllChannels(db, borrowerLeadId, source));
+}
+
+function pushOptOutAllChannels(db: DbShape, borrowerLeadId: string, source: string): void {
   const at = new Date().toISOString();
-  writeDb((db) => {
-    for (const channel of ["sms", "call", "email", "ai_voice"] as const) {
-      db.consents.push({ id: generateId("consent"), borrowerLeadId, channel, granted: false, source, at });
-    }
-  });
+  for (const channel of ["sms", "call", "email", "ai_voice"] as const) {
+    db.consents.push({ id: generateId("consent"), borrowerLeadId, channel, granted: false, source, at });
+  }
 }
 
 /** Read-only helper for routes and dashboards. */

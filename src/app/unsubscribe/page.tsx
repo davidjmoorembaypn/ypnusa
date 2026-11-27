@@ -19,17 +19,22 @@ async function confirm(formData: FormData) {
   const series = String(formData.get("m") ?? "");
   const token = String(formData.get("t") ?? "");
   // A loan officer leaving the free-account email series, or a borrower leaving Cerebro's messages.
+  // "unsubscribed" -> 1, "invalid" -> 0, "not_saved" -> retry (the form is shown again).
+  const code = { unsubscribed: "1", invalid: "0", not_saved: "retry" } as const;
   if (series) {
-    redirect(`/unsubscribe?done=${unsubscribeMloDrip(series, token) ? "m1" : "m0"}`);
+    const done = code[unsubscribeMloDrip(series, token)];
+    redirect(done === "retry" ? `/unsubscribe?${new URLSearchParams({ m: series, t: token, retry: "1" })}` : `/unsubscribe?done=m${done}`);
   }
-  const ok = unsubscribeBorrower(leadId, token, "email_unsubscribe_page");
-  redirect(`/unsubscribe?done=${ok ? "1" : "0"}`);
+  const done = code[unsubscribeBorrower(leadId, token, "email_unsubscribe_page")];
+  redirect(done === "retry" ? `/unsubscribe?${new URLSearchParams({ l: leadId, t: token, retry: "1" })}` : `/unsubscribe?done=${done}`);
 }
 
-type Props = { searchParams: Promise<{ l?: string; m?: string; t?: string; done?: string }> };
+type Props = { searchParams: Promise<{ l?: string; m?: string; t?: string; done?: string; retry?: string }> };
+
+const RETRY_NOTE = "We couldn\u2019t save that just now, so nothing has changed yet. Please press the button again in a minute.";
 
 export default async function UnsubscribePage({ searchParams }: Props) {
-  const { l, m, t, done } = await searchParams;
+  const { l, m, t, done, retry } = await searchParams;
   return (
     <div className="flex min-h-full flex-col bg-[#09081b] text-white">
       <SiteHeader />
@@ -42,6 +47,7 @@ export default async function UnsubscribePage({ searchParams }: Props) {
             <p className="text-white/85">That link didn&rsquo;t work. Email support@ypnus.com and we&rsquo;ll take you off the list.</p>
           ) : m && t ? (
             <form action={confirm} className="flex flex-col gap-4">
+              {retry ? <p className="text-amber-300">{RETRY_NOTE}</p> : null}
               <p className="text-white/85">Stop YPN USA&rsquo;s getting-started emails? Sign-in links and account notices are not affected.</p>
               <input type="hidden" name="m" value={m} />
               <input type="hidden" name="t" value={t} />
@@ -55,6 +61,7 @@ export default async function UnsubscribePage({ searchParams }: Props) {
             <p className="text-white/85">That link didn&rsquo;t work. Reply to the email you got and ask to be removed, and the loan officer will take you off.</p>
           ) : l && t ? (
             <form action={confirm} className="flex flex-col gap-4">
+              {retry ? <p className="text-amber-300">{RETRY_NOTE}</p> : null}
               <p className="text-white/85">Stop all emails, texts and calls from Cerebro, the AI assistant, about your mortgage request?</p>
               <input type="hidden" name="l" value={l} />
               <input type="hidden" name="t" value={t} />

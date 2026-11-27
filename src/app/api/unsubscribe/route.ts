@@ -10,10 +10,15 @@ export async function POST(request: Request) {
   const token = url.searchParams.get("t") ?? "";
   // ?m= is a loan officer leaving the free-account email series; ?l= is a borrower.
   const series = url.searchParams.get("m");
-  const ok = series
+  const outcome = series
     ? unsubscribeMloDrip(series, token)
     : unsubscribeBorrower(url.searchParams.get("l") ?? "", token, "email_one_click_unsubscribe");
-  return NextResponse.json({ ok }, { status: ok ? 200 : 400 });
+  // 503 when the opt-out could not be saved, so the mail provider can try again; 400 for a bad link.
+  const status = outcome === "unsubscribed" ? 200 : outcome === "not_saved" ? 503 : 400;
+  return NextResponse.json(
+    { ok: outcome === "unsubscribed" },
+    { status, headers: outcome === "not_saved" ? { "Retry-After": "60" } : undefined },
+  );
 }
 
 /** A person opening the link: send them to the page with a confirm button (link scanners can't unsubscribe anyone). */

@@ -24,7 +24,7 @@ function qualifiedSession(fields: Partial<ChatSessionRecord["capturedFields"]> =
     createdAt: now,
     updatedAt: now,
     messages: [],
-    capturedFields: { name: "Jamie Rivera", email: "jamie@borrowermail.com", phone: "555-0100", leadType: "buyer", urgency: "high", consent: true, ...fields },
+    capturedFields: { name: "Jamie Rivera", email: "jamie@borrowermail.com", phone: "555-0100", leadType: "buyer", urgency: "high", consent: true, zip: "93618", ...fields },
     summary: "Wants to buy in the next 60 days.",
     leadScore: 82,
     recommendedAction: "Call within the hour.",
@@ -98,6 +98,45 @@ describe("follow-up emails for chat leads", () => {
       assert.ok(session.borrowerLeadId);
       assert.deepEqual(jobsFor(session.borrowerLeadId), [], `${leadType} leads get no mortgage follow-ups`);
     }
+  });
+
+  it("queues nothing for a lead with no ZIP code, because licensing cannot be checked", () => {
+    process.env.CHAT_LEAD_JOURNEY_ENABLED = "true";
+    for (const zip of [undefined, "", "CA", "9361"]) {
+      const session = qualifiedSession({ zip, state: "CA", email: "nozip@borrowermail.com" });
+      linkQualifiedLead(session);
+      assert.ok(session.borrowerLeadId);
+      assert.deepEqual(jobsFor(session.borrowerLeadId), []);
+    }
+  });
+
+  it("records a no given later in the same chat, and drops what was queued", () => {
+    process.env.CHAT_LEAD_JOURNEY_ENABLED = "true";
+    const session = qualifiedSession({ email: "changedmind@borrowermail.com" });
+    linkQualifiedLead(session);
+    const leadId = session.borrowerLeadId as string;
+    assert.equal(jobsFor(leadId).filter((job) => job.status === "pending").length, 5);
+
+    // The borrower changes their mind; the chat captures consent: false and links again.
+    session.capturedFields.consent = false;
+    linkQualifiedLead(session);
+    assert.ok(jobsFor(leadId).every((job) => job.status === "cancelled"));
+    const optOuts = () => readDb().consents.filter((item) => item.borrowerLeadId === leadId && item.channel === "email" && !item.granted);
+    assert.equal(optOuts().length, 1);
+    assert.equal(optOuts()[0].source, `chat_assistant:${session.id}`);
+
+    // Later turns of the same chat do not record it again.
+    linkQualifiedLead(session);
+    assert.equal(optOuts().length, 1);
+  });
+
+  it("records a later no even when the follow-up setting is off", () => {
+    const session = qualifiedSession({ email: "off@borrowermail.com" });
+    linkQualifiedLead(session);
+    session.capturedFields.consent = false;
+    linkQualifiedLead(session);
+    const leadId = session.borrowerLeadId as string;
+    assert.equal(readDb().consents.some((item) => item.borrowerLeadId === leadId && item.channel === "email" && !item.granted), true);
   });
 
   it("cancels the emails when the borrower opts out before they come due", async () => {

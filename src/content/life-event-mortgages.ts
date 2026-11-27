@@ -60,7 +60,7 @@ export const LIFE_EVENT_GUIDES: LifeEventGuide[] = [
     intro:
       "A divorce raises three mortgage questions at once: who keeps the house, how the other person gets paid for their share, and whether each of you can qualify for a loan alone. The rules below come from the Fannie Mae Selling Guide, the FHA handbook and federal law. " + LENDER_NOTE,
     keyPoints: [
-      "A divorce decree can give you the house, but it does not remove either spouse from the existing loan. Only the lender can do that, through a release, an assumption or a refinance.",
+      "A divorce decree can give you the house, but it does not remove either spouse from the existing loan. Only the lender can do that, through a written release of liability or a refinance.",
       "Alimony and child support you receive can count as income once you can show a history of receiving them and that they will continue for at least three years.",
       "Under Fannie Mae rules, a refinance used to buy out a co-owner can be treated as a limited cash-out refinance instead of a cash-out refinance.",
       "A debt the court assigned to your former spouse can usually be left out of your debt-to-income ratio, even though the creditor can still hold you to it.",
@@ -74,7 +74,7 @@ export const LIFE_EVENT_GUIDES: LifeEventGuide[] = [
         ],
         bullets: [
           "Refinance in one name. The spouse keeping the home qualifies alone and the old loan is paid off.",
-          "Assume the loan. FHA allows an assumption without a credit review when the spouse staying on title keeps living in the home and can show six months of making the payments. VA rules let a servicer release a spouse from a VA-backed loan after a divorce without a full assumption when the property is awarded to the veteran whose entitlement backs the loan.",
+          "Assume the loan. FHA allows an assumption without a credit review when the spouse staying on title keeps living in the home and can show six months of making the payments. An assumption on its own does not release the spouse who is leaving: ask the servicer for a written release of liability as part of it. VA rules let a servicer release a spouse from a VA-backed loan after a divorce without a full assumption when the property is awarded to the veteran whose entitlement backs the loan.",
           "Ask the servicer for a release of liability. On loans Fannie Mae owns, the servicer must find the remaining owner's credit and finances acceptable before it releases the other borrower.",
         ],
       },
@@ -111,7 +111,7 @@ export const LIFE_EVENT_GUIDES: LifeEventGuide[] = [
     faqs: [
       {
         q: "Does a divorce decree remove my name from the mortgage?",
-        a: "No. The decree binds you and your former spouse, not the lender. You stay liable on the loan until the lender releases you, the loan is assumed, or it is paid off by a refinance or sale.",
+        a: "No. The decree binds you and your former spouse, not the lender. You stay liable on the loan until the lender releases you in writing or the loan is paid off by a refinance or sale.",
       },
       {
         q: "Can I use alimony or child support to qualify for a mortgage?",
@@ -286,7 +286,7 @@ export const LIFE_EVENT_GUIDES: LifeEventGuide[] = [
           "Fannie Mae's standard 97 percent loan requires at least one borrower to be a first-time buyer.",
           "Fannie Mae's HomeReady loan also goes to 97 percent for a purchase. It has an income limit of 80 percent of the area median, and it does not require first-time buyer status.",
           "FHA finances up to 96.5 percent of the home's value for borrowers with scores of 580 or higher, and is not limited to first-time buyers.",
-          "VA purchase loans need no down payment as long as the price is not above the appraised value, for eligible veterans and service members.",
+          "VA purchase loans often need no down payment when the price is not above the appraised value and the veteran or service member has enough available entitlement for the loan.",
         ],
       },
     ],

@@ -16,6 +16,7 @@ import { VisibilityScoreCard } from "@/components/visibility-score-card";
 import { MarketingKitCard } from "@/components/marketing-kit/marketing-kit-card";
 import { computeVisibilityScore } from "@/lib/visibility-score";
 import { requireSession } from "@/lib/auth";
+import { officerForEmail, queueViewFor } from "@/lib/cerebro-queue";
 import { isPaidEntitlement, resolveEntitlement } from "@/lib/entitlements";
 import { officerPagePath, publicOfficerPageForUser } from "@/lib/officer-profile";
 import { getPricingTier, isPricingTierId, TRIAL_DAYS } from "@/lib/pricing";
@@ -43,6 +44,11 @@ const SECTIONS: readonly Section[] = [
     href: "/onboarding",
     title: "Activate Cerebro",
     description: "Set the mission, permissions, guardrails, and run a safe agent test.",
+  },
+  {
+    href: "/dashboard/approvals",
+    title: "Waiting for your OK",
+    description: "Messages Cerebro drafted for your borrowers. Edit, approve or dismiss each one.",
   },
   {
     href: "/portal/nurture",
@@ -190,6 +196,8 @@ export default async function DashboardHubPage({
   // A paid plan with no ZIP code: its pick was taken first, or checkout carried no ZIP code at all.
   const planNeedingZip = viewerPlanNeedingZip(feedViewer);
   const zipConflict = planNeedingZip?.zipLockConflict ?? null;
+  const queueOfficer = officerForEmail(session.email);
+  const waitingOnYou = queueOfficer ? queueViewFor(queueOfficer).waiting.length : 0;
 
   return (
     <main className="min-h-full bg-slate-50 px-4 py-10 text-slate-900 sm:px-6 sm:py-12">
@@ -206,6 +214,18 @@ export default async function DashboardHubPage({
           </div>
           <SessionBar />
         </header>
+
+        {waitingOnYou > 0 ? (
+          <Link
+            href="/dashboard/approvals"
+            className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-amber-950 hover:border-amber-400"
+          >
+            <span className="font-semibold">
+              {waitingOnYou} {waitingOnYou === 1 ? "message from Cerebro is" : "messages from Cerebro are"} waiting for your OK
+            </span>
+            <span className="text-sm font-semibold underline">Review now</span>
+          </Link>
+        ) : null}
 
         <InstallAppCard />
         <PhoneAlertsCard />

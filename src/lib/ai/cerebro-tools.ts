@@ -1,16 +1,15 @@
 import {
   consumeFreeAction,
-  listCerebroActions,
   releaseFreeAction,
   listWebsiteAutopilotChanges,
   readAgentOnboarding,
   readDb,
   saveAutopilotRun,
-  saveCerebroAction,
   writeDb,
   saveWebsiteAutopilotChange,
 } from "@/lib/db";
 import { runAgent } from "@/lib/agents/coreAgent";
+import { decideQueuedAction, MAX_EDITED_BODY, queueViewFor } from "@/lib/cerebro-queue";
 import { GENERIC_MARKETING_DISCLOSURES, withMarketingDisclosures } from "@/lib/compliance/guardrails";
 import type { PlatformChannel } from "@/lib/agents/marketingAgent";
 import type { AutopilotPageType } from "@/lib/types";
@@ -510,34 +509,24 @@ async function draftLandingPage(call: AiToolCall): Promise<string> {
 function listQueued(ctx: MloToolContext): string {
   const officer = findOfficer(ctx);
   if (!officer) return JSON.stringify({ error: "no_officer_profile", note: "No loan-officer profile is linked to this account yet." });
-  const leads = new Map(readDb().borrowerLeads.map((lead) => [lead.id, lead]));
-  const mine = listCerebroActions(officer.id);
-  const borrower = (id: string) => leads.get(id)?.answers.name ?? "Unnamed lead";
-  const open = mine
-    .filter((action) => action.status === "awaiting_approval")
-    .slice(-20)
-    .map((action) => ({
-      id: action.id,
-      kind: action.kind,
-      borrower: borrower(action.borrowerLeadId),
-      channel: action.channel,
-      preferredWindow: action.preferredWindow ?? null,
-      needsYou: action.holdReason ?? null,
-      subject: action.subject ?? null,
-      text: action.body,
-      createdAt: action.createdAt,
-    }));
-  const sent = mine
-    .filter((action) => action.status === "sent")
-    .slice(-10)
-    .map((action) => ({ borrower: borrower(action.borrowerLeadId), kind: action.kind, subject: action.subject ?? null, sentAt: action.sentAt }));
-  const waiting = mine.filter((action) => action.status === "held").length;
+  const view = queueViewFor(officer);
   return JSON.stringify({
-    replyMode: officer.cerebroReplyMode === "approve" ? "approve" : "live",
-    waitingForYou: open.length,
-    items: open,
-    recentlySentByCerebro: sent,
-    waitingToSend: waiting,
+    replyMode: view.replyMode,
+    waitingForYou: view.waiting.length,
+    items: view.waiting.map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      borrower: item.borrower,
+      channel: item.channel,
+      preferredWindow: item.preferredWindow ?? null,
+      needsYou: item.needsYou ?? null,
+      subject: item.subject ?? null,
+      text: item.body,
+      createdAt: item.createdAt,
+    })),
+    recentlySentByCerebro: view.recentlySent.map((item) => ({ borrower: item.borrower, kind: item.kind, subject: item.subject ?? null, sentAt: item.sentAt })),
+    waitingToSend: view.waitingToSend,
+    dashboardPage: "/dashboard/approvals",
   });
 }
 
@@ -612,21 +601,18 @@ function decideQueued(call: AiToolCall, ctx: MloToolContext): string {
   if (!actionId || (decision !== "approve" && decision !== "dismiss")) {
     return JSON.stringify({ error: "actionId and decision (approve|dismiss) are required." });
   }
-  // Ownership check: only this officer's own queue.
-  const action = listCerebroActions(officer.id).find((item) => item.id === actionId);
-  if (!action) return JSON.stringify({ error: "not_found" });
-  if (action.status !== "awaiting_approval") return JSON.stringify({ error: "already_decided", status: action.status });
-  const editedBody = str(call.input.editedBody, 2000);
-  const now = new Date().toISOString();
-  saveCerebroAction({
-    ...action,
-    status: decision === "approve" ? "approved" : "dismissed",
-    body: editedBody ?? action.body,
-    ...(decision === "approve" ? { approvedAt: now } : {}),
-    holdReason: undefined,
-    updatedAt: now,
-  });
-  const cerebroSends = decision === "approve" && action.channel === "email" && ["follow_up_draft", "nudge_draft", "rate_alert_draft"].includes(action.kind);
+  // decideQueuedAction only looks in this officer's own queue.
+  const result = decideQueuedAction({ officer, actionId, decision, editedBody: str(call.input.editedBody, MAX_EDITED_BODY) });
+  if (!result.ok) {
+    if (result.code === "NOT_FOUND") return JSON.stringify({ error: "not_found" });
+    if (result.code === "ALREADY_DECIDED") return JSON.stringify({ error: "already_decided", status: result.status });
+    if (result.code === "CHANGED") return JSON.stringify({ error: "changed", note: "The draft changed. Call list_queued_actions again and show the officer the new wording." });
+    return JSON.stringify({
+      error: "needs_changes",
+      problems: result.problems,
+      note: "Not approved: the wording breaks an advertising rule. Fix it with the officer and approve again with editedBody.",
+    });
+  }
   return JSON.stringify({
     ok: true,
     actionId,
@@ -634,10 +620,10 @@ function decideQueued(call: AiToolCall, ctx: MloToolContext): string {
     note:
       decision === "dismiss"
         ? "Dismissed."
-        : cerebroSends
+        : result.cerebroSends
           ? "Approved. Cerebro emails it within 5 minutes if the borrower's consent and the compliance checks allow; if something still blocks it, it comes back here with the reason."
           : "Approved. Cerebro doesn't send this kind itself: give the officer the final text to send from their own phone or email.",
-    finalText: decision === "approve" && !cerebroSends ? (editedBody ?? action.body) : undefined,
+    finalText: decision === "approve" && !result.cerebroSends ? result.finalText : undefined,
   });
 }
 

@@ -10,7 +10,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ypn-cerebro-tools-"));
 process.env.LOANPILOT_DATA_DIR = dataDir;
 
 import { runWithTools } from "./chat-agent";
-import { executeMloTool } from "./cerebro-tools";
+import { executeMloTool, marketingDraftProblems } from "./cerebro-tools";
 import type { AiGenerateResult, AiProvider } from "./provider";
 import { generateWebsiteAutopilotPlan } from "./website-autopilot";
 import { listWebsiteAutopilotChanges, saveWebsiteAutopilotChange, writeDb } from "../db";
@@ -224,6 +224,67 @@ describe("executeMloTool", () => {
     );
     assert.match(missing.result.body, /Nia North, NMLS #\[add your NMLS ID\]/);
     assert.ok(missing.disclosureNote);
+  });
+
+  it("returns no draft when the request would put a rate, a promise or an unverified number in the copy", async () => {
+    const ctx = { userId: "user_dana", userEmail: "dana@example.com", paidPlan: true };
+    const draft = async (input: Record<string, unknown>) => JSON.parse(await executeMloTool({ toolName: "draft_marketing_content", input }, ctx));
+
+    const rate = await draft({ kind: "social_post", goal: "Tell buyers our 5.25% rate is guaranteed", topic: "lowest rates in town" });
+    assert.equal(rate.error, "needs_changes");
+    assert.equal(rate.result, undefined, "no draft text comes back");
+    assert.equal(rate.draftOnly, undefined);
+    assert.ok(rate.problems.some((problem: string) => /rate, APR or percentage/.test(problem)));
+    assert.ok(rate.problems.some((problem: string) => /guarantee/.test(problem)));
+    assert.ok(rate.problems.some((problem: string) => /best\/lowest rate/.test(problem)));
+    assert.match(rate.note, /goal, topic and audience/);
+
+    const years = await draft({ kind: "ad_copy", goal: "Mention my 25 years of experience" });
+    assert.equal(years.error, "needs_changes");
+    assert.ok(years.problems.some((problem: string) => /25 years of experience/i.test(problem)));
+
+    const urgency = await draft({ kind: "gmb_post", goal: "update", city: "Dinuba", businessName: "Act now Mortgage" });
+    assert.equal(urgency.error, "needs_changes");
+
+    // The same request, reworded, goes through and still gets the officer's disclosures.
+    const clean = await draft({ kind: "social_post", goal: "Invite buyers to ask about their loan options" });
+    assert.equal(clean.draftOnly, true);
+    assert.match(clean.result.body, /NMLS #555111/);
+
+    const page = JSON.parse(
+      await executeMloTool({ toolName: "draft_landing_page", input: { goal: "book consultations", offer: "guaranteed approval for everyone" } }, ctx),
+    );
+    assert.equal(page.error, "needs_changes");
+    assert.equal(page.page, undefined);
+    assert.match(page.note, /goal and offer/);
+  });
+
+  it("checks every piece of text in a draft, including lists and nested sections", () => {
+    assert.deepEqual(marketingDraftProblems({ headline: "Ask about your options", hashtags: ["#homeloans", "#dinuba"] }, undefined), []);
+    assert.deepEqual(marketingDraftProblems(null, undefined), []);
+    assert.deepEqual(marketingDraftProblems("just text", undefined), []);
+
+    const list = marketingDraftProblems({ headline: "Fine", hashtags: ["#homeloans", "#rates guaranteed"] }, undefined);
+    assert.deepEqual(list, ["hashtags: remove a guarantee."]);
+
+    const nested = marketingDraftProblems({ hero: { title: "Welcome" }, sections: [{ heading: "Why us", body: "Rates as low as 5.5% APR" }] }, undefined);
+    assert.deepEqual(nested, ["sections.body: remove every rate, APR or percentage figure (advertising trigger term)."]);
+
+    // The officer's own NMLS number is fine; anyone else's is not.
+    assert.deepEqual(marketingDraftProblems({ body: "Dana Diaz, NMLS #555111" }, "555111"), []);
+    assert.equal(marketingDraftProblems({ body: "Dana Diaz, NMLS #123999" }, "555111").length, 1);
+  });
+
+  it("gives a free account its daily action back when a draft is refused", async () => {
+    const ctx = { userId: "user_free_refused", userEmail: "dana@example.com", paidPlan: false };
+    const refused = JSON.parse(
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Our rate is guaranteed" } }, ctx),
+    );
+    assert.equal(refused.error, "needs_changes");
+    const next = JSON.parse(
+      await executeMloTool({ toolName: "draft_marketing_content", input: { kind: "social_post", goal: "Invite buyers to ask about their options" } }, ctx),
+    );
+    assert.equal(next.draftOnly, true, "the refused attempt did not use up the day's one action");
   });
 });
 

@@ -44,11 +44,12 @@ enabled on the server, and whether an email or texting provider is configured.
 
 Each step is its own branch and pull request, off by default where it changes what gets sent.
 
-1. **Approval inbox in the dashboard (this branch).** `/dashboard/approvals`. Everything later
+1. **Approval inbox in the dashboard (done, #256).** `/dashboard/approvals`. Everything later
    needs somewhere for results to land and be approved.
-2. **Check drafts before the officer sees them.** Run `checkMarketingCompliance` on
-   `draft_marketing_content` output and regenerate once on failure, as LinkedIn drafts already do.
-   Small and safe.
+2. **Check drafts before the officer sees them (done).** `draft_marketing_content` and
+   `draft_landing_page` run `checkMarketingCompliance` on the finished draft. A draft that fails
+   is not returned: Cerebro gets the list of problems and rewords the request. These drafts are
+   built from templates, so there is nothing to regenerate; the fix is in the request wording.
 3. **Chat leads get the same follow-up journey as form leads.** Call `scheduleBorrowerJourney`
    from `linkQualifiedLead` when consent is on record. Behind a setting, because it increases
    email volume.

@@ -120,7 +120,7 @@ export function buildLandingPage(goal: string, offer: string): PageSpec {
     id: "offer",
     headline: "The Offer",
     subheadline: titleCase(offer),
-    body: `${titleCase(offer)}. Available for a limited time.`,
+    body: `${titleCase(offer)}.`,
     callToAction: ctaFor(goal),
   };
   const rest = ["features", "testimonials", "faq"].map((name) => buildSection(name, goal, audience));

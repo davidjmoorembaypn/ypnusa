@@ -37,6 +37,12 @@ export interface LifeEventGuide {
 
 export const lifeEventGuidePath = (guide: Pick<LifeEventGuide, "slug">) => `${LIFE_EVENT_HUB_PATH}/${guide.slug}`;
 
+/** Lead-source tag for the borrower intake, e.g. "life-event-inherited-home". It records which guide the borrower came from, by their own choice of page. */
+export const lifeEventFunnelSource = (guide?: Pick<LifeEventGuide, "slug">) => (guide ? `life-event-${guide.slug}` : "life-events");
+
+/** The borrower intake flow (not /consultation, which is the sales page for loan officers). */
+export const lifeEventIntakeHref = (guide?: Pick<LifeEventGuide, "slug">) => `/embed/intake?funnelSource=${encodeURIComponent(lifeEventFunnelSource(guide))}`;
+
 const HUD_HANDBOOK = {
   label: "HUD Handbook 4000.1, FHA Single Family Housing Policy Handbook (Update 18)",
   url: "https://www.hud.gov/sites/default/files/Housing/documents/40001-hsgh-Update-18.pdf",
@@ -75,7 +81,7 @@ export const LIFE_EVENT_GUIDES: LifeEventGuide[] = [
       {
         heading: "Buying out your spouse's share",
         paragraphs: [
-          "Fannie Mae lists buying out a co-owner under an agreement as an acceptable use of a limited cash-out refinance. The home must have been jointly owned for at least 12 months before the new loan funds, all parties must sign a written agreement stating the terms of the transfer and where the money goes, and the borrower keeping the home can receive only a small amount of cash back.",
+          "Fannie Mae lists buying out a co-owner under an agreement as an acceptable use of a limited cash-out refinance. The home must have been jointly owned for at least 12 months before the new loan funds, all parties must sign a written agreement stating the terms of the transfer and where the money goes, and the borrower who ends up as sole owner may not receive any of the refinance proceeds.",
           "If the buyout does not fit those terms, a cash-out refinance is the alternative. Fannie Mae normally requires six months on title before a cash-out refinance, but there is no waiting period when the borrower was legally awarded the property in a divorce, separation or dissolution of a domestic partnership.",
         ],
       },

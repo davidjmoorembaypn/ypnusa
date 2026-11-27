@@ -3,7 +3,7 @@ import { SiloNav } from "@/components/silo-nav";
 import { AuthorReviewerCard } from "@/components/seo/author-reviewer-card";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { TrackedLink } from "@/components/tracked-link";
-import { LIFE_EVENT_GUIDES, LIFE_EVENT_HUB_PATH, LIFE_EVENT_REVIEWED_ON, lifeEventGuidePath, type LifeEventGuide } from "@/content/life-event-mortgages";
+import { LIFE_EVENT_GUIDES, LIFE_EVENT_HUB_PATH, LIFE_EVENT_REVIEWED_ON, lifeEventFunnelSource, lifeEventGuidePath, lifeEventIntakeHref, type LifeEventGuide } from "@/content/life-event-mortgages";
 import { faqJsonLd, jsonLdScript } from "@/lib/seo";
 import { MARKETING_SITE_URL, marketingUrl } from "@/lib/site";
 
@@ -101,17 +101,17 @@ export function LifeEventGuidePage({ guide }: { guide: LifeEventGuide }) {
       <section className="mt-12 rounded-3xl border border-violet-400/30 bg-violet-500/10 p-6 sm:p-8">
         <h2 className="text-xl font-semibold text-white">Talk it through with a licensed loan officer</h2>
         <p className="mt-2 text-sm leading-6 text-white/70">
-          The rules above are general. How they apply depends on your loan, your documents and your lender. A
-          consultation is free and carries no obligation.
+          The rules above are general. How they apply depends on your loan, your documents and your lender.
+          Answer a few questions and a licensed loan officer will follow up. It is free and carries no obligation.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <TrackedLink
-            href="/consultation"
+            href={lifeEventIntakeHref(guide)}
             event="generate_lead_click"
-            eventParams={{ source: "life_event_guide", guide: guide.slug }}
+            eventParams={{ source: lifeEventFunnelSource(guide), guide: guide.slug }}
             className="inline-flex rounded-full bg-white px-6 py-3 text-sm font-bold text-[#17152f] transition hover:bg-violet-100"
           >
-            Book a free consultation
+            Start with a few questions
           </TrackedLink>
           <TrackedLink
             href="/pricing"

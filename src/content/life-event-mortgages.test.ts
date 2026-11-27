@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import sitemap from "@/app/sitemap";
 import { PROGRAM_LIST } from "@/lib/programs";
-import { LIFE_EVENT_GUIDES, LIFE_EVENT_HUB_PATH, LIFE_EVENT_REVIEWED_ON, lifeEventGuidePath, type LifeEventGuide } from "./life-event-mortgages";
+import { parseFunnelSourceParam } from "@/lib/local-seo";
+import { LIFE_EVENT_GUIDES, LIFE_EVENT_HUB_PATH, LIFE_EVENT_REVIEWED_ON, lifeEventFunnelSource, lifeEventGuidePath, lifeEventIntakeHref, type LifeEventGuide } from "./life-event-mortgages";
 
 /** Language these borrower pages must never use: rate quotes, payment estimates, approval promises. */
 const FORBIDDEN = [
@@ -62,6 +63,16 @@ describe("life-event mortgage guides", () => {
     const programPaths = new Set(PROGRAM_LIST.map((program) => `/mortgage-loans/${program.toLowerCase()}`));
     for (const guide of LIFE_EVENT_GUIDES) {
       for (const link of guide.relatedPrograms) assert.ok(programPaths.has(link.href), `${guide.slug}: ${link.href}`);
+    }
+  });
+
+  it("sends borrowers to the borrower intake with a source tag the intake accepts", () => {
+    for (const guide of [undefined, ...LIFE_EVENT_GUIDES]) {
+      const href = lifeEventIntakeHref(guide);
+      assert.ok(href.startsWith("/embed/intake?funnelSource="), href);
+      const tag = new URLSearchParams(href.split("?")[1]).get("funnelSource") ?? "";
+      assert.equal(tag, lifeEventFunnelSource(guide));
+      assert.equal(parseFunnelSourceParam(tag), tag);
     }
   });
 

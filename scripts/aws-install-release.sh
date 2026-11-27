@@ -35,6 +35,29 @@ BACKUP_TOOL="${YPNUSA_INSTALL_BACKUP_TOOL:-/usr/local/sbin/ypnusa-backup}"
 LOCK_DIR="${YPNUSA_INSTALL_LOCK_DIR:-/run/lock}"
 VERIFY_TRIES="${YPNUSA_INSTALL_VERIFY_TRIES:-15}"
 ABORT_FILE="${YPNUSA_ABORT_IF_FILE:-}"
+# How many release folders to keep, counting the live one. Each grows to several GB as the site
+# caches pages, so five of them filled the 20 GB disk on 2026-11-27 and stopped every update.
+KEEP_RELEASES="${YPNUSA_INSTALL_KEEP_RELEASES:-3}"
+# Below this much free space, old releases are removed BEFORE the download instead of after.
+MIN_FREE_MB="${YPNUSA_INSTALL_MIN_FREE_MB:-4096}"
+INDEXNOW_TRIES="${YPNUSA_INSTALL_INDEXNOW_TRIES:-3}"
+INDEXNOW_WAIT="${YPNUSA_INSTALL_INDEXNOW_WAIT:-20}"
+
+# Removes old release folders, newest kept first. Never touches the release serving traffic
+# ($1, a folder name; may be empty). $2 is how many OTHER folders to keep.
+prune_releases() {
+  local live="$1" keep="$2" kept=0 d
+  [ -d "$BASE/releases" ] || return 0
+  while read -r d; do
+    [ -n "$d" ] || continue
+    [ "$d" = "$live" ] && continue
+    kept=$((kept + 1))
+    if [ "$kept" -gt "$keep" ]; then
+      echo "    removing old release $d"
+      rm -rf "${BASE:?}/releases/$d"
+    fi
+  done < <(ls -1t "$BASE/releases" 2>/dev/null)
+}
 TAG="${1:-}"
 
 # Stop before any switch when the auto-updater was paused mid-run.
@@ -74,6 +97,14 @@ fi
 work="$(mktemp -d "$WORK_ROOT/ypnusa-deploy-XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 cd "$work"
+
+# A nearly full disk fails the download, the backup and the updater's own bookkeeping. Make room
+# first: keep the live release and one fallback.
+free_mb="$(df -Pm "$BASE" 2>/dev/null | awk 'NR==2 {print $4}')"
+if [ -n "$free_mb" ] && [ "$free_mb" -lt "$MIN_FREE_MB" ]; then
+  echo "=== Only ${free_mb} MB free; removing old releases before the download"
+  prune_releases "$(basename "$(readlink -f "$BASE/current" 2>/dev/null || true)")" 1
+fi
 
 echo "=== Download $url"
 curl -fsSL --retry 3 -o app-build.tar.gz "$url/app-build.tar.gz"
@@ -212,17 +243,23 @@ if [ "${YPNUSA_SKIP_INDEXNOW:-0}" != "1" ] && [ -f "$indexnow" ]; then
   echo "=== IndexNow ping (never fails the deploy)"
   node_bin="$(command -v node || true)"
   if [ -z "$node_bin" ] && [ -x /opt/node/bin/node ]; then node_bin=/opt/node/bin/node; fi
-  if [ -n "$node_bin" ] && timeout 120 "$node_bin" "$indexnow"; then
+  # Right after a restart the key file can still answer 404 for a few seconds, so try again
+  # before giving up.
+  pinged=0
+  if [ -n "$node_bin" ]; then
+    for try in $(seq 1 "$INDEXNOW_TRIES"); do
+      if timeout 120 "$node_bin" "$indexnow"; then pinged=1; break; fi
+      [ "$try" -lt "$INDEXNOW_TRIES" ] && sleep "$INDEXNOW_WAIT"
+    done
+  fi
+  if [ "$pinged" = "1" ]; then
     :
   else
     echo "WARNING: the IndexNow ping failed or node was not found; the deploy itself is fine. Run 'node $indexnow' by hand to retry." >&2
   fi
 fi
 
-echo "=== Prune old releases (keep the 5 newest, skip the live one)"
-cd "$BASE/releases"
-ls -1dt */ 2>/dev/null | sed 's#/$##' | tail -n +6 | while read -r d; do
-  [ "$d" = "$commit" ] || rm -rf "$d"
-done
+echo "=== Prune old releases (keep $KEEP_RELEASES: the live one and the newest others)"
+prune_releases "$commit" "$((KEEP_RELEASES - 1))"
 
 echo "=== DONE: live commit $commit"

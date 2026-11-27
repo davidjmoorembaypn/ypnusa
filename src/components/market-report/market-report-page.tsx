@@ -31,7 +31,7 @@ import {
 export const REPORT_HUB_PATH = "/research";
 export const reportCountyPath = (county: ReportCounty) => `${REPORT_HUB_PATH}/${county.slug}`;
 
-export const REPORT_HUB_TITLE = `Central Valley Mortgage Market Report ${LATEST_YEAR} for Loan Officers | YPN USA`;
+export const REPORT_HUB_TITLE = `Central Valley Mortgage Market Report ${LATEST_YEAR} | YPN USA`;
 export const REPORT_HUB_DESCRIPTION = `How many home loans were made in ${REPORT_REGION} in ${LATEST_YEAR}? County-by-county HMDA data for loan officers: originations, FHA and VA share, purchase vs refinance, and change since ${PREVIOUS_YEAR}.`;
 
 export function countyTitle(county: ReportCounty) {

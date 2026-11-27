@@ -9,7 +9,7 @@ import { MARKETING_SITE_URL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return marketingMetadata({
-    title: "Rate sheet and lock desk directory for loan officers",
+    title: "Rate sheets and lock desks for loan officers",
     description:
       "Where mortgage loan officers find pricing by loan type: public benchmarks, agency guides and the lender rate sheets and lock desks that set real prices. Conventional, FHA, VA, jumbo and DSCR.",
     path: "/rate-sheets",

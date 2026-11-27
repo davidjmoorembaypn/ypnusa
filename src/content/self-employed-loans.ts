@@ -120,7 +120,9 @@ export const DSCR_CALIFORNIA_FAQS: ProgramContent["faqs"] = [
 
 export const SELF_EMPLOYED_HUB = {
   title: "Self-Employed and Investor Mortgages in California's Central Valley",
-  metaTitle: "Self-Employed Mortgage Options in California's Central Valley",
+  // Kept <=50 chars: marketingMetadata() appends " | YPN USA" (10 chars) for any
+  // base title <=55 chars, so this must stay short enough for the total to be <=60.
+  metaTitle: "Self-Employed Mortgage Options, Central Valley CA",
   description:
     "How self-employed borrowers and real estate investors in the Central Valley buy homes with bank statement and DSCR loans instead of tax returns.",
   shortAnswer:

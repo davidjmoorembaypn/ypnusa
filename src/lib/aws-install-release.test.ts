@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -221,4 +221,67 @@ test("YPNUSA_SKIP_INDEXNOW=1 turns the ping off", (t) => {
   const r = install(e, { YPNUSA_INSTALL_INDEXNOW: ping.script, YPNUSA_SKIP_INDEXNOW: "1" });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.ok(!ping.ran());
+});
+
+// Release folders grow to several GB each. Five of them filled the server's 20 GB disk on
+// 2026-11-27 and stopped every update, so only three are kept and space is made before a download.
+function oldReleases(e: Env, names: string[]) {
+  names.forEach((name, i) => {
+    const dir = path.join(e.base, "releases", name);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "server.js"), "");
+    // Oldest first: each folder is a day older than the next.
+    const when = new Date(Date.now() - (names.length - i) * 86_400_000);
+    utimesSync(dir, when, when);
+  });
+}
+
+test("keeps the live release and the two newest others, and removes the rest", (t) => {
+  const e = setup();
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  oldReleases(e, ["aaaaaaa", "bbbbbbb", "ccccccc", "ddddddd"]);
+  const r = install(e);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(liveOf(e), NEW);
+  assert.deepEqual(readdirSync(path.join(e.base, "releases")).sort(), [OLD, NEW, "ddddddd"].sort());
+});
+
+test("makes room before the download when the disk is nearly full, never removing the live release", (t) => {
+  const e = setup();
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  oldReleases(e, ["aaaaaaa", "bbbbbbb", "ccccccc"]);
+  // A threshold no disk can meet stands in for a full disk.
+  const r = install(e, { YPNUSA_INSTALL_MIN_FREE_MB: "999999999999" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const cleanupAt = r.stdout.indexOf("removing old releases before the download");
+  const downloadAt = r.stdout.indexOf("=== Download");
+  assert.ok(cleanupAt >= 0 && downloadAt >= 0, r.stdout);
+  assert.ok(cleanupAt < downloadAt);
+  assert.match(r.stdout, /removing old release aaaaaaa/);
+  assert.equal(liveOf(e), NEW);
+  assert.deepEqual(readdirSync(path.join(e.base, "releases")).sort(), [OLD, NEW, "ccccccc"].sort());
+});
+
+test("a ping that fails at first is tried again", (t) => {
+  const e = setup();
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  const counter = path.join(e.root, "ping-count");
+  const script = path.join(e.root, "flaky-ping.mjs");
+  writeFileSync(
+    script,
+    `import { appendFileSync, readFileSync } from "node:fs";\nappendFileSync(${JSON.stringify(counter)}, "x");\nprocess.exit(readFileSync(${JSON.stringify(counter)}, "utf8").length >= 2 ? 0 : 2);\n`,
+  );
+  const r = install(e, { YPNUSA_INSTALL_INDEXNOW: script });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(readFileSync(counter, "utf8"), "xx");
+  assert.doesNotMatch(r.stderr, /IndexNow ping failed/);
+});
+
+test("a rolled-back build's folder is removed, so it never becomes the fallback", (t) => {
+  const e = setup({ unhealthy: [NEW] });
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  const r = install(e);
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.equal(liveOf(e), OLD);
+  assert.deepEqual(readdirSync(path.join(e.base, "releases")), [OLD]);
 });

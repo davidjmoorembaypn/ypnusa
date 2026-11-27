@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -372,4 +372,58 @@ test("pause gives up waiting after its time limit and says the run has not finis
   assert.match(r.stdout, /rc=1/);
   assert.match(r.stderr, /has not finished yet/);
   assert.equal(existsSync(e.env.YPNUSA_AU_PAUSE_FILE!), true);
+});
+
+// A full disk on 2026-11-27 made every run fail while writing its own state. With little free
+// space the updater now removes old releases first, but only while it holds the installer's lock.
+function agedReleases(e: Env, names: string[]) {
+  names.forEach((name, i) => {
+    const dir = path.join(e.base, "releases", name);
+    mkdirSync(dir, { recursive: true });
+    const when = new Date(Date.now() - (names.length - i) * 86_400_000);
+    utimesSync(dir, when, when);
+  });
+}
+const releasesOf = (e: Env) => readdirSync(path.join(e.base, "releases")).sort();
+// A threshold no disk can meet stands in for a nearly full disk.
+const lowDisk = (e: Env) => ({ ...e.env, YPNUSA_AU_MIN_FREE_MB: "999999999999", YPNUSA_AU_DEPLOY_LOCK: path.join(e.root, "lock", "deploy.lock") });
+
+test("with little free disk, removes old releases but keeps the live one and one fallback", (t) => {
+  const e = setup("1111111");
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  agedReleases(e, ["aaaaaaa", "bbbbbbb", "ccccccc"]);
+  latestRelease(e, "app-build-1111111");
+
+  const r = spawnSync("bash", [SCRIPT, "run"], { env: lowDisk(e), encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /removing old releases \(keeping live 1111111 and one fallback\)/);
+  assert.deepEqual(releasesOf(e), ["1111111", "ccccccc"]);
+  assert.equal(liveOf(e), "1111111");
+});
+
+test("never keeps a build that failed before as the fallback", (t) => {
+  const e = setup("1111111");
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  agedReleases(e, ["aaaaaaa", "bbbbbbb", "ccccccc"]);
+  mkdirSync(path.join(e.root, "state"), { recursive: true });
+  writeFileSync(path.join(e.root, "state", "failed-tags"), "app-build-ccccccc\n");
+  latestRelease(e, "app-build-1111111");
+
+  const r = spawnSync("bash", [SCRIPT, "run"], { env: lowDisk(e), encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(releasesOf(e), ["1111111", "bbbbbbb"]);
+});
+
+test("leaves every release alone while an install holds the deploy lock", (t) => {
+  const e = setup("1111111");
+  t.after(() => rmSync(e.root, { recursive: true, force: true }));
+  agedReleases(e, ["aaaaaaa", "bbbbbbb", "ccccccc"]);
+  latestRelease(e, "app-build-1111111");
+  const env = lowDisk(e);
+  mkdirSync(path.dirname(env.YPNUSA_AU_DEPLOY_LOCK), { recursive: true });
+
+  const r = spawnSync("flock", [env.YPNUSA_AU_DEPLOY_LOCK, "bash", SCRIPT, "run"], { env, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /an install is running; leaving old releases alone/);
+  assert.deepEqual(releasesOf(e), ["1111111", "aaaaaaa", "bbbbbbb", "ccccccc"]);
 });

@@ -91,7 +91,8 @@ routing logic, not an aspirational claim).
 | `WORDPRESS_AUTOPILOT_*` | WordPress content autopilot | Proposal-only, never writes to WordPress |
 | `WEBSITE_AUTOPILOT_UNATTENDED_*` | Scheduled autopilot runs | Fully off, no plan generated |
 | `NEXT_PUBLIC_PREDICTIVE_HOMEPAGE_ENABLED` | Client-side behavior-scoring homepage engine | Renders nothing, homepage unchanged |
-| `COUNTY_LOOKUP_API_URL` / `CENSUS_API_*` / `RENTAL_DEMAND_API_*` / `COUNTY_EVENTS_API_*` | Predictive lead-scoring data providers | Neutral placeholder data |
+| `AREA_DATA_SCORING_ENABLED` | Score stored leads with the built-in county and Census data | Off: stored leads keep neutral placeholder inputs (the dashboard lookup shows the data either way) |
+| `RENTAL_DEMAND_API_*` | Rental-demand provider for lead scoring | Neutral placeholder data |
 | `GBP_PLACE_ID` / `GBP_PROFILE_URL` / `GBP_REVIEWS_PROVIDER_*` | Google Business Profile reviews | No reviews shown |
 | `NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY` | Maps embed | Map omitted |
 | `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_*` | Direct-to-Stripe CTAs | CTA routes through ypnus.com's signup flow instead (current default, working) |

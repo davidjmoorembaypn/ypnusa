@@ -80,7 +80,7 @@ export async function POST(request: Request) {
         return jsonError("borrower-profile-by-zip requires { borrower: { zip, ... } }.", 400, "INVALID_TASK_TYPE");
       }
       const zipContext = await buildZipContext(body.borrower.zip);
-      const countyEvents = await buildCountyEvents(zipContext.county);
+      const countyEvents = await buildCountyEvents(zipContext.county, zipContext.countyFips);
       const lead = isRecord(body.lead) ? (body.lead as unknown as Lead) : null;
       const predictive = lead ? scoreLead(lead, zipContext, countyEvents) : undefined;
       const result = await runAgent({
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
         return jsonError("predict-outcome-by-zip requires { lead, zip }.", 400, "INVALID_TASK_TYPE");
       }
       const zipContext = await buildZipContext(body.zip);
-      const countyEvents = await buildCountyEvents(zipContext.county);
+      const countyEvents = await buildCountyEvents(zipContext.county, zipContext.countyFips);
       const predictive = scoreLead(body.lead as unknown as Lead, zipContext, countyEvents);
       const result = await runAgent({
         type: "predict-outcome",

@@ -33,10 +33,11 @@ export function LifeEventPanel() {
   }
 
   return (
-    <Card title="Life-event likelihood">
+    <Card title="Area score for a lead">
       <p className="text-sm text-slate-600">
-        Rule-based scoring across rental demand, census signals, and county-level life events (divorce, marriage,
-        probate, migration) for a given lead + ZIP code.
+        A rule-based score (fixed points, not a trained model) from the area data above: county births, deaths and
+        migration, state marriage and divorce rates, and the ZIP code&rsquo;s renter share and mobility. It rates the
+        area the lead is in, not the person. Rental demand and probate filings are not connected and add nothing.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -78,7 +79,7 @@ export function LifeEventPanel() {
               Lead score {Math.round(result.data.leadScore)}
             </span>
             <span className="rounded-full bg-cyan-100 px-4 py-1.5 text-sm font-semibold text-cyan-800">
-              Life-event likelihood {Math.round(result.data.lifeEventLikelihood)}
+              Area life-event score {Math.round(result.data.lifeEventLikelihood)}
             </span>
           </div>
           <p className="text-sm font-semibold text-slate-900">{result.data.recommendedAction}</p>

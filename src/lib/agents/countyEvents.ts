@@ -1,19 +1,20 @@
+import { areaDataScoringEnabled, countyRow, NATIONAL_RATES, stateMaritalRow } from "@/lib/area-data";
 import type { CountyEvents } from "./predictiveAgent";
 
 /**
- * Isolates external data-fetching for CountyEvents. No vital-records or
- * migration provider is wired into this deployment yet — set the env vars
- * below to enable live data. Until then this returns a clearly-labeled
- * neutral placeholder so predictiveAgent still gets a well-formed
- * CountyEvents.
+ * Builds the CountyEvents the scoring code reads, from public data built into the app
+ * (src/lib/area-data.ts): county births, deaths and net migration, and the STATE's marriage and
+ * divorce rates (the Census does not publish those for counties).
+ *
+ * Probate filings are individual court records with no free national source, so that field is
+ * always 0 and `available.probate` is false.
+ *
+ * Pass the county's FIPS code from ZipContext.countyFips. A county name alone is not enough
+ * ("Washington County" exists in 30 states), so without a code this returns the neutral
+ * placeholder. `useAreaData` works as in buildZipContext.
  */
 
-const COUNTY_EVENTS_API_URL = process.env.COUNTY_EVENTS_API_URL?.trim();
-const COUNTY_EVENTS_API_TOKEN = process.env.COUNTY_EVENTS_API_TOKEN?.trim();
-
-type CountyEventFields = Omit<CountyEvents, "county">;
-
-const NEUTRAL_COUNTY_EVENTS: CountyEventFields = {
+const NEUTRAL: Omit<CountyEvents, "county"> = {
   divorcesPerCapita: 0,
   marriagesPerCapita: 0,
   deathsPerCapita: 0,
@@ -23,33 +24,35 @@ const NEUTRAL_COUNTY_EVENTS: CountyEventFields = {
   migrationOut: 0,
 };
 
-/**
- * TODO: wire to a real county vital-records/migration provider once
- * COUNTY_EVENTS_API_URL (and optionally COUNTY_EVENTS_API_TOKEN) are set —
- * e.g. a state vital statistics office, IRS county migration data, or a
- * probate-filing feed.
- */
-export async function buildCountyEvents(county: string): Promise<CountyEvents> {
-  if (!COUNTY_EVENTS_API_URL) {
-    return { county, ...NEUTRAL_COUNTY_EVENTS };
-  }
+const perCapita = (events: number, base: number) => (base > 0 ? events / base : 0);
+const fromPer1000 = (rate: number | null) => (rate === null ? 0 : rate / 1000);
 
-  try {
-    const url = new URL(COUNTY_EVENTS_API_URL);
-    url.searchParams.set("county", county);
+export async function buildCountyEvents(
+  county: string,
+  countyFips?: string,
+  options?: { useAreaData?: boolean },
+): Promise<CountyEvents> {
+  const useAreaData = options?.useAreaData ?? areaDataScoringEnabled();
+  const row = useAreaData ? countyRow(countyFips) : null;
+  if (!row) return { county, ...NEUTRAL, available: { countyChange: false, marital: false, probate: false } };
 
-    const res = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        ...(COUNTY_EVENTS_API_TOKEN ? { Authorization: `Bearer ${COUNTY_EVENTS_API_TOKEN}` } : {}),
-      },
-      signal: AbortSignal.timeout(8_000),
-    });
-    if (!res.ok) return { county, ...NEUTRAL_COUNTY_EVENTS };
-
-    const data = (await res.json()) as Partial<CountyEventFields>;
-    return { county, ...NEUTRAL_COUNTY_EVENTS, ...data };
-  } catch {
-    return { county, ...NEUTRAL_COUNTY_EVENTS };
-  }
+  const state = stateMaritalRow(row.fips.slice(0, 2));
+  return {
+    county: row.name,
+    ...NEUTRAL,
+    divorcesPerCapita: state ? perCapita(state.divorcedLastYear, state.adults15Plus) : 0,
+    marriagesPerCapita: state ? perCapita(state.marriedLastYear, state.adults15Plus) : 0,
+    deathsPerCapita: perCapita(row.deaths, row.population),
+    newBirths: row.births,
+    birthsPerCapita: perCapita(row.births, row.population),
+    netMigrationPerCapita: perCapita(row.netDomesticMigration + row.netInternationalMigration, row.population),
+    maritalRatesFor: state?.name,
+    national: {
+      divorcesPerCapita: fromPer1000(NATIONAL_RATES.divorces),
+      marriagesPerCapita: fromPer1000(NATIONAL_RATES.marriages),
+      deathsPerCapita: fromPer1000(NATIONAL_RATES.deaths),
+      birthsPerCapita: fromPer1000(NATIONAL_RATES.births),
+    },
+    available: { countyChange: true, marital: Boolean(state), probate: false },
+  };
 }

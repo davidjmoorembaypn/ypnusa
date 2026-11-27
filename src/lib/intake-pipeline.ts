@@ -57,7 +57,7 @@ async function connectLeadIntelligence(input: {
 
   try {
     const zipContext = await buildZipContext(answers.zip);
-    const countyEvents = await buildCountyEvents(zipContext.county);
+    const countyEvents = await buildCountyEvents(zipContext.county, zipContext.countyFips);
     const lead: Lead = {
       id: borrowerLeadId,
       name: answers.name ?? "Borrower",

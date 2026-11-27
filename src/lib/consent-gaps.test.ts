@@ -67,7 +67,7 @@ function buildFollowUp(borrowerLeadId: string, overrides: Partial<ScheduledFollo
 }
 
 describe("consent gaps from the PR 216 review", async () => {
-  // A stand-in for the ZIP code lookup that personalization awaits. Whatever is queued in
+  // A stand-in for the rental-demand lookup that personalization awaits (the only network call left in it). Whatever is queued in
   // `duringLookup` runs while the worker is waiting on it, like a STOP arriving mid-send.
   let duringLookup: (() => void) | undefined;
   const lookup = http.createServer((_req, res) => {
@@ -77,7 +77,7 @@ describe("consent gaps from the PR 216 review", async () => {
     res.end(JSON.stringify({ county: "Tulare" }));
   });
   await new Promise<void>((resolve) => lookup.listen(0, "127.0.0.1", resolve));
-  process.env.COUNTY_LOOKUP_API_URL = `http://127.0.0.1:${(lookup.address() as AddressInfo).port}/county`;
+  process.env.RENTAL_DEMAND_API_URL = `http://127.0.0.1:${(lookup.address() as AddressInfo).port}/county`;
 
   let delivered: string[] = [];
   const outreach = http.createServer((req, res) => {
@@ -114,7 +114,7 @@ describe("consent gaps from the PR 216 review", async () => {
 
   after(async () => {
     delete process.env.OUTREACH_WEBHOOK_URL;
-    delete process.env.COUNTY_LOOKUP_API_URL;
+    delete process.env.RENTAL_DEMAND_API_URL;
     await new Promise<void>((resolve) => lookup.close(() => resolve()));
     await new Promise<void>((resolve) => outreach.close(() => resolve()));
     fs.rmSync(dataDir, { recursive: true, force: true });

@@ -50,9 +50,11 @@ Each step is its own branch and pull request, off by default where it changes wh
    `draft_landing_page` run `checkMarketingCompliance` on the finished draft. A draft that fails
    is not returned: Cerebro gets the list of problems and rewords the request. These drafts are
    built from templates, so there is nothing to regenerate; the fix is in the request wording.
-3. **Chat leads get the same follow-up journey as form leads.** Call `scheduleBorrowerJourney`
-   from `linkQualifiedLead` when consent is on record. Behind a setting, because it increases
-   email volume.
+3. **Chat leads get scheduled follow-up emails (built, switched off).** `linkQualifiedLead`
+   queues the day 1, 3, 30, 60 and 90 emails when the borrower consented and gave an email
+   address. No instant message, no texts, and not the day-5 email. Off until the server sets
+   `CHAT_LEAD_JOURNEY_ENABLED=true` in the app settings file, because it increases email volume.
+   Only leads captured after it is switched on are affected.
 4. **Marketing drafts in the queue.** A new queue kind for a Google profile post, a social post
    and a Realtor outreach email, each addressed to the officer (they post or send it themselves).
 5. **Weekly run per paid officer.** A scheduled pass that, for each officer on a paid plan, checks

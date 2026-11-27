@@ -3,6 +3,7 @@ import { generateId } from "@/lib/id";
 import { bookAppointment, listSyncedAvailableSlots } from "@/lib/calendar";
 import { readAgentOnboarding, readChatSession, readDb, saveChatSession, writeDb } from "@/lib/db";
 import { normalizeEmail } from "@/lib/accounts";
+import { CHAT_LEAD_JOURNEY_PLANS, chatLeadJourneyEnabled, scheduleBorrowerJourney } from "@/lib/automation";
 import { findZipOwnerSubscription, HOUSE_OFFICER_ID, logCrmActivity, routeLead } from "@/lib/crm";
 import { isValidZip, normalizeZip } from "@/lib/territory";
 import { emailNewLeadAlert, notifyAssignedOfficer } from "@/lib/notifications";
@@ -835,6 +836,19 @@ export function linkQualifiedLead(session: ChatSessionRecord): void {
     answers,
     qualification,
   });
+
+  // Scheduled follow-up emails, as form leads get (off unless the server turns it on). Queued
+  // only with the borrower's consent and an email address; each one is checked again for
+  // consent, opt-out, a booked call, licensing and advertising rules when it comes due
+  // (src/lib/automation.ts, src/lib/outreach.ts). A failure here never loses the lead.
+  // The emails are about a home loan, so only someone buying or refinancing gets them.
+  if (chatLeadJourneyEnabled() && (f.leadType === "buyer" || f.leadType === "refinance")) {
+    try {
+      scheduleBorrowerJourney(result.borrowerLeadId, answers, { plans: CHAT_LEAD_JOURNEY_PLANS });
+    } catch (error) {
+      console.error("[chat-agent] could not schedule the chat lead's follow-ups", error);
+    }
+  }
 }
 
 /**

@@ -66,14 +66,16 @@ const DEEP_DIVES = [
     ],
   },
   {
-    tag: "Predictive intelligence",
-    title: "Find motivated borrowers before the listing hits",
-    body: "Where supported data is available, YPN USA organizes public-record life-event signals in your territory to help identify timely financing conversations — probate, divorce, and new-union homebuyer signals among them.",
+    // Describes only what is built: area statistics in /dashboard/life-events (src/lib/area-data.ts).
+    // There is no feed of individual probate, divorce or deed records; do not advertise one.
+    tag: "Area insight",
+    title: "See what is changing in your territory",
+    body: "For any ZIP code, YPN USA shows public statistics for the county and state around it next to the national figure: births, deaths, people moving in and out, marriage and divorce rates, and how many households rent. They describe the area, not any person, and help you decide which topics and guides to lead with.",
     bullets: [
-      "Probate & estate financing signals",
-      "Divorce & refinance signals",
-      "New-union homebuyer signals",
-      "Availability, permitted use, and freshness vary by county and plan",
+      "County births, deaths and net migration, from Census Bureau estimates",
+      "State marriage and divorce rates (the Census does not publish them by county)",
+      "Share of households that rent, and that moved in the past year, by ZIP code",
+      "Not included: individual probate, divorce or deed records",
     ],
   },
 ];

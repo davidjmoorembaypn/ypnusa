@@ -801,7 +801,6 @@ export const CAN_YPNUS_HELP_WITH_MORTGAGE_MARKETING: BlogPost = {
 <li><strong>Follow-up that doesn't wait on you.</strong> On paid plans, Cerebro emails borrowers who opted in and drafts your texts for your approval, with calendar booking and CRM mirroring.</li>
 <li><strong>Marketing drafts.</strong> Cerebro drafts local social posts, Google Business Profile updates and Realtor co-marketing copy for you to review and edit before anything goes out. Two free tools do the same without an account: the <a href="/tools/social-writer">social media marketing writer</a> and the <a href="/tools/gbp-optimizer">Google Business Profile optimizer</a>.</li>
 <li><strong>A growth plan and market data.</strong> Cerebro builds a plan for your ZIP code from what you tell it about your market. Our <a href="/markets">mortgage market pages</a> and the <a href="/markets/metro">top 100 metro mortgage markets</a> show public HMDA loan data, so you can see how many loans are actually made where you work.</li>
-<li><strong>Life-event signals (Growth and Exclusive).</strong> Where supported public-record data exists, YPN USA organizes life-event signals in your territory. Availability varies by county.</li>
 <li><strong>Teams.</strong> Each loan officer on a team gets their own ZIP code, pages and Cerebro follow-up, so they don't compete for the same borrowers. See <a href="/teams">YPN USA for teams</a>.</li>
 </ul>
 
@@ -815,7 +814,7 @@ export const CAN_YPNUS_HELP_WITH_MORTGAGE_MARKETING: BlogPost = {
 <tbody>
 <tr><td>Free</td><td>$0, no card</td><td>Cerebro growth diagnostic and AI borrower intake. Does not lock a ZIP code.</td></tr>
 <tr><td>Pro</td><td>$99/mo or $990/yr</td><td>1 exclusive ZIP code, live lead delivery, Cerebro email follow-up and text drafts, calendar booking and CRM mirroring, a local page for your ZIP code</td></tr>
-<tr><td>Growth</td><td>$199/mo</td><td>Pro plus a portable MLO website, local city pages, priority lead delivery and life-event signals</td></tr>
+<tr><td>Growth</td><td>$199/mo</td><td>Pro plus a portable MLO website, local city pages and priority lead delivery</td></tr>
 <tr><td>Exclusive</td><td>$299/mo</td><td>Growth plus unlimited automation runs, priority ZIP code add-on access and white-glove onboarding</td></tr>
 </tbody>
 </table>

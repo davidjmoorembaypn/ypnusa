@@ -9,7 +9,7 @@ process.env.LOANPILOT_DATA_DIR = dataDir;
 
 import { dispatchCerebroMessages } from "./cerebro-dispatch";
 import { cerebroSendsIt, decideQueuedAction, MAX_EDITED_BODY, needsOfficer, officerForEmail, queueViewFor } from "./cerebro-queue";
-import { appendBorrowerLead, readDb, saveCerebroAction, writeDb } from "./db";
+import { appendBorrowerLead, claimCerebroActionForSend, readDb, saveCerebroAction, writeDb } from "./db";
 import type { SendEmailInput } from "./email";
 import { generateId } from "./id";
 import type { CerebroQueuedActionRecord, LoanOfficerRecord } from "./types";
@@ -217,6 +217,63 @@ describe("the approval queue", () => {
     assert.deepEqual(sent.map((input) => input.subject).filter((subject) => subject === "First one" || subject === "Second one"), ["First one"]);
     assert.equal(stored(first.id)?.status, "sent");
     assert.equal(stored(second.id)?.status, "dismissed");
+  });
+
+  it("will not dismiss or edit the draft that is going out right now, and records what was sent", async () => {
+    const officer = addOfficer({ cerebroReplyMode: "live" });
+    const action = queue(officer.id, addLead(officer.id), { subject: "Going out now" });
+
+    const sent: SendEmailInput[] = [];
+    await dispatchCerebroMessages(noon, async (input) => {
+      if (input.subject !== "Going out now") return { sent: true };
+      sent.push(input);
+      // While this very email is on its way, the officer's page tries to dismiss it, then edit it.
+      assert.equal(queueViewFor(officer, noon).waiting.some((entry) => entry.id === action.id), false);
+      const dismissed = decideQueuedAction({ officer, actionId: action.id, decision: "dismiss", now: noon });
+      assert.ok(!dismissed.ok && dismissed.code === "SENDING");
+      const edited = decideQueuedAction({ officer, actionId: action.id, decision: "approve", editedBody: "Something else", now: noon });
+      assert.ok(!edited.ok && edited.code === "SENDING");
+      return { sent: true };
+    });
+    assert.equal(sent.length, 1);
+    const record = stored(action.id);
+    assert.equal(record?.status, "sent");
+    assert.equal(record?.sendingAt, undefined);
+    assert.ok(sent[0].html.includes("What&#39;s a good time") || sent[0].html.includes("What's a good time"));
+  });
+
+  it("only claims a draft for sending when it is still the version that was checked", () => {
+    const officer = addOfficer({ cerebroReplyMode: "live" });
+    const action = queue(officer.id, addLead(officer.id));
+    // The officer dismissed it after the sender read it: the claim fails and nothing is marked.
+    assert.ok(decideQueuedAction({ officer, actionId: action.id, decision: "dismiss", now: noon }).ok);
+    assert.equal(claimCerebroActionForSend(action.id, action, noon.toISOString()), null);
+    assert.equal(stored(action.id)?.status, "dismissed");
+    assert.equal(stored(action.id)?.sendingAt, undefined);
+
+    const fresh = queue(officer.id, addLead(officer.id));
+    const claimed = claimCerebroActionForSend(fresh.id, fresh, noon.toISOString());
+    assert.equal(claimed?.sendingAt, noon.toISOString());
+    // A second claim on the same version fails, so two passes can't both send it.
+    assert.equal(claimCerebroActionForSend(fresh.id, fresh, noon.toISOString()), null);
+  });
+
+  it("retries a draft whose send claim was left behind by a pass that stopped", async () => {
+    const officer = addOfficer({ cerebroReplyMode: "live" });
+    const stale = new Date(noon.getTime() - 11 * 60 * 1000).toISOString();
+    const action = queue(officer.id, addLead(officer.id), { subject: "Left mid-send", sendingAt: stale });
+
+    // While the claim is fresh nobody may decide on it; once it is stale the officer can again.
+    const blocked = decideQueuedAction({ officer, actionId: action.id, decision: "dismiss", now: new Date(Date.parse(stale) + 60_000) });
+    assert.ok(!blocked.ok && blocked.code === "SENDING");
+
+    const subjects: string[] = [];
+    await dispatchCerebroMessages(noon, async (input) => {
+      subjects.push(input.subject);
+      return { sent: true };
+    });
+    assert.ok(subjects.includes("Left mid-send"));
+    assert.equal(stored(action.id)?.status, "sent");
   });
 
   it("will not approve a draft that was rewritten after the officer's page loaded", () => {

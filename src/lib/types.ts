@@ -677,6 +677,11 @@ export interface CerebroQueuedActionRecord {
   /** sent: Cerebro emailed it. held: waiting on something (see holdReason), retried later. */
   status: "awaiting_approval" | "approved" | "dismissed" | "sent" | "held";
   sentAt?: string;
+  /**
+   * Set while Cerebro is emailing it (from claim to result). While it is fresh the officer can't
+   * approve, edit or dismiss it and nothing rewrites it, so what goes out is what was checked.
+   */
+  sendingAt?: string;
   /** When the officer approved it; kept through holds so a later send knows a person reviewed it. */
   approvedAt?: string;
   /** Why it hasn't gone out yet. On an awaiting_approval item, what the officer needs to do. */

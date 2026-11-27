@@ -3,7 +3,7 @@ import { checkMarketingCompliance } from "@/lib/ai/marketing-compliance";
 import { applyComplianceGuardrails, describeBlock } from "@/lib/compliance/guardrails";
 import { canContact } from "@/lib/consent";
 import { borrowerFacingOfficer, HOUSE_OFFICER_ID, houseOfficerRecord } from "@/lib/crm";
-import { readDb, saveCerebroAction } from "@/lib/db";
+import { claimCerebroActionForSend, readDb, saveCerebroAction } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { BUSINESS_ADDRESS_LINE, BUSINESS_NAME } from "@/lib/business-profile";
 import { unsubscribeHeaders, unsubscribeUrl } from "@/lib/unsubscribe-link";
@@ -97,6 +97,16 @@ export type DispatchDecision =
   | { action: "needs_officer"; reason: string }
   | { action: "skip" };
 
+/** How long a send claim holds. A claim older than this was left by a pass that stopped mid-send. */
+export const SEND_CLAIM_MS = 10 * 60 * 1000;
+
+/** True while a pass is emailing this item: nobody may decide on it or rewrite it. */
+export function isBeingSent(action: Pick<CerebroQueuedActionRecord, "sendingAt">, now = new Date()): boolean {
+  if (!action.sendingAt) return false;
+  const age = now.getTime() - Date.parse(action.sendingAt);
+  return Number.isFinite(age) && age < SEND_CLAIM_MS;
+}
+
 /** Pure decision for one queued item. */
 export function decideDispatch(
   action: CerebroQueuedActionRecord,
@@ -106,6 +116,7 @@ export function decideDispatch(
   now: Date,
 ): DispatchDecision {
   if (!AUTO_SEND_KINDS.has(action.kind) || action.status === "dismissed" || action.status === "sent") return { action: "skip" };
+  if (isBeingSent(action, now)) return { action: "skip" };
   const approved = action.status === "approved" || Boolean(action.approvedAt);
   // Cerebro cannot send a text or make a call. Once the officer has approved one it is theirs to
   // send, so it is never put back on hold.
@@ -184,16 +195,21 @@ export async function dispatchCerebroMessages(now = new Date(), send: typeof sen
     if (decision.action === "skip") continue;
     if (decision.action === "hold") {
       if (action.status !== "held" || action.holdReason !== decision.reason) {
-        saveCerebroAction({ ...action, status: "held", holdReason: decision.reason, updatedAt: stamp });
+        saveCerebroAction({ ...action, sendingAt: undefined, status: "held", holdReason: decision.reason, updatedAt: stamp });
       }
       result.held++;
       continue;
     }
     if (decision.action === "needs_officer") {
-      saveCerebroAction({ ...action, status: "awaiting_approval", holdReason: decision.reason, updatedAt: stamp });
+      saveCerebroAction({ ...action, sendingAt: undefined, status: "awaiting_approval", holdReason: decision.reason, updatedAt: stamp });
       result.toOfficer++;
       continue;
     }
+    // Claim it before the email goes out, in one locked write that only succeeds if the record is
+    // still the one just decided on. From here the officer can't dismiss or edit it and a
+    // borrower's new request can't rewrite it, so the email matches the record it is saved as.
+    const claimed = claimCerebroActionForSend(action.id, action, stamp, SEND_CLAIM_MS);
+    if (!claimed) continue;
     const outcome = await send({
       to: decision.to,
       subject: decision.subject,
@@ -203,11 +219,11 @@ export async function dispatchCerebroMessages(now = new Date(), send: typeof sen
       headers: unsubscribeHeaders(action.borrowerLeadId),
     });
     if (!outcome.sent) {
-      saveCerebroAction({ ...action, status: "held", holdReason: `Email didn't send: ${outcome.reason ?? "unknown error"}`, updatedAt: stamp });
+      saveCerebroAction({ ...claimed, sendingAt: undefined, status: "held", holdReason: `Email didn't send: ${outcome.reason ?? "unknown error"}`, updatedAt: stamp });
       result.held++;
       continue;
     }
-    saveCerebroAction({ ...action, status: "sent", body: decision.body, sentAt: stamp, holdReason: undefined, updatedAt: stamp });
+    saveCerebroAction({ ...claimed, sendingAt: undefined, status: "sent", body: decision.body, sentAt: stamp, holdReason: undefined, updatedAt: stamp });
     result.sent++;
   }
   return result;

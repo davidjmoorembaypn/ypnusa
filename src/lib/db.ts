@@ -1208,6 +1208,30 @@ export function saveCerebroAction(action: CerebroQueuedActionRecord): void {
   });
 }
 
+/**
+ * Claims one queued action for sending, in one locked write: only when the stored record is still
+ * the version the sender decided on (same updatedAt and status). Returns the claimed record, or
+ * null when it changed meanwhile (dismissed, edited, rewritten) and must not be sent.
+ */
+export function claimCerebroActionForSend(
+  id: string,
+  expected: Pick<CerebroQueuedActionRecord, "updatedAt" | "status">,
+  stamp: string,
+  /** A claim younger than this belongs to a send still in progress. */
+  claimMs = 10 * 60 * 1000,
+): CerebroQueuedActionRecord | null {
+  let claimed: CerebroQueuedActionRecord | null = null;
+  writeDb((db) => {
+    const record = db.cerebroActions.find((item) => item.id === id);
+    if (!record || record.updatedAt !== expected.updatedAt || record.status !== expected.status) return;
+    if (record.sendingAt && Date.parse(stamp) - Date.parse(record.sendingAt) < claimMs) return;
+    record.sendingAt = stamp;
+    record.updatedAt = stamp;
+    claimed = { ...record };
+  });
+  return claimed;
+}
+
 export function listCerebroActions(loId: string): CerebroQueuedActionRecord[] {
   return readDb().cerebroActions.filter((action) => action.loId === loId);
 }

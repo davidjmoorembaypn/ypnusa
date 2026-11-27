@@ -178,6 +178,7 @@ export const DECIDE_QUEUED_ACTION_TOOL: AiToolDefinition = {
       actionId: { type: "string" },
       decision: { type: "string", enum: ["approve", "dismiss"] },
       editedBody: { type: "string", description: "The officer's own edited wording, if they changed it." },
+      version: { type: "string", description: "The item's version from list_queued_actions, so a draft rewritten since the officer saw it is never decided." },
     },
     required: ["actionId", "decision"],
     additionalProperties: false,
@@ -566,6 +567,7 @@ function listQueued(ctx: MloToolContext): string {
       subject: item.subject ?? null,
       text: item.body,
       createdAt: item.createdAt,
+      version: item.version,
     })),
     recentlySentByCerebro: view.recentlySent.map((item) => ({ borrower: item.borrower, kind: item.kind, subject: item.subject ?? null, sentAt: item.sentAt })),
     waitingToSend: view.waitingToSend,
@@ -645,10 +647,18 @@ function decideQueued(call: AiToolCall, ctx: MloToolContext): string {
     return JSON.stringify({ error: "actionId and decision (approve|dismiss) are required." });
   }
   // decideQueuedAction only looks in this officer's own queue.
-  const result = decideQueuedAction({ officer, actionId, decision, editedBody: str(call.input.editedBody, MAX_EDITED_BODY) });
+  const version = str(call.input.version, 80);
+  const result = decideQueuedAction({
+    officer,
+    actionId,
+    decision,
+    editedBody: str(call.input.editedBody, MAX_EDITED_BODY),
+    ...(version ? { seenVersion: version } : {}),
+  });
   if (!result.ok) {
     if (result.code === "NOT_FOUND") return JSON.stringify({ error: "not_found" });
     if (result.code === "ALREADY_DECIDED") return JSON.stringify({ error: "already_decided", status: result.status });
+    if (result.code === "SENDING") return JSON.stringify({ error: "sending", note: "Cerebro is emailing this one right now; it can no longer be stopped or edited." });
     if (result.code === "CHANGED") return JSON.stringify({ error: "changed", note: "The draft changed. Call list_queued_actions again and show the officer the new wording." });
     return JSON.stringify({
       error: "needs_changes",

@@ -1,3 +1,4 @@
+import { isBeingSent } from "@/lib/cerebro-dispatch";
 import { borrowerFacingOfficer, houseOfficerRecord, HOUSE_OFFICER_ID } from "@/lib/crm";
 import { appendCrmNote, readDb, saveCerebroAction, saveStarterKit, upsertOfficerProspect } from "@/lib/db";
 import { generateId } from "@/lib/id";
@@ -328,7 +329,7 @@ export function executeRequestCallback(call: AiToolCall, session: ChatSessionRec
 
   // One open callback per lead: a second request updates the first instead of piling up.
   const existing = db.cerebroActions.find(
-    (action) => action.borrowerLeadId === lead.id && action.kind === "callback_request" && action.status === "awaiting_approval",
+    (action) => action.borrowerLeadId === lead.id && action.kind === "callback_request" && action.status === "awaiting_approval" && !isBeingSent(action),
   );
   const request: CerebroQueuedActionRecord = {
     id: existing?.id ?? generateId("cba"),
@@ -347,7 +348,7 @@ export function executeRequestCallback(call: AiToolCall, session: ChatSessionRec
 
   const draft = draftFirstFollowUp({ channel, borrowerName: f.name, officer, leadType: f.leadType, preferredWindow, topic });
   const existingDraft = db.cerebroActions.find(
-    (action) => action.borrowerLeadId === lead.id && action.kind === "follow_up_draft" && action.status === "awaiting_approval",
+    (action) => action.borrowerLeadId === lead.id && action.kind === "follow_up_draft" && action.status === "awaiting_approval" && !isBeingSent(action),
   );
   saveCerebroAction({
     id: existingDraft?.id ?? generateId("cba"),

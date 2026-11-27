@@ -71,6 +71,9 @@ export async function POST(request: Request) {
       );
     }
     if (result.code === "ALREADY_DECIDED") return jsonError("That one was already handled.", 409, "ALREADY_DECIDED");
+    if (result.code === "SENDING") {
+      return jsonError("Cerebro is emailing this one right now, so it can't be changed. It will show under recently sent.", 409, "SENDING");
+    }
     if (result.code === "CHANGED") {
       return jsonError("This draft changed after the page loaded. Reload the page to see the current wording.", 409, "CHANGED");
     }
